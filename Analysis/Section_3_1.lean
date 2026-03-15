@@ -164,19 +164,27 @@ theorem SetTheory.Set.not_mem_empty : ∀ x, x ∉ (∅:Set) := emptyset_mem
 
 /-- Empty set has no elements -/
 theorem SetTheory.Set.eq_empty_iff_forall_notMem {X:Set} : X = ∅ ↔ (∀ x, x ∉ X) := by
-  sorry
+  constructor
+  · intro h; rw [h]; exact not_mem_empty
+  intro h; apply extensionality; intro x; constructor
+  · intro hx; exfalso; exact h x hx
+  intro hx; exfalso; exact emptyset_mem x hx
 
 /-- Empty set is unique -/
 theorem SetTheory.Set.empty_unique : ∃! (X:Set), ∀ x, x ∉ X := by
-  sorry
+  use ∅
+  constructor
+  · intro X; exact emptyset_mem X
+  intro Y
+  rw [SetTheory.Set.eq_empty_iff_forall_notMem]
+  exact id
 
 /-- Lemma 3.1.5 (Single choice) -/
 lemma SetTheory.Set.nonempty_def {X:Set} (h: X ≠ ∅) : ∃ x, x ∈ X := by
   -- This proof is written to follow the structure of the original text.
   by_contra! this
-  have claim (x:Object) : x ∈ X ↔ x ∈ (∅:Set) := by simp [this, not_mem_empty]
-  apply ext at claim
-  contradiction
+  rw [← SetTheory.Set.eq_empty_iff_forall_notMem] at this
+  exact h this
 
 theorem SetTheory.Set.nonempty_of_inhabited {X:Set} {x:Object} (h:x ∈ X) : X ≠ ∅ := by
   contrapose! h
@@ -231,23 +239,47 @@ theorem SetTheory.Set.mem_triple (x a b c:Object) : x ∈ ({a,b,c}:Set) ↔ (x =
   simp [Insert.insert, mem_union, mem_singleton]
 
 /-- Remark 3.1.9 -/
-theorem SetTheory.Set.singleton_uniq (a:Object) : ∃! (X:Set), ∀ x, x ∈ X ↔ x = a := by sorry
+theorem SetTheory.Set.singleton_uniq (a:Object) : ∃! (X:Set), ∀ x, x ∈ X ↔ x = a := by
+  use {a}
+  constructor
+  · intro x; apply mem_singleton
+  intro y hy; apply ext; intro x; rw [hy x, ← singleton_axiom]; rfl
 
 /-- Remark 3.1.9 -/
-theorem SetTheory.Set.pair_uniq (a b:Object) : ∃! (X:Set), ∀ x, x ∈ X ↔ x = a ∨ x = b := by sorry
+theorem SetTheory.Set.pair_uniq (a b:Object) : ∃! (X:Set), ∀ x, x ∈ X ↔ x = a ∨ x = b := by
+  use {a, b}
+  constructor
+  · intro x; apply mem_pair
+  intro y hy; apply ext; intro x; rw [hy x, ← mem_pair]
 
 /-- Remark 3.1.9 -/
-theorem SetTheory.Set.pair_comm (a b:Object) : ({a,b}:Set) = {b,a} := by sorry
+theorem SetTheory.Set.pair_comm (a b:Object) : ({a,b}:Set) = {b,a} := by
+  apply ext; intro x
+  rw [mem_pair, mem_pair, Or.comm]
 
 /-- Remark 3.1.9 -/
 @[simp]
 theorem SetTheory.Set.pair_self (a:Object) : ({a,a}:Set) = {a} := by
-  sorry
+  apply ext; intro x; rw [mem_pair, mem_singleton]
+  -- x = a ∨ x = a ↔ x = a
+  constructor
+  · intro h; apply Or.elim h; apply id; apply id
+  apply Or.inl
 
 /-- Exercise 3.1.1 -/
 theorem SetTheory.Set.pair_eq_pair {a b c d:Object} (h: ({a,b}:Set) = {c,d}) :
     a = c ∧ b = d ∨ a = d ∧ b = c := by
-  sorry
+  have h1 : a = c ∨ a = d := by rw [← mem_pair, ← h, mem_pair]; apply Or.inl; rfl
+  have h2 : b = c ∨ b = d := by rw [← mem_pair, ← h, mem_pair]; apply Or.inr; rfl
+  by_cases h3: a = b
+  · rw [h3, pair_self] at h; rw [h3]; apply Or.inl; apply And.intro; rw [Eq.comm, ← mem_singleton, h, mem_pair]; apply Or.inl; rfl; rw [Eq.comm, ← mem_singleton, h, mem_pair]; apply Or.inr; rfl
+  apply Or.elim h1
+  · apply Or.elim h2
+    · intro h4 h5; rw [h4, h5] at h3; exfalso; apply h3; rfl
+    intro h4 h5; rw [h4, h5]; apply Or.inl; apply And.intro; rfl; rfl
+  apply Or.elim h2
+  · intro h4 h5; rw [h4, h5]; apply Or.inr; apply And.intro; rfl; rfl
+  intro h4 h5; rw [h4, h5] at h3; exfalso; apply h3; rfl
 
 abbrev SetTheory.Set.empty : Set := ∅
 abbrev SetTheory.Set.singleton_empty : Set := {(empty: Object)}
