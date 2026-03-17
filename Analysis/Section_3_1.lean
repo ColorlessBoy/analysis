@@ -329,7 +329,12 @@ theorem SetTheory.Set.singleton_union_singleton (a b:Object) :
     rw [mem_union, mem_pair, mem_singleton, mem_singleton]
 
 /-- Lemma 3.1.12 (Basic properties of unions) / Exercise 3.1.3 -/
-theorem SetTheory.Set.union_comm (A B:Set) : A ∪ B = B ∪ A := by sorry
+theorem SetTheory.Set.union_comm (A B:Set) : A ∪ B = B ∪ A := by
+    apply ext
+    intro x
+    rw [mem_union, mem_union, or_comm]
+
+def id {a : Sort u} := fun (x : a) => x
 
 /-- Lemma 3.1.12 (Basic properties of unions) / Exercise 3.1.3 -/
 theorem SetTheory.Set.union_assoc (A B C:Set) : (A ∪ B) ∪ C = A ∪ (B ∪ C) := by
@@ -345,22 +350,26 @@ theorem SetTheory.Set.union_assoc (A B C:Set) : (A ∪ B) ∪ C = A ∪ (B ∪ C
       rw [mem_union]; tauto
     have : x ∈ B ∪ C := by rw [mem_union]; tauto
     rw [mem_union]; tauto
-  sorry
+  rw [mem_union, mem_union, mem_union, mem_union, or_assoc]; apply id
 
 /-- Proposition 3.1.27(c) -/
 @[simp]
 theorem SetTheory.Set.union_self (A:Set) : A ∪ A = A := by
-  sorry
+  apply ext; intro x; rw [mem_union, or_self]
 
 /-- Proposition 3.1.27(a) -/
 @[simp]
 theorem SetTheory.Set.union_empty (A:Set) : A ∪ ∅ = A := by
-  sorry
+  apply ext; intro x
+  rw [mem_union]
+  have h : ((x: Object) ∈ (∅: Set)) ↔ False := by
+    rw [iff_false]
+    apply emptyset_mem
+  rw [h, or_false]
 
 /-- Proposition 3.1.27(a) -/
 @[simp]
-theorem SetTheory.Set.empty_union (A:Set) : ∅ ∪ A = A := by
-  sorry
+theorem SetTheory.Set.empty_union (A:Set) : ∅ ∪ A = A := by rw [union_comm, union_empty]
 
 theorem SetTheory.Set.triple_eq (a b c:Object) : {a,b,c} = ({a}:Set) ∪ {b,c} := by
   rfl
@@ -397,15 +406,16 @@ theorem SetTheory.Set.subset_def (X Y:Set) : X ⊆ Y ↔ ∀ x, x ∈ X → x �
 theorem SetTheory.Set.ssubset_def (X Y:Set) : X ⊂ Y ↔ (X ⊆ Y ∧ X ≠ Y) := by rfl
 
 /-- Remark 3.1.15 -/
-theorem SetTheory.Set.subset_congr_left {A A' B:Set} (hAA':A = A') (hAB: A ⊆ B) : A' ⊆ B := by sorry
+theorem SetTheory.Set.subset_congr_left {A A' B:Set} (hAA':A = A') (hAB: A ⊆ B) : A' ⊆ B := by rw [← hAA']; exact hAB
 
 /-- Examples 3.1.16 -/
 @[simp, refl]
-theorem SetTheory.Set.subset_self (A:Set) : A ⊆ A := by sorry
+theorem SetTheory.Set.subset_self (A:Set) : A ⊆ A := by intro x; apply id
+
 
 /-- Examples 3.1.16 -/
 @[simp]
-theorem SetTheory.Set.empty_subset (A:Set) : ∅ ⊆ A := by sorry
+theorem SetTheory.Set.empty_subset (A:Set) : ∅ ⊆ A := by intro x h; exfalso; exact emptyset_mem _ h
 
 /-- Proposition 3.1.17 (Partial ordering by set inclusion) -/
 theorem SetTheory.Set.subset_trans {A B C:Set} (hAB:A ⊆ B) (hBC:B ⊆ C) : A ⊆ C := by
@@ -419,12 +429,20 @@ theorem SetTheory.Set.subset_trans {A B C:Set} (hAB:A ⊆ B) (hBC:B ⊆ C) : A �
 
 /-- Proposition 3.1.17 (Partial ordering by set inclusion) -/
 theorem SetTheory.Set.subset_antisymm (A B:Set) (hAB:A ⊆ B) (hBA:B ⊆ A) : A = B := by
-  sorry
+  apply ext
+  intro x
+  exact ⟨hAB x, hBA x⟩
 
 /-- Proposition 3.1.17 (Partial ordering by set inclusion) -/
 theorem SetTheory.Set.ssubset_trans (A B C:Set) (hAB:A ⊂ B) (hBC:B ⊂ C) : A ⊂ C := by
-  sorry
-
+  obtain ⟨h1, h2⟩ := hAB
+  have ⟨h3, h4⟩ := hBC
+  constructor
+  · exact subset_trans h1 h3
+  intro h
+  rw [h] at h1
+  have h5 := subset_antisymm _ _ h3 h1
+  exact h4 h5
 
 /--
   This defines the subtype {lean}`A.toSubtype` for any {lean}`A:Set`.
@@ -497,12 +515,33 @@ theorem SetTheory.Set.specification_axiom'' {A:Set} (P: A → Prop) (x:Object) :
   intro ⟨ h, hP ⟩
   simpa [←specification_axiom' P] using hP
 
-theorem SetTheory.Set.specify_subset {A:Set} (P: A → Prop) : A.specify P ⊆ A := by sorry
+theorem SetTheory.Set.specify_subset {A:Set} (P: A → Prop) : A.specify P ⊆ A := by
+  intro x hx
+  apply specification_axiom hx
 
 /-- This exercise may require some understanding of how subtypes are implemented in Lean. -/
 theorem SetTheory.Set.specify_congr {A A':Set} (hAA':A = A') {P: A → Prop} {P': A' → Prop}
   (hPP': (x:Object) → (h:x ∈ A) → (h':x ∈ A') → P ⟨ x, h⟩ ↔ P' ⟨ x, h'⟩ ) :
-    A.specify P = A'.specify P' := by sorry
+    A.specify P = A'.specify P' := by
+  apply ext
+  intro x
+  constructor
+  · intro h1
+    have h2 := specification_axiom h1
+    have h3 : x ∈ A' := by rw [← hAA']; exact h2
+    have h4 := hPP' x h2 h3
+    rw [specification_axiom'']
+    use h3
+    rw [← h4, ← specification_axiom' P _]
+    exact h1
+  intro h1
+  have h2 := specification_axiom h1
+  have h3 : x ∈ A := by rw [hAA']; exact h2
+  have h4 := hPP' x h3 h2
+  rw [specification_axiom'']
+  use h3
+  rw [h4, ← specification_axiom' P' _]
+  exact h1
 
 instance SetTheory.Set.instIntersection : Inter Set where
   inter X Y := X.specify (fun x ↦ x.val ∈ Y)
