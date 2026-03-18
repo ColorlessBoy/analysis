@@ -902,46 +902,78 @@ theorem SetTheory.Set.subset_tfae (A B:Set) : [A ⊆ B, A ∪ B = B, A ∩ B = A
 
 /-- Exercise 3.1.7 -/
 theorem SetTheory.Set.inter_subset_left (A B:Set) : A ∩ B ⊆ A := by
-  sorry
+  intro x; rw [mem_inter]; intro h; exact h.1
 
 /-- Exercise 3.1.7 -/
 theorem SetTheory.Set.inter_subset_right (A B:Set) : A ∩ B ⊆ B := by
-  sorry
+  intro x; rw [mem_inter]; intro h; exact h.2
 
 /-- Exercise 3.1.7 -/
 @[simp]
 theorem SetTheory.Set.subset_inter_iff (A B C:Set) : C ⊆ A ∩ B ↔ C ⊆ A ∧ C ⊆ B := by
-  sorry
+  constructor
+  · intro h1; apply And.intro
+    intro x; have h2 := h1 x; rw [mem_inter] at h2; intro h3; exact (h2 h3).left
+    intro x; have h2 := h1 x; rw [mem_inter] at h2; intro h3; exact (h2 h3).right
+  rintro ⟨h1, h2⟩ x h3
+  rw [mem_inter]
+  exact ⟨h1 x h3, h2 x h3⟩
 
 /-- Exercise 3.1.7 -/
 theorem SetTheory.Set.subset_union_left (A B:Set) : A ⊆ A ∪ B := by
-  sorry
+  intro x
+  rw [mem_union]
+  apply Or.inl
 
 /-- Exercise 3.1.7 -/
 theorem SetTheory.Set.subset_union_right (A B:Set) : B ⊆ A ∪ B := by
-  sorry
+  intro x; rw [mem_union]; apply Or.inr
 
 /-- Exercise 3.1.7 -/
 @[simp]
 theorem SetTheory.Set.union_subset_iff (A B C:Set) : A ∪ B ⊆ C ↔ A ⊆ C ∧ B ⊆ C := by
-  sorry
+  constructor
+  · intro h1
+    constructor
+    · intro x hxA; have h2 := h1 x; rw [mem_union] at h2; exact h2 (Or.inl hxA)
+    intro x hxB; have h2 := h1 x; rw [mem_union] at h2; exact h2 (Or.inr hxB)
+  rintro ⟨h1, h2⟩ x h3
+  rw [mem_union] at h3
+  match h3 with
+  | Or.inl h3 => exact h1 x h3
+  | Or.inr h3 => exact h2 x h3
 
 /-- Exercise 3.1.8 -/
 @[simp]
-theorem SetTheory.Set.inter_union_cancel (A B:Set) : A ∩ (A ∪ B) = A := by sorry
+theorem SetTheory.Set.inter_union_cancel (A B:Set) : A ∩ (A ∪ B) = A := by
+  apply ext; intro x; rw [mem_inter, mem_union]; tauto
 
 /-- Exercise 3.1.8 -/
 @[simp]
-theorem SetTheory.Set.union_inter_cancel (A B:Set) : A ∪ (A ∩ B) = A := by sorry
+theorem SetTheory.Set.union_inter_cancel (A B:Set) : A ∪ (A ∩ B) = A := by
+  apply ext; intro x; rw [mem_union, mem_inter]; tauto
 
 /-- Exercise 3.1.9 -/
 theorem SetTheory.Set.partition_left {A B X:Set} (h_union: A ∪ B = X) (h_inter: A ∩ B = ∅) :
-    A = X \ B := by sorry
+    A = X \ B := by
+    apply ext; intro x; rw [mem_sdiff, ← h_union, mem_union]
+    constructor
+    · intro h1; apply And.intro (Or.inl h1); intro h2
+      have h3 : x ∈ A ∩ B := by rw [mem_inter]; exact ⟨h1,h2⟩;
+      rw [h_inter] at h3
+      exact emptyset_mem x h3
+    intro ⟨h1, h2⟩
+    apply Or.elim h1
+    · apply id
+    intro h3
+    exact False.elim (h2 h3)
 
 /-- Exercise 3.1.9 -/
 theorem SetTheory.Set.partition_right {A B X:Set} (h_union: A ∪ B = X) (h_inter: A ∩ B = ∅) :
     B = X \ A := by
-  sorry
+  apply partition_left
+  · rw [← h_union, union_comm]
+  rw [← h_inter, inter_comm]
 
 /--
   Exercise 3.1.10.
