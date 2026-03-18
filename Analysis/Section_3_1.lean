@@ -645,7 +645,10 @@ theorem SetTheory.Set.compl_union {A B X:Set} : X \ (A ∪ B) = (X \ A) ∩ (X \
   tauto
 
 /-- Proposition 3.1.27(g) -/
-theorem SetTheory.Set.compl_inter {A B X:Set} : X \ (A ∩ B) = (X \ A) ∪ (X \ B) := by sorry
+theorem SetTheory.Set.compl_inter {A B X:Set} : X \ (A ∩ B) = (X \ A) ∪ (X \ B) := by
+  apply ext
+  intro x
+  rw [mem_sdiff, mem_union, mem_sdiff, mem_sdiff, mem_inter, not_and_or, and_or_left]
 
 /-- Not from textbook: sets form a distributive lattice. -/
 instance SetTheory.Set.instDistribLattice : DistribLattice Set where
@@ -655,12 +658,12 @@ instance SetTheory.Set.instDistribLattice : DistribLattice Set where
   le_antisymm := subset_antisymm
   inf := (· ∩ ·)
   sup := (· ∪ ·)
-  le_sup_left := by sorry
-  le_sup_right := by sorry
-  sup_le := by sorry
-  inf_le_left := by sorry
-  inf_le_right := by sorry
-  le_inf := by sorry
+  le_sup_left := by intro a b x; rw [mem_union]; apply Or.inl
+  le_sup_right := by intro a b x; rw [mem_union]; apply Or.inr
+  sup_le := by intro a b c h1 h2 x h3; rw [mem_union] at h3; exact Or.elim h3 (h1 x) (h2 x)
+  inf_le_left := by intro a b x h; rw [mem_inter] at h; exact h.1
+  inf_le_right := by intro a b x h; rw [mem_inter] at h; exact h.2
+  le_inf := by intro a b c h1 h2 x h3; rw [mem_inter]; exact ⟨h1 x h3, h2 x h3⟩
   le_sup_inf := by
     intro X Y Z; change (X ∪ Y) ∩ (X ∪ Z) ⊆ X ∪ (Y ∩ Z)
     rw [←union_inter_distrib_left]
@@ -841,7 +844,8 @@ example : ¬ Disjoint ({1, 2, 3}:Set) {2,3,4} := by
   rw [eq_empty_iff_forall_notMem] at h
   aesop
 
-example : Disjoint (∅:Set) ∅ := by sorry
+example : Disjoint (∅:Set) ∅ := by
+  rw [disjoint_iff, inter_self]
 
 /-- Definition 3.1.26 example -/
 
@@ -850,14 +854,51 @@ example : ({1, 2, 3, 4}:Set) \ {2,4,6} = {1, 3} := by
 
 /-- Example 3.1.30 -/
 example : ({3,5,9}:Set).replace (P := fun x y ↦ ∃ (n:ℕ), x.val = n ∧ y = (n+1:ℕ)) (by aesop)
-  = {4,6,10} := by sorry
+  = {4,6,10} := by
+  apply ext; intro x;
+  rw [replacement_axiom]
+  constructor
+  · rintro ⟨h1, ⟨h2, ⟨h3, h4⟩⟩⟩
+    rw [mem_triple, h4, SetTheory.Object.ofnat_eq', SetTheory.Object.ofnat_eq', SetTheory.Object.ofnat_eq',
+      SetTheory.Object.natCast_inj, SetTheory.Object.natCast_inj, SetTheory.Object.natCast_inj]
+    simp
+    rw [← SetTheory.Object.natCast_inj, ← SetTheory.Object.natCast_inj, ← SetTheory.Object.natCast_inj, ← h3,
+    ← SetTheory.Object.ofnat_eq', ← SetTheory.Object.ofnat_eq', ← SetTheory.Object.ofnat_eq' ]
+    exact (mem_triple _ _ _ _).mp h1.property
+  rw [mem_triple]
+  intro h1
+  apply Or.elim h1
+  · intro h2
+    have h3 : (3 : Object) ∈ ({3, 5, 9}: Set) := by rw [mem_triple]; apply Or.inl; rfl
+    use ⟨(3: Object), h3⟩, (3: ℕ)
+    rw [h2]
+    simp
+  intro h1
+  apply Or.elim h1
+  · intro h2
+    have h3 : (5 : Object) ∈ ({3, 5, 9}: Set) := by rw [mem_triple]; apply Or.inr; apply Or.inl; rfl
+    use ⟨(5: Object), h3⟩, (5: ℕ)
+    rw [h2]
+    simp
+  intro h1
+  have h3 : (9 : Object) ∈ ({3, 5, 9}: Set) := by rw [mem_triple]; apply Or.inr; apply Or.inr; rfl
+  use ⟨(9: Object), h3⟩, (9: ℕ)
+  rw [h1]
+  simp
 
 /-- Example 3.1.31 -/
 example : ({3,5,9}:Set).replace (P := fun _ y ↦ y=1) (by aesop) = {1} := by
   ext; simp only [replacement_axiom]; aesop
 
 /-- Exercise 3.1.5.  One can use the {tactic}`tfae_have` and {tactic}`tfae_finish` tactics here. -/
-theorem SetTheory.Set.subset_tfae (A B:Set) : [A ⊆ B, A ∪ B = B, A ∩ B = A].TFAE := by sorry
+theorem SetTheory.Set.subset_tfae (A B:Set) : [A ⊆ B, A ∪ B = B, A ∩ B = A].TFAE := by
+  tfae_have 1 → 2 := by
+    intro h1; apply ext; intro x; rw [mem_union, iff_comm, iff_or_self]; exact h1 x
+  tfae_have 2 → 3 := by
+    intro h1; apply ext; intro x; rw [mem_inter, iff_comm, and_comm, iff_and_self, ← h1, mem_union]; intro h; exact Or.inl h
+  tfae_have 3 → 1 := by
+    intro h1 x; rw [← h1, mem_inter]; intro h; exact h.2
+  tfae_finish
 
 /-- Exercise 3.1.7 -/
 theorem SetTheory.Set.inter_subset_left (A B:Set) : A ∩ B ⊆ A := by
