@@ -980,7 +980,34 @@ theorem SetTheory.Set.partition_right {A B X:Set} (h_union: A ∪ B = X) (h_inte
   You may find {name}`Function.onFun_apply` and the {tactic}`fin_cases` tactic useful.
 -/
 theorem SetTheory.Set.pairwise_disjoint (A B:Set) :
-    Pairwise (Function.onFun Disjoint ![A \ B, A ∩ B, B \ A]) := by sorry
+    Pairwise (Function.onFun Disjoint ![A \ B, A ∩ B, B \ A]) := by
+    intro i j hij
+    fin_cases i
+    · simp at hij
+      fin_cases j
+      · exfalso; apply hij; rfl
+      · rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+        intro x; rw [mem_inter, mem_inter, mem_sdiff, ← and_and_left];
+        constructor; intro h; exfalso; exact h.2.1 h.2.2; intro h; exfalso; exact emptyset_mem _ h
+      rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+      intro x; rw [mem_inter, mem_sdiff, mem_sdiff]
+      constructor; intro h; exfalso; exact h.2.2 h.1.1; intro h; exfalso; exact emptyset_mem _ h
+    · fin_cases j
+      · rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+        intro x; rw [mem_inter, mem_inter, mem_sdiff]
+        constructor; intro h; exfalso; exact h.2.2 h.1.2; intro h; exfalso; exact emptyset_mem _ h
+      · exfalso; apply hij; rfl
+      rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+      intro x; rw [mem_inter, mem_inter, mem_sdiff]
+      constructor; intro h; exfalso; exact h.2.2 h.1.1; intro h; exfalso; exact emptyset_mem _ h
+    fin_cases j
+    · rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+      intro x; rw [mem_inter, mem_sdiff, mem_sdiff]
+      constructor; intro h; exfalso; exact h.2.2 h.1.1; intro h; exfalso; exact emptyset_mem _ h
+    · rw [Function.onFun_apply]; simp; rw [disjoint_iff]; apply ext
+      intro x; rw [mem_inter, mem_inter, mem_sdiff]
+      constructor; intro h; exfalso; exact h.1.2 h.2.1; intro h; exfalso; exact emptyset_mem _ h
+    exfalso; apply hij; rfl
 
 /-- Exercise 3.1.10 -/
 theorem SetTheory.Set.union_eq_partition (A B:Set) : A ∪ B = (A \ B) ∪ (A ∩ B) ∪ (B \ A) := by
