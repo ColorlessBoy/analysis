@@ -801,6 +801,42 @@ lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
   nat_equiv_coe_of_coe n
 
 @[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
+  Equiv.symm_apply_apply nat_equiv n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
+  Equiv.symm_apply_apply nat_equiv.symm n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
+  nat_equiv_coe_of_coe n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
+  Equiv.symm_apply_apply nat_equiv n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
+  Equiv.symm_apply_apply nat_equiv.symm n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
+  nat_equiv_coe_of_coe n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
+  Equiv.symm_apply_apply nat_equiv n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
+  Equiv.symm_apply_apply nat_equiv.symm n
+
+@[simp]
+lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
+  nat_equiv_coe_of_coe n
+
+@[simp]
 lemma SetTheory.Set.nat_coe_eq_iff' {m: Nat} {n : ℕ} : (m:Object) = (ofNat(n):Object) ↔ (m:ℕ) = ofNat(n) := by
   constructor <;> intro h <;> rw [show m = n by aesop]
   apply nat_equiv_coe_of_coe; rfl
@@ -1006,7 +1042,9 @@ theorem SetTheory.Set.pairwise_disjoint (A B:Set) :
 
 /-- Exercise 3.1.10 -/
 theorem SetTheory.Set.union_eq_partition (A B:Set) : A ∪ B = (A \ B) ∪ (A ∩ B) ∪ (B \ A) := by
-  sorry
+  apply ext; intro x
+  rw [mem_union, mem_union, mem_union, mem_sdiff, mem_inter, mem_sdiff, ← and_or_left, @or_comm (x ∉ B), iff_true_intro (or_not), and_true]
+  tauto
 
 /--
   Exercise 3.1.11.
@@ -1014,7 +1052,37 @@ theorem SetTheory.Set.union_eq_partition (A B:Set) : A ∪ B = (A \ B) ∪ (A �
   {name}`Set.specification_axiom'`, or anything built from them (like differences and intersections).
 -/
 theorem SetTheory.Set.specification_from_replacement {A:Set} {P: A → Prop} :
-    ∃ B, B ⊆ A ∧ ∀ x, x.val ∈ B ↔ P x := by sorry
+    ∃ B, B ⊆ A ∧ ∀ x, x.val ∈ B ↔ P x := by
+    let Q : A → Object → Prop := fun x y => y = x.val ∧ P x
+    have hQ : ∀ (x : A) (y y' : Object), Q x y ∧ Q x y' → y = y' := by
+      intro x y y' h
+      have hy₁ : y = x.val := h.left.left
+      have hy₂ : y' = x.val := h.right.left
+      rw [hy₂, hy₁]
+    let B := A.replace hQ
+    use B
+    constructor
+    · -- Prove B ⊆ A
+      intro z hz
+      rw [SetTheory.Set.replacement_axiom hQ] at hz
+      obtain ⟨x, hx⟩ := hz
+      simp only [Q] at hx
+      rw [hx.1]
+      exact x.property
+    · -- Prove ∀ x, x.val ∈ B ↔ P x
+      intro a
+      constructor
+      · -- Forward direction
+        intro ha
+        rw [SetTheory.Set.replacement_axiom hQ] at ha
+        obtain ⟨y, hy⟩ := ha
+        simp only [Q] at hy
+        have : y = a := Subtype.ext hy.1.symm
+        exact this ▸ hy.2
+      · -- Reverse direction
+        intro hP_a
+        rw [SetTheory.Set.replacement_axiom hQ]
+        use a
 
 /-- Exercise 3.1.12. -/
 theorem SetTheory.Set.subset_union_subset {A B A' B':Set} (hA'A: A' ⊆ A) (hB'B: B' ⊆ B) :
