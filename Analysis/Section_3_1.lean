@@ -806,42 +806,6 @@ lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
   nat_equiv_coe_of_coe n
 
 @[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
-  Equiv.symm_apply_apply nat_equiv n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
-  Equiv.symm_apply_apply nat_equiv.symm n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
-  nat_equiv_coe_of_coe n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
-  Equiv.symm_apply_apply nat_equiv n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
-  Equiv.symm_apply_apply nat_equiv.symm n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
-  nat_equiv_coe_of_coe n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe (n:ℕ) : ((n:Nat):ℕ) = n :=
-  Equiv.symm_apply_apply nat_equiv n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe' (n:Nat) : ((n:ℕ):Nat) = n :=
-  Equiv.symm_apply_apply nat_equiv.symm n
-
-@[simp]
-lemma SetTheory.Set.nat_equiv_coe_of_coe'' (n:ℕ) : ((ofNat(n):Nat):ℕ) = n :=
-  nat_equiv_coe_of_coe n
-
-@[simp]
 lemma SetTheory.Set.nat_coe_eq_iff' {m: Nat} {n : ℕ} : (m:Object) = (ofNat(n):Object) ↔ (m:ℕ) = ofNat(n) := by
   constructor <;> intro h <;> rw [show m = n by aesop]
   apply nat_equiv_coe_of_coe; rfl
@@ -1089,17 +1053,38 @@ theorem SetTheory.Set.specification_from_replacement {A:Set} {P: A → Prop} :
         rw [SetTheory.Set.replacement_axiom hQ]
         use a
 
+
 /-- Exercise 3.1.12.-/
 theorem SetTheory.Set.subset_union_subset {A B A' B':Set} (hA'A: A' ⊆ A) (hB'B: B' ⊆ B) :
-    A' ∪ B' ⊆ A ∪ B := by sorry
+    A' ∪ B' ⊆ A ∪ B := by
+  intro x; rw [mem_union, mem_union]; intro h
+  apply Or.elim h
+  · intro h1; exact Or.inl (hA'A x h1)
+  intro h2; exact Or.inr (hB'B x h2)
 
 /-- Exercise 3.1.12.-/
 theorem SetTheory.Set.subset_inter_subset {A B A' B':Set} (hA'A: A' ⊆ A) (hB'B: B' ⊆ B) :
-    A' ∩ B' ⊆ A ∩ B := by sorry
+    A' ∩ B' ⊆ A ∩ B := by
+  intro x; rw [mem_inter, mem_inter]; intro ⟨h1, h2⟩; exact ⟨hA'A x h1, hB'B x h2⟩
 
 /-- Exercise 3.1.12.-/
 theorem SetTheory.Set.subset_diff_subset_counter :
-    ∃ (A B A' B':Set), (A' ⊆ A) ∧ (B' ⊆ B) ∧ ¬ (A' \ B') ⊆ (A \ B) := by sorry
+    ∃ (A B A' B':Set), (A' ⊆ A) ∧ (B' ⊆ B) ∧ ¬ (A' \ B') ⊆ (A \ B) := by
+    use ({1,2}:Set)
+    use ({1,2}:Set)
+    use ({1}:Set)
+    use ({2}:Set)
+    constructor
+    · intro x; rw [mem_singleton, mem_pair]; exact Or.inl
+    constructor
+    · intro x; rw [mem_singleton, mem_pair]; exact Or.inr
+    intro h
+    have h1 := h 1
+    rw [mem_sdiff, mem_sdiff, mem_singleton, mem_singleton] at h1
+    have h2 : (1:Object) = 1 := by rfl
+    have h3 : ¬ ((1:Object) = 2) := by norm_num
+    have h4 := h1 ⟨h2, h3⟩
+    apply and_not_self h4
 
 /-
   Final part of Exercise 3.1.12: state and prove a reasonable substitute positive result for the
