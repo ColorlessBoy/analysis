@@ -2,8 +2,6 @@ import Mathlib.Tactic
 import Analysis.Section_3_1
 import Analysis.Tools.ExistsUnique
 
-set_option doc.verso.suggestions false
-
 /-!
 # Analysis I, Section 3.3: Functions
 
@@ -24,12 +22,12 @@ Main constructions and results of this section:
 
 In the rest of the book we will deprecate the Chapter 3 version of a function, and work with the
 Mathlib notion of a function instead.  Even within this section, we will switch to the Mathlib
-formalism for some of the examples involving number systems such as {lean}`ℤ` or {lean}`ℝ` that have not been
+formalism for some of the examples involving number systems such as `ℤ` or `ℝ` that have not been
 implemented in the Chapter 3 framework.
 
-We will work here with the version {name}`Nat` of the natural numbers internal to the Chapter 3 set
+We will work here with the version `Nat` of the natural numbers internal to the Chapter 3 set
 theory, though usually we will use coercions to then immediately translate to the Mathlib
-natural numbers {lean}`ℕ`.
+natural numbers `ℕ`.
 
 ## Tips from past users
 
@@ -47,8 +45,8 @@ export SetTheory (Set Object)
 variable [SetTheory]
 
 /--
-  Definition 3.3.1. {lean}`Function X Y` is the structure of functions from {lean}`X` to {lean}`Y`.
-  Analogous to the Mathlib type {lean}`X → Y`.
+  Definition 3.3.1. `Function X Y` is the structure of functions from `X` to `Y`.
+  Analogous to the Mathlib type `X → Y`.
 -/
 @[ext]
 structure Function (X Y: Set) where
@@ -58,7 +56,7 @@ structure Function (X Y: Set) where
 #check Function.mk
 
 /--
-  Converting a Chapter 3 function {lean}`f: Function X Y` to a Mathlib function {lean}`f: X → Y`.
+  Converting a Chapter 3 function `f: Function X Y` to a Mathlib function `f: X → Y`.
   The Chapter 3 definition of a function was nonconstructive, so we have to use the
   axiom of choice here.
 -/
@@ -70,7 +68,7 @@ noncomputable instance Function.inst_coefn (X Y: Set) : CoeFun (Function X Y) (f
 
 theorem Function.to_fn_eval {X Y: Set} (f: Function X Y) (x:X) : f.to_fn x = f x := rfl
 
-/-- Converting a Mathlib function to a Chapter 3 {name}`Function` -/
+/-- Converting a Mathlib function to a Chapter 3 `Function` -/
 abbrev Function.mk_fn {X Y: Set} (f: X → Y) : Function X Y :=
   Function.mk (fun x y ↦ y = f x) (by simp)
 
@@ -127,17 +125,12 @@ theorem SetTheory.Set.P_3_3_3c_existsUnique (x: (Nat \ {(0:Object)}: Set)) :
   -- sets converted to subtypes of `Object`, and subsets of those sets.
   obtain ⟨ x, hx ⟩ := x; rw [mem_sdiff, mem_singleton] at hx; obtain ⟨ hx1, hx2 ⟩ := hx
   set n := ((⟨ x, hx1 ⟩:Nat):ℕ) -- x 本身是 Nat 的子类型，所以人为构造了一个等价的 (n : Nat)
-  have : x = (n:Object) := by rw [← Object.ofnat_eq, nat_equiv_coe_of_coe']
-  rw [this, Object.ofnat_eq', Object.natCast_inj] at hx2
-  have hx3 := (_root_.Nat.ne_zero_iff_zero_lt).mp hx2
-  have hx4 := _root_.Nat.sub_add_cancel hx3
+  have : x = (n:Nat) := by simp [n]
+  simp [P_3_3_3c, this, Object.ofnat_eq'] at hx2 ⊢
+  replace hx2 : n = (n-1) + 1 := by omega
   apply ExistsUnique.intro ((n-1:ℕ):Nat)
-  . rw [P_3_3_3c, nat_equiv_coe_of_coe, hx4]; rw [← this]
-  intro y hy;
-  rw [P_3_3_3c] at hy
-  rw [← nat_equiv_symm_inj, nat_equiv_coe_of_coe]
-  apply @_root_.Nat.add_right_cancel _ 1
-  rw [hx4, ← Object.natCast_inj, ← this, hy]
+  . simp [←hx2]
+  intro y hy; simp [←hy]
 
 abbrev SetTheory.Set.f_3_3_3c : Function (Nat \ {(0:Object)}: Set) Nat :=
   Function.mk P_3_3_3c P_3_3_3c_existsUnique
@@ -145,35 +138,27 @@ abbrev SetTheory.Set.f_3_3_3c : Function (Nat \ {(0:Object)}: Set) Nat :=
 theorem SetTheory.Set.f_3_3_3c_eval (x: (Nat \ {(0:Object)}: Set)) (y: Nat) :
     y = f_3_3_3c x ↔ ((y+1:ℕ):Object) = x := Function.eval _ _ _
 
-/-- Create a version of a non-zero {lean}`n` inside {lean}`Nat \ {0}` for any natural number n. -/
+/-- Create a version of a non-zero `n` inside `Nat \ {0}` for any natural number n. -/
 abbrev SetTheory.Set.coe_nonzero (n:ℕ) (h: n ≠ 0): (Nat \ {(0:Object)}: Set) :=
   ⟨((n:ℕ):Object), by
-    rw [Object.ofnat_eq', mem_sdiff, mem_singleton]
-    constructor
-    · exact Subtype.property _
-    rw [Object.natCast_inj]
-    exact h
+    simp [Object.ofnat_eq',h]
+    rw [←Object.ofnat_eq]
+    exact Subtype.property _
   ⟩
 
--- nat_equiv_coe_of_coe
 theorem SetTheory.Set.f_3_3_3c_eval' (n: ℕ) : f_3_3_3c (coe_nonzero (n+1) (by positivity)) = n := by
-  rw [Eq.comm, f_3_3_3c_eval, nat_equiv_coe_of_coe]
-
-#print SetTheory.Set.f_3_3_3c_eval'
+  symm; simp [f_3_3_3c_eval]
 
 theorem SetTheory.Set.f_3_3_3c_eval'' : f_3_3_3c (coe_nonzero 4 (by positivity)) = 3 := by
-  apply SetTheory.Set.f_3_3_3c_eval'
-  -- convert f_3_3_3c_eval' 3
+  convert f_3_3_3c_eval' 3
 
 theorem SetTheory.Set.f_3_3_3c_eval''' (n:ℕ) :
-    f_3_3_3c (coe_nonzero (2*n+3) (by positivity)) = (2*n+2:ℕ) := by
-  rw [f_3_3_3c_eval']
-  -- convert f_3_3_3c_eval' (2*n+2)
+    f_3_3_3c (coe_nonzero (2*n+3) (by positivity)) = (2*n+2:ℕ) := by convert f_3_3_3c_eval' (2*n+2)
 
 /--
   Example 3.3.4 is a little tricky to replicate with the current formalism as the real numbers
   have not been constructed yet.  Instead, I offer some Mathlib counterparts, using the
-  Mathlib API for {name}`NNReal` and {lean}`ℝ`.
+  Mathlib API for `NNReal` and `ℝ`.
 -/
 example : ¬ ∃ f: ℝ → ℝ, ∀ x y, y = f x ↔ y^2 = x := by
   by_contra h
@@ -196,7 +181,7 @@ example : ∃ f: NNReal → NNReal, ∀ x y, y = f x ↔ y^2 = x := by
   · rw [h, NNReal.sq_sqrt]
   · rw [←h, NNReal.sqrt_sq]
 
-/-- Example 3.3.5. The unused variable {lit}`_x` is underscored to avoid triggering a linter. -/
+/-- Example 3.3.5. The unused variable `_x` is underscored to avoid triggering a linter. -/
 abbrev SetTheory.Set.P_3_3_5 : Nat → Nat → Prop := fun _x y ↦ y = 7
 
 theorem SetTheory.Set.P_3_3_5_existsUnique (x: Nat) : ∃! y: Nat, P_3_3_5 x y := by
@@ -239,7 +224,7 @@ example : (fun x:ℝ ↦ (x:ℝ)) ≠ (fun x:ℝ ↦ |(x:ℝ)|) := by
 
 /-- Example 3.3.11 -/
 abbrev SetTheory.Set.f_3_3_11 (X:Set) : Function (∅:Set) X :=
-  Function.mk (fun _ _ ↦ True) (by intro ⟨ x, hx ⟩; simp at hx)
+  Function.mk (fun _ _ ↦ True) (by intro ⟨ x,hx ⟩; simp at hx)
 
 theorem SetTheory.Set.empty_function_unique {X: Set} (f g: Function (∅:Set) X) : f = g := by sorry
 
@@ -289,8 +274,8 @@ theorem Function.one_to_one_iff {X Y: Set} (f: Function X Y) :
   peel with x hx; tauto
 
 /--
-  Compatibility with Mathlib's {name}`Function.Injective`.  You may wish to use the {tactic}`unfold` tactic to
-  understand Mathlib concepts such as {name}`Function.Injective`.
+  Compatibility with Mathlib's `Function.Injective`.  You may wish to use the `unfold` tactic to
+  understand Mathlib concepts such as `Function.Injective`.
 -/
 theorem Function.one_to_one_iff' {X Y: Set} (f: Function X Y) :
     f.one_to_one ↔ Function.Injective f.to_fn := by
@@ -325,7 +310,7 @@ theorem SetTheory.Set.two_to_one {X Y: Set} {f: Function X Y} (h: ¬ f.one_to_on
 /-- Definition 3.3.20 (Onto functions) -/
 abbrev Function.onto {X Y: Set} (f: Function X Y) : Prop := ∀ y: Y, ∃ x: X, f x = y
 
-/-- Compatibility with Mathlib's {name}`Function.Surjective` -/
+/-- Compatibility with Mathlib's Function.Surjective-/
 theorem Function.onto_iff {X Y: Set} (f: Function X Y) : f.onto ↔ Function.Surjective f.to_fn := by rfl
 
 /-- Example 3.3.21 (using Mathlib) -/
@@ -343,7 +328,7 @@ example : Function.Surjective (fun (n:ℤ) ↦ ⟨ n^2, by use n ⟩ : ℤ → A
 /-- Definition 3.3.23 (Bijective functions) -/
 abbrev Function.bijective {X Y: Set} (f: Function X Y) : Prop := f.one_to_one ∧ f.onto
 
-/-- Compatibility with Mathlib's {name}`Function.Bijective` -/
+/-- Compatibility with Mathlib's Function.Bijective-/
 theorem Function.bijective_iff {X Y: Set} (f: Function X Y) :
     f.bijective ↔ Function.Bijective f.to_fn := by
   rw [Function.bijective, Function.Bijective, one_to_one_iff', onto_iff]
@@ -404,9 +389,9 @@ theorem Function.bijective_incorrect_def :
   push_neg; use 0, 1; simp [f]
 
 /--
-  We cannot use the notation {syntax term}`f⁻¹` for the inverse because in Mathlib's {name}`Inv` class, the inverse
-  of {name}`f` must be exactly of the same type of {name}`f`, and {lean}`Function Y X` is a different type from
-  {lean}`Function X Y`.
+  We cannot use the notation `f⁻¹` for the inverse because in Mathlib's `Inv` class, the inverse
+  of `f` must be exactly of the same type of `f`, and `Function Y X` is a different type from
+  `Function X Y`.
 -/
 abbrev Function.inverse {X Y: Set} (f: Function X Y) (h: f.bijective) :
     Function Y X :=
@@ -432,7 +417,7 @@ theorem Function.inverse_eq {X Y: Set} [Nonempty X] {f: Function X Y} (h: f.bije
 
 /--
   Exercise 3.3.1.  Although a proof operating directly on functions would be shorter,
-  the spirit of the exercise is to show these using the {name}`Function.eq_iff` definition.
+  the spirit of the exercise is to show these using the `Function.eq_iff` definition.
 -/
 theorem Function.refl {X Y:Set} (f: Function X Y) : f = f := by sorry
 
