@@ -56,6 +56,7 @@ structure Function (X Y: Set) where
   unique : ∀ x: X, ∃! y: Y, P x y
 
 #check Function.mk
+#print Function.ext
 
 /--
   Converting a Chapter 3 function {lean}`f: Function X Y` to a Mathlib function {lean}`f: X → Y`.
@@ -176,11 +177,13 @@ theorem SetTheory.Set.f_3_3_3c_eval''' (n:ℕ) :
   Mathlib API for {name}`NNReal` and {lean}`ℝ`.
 -/
 example : ¬ ∃ f: ℝ → ℝ, ∀ x y, y = f x ↔ y^2 = x := by
-  by_contra h
+  intro h
   obtain ⟨f, hf⟩ := h; set y := f (-1)
-  have h1 := (hf _ y).mp (by rfl)
+  have h1 := (hf (-1) y).mp (Eq.refl _)
   have h2 := sq_nonneg y
+  rw [h1] at h2
   linarith
+
 
 example : ¬ ∃ f: NNReal → ℝ, ∀ x y, y = f x ↔ y^2 = x := by
   by_contra h
@@ -200,7 +203,7 @@ example : ∃ f: NNReal → NNReal, ∀ x y, y = f x ↔ y^2 = x := by
 abbrev SetTheory.Set.P_3_3_5 : Nat → Nat → Prop := fun _x y ↦ y = 7
 
 theorem SetTheory.Set.P_3_3_5_existsUnique (x: Nat) : ∃! y: Nat, P_3_3_5 x y := by
-  apply ExistsUnique.intro 7 <;> simp [P_3_3_5]
+  apply ExistsUnique.intro 7; rw [SetTheory.Set.P_3_3_5]; intro z hz; exact hz
 
 abbrev SetTheory.Set.f_3_3_5 : Function Nat Nat := Function.mk P_3_3_5 P_3_3_5_existsUnique
 
@@ -210,7 +213,7 @@ theorem SetTheory.Set.f_3_3_5_eval (x: Nat) : f_3_3_5 x = 7 := by
 /-- Definition 3.3.8 (Equality of functions) -/
 theorem Function.eq_iff {X Y: Set} (f g: Function X Y) : f = g ↔ ∀ x: X, f x = g x := by
   constructor <;> intro h
-  . simp [h]
+  . intro x; rw [h]
   ext x y; constructor <;> intros
   . rwa [←Function.eval, ←h x, Function.eval]
   rwa [←Function.eval, h x, Function.eval]
@@ -224,8 +227,10 @@ abbrev SetTheory.Set.f_3_3_10a : Function Nat Nat := Function.mk_fn (fun x ↦ (
 abbrev SetTheory.Set.f_3_3_10b : Function Nat Nat := Function.mk_fn (fun x ↦ ((x+1)^2:ℕ))
 
 theorem SetTheory.Set.f_3_3_10_eq : f_3_3_10a = f_3_3_10b := by
-  simp_rw [Function.eq_iff, Function.eval_of]
-  intros; simp; ring
+  rw [Function.eq_iff]
+  intro x
+  rw [Function.eval_of, Function.eval_of, nat_equiv_inj]
+  ring
 
 example : (fun x:NNReal ↦ (x:ℝ)) = (fun x:NNReal ↦ |(x:ℝ)|) := by
   simp_rw [NNReal.abs_eq]
@@ -239,9 +244,11 @@ example : (fun x:ℝ ↦ (x:ℝ)) ≠ (fun x:ℝ ↦ |(x:ℝ)|) := by
 
 /-- Example 3.3.11 -/
 abbrev SetTheory.Set.f_3_3_11 (X:Set) : Function (∅:Set) X :=
-  Function.mk (fun _ _ ↦ True) (by intro ⟨ x, hx ⟩; simp at hx)
+  Function.mk (fun _ _ ↦ True) (by intro ⟨ x,hx ⟩; exfalso; apply not_mem_empty x hx)
+  -- Function.mk (fun _ _ ↦ True) (by intro ⟨ x,hx ⟩; simp at hx)
 
-theorem SetTheory.Set.empty_function_unique {X: Set} (f g: Function (∅:Set) X) : f = g := by sorry
+theorem SetTheory.Set.empty_function_unique {X: Set} (f g: Function (∅:Set) X) : f = g := by
+  sorry
 
 /-- Definition 3.3.13 (Composition) -/
 noncomputable abbrev Function.comp {X Y Z: Set} (g: Function Y Z) (f: Function X Y) :
