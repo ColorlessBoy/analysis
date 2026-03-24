@@ -248,7 +248,11 @@ abbrev SetTheory.Set.f_3_3_11 (X:Set) : Function (∅:Set) X :=
   -- Function.mk (fun _ _ ↦ True) (by intro ⟨ x,hx ⟩; simp at hx)
 
 theorem SetTheory.Set.empty_function_unique {X: Set} (f g: Function (∅:Set) X) : f = g := by
-  sorry
+  apply Function.ext
+  apply funext
+  intro x
+  apply False.elim
+  exact not_mem_empty x.val x.property
 
 /-- Definition 3.3.13 (Composition) -/
 noncomputable abbrev Function.comp {X Y Z: Set} (g: Function Y Z) (f: Function X Y) :
@@ -267,7 +271,9 @@ theorem Function.comp_eval {X Y Z: Set} (g: Function Y Z) (f: Function X Y) (x: 
 -/
 theorem Function.comp_eq_comp {X Y Z: Set} (g: Function Y Z) (f: Function X Y) :
     (g ○ f).to_fn = g.to_fn ∘ f.to_fn := by
-  ext; simp only [Function.comp_eval, Function.comp_apply]
+  apply funext
+  intro x
+  rw [Function.comp_eval, _root_.Function.comp_apply]
 
 /-- Example 3.3.14 -/
 abbrev SetTheory.Set.f_3_3_14 : Function Nat Nat := Function.mk_fn (fun x ↦ (2*x:ℕ))
@@ -276,32 +282,42 @@ abbrev SetTheory.Set.g_3_3_14 : Function Nat Nat := Function.mk_fn (fun x ↦ (x
 
 theorem SetTheory.Set.g_circ_f_3_3_14 :
     g_3_3_14 ○ f_3_3_14 = Function.mk_fn (fun x ↦ ((2*(x:ℕ)+3:ℕ):Nat)) := by
-  simp [Function.eq_iff, Function.eval_of]
+  rw [Function.eq_iff]
+  intro x
+  rw [Function.comp_eval, Function.eval_of, Function.eval_of, Function.eval_of, nat_equiv_coe_of_coe]
+  -- simp [Function.eq_iff, Function.eval_of]
 
 theorem SetTheory.Set.f_circ_g_3_3_14 :
     f_3_3_14 ○ g_3_3_14 = Function.mk_fn (fun x ↦ ((2*(x:ℕ)+6:ℕ):Nat)) := by
-  simp [Function.eq_iff, Function.eval_of]
-  intros; ring
+  rw [Function.eq_iff]
+  intro x
+  rw [Function.comp_eval, Function.eval_of, Function.eval_of, Function.eval_of, nat_equiv_coe_of_coe, nat_equiv_inj]
+  ring
+  -- simp [Function.eq_iff, Function.eval_of]
+  -- intros; ring
 
 /-- Lemma 3.3.15 (Composition is associative) -/
 theorem SetTheory.Set.comp_assoc {W X Y Z: Set} (h: Function Y Z) (g: Function X Y)
   (f: Function W X) :
     h ○ (g ○ f) = (h ○ g) ○ f := by
-  simp [Function.eq_iff]
+  rw [Function.eq_iff]
+  intro x
+  rw [Function.comp_eval, Function.comp_eval, Function.comp_eval, Function.comp_eval]
+  -- simp [Function.eq_iff]
 
 abbrev Function.one_to_one {X Y: Set} (f: Function X Y) : Prop := ∀ x x': X, x ≠ x' → f x ≠ f x'
 
 theorem Function.one_to_one_iff {X Y: Set} (f: Function X Y) :
     f.one_to_one ↔ ∀ x x': X, f x = f x' → x = x' := by
-  peel with x hx; tauto
+  simp [not_imp_not]
 
 /--
   Compatibility with Mathlib's {name}`Function.Injective`.  You may wish to use the {tactic}`unfold` tactic to
   understand Mathlib concepts such as {name}`Function.Injective`.
 -/
 theorem Function.one_to_one_iff' {X Y: Set} (f: Function X Y) :
-    f.one_to_one ↔ Function.Injective f.to_fn := by
-  rw [one_to_one_iff, Function.Injective]
+    f.one_to_one ↔ _root_.Function.Injective f.to_fn := by
+  rw [one_to_one_iff, _root_.Function.Injective]
 
 /--
   Example 3.3.18.  One half of the example requires the integers, and so is expressed using
@@ -310,8 +326,16 @@ theorem Function.one_to_one_iff' {X Y: Set} (f: Function X Y) :
 theorem SetTheory.Set.f_3_3_18_one_to_one :
     (Function.mk_fn (fun (n:Nat) ↦ ((n^2:ℕ):Nat))).one_to_one := by
   rw [Function.one_to_one_iff]
-  intro _ _ h
-  simpa [Function.eval, Function.eval_of] using h
+  intro x y h
+  rw [Function.eval_of, Function.eval_of, nat_equiv_inj] at h
+  rw [← nat_equiv_symm_inj]
+  apply (pow_left_inj₀ _ _ _).mp h
+  apply _root_.Nat.zero_le
+  apply _root_.Nat.zero_le
+  apply _root_.Nat.succ_ne_zero
+  -- simpa [Function.eval, Function.eval_of] using h
+#check pow_left_inj₀
+#print SetTheory.Set.f_3_3_18_one_to_one
 
 example : ¬ Function.Injective (fun (n:ℤ) ↦ n^2) := by
   intro h
