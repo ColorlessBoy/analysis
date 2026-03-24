@@ -12,7 +12,6 @@ lake build           # Build and verify all proofs
 The Lean toolchain version is pinned in `lean-toolchain`. Mathlib is pinned in `lakefile.lean`.
 
 ## Style conventions
-
 - **Faithfulness over golfing.** Proofs should closely parallel the textbook argument, even if a shorter proof exists. Do not golf or "clean up" existing proofs — this has led to reverts (e.g., [#476]).
 - **Textbook definitions first.** Early chapters (especially Ch. 2) use custom definitions, not Mathlib. Later chapters transition to Mathlib. Respect whichever convention the section uses.
 - **Verso docstrings.** The project uses `doc.verso = true` for literate documentation. Docstrings use Verso format, not standard Lean doc comments.
