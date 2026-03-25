@@ -342,7 +342,8 @@ example : ¬ Function.Injective (fun (n:ℤ) ↦ n^2) := by
   have h1 : (fun n ↦ n ^ 2) 1 = (1:ℤ) := by norm_num
   have h2 : (fun n ↦ n ^ 2) (-1) = (1:ℤ) := by norm_num
   nth_rewrite 2 [←h1] at h2
-  specialize h h2
+  -- specialize h h2
+  have h3 := h h2
   contradiction
 
 example : Function.Injective (fun (n:ℕ) ↦ n^2) := by
@@ -359,11 +360,18 @@ abbrev Function.onto {X Y: Set} (f: Function X Y) : Prop := ∀ y: Y, ∃ x: X, 
 /-- Compatibility with Mathlib's {name}`Function.Surjective` -/
 theorem Function.onto_iff {X Y: Set} (f: Function X Y) : f.onto ↔ Function.Surjective f.to_fn := by rfl
 
+
 /-- Example 3.3.21 (using Mathlib) -/
 example : ¬ Function.Surjective (fun (n:ℤ) ↦ n^2) := by
   unfold Function.Surjective; push_neg
-  use (-1); intro a
-  linarith [sq_nonneg a]
+  use (-1); intro a ha
+  have h2 := sq_nonneg a
+  rw [ha] at h2
+  have int_neg_not_ge_zero {n : ℕ} (hn : n ≠ 0): ¬ (0 ≤ -(n:Int)) := by
+    rwa [← Int.neg_nonpos_iff, neg_neg, Int.natCast_le_zero]
+  apply int_neg_not_ge_zero _ h2
+  exact _root_.Nat.succ_ne_zero 0
+
 
 abbrev A_3_3_21 := { m:ℤ // ∃ n:ℤ, m = n^2 }
 
