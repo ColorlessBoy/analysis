@@ -393,9 +393,9 @@ theorem Function.bijective_iff {X Y: Set} (f: Function X Y) :
 
 /-- Example 3.3.24 (using Mathlib) -/
 abbrev f_3_3_24 : Fin 3 → ({3,4}:_root_.Set ℕ) := fun x ↦ match x with
-| 0 => ⟨ 3, by norm_num ⟩
-| 1 => ⟨ 3, by norm_num ⟩
-| 2 => ⟨ 4, by norm_num ⟩
+| 0 => ⟨ 3, by apply _root_.Set.mem_insert_iff.mpr; apply Or.inl; rfl⟩
+| 1 => ⟨ 3, by apply _root_.Set.mem_insert_iff.mpr; apply Or.inl; rfl⟩
+| 2 => ⟨ 4, by apply _root_.Set.mem_insert_iff.mpr; apply Or.inr; apply _root_.Set.mem_singleton ⟩
 
 example : ¬ Function.Injective f_3_3_24 := by decide
 example : ¬ Function.Bijective f_3_3_24 := by decide
@@ -420,16 +420,20 @@ example : Function.Bijective h_3_3_24 := by decide
 -/
 example : Function.Bijective (fun n ↦ ⟨ n+1, by omega⟩ : ℕ → { n:ℕ // n ≠ 0 }) := by
   constructor
-  · intro _ _
-    simp only [Subtype.mk.injEq]; omega
+  · intro x y h
+    have := Subtype.mk.inj h
+    apply _root_.Nat.add_right_cancel this
   intro ⟨x, hx⟩; use x-1
-  simp only [Subtype.mk.injEq]; omega
+  rw [Subtype.mk.injEq]
+  apply _root_.Nat.sub_add_cancel
+  exact _root_.Nat.pos_of_ne_zero hx
 
 example : ¬ Function.Bijective (fun n ↦ n+1) := by
-  suffices h : ¬ Function.Surjective (fun n ↦ n+1) by unfold Function.Bijective; tauto
-  unfold Function.Surjective; push_neg
-  use 0; intros
-  symm; apply Nat.zero_ne_add_one
+  intro ⟨h1, h2⟩
+  have h3 := not_forall_not.mpr (h2 0)
+  have h4 := Nat.succ_ne_zero
+  exact h3 h4
+
 
 /-- Remark 3.3.27 -/
 theorem Function.bijective_incorrect_def :
@@ -471,7 +475,8 @@ theorem Function.inverse_eq {X Y: Set} [Nonempty X] {f: Function X Y} (h: f.bije
     (f.inverse h).to_fn = Function.invFun f.to_fn := by
   ext y; congr; symm
   rw [inverse_eval]
-  apply Function.rightInverse_invFun (f.bijective_iff.mp h).2
+  apply Function.rightInverse_invFun
+  apply (f.bijective_iff.mp h).2
 
 /--
   Exercise 3.3.1.  Although a proof operating directly on functions would be shorter,
