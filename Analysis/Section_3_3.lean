@@ -377,7 +377,11 @@ abbrev A_3_3_21 := { m:ℤ // ∃ n:ℤ, m = n^2 }
 
 example : Function.Surjective (fun (n:ℤ) ↦ ⟨ n^2, by use n ⟩ : ℤ → A_3_3_21) := by
   rintro ⟨b, ⟨a, ha⟩⟩; use a
-  simp only [ha]
+  -- ⊢ ↑((fun n ↦ ⟨n ^ 2, ⋯⟩) a) = ↑⟨b, ⋯⟩
+  apply Subtype.ext
+  have h1: ((fun (n:ℤ) ↦ ⟨ n^2, by use n ⟩ : ℤ → A_3_3_21) a).val = a^2 := rfl
+  have h2: (⟨b, Exists.intro a ha⟩ : A_3_3_21).val = b := rfl
+  rw [h1, h2, ha]
 
 /-- Definition 3.3.23 (Bijective functions) -/
 abbrev Function.bijective {X Y: Set} (f: Function X Y) : Prop := f.one_to_one ∧ f.onto
