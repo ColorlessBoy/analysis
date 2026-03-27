@@ -482,28 +482,47 @@ theorem Function.inverse_eq {X Y: Set} [Nonempty X] {f: Function X Y} (h: f.bije
   Exercise 3.3.1.  Although a proof operating directly on functions would be shorter,
   the spirit of the exercise is to show these using the {name}`Function.eq_iff` definition.
 -/
-theorem Function.refl {X Y:Set} (f: Function X Y) : f = f := by sorry
+theorem Function.refl {X Y:Set} (f: Function X Y) : f = f := by
+  apply (Function.eq_iff f f).mpr
+  intro x
+  apply Function.to_fn_eval
 
-theorem Function.symm {X Y:Set} (f g: Function X Y) : f = g ↔ g = f := by sorry
+theorem Function.symm {X Y:Set} (f g: Function X Y) : f = g ↔ g = f := Eq.comm
 
-theorem Function.trans {X Y:Set} {f g h: Function X Y} (hfg: f = g) (hgh: g = h) : f = h := by sorry
+theorem Function.trans {X Y:Set} {f g h: Function X Y} (hfg: f = g) (hgh: g = h) : f = h := Eq.trans hfg hgh
 
 theorem Function.comp_congr {X Y Z:Set} {f f': Function X Y} (hff': f = f') {g g': Function Y Z}
-  (hgg': g = g') : g ○ f = g' ○ f' := by sorry
+  (hgg': g = g') : g ○ f = g' ○ f' := by
+  rw [hgg', hff']
 
 /-- Exercise 3.3.2 -/
 theorem Function.comp_of_inj {X Y Z:Set} {f: Function X Y} {g : Function Y Z} (hf: f.one_to_one)
-  (hg: g.one_to_one) : (g ○ f).one_to_one := by sorry
+  (hg: g.one_to_one) : (g ○ f).one_to_one := by
+  intro x y hxy
+  rw [Function.eval_of, Function.eval_of]
+  apply hg
+  apply hf _ _ hxy
 
 theorem Function.comp_of_surj {X Y Z:Set} {f: Function X Y} {g : Function Y Z} (hf: f.onto)
-  (hg: g.onto) : (g ○ f).onto := by sorry
+  (hg: g.onto) : (g ○ f).onto := by
+  intro x
+  obtain ⟨y, hy⟩ := hg x
+  obtain ⟨z, hz⟩ := hf y
+  use z
+  rw [Function.comp_eval, hz, hy]
 
 /--
   Exercise 3.3.3 - fill in the sorrys in the statements in a reasonable fashion.
 -/
-theorem empty_function_one_to_one_iff (X: Set) (f: Function ∅ X) : f.one_to_one ↔ sorry := by sorry
+theorem empty_function_one_to_one_iff (X: Set) (f: Function ∅ X) : f.one_to_one ↔ True := by
+  rw [iff_true]
+  intro x
+  have h := x.property
+  apply False.elim
+  exact SetTheory.Set.not_mem_empty _ h
 
-theorem empty_function_onto_iff (X: Set) (f: Function ∅ X) : f.onto ↔ sorry := by sorry
+theorem empty_function_onto_iff (X: Set) (f: Function ∅ X) : f.onto ↔ X = ∅ := by
+  sorry
 
 theorem empty_function_bijective_iff (X: Set) (f: Function ∅ X) : f.bijective ↔ sorry:= by sorry
 
