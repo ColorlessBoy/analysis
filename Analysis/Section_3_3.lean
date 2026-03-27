@@ -522,9 +522,21 @@ theorem empty_function_one_to_one_iff (X: Set) (f: Function ∅ X) : f.one_to_on
   exact SetTheory.Set.not_mem_empty _ h
 
 theorem empty_function_onto_iff (X: Set) (f: Function ∅ X) : f.onto ↔ X = ∅ := by
-  sorry
+  constructor
+  · intro h
+    rw [SetTheory.Set.eq_empty_iff_forall_notMem]
+    intro y hy
+    obtain ⟨x, hx⟩ := h y
+    apply False.elim (SetTheory.Set.not_mem_empty x x.property)
+  intro h x
+  have h' := x.property
+  nth_rw 1 [h] at h'
+  exfalso
+  exact SetTheory.Set.not_mem_empty x h'
 
-theorem empty_function_bijective_iff (X: Set) (f: Function ∅ X) : f.bijective ↔ sorry:= by sorry
+theorem empty_function_bijective_iff (X: Set) (f: Function ∅ X) : f.bijective ↔ X = ∅ := by
+  unfold Function.bijective
+  rw [empty_function_one_to_one_iff, empty_function_onto_iff, true_and]
 
 /--
   Exercise 3.3.4.
