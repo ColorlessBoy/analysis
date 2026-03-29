@@ -1,0 +1,294 @@
+{
+  "children": [
+    {
+      "object": "block",
+      "type": "heading_1",
+      "heading_1": {
+        "rich_text": [{"text": {"content": "Section 3.1: 集合论基础 (Fundamentals of Set Theory)"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "核心知识点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "Zermelo-Frankel 集合论公理系统：定义了 Set、Object 类型，以及 ∈、⊆ 等基本关系"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "空集 ∅：通过 emptyset_mem 证明空集无元素"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "单元素集 {a} 和二元集 {a,b}：通过 singleton、pair_eq 定义"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "并集 ∪：union_pair_axiom 证明 x ∈ A ∪ B ↔ x ∈ A ∨ x ∈ B"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "子类型 toSubtype：A.toSubtype 将集合转化为 {x : Object // x ∈ A} 类型"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "交集 ∩ 和差集 \\：通过 specification_axiom 定义"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "替换公理 replace：基于谓词 P 创建新集合"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "自然数 Nat：通过 nat_equiv 与 Mathlib ℕ 建立双射对应"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "难点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "类型转换灾难 (Type Coercion)：Chapter3.Nat 与 Mathlib ℕ 是不同类型，需要频繁使用 nat_equiv、coe_eq 等进行转换"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "子类型证明：subtype_mk 需要同时提供元素和 membership 证明"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "ext 策略：使用 extensionality 证明集合相等，需要证明双向包含"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "pairwise_disjoint 证明：Exercise 3.1.10 需要处理多个集合的互不相交性"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "divider",
+      "divider": {}
+    },
+    {
+      "object": "block",
+      "type": "heading_1",
+      "heading_1": {
+        "rich_text": [{"text": {"content": "Section 3.2: 罗素悖论 (Russell's Paradox)"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "核心知识点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "全局规范公理 (Axiom of Universal Specification)：∀P, ∃A, ∀x, x ∈ A ↔ P x"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "罗素悖论证明：定义 P(x) ≡ ∃X, x = X ∧ x ∉ X，导出矛盾"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "正则性公理 (Regularity)：每个非空集合 A 存在最小元 x，使得 x ∩ A = ∅"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "not_mem_self：任何集合 A 都不属于自身"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "难点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "正则性公理应用：Exercise 3.2.2 需要构造特定集合，利用正则性证明自不相交"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "choose 策略：使用正则性公理时需要 extract 出 x 的性质"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "divider",
+      "divider": {}
+    },
+    {
+      "object": "block",
+      "type": "heading_1",
+      "heading_1": {
+        "rich_text": [{"text": {"content": "Section 3.3: 函数 (Functions)"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "核心知识点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "函数定义 Function X Y：通过 P : X → Y → Prop 和唯一性条件 unique 定义"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "函数相等：f = g ↔ ∀x, f x = g x (Function.eq_iff)"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "复合函数 g ○ f：通过 mk_fn 和 to_fn 进行类型转换"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "单射 one_to_one：∀x x', x ≠ x' → f x ≠ f x'"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "满射 onto：∀y, ∃x, f x = y"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "双射 bijective：单射 ∧ 满射"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "逆函数 inverse：仅对双射函数定义"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "包含函数 inclusion：从子集到父集的嵌入函数"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "heading_2",
+      "heading_2": {
+        "rich_text": [{"text": {"content": "难点"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "∃! 唯一存在量词：正确使用 existsUnique 构造和证明唯一性"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "复合函数的性质：comp_cancel_left/right 需要单射/满射条件"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "空集函数：空域函数总是相等的特殊性质 (empty_function_bijective)"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "glue 定理：证明两个函数在不相交定义域上可以粘合成一个函数"}}]
+      }
+    },
+    {
+      "object": "block",
+      "type": "bulleted_list_item",
+      "bulleted_list_item": {
+        "rich_text": [{"text": {"content": "逆函数的复合性质：inverse_comp_self 和 self_comp_inverse 的证明"}}]
+      }
+    }
+  ]
+}
