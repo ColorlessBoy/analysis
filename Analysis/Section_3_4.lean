@@ -32,16 +32,36 @@ variable [SetTheory]
 
 /-- Definition 3.4.1.  Interestingly, the definition does not require {lean}`S` to be a subset of {lean}`X`. -/
 abbrev SetTheory.Set.image {X Y:Set} (f:X → Y) (S: Set) : Set :=
-  X.replace (P := fun x y ↦ f x = y ∧ x.val ∈ S) (by simp_all)
+  X.replace (P := fun x y ↦ f x = y ∧ x.val ∈ S) (by intro x y z ⟨⟨h1, h2⟩, ⟨h3, h4⟩⟩; rw [← h1, ← h3]) -- simp_all
 
 /-- Definition 3.4.1 -/
 theorem SetTheory.Set.mem_image {X Y:Set} (f:X → Y) (S: Set) (y:Object) :
-    y ∈ image f S ↔ ∃ x:X, x.val ∈ S ∧ f x = y := by
-  grind [replacement_axiom]
+  y ∈ image f S ↔ ∃ x:X, x.val ∈ S ∧ f x = y := by
+  rw [replacement_axiom]
+  constructor
+  · intro ⟨x, hx⟩; use x; exact ⟨hx.2, hx.1⟩
+  intro ⟨x, hx⟩; use x; exact ⟨hx.2, hx.1⟩
+  -- grind [replacement_axiom]
+
+#print SetTheory.Set.mem_image
 
 /-- Alternate definition of image using axiom of specification -/
 theorem SetTheory.Set.image_eq_specify {X Y:Set} (f:X → Y) (S: Set) :
-    image f S = Y.specify (fun y ↦ ∃ x:X, x.val ∈ S ∧ f x = y) := by sorry
+  image f S = Y.specify (fun y ↦ ∃ x:X, x.val ∈ S ∧ f x = y) := by
+  apply SetTheory.Set.ext
+  intro y
+  rw [specification_axiom'', mem_image]
+  constructor
+  · intro ⟨x,⟨h1,h2⟩⟩
+    have : y ∈ Y := by rw [← h2]; exact (f x).property
+    use this
+    use x
+    apply And.intro h1
+    rw [← Subtype.val_inj, h2]
+  intro ⟨hy,x, h1,h2⟩
+  use x
+  apply And.intro h1
+  exact Subtype.val_inj.mpr h2
 
 /--
   Connection with Mathlib's notion of image.  Note the need to utilize the {name}`Subtype.val` coercion
