@@ -765,6 +765,7 @@ lemma SetTheory.Set.nat_equiv_inj (n m:ℕ) : (n:Nat) = (m:Nat) ↔ n=m  :=
 lemma SetTheory.Set.nat_equiv_symm_inj (n m:Nat) : (n:ℕ) = (m:ℕ) ↔ n = m :=
   Equiv.apply_eq_iff_eq nat_equiv.symm
 
+-- 类型转化灾难!
 @[simp]
 theorem SetTheory.Set.ofNat_inj (n m:ℕ) :
     (ofNat(n) : Nat) = (ofNat(m) : Nat) ↔ ofNat(n) = ofNat(m) := by
@@ -785,8 +786,11 @@ example : (5:Object) ≠ (3:Object) := by
 @[simp]
 lemma SetTheory.Set.nat_coe_eq_iff {m n : ℕ} : (m:Object) = ofNat(n) ↔ m = n := by exact ofNat_inj' m n
 
-example (n: ℕ) : (n: Object) = 2 ↔ n = 2 := by
+theorem thm (n: ℕ) : (n: Object) = 2 ↔ n = 2 := by
   simp
+#print thm
+
+#check nat_coe_eq_iff
 
 @[simp]
 theorem SetTheory.Object.natCast_inj (n m:ℕ) :
