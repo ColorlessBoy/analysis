@@ -88,10 +88,23 @@ theorem SetTheory.Set.image_f_3_4_2 : image f_3_4_2 {1,2,3} = {2,4,6} := by
 example : (fun n:ℤ ↦ n^2) '' {-1,0,1,2} = {0,1,4} := by aesop
 
 theorem SetTheory.Set.mem_image_of_eval {X Y:Set} (f:X → Y) (S: Set) (x:X) :
-    x.val ∈ S → (f x).val ∈ image f S := by sorry
+    x.val ∈ S → (f x).val ∈ image f S := by
+    rw [mem_image]; intro h; use x
 
 theorem SetTheory.Set.mem_image_of_eval_counter :
-    ∃ (X Y:Set) (f:X → Y) (S: Set) (x:X), ¬((f x).val ∈ image f S → x.val ∈ S) := by sorry
+    ∃ (X Y:Set) (f:X → Y) (S: Set) (x:X), ¬((f x).val ∈ image f S → x.val ∈ S) := by
+    use Nat, Nat, (fun n => (n - 1 :ℕ)), {0}, 1
+    rw [mem_singleton]
+    intro h
+    have : (1 : Nat).val ≠ 0 := by simp
+    apply this
+    apply h
+    rw [nat_equiv_coe_of_coe'', _root_.Nat.sub_self, Object.ofnat_eq, mem_image]
+    use 0
+    rw [mem_singleton]
+    constructor
+    · rfl
+    rw [nat_equiv_coe_of_coe'' 0, Object.ofnat_eq, _root_.Nat.zero_sub]
 
 /--
   Definition 3.4.4 (inverse images).
