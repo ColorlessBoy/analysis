@@ -122,10 +122,15 @@ theorem SetTheory.Set.mem_preimage {X Y:Set} (f:X → Y) (U: Set) (x:X) :
 theorem SetTheory.Set.mem_preimage' {X Y:Set} (f:X → Y) (U: Set) (x:Object) :
     x ∈ preimage f U ↔ ∃ x': X, x'.val = x ∧ (f x').val ∈ U := by
   constructor
-  . intro h; by_cases hx: x ∈ X
-    . use ⟨ x, hx ⟩; have := mem_preimage f U ⟨ _, hx ⟩; simp_all
-    . grind [specification_axiom]
+  . intro h
+    have hx := specification_axiom h
+    use ⟨ x, hx ⟩
+    have := mem_preimage f U ⟨ _, hx ⟩
+    apply And.intro (Eq.refl x)
+    apply (mem_preimage _ _ _).mp h -- simp_all
   . rintro ⟨ x', rfl, hfx' ⟩; rwa [mem_preimage]
+
+#print SetTheory.Set.mem_preimage'
 
 /-- Connection with Mathlib's notion of preimage. -/
 theorem SetTheory.Set.preimage_eq {X Y:Set} (f:X → Y) (U: Set) :
