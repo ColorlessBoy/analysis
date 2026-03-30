@@ -138,7 +138,7 @@ theorem SetTheory.Set.preimage_eq {X Y:Set} (f:X → Y) (U: Set) :
   ext; simp
 
 theorem SetTheory.Set.preimage_in_domain {X Y:Set} (f:X → Y) (U: Set) :
-    (preimage f U) ⊆ X := by intro _ _; aesop
+    (preimage f U) ⊆ X := by intro x hx; rw [mem_preimage'] at hx; obtain ⟨x', hx'⟩ := hx; rw [← hx'.1]; exact x'.property
 
 /-- Example 3.4.6 -/
 theorem SetTheory.Set.preimage_f_3_4_2 : preimage f_3_4_2 {2,4,6} = {1,2,3} := by
@@ -148,7 +148,21 @@ theorem SetTheory.Set.preimage_f_3_4_2 : preimage f_3_4_2 {2,4,6} = {1,2,3} := b
   all_goals simp
 
 theorem SetTheory.Set.image_preimage_f_3_4_2 :
-    image f_3_4_2 (preimage f_3_4_2 {1,2,3}) ≠ {1,2,3} := by sorry
+    image f_3_4_2 (preimage f_3_4_2 {1,2,3}) ≠ {1,2,3} := by
+    have : preimage f_3_4_2 {1,2,3} = {1} := by
+      ext; simp only [mem_preimage', mem_triple, f_3_4_2]; constructor
+      · rintro ⟨x, rfl, (_ | _ | _)⟩ <;> simp_all ; omega
+      rw [mem_singleton]; intro h; use 1; simp; rw [h]; simp
+    rw [this]
+    have : image f_3_4_2 {1} = {2} := by
+      ext; simp only [mem_image, f_3_4_2]; constructor
+      · rintro ⟨x, hx, (_ | _ | _)⟩ ; simp_all
+      rw [mem_singleton]; intro h; use 1; simp; rw [h]; simp
+    rw [this]
+    intro h
+    rw [Set.ext_iff] at h
+    have := h 1
+    simp at this
 
 /-- Example 3.4.7 (using the Mathlib notion of preimage) -/
 example : (fun n:ℤ ↦ n^2) ⁻¹' {0,1,4} = {-2,-1,0,1,2} := by
