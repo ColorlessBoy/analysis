@@ -225,13 +225,72 @@ theorem SetTheory.Set.example_3_4_9 (F:Object) :
 
 /-- Exercise 3.4.6 (i). One needs to provide a suitable definition of the power set here. -/
 def SetTheory.Set.powerset (X:Set) : Set :=
-  (({0,1} ^ X): Set).replace (P := sorry) (by sorry)
+  (({0,1} ^ X): Set).replace (P := fun F S ↦ ∃ f: X → ({(0:Object),1}:Set), F.val = f ∧ S = X.specify (fun x ↦ f x = ⟨1, by simp⟩)
+) (by
+  intro F S1 S2 ⟨h1, h2⟩
+  obtain ⟨f1, hf1, hS1⟩ := h1
+  obtain ⟨f2, hf2, hS2⟩ := h2
+  rw [hS1, hS2, coe_eq_iff, Set.ext_iff]
+  intro x
+  rw [SetTheory.Set.specification_axiom'', SetTheory.Set.specification_axiom'']
+  rw [hf1] at hf2
+  have := (coe_of_fun_inj _ _).mp hf2
+  constructor
+  · rintro ⟨h, hx⟩; use h; rw [← hx, this]
+  rintro ⟨h, hx⟩; use h; rw [← hx, ← this]
+)
 
 open Classical in
 /-- Exercise 3.4.6 (i) -/
 @[simp]
 theorem SetTheory.Set.mem_powerset {X:Set} (x:Object) :
-    x ∈ powerset X ↔ ∃ Y:Set, x = Y ∧ Y ⊆ X := by sorry
+    x ∈ powerset X ↔ ∃ Y:Set, x = Y ∧ Y ⊆ X := by
+    unfold powerset
+    rw [replacement_axiom]
+    constructor
+    · rintro ⟨Y, FY, ⟨h1, h2⟩⟩
+      use (X.specify fun x ↦ FY x = ⟨1, by simp⟩)
+      apply And.intro h2
+      apply specify_subset
+    rintro ⟨Y, hx, hYX⟩
+    -- X : Set
+    -- x : Object
+    -- Y : Set
+    -- hx : x = set_to_object Y
+    -- hYX : Y ⊆ X
+    -- |- ∃ (x_1 : ({0, 1} ^ X).toSubtype) (f : X.toSubtype → {0, 1}.toSubtype), ↑x_1 = ↑f ∧ x = set_to_object (X.specify fun x ↦ f x = ⟨1, ⋯⟩)
+    have : ∃ f: X → ({(0:Object),1}:Set), ∀ x:X, f x = ⟨1, by simp⟩ ↔ x.val ∈ Y := by
+      use fun x ↦ if x.val ∈ Y then ⟨ 1, by simp ⟩ else ⟨ 0, by simp ⟩
+      intro x
+      by_cases h : x.val ∈ Y
+      . simp [h]
+      simp [h]
+    obtain ⟨f, hf⟩ := this
+    -- X : Set
+    -- x : Object
+    -- Y : Set
+    -- hx : x = set_to_object Y
+    -- hYX : Y ⊆ X
+    -- f : X.toSubtype → {0, 1}.toSubtype
+    -- hf : ∀ (x : X.toSubtype), f x = ⟨1, ⋯⟩ ↔ ↑x ∈ Y
+    -- |- ∃ (x_1 : ({0, 1} ^ X).toSubtype) (f : X.toSubtype → {0, 1}.toSubtype), ↑x_1 = ↑f ∧ x = set_to_object (X.specify fun x ↦ f x = ⟨1, ⋯⟩)
+    use ⟨f, by simp⟩ -- why `simp` works? because `{0, 1} ^ X` is `X.toSubtype → {0, 1}.toSubtype` by definition.
+    use f
+    apply And.intro rfl
+    rw [hx, coe_eq_iff, Set.ext_iff]
+    intro x
+    rw [specification_axiom'']
+    constructor
+    · intro h
+      have h1 := hYX x h
+      use h1
+      have := hf ⟨x, h1⟩
+      rw [this]
+      exact h
+    rintro ⟨h1, h2⟩
+    have := hf ⟨x, h1⟩
+    rw [← this]
+    exact h2
 
 /-- Lemma 3.4.10 -/
 theorem SetTheory.Set.exists_powerset (X:Set) :
