@@ -330,7 +330,15 @@ theorem SetTheory.Set.union_axiom (A: Set) (x:Object) :
 /-- Example 3.4.12 -/
 theorem SetTheory.Set.example_3_4_12 :
     union { (({2,3}:Set):Object), (({3,4}:Set):Object), (({4,5}:Set):Object) } = {2,3,4,5} := by
-  sorry
+  ext x
+  rw [union_axiom]
+  constructor
+  · rintro ⟨S, ⟨h1, h2⟩⟩
+    rw [mem_triple, coe_eq_iff, coe_eq_iff, coe_eq_iff] at h2
+    obtain h | h | h := h2 <;> simp_all;
+    · rw [← or_assoc]; left; exact h1
+    · right; rw [← or_assoc]; left; exact h1
+  aesop
 
 /-- Connection with Mathlib union -/
 theorem SetTheory.Set.union_eq (A: Set) :
@@ -345,8 +353,10 @@ abbrev SetTheory.Set.iUnion (I: Set) (A: I → Set) : Set :=
 theorem SetTheory.Set.mem_iUnion {I:Set} (A: I → Set) (x:Object) :
     x ∈ iUnion I A ↔ ∃ α:I, x ∈ A α := by
   rw [union_axiom]; constructor
-  . simp_all [replacement_axiom]
-  grind [replacement_axiom]
+  . simp_all [replacement_axiom];
+    intro x1 h1 x2 h2 h3; use x2, h2; rw [← h3]; exact h1 -- grind
+  simp_all [replacement_axiom]
+  intro x1 h1 h2; use (A ⟨x1, h1⟩); apply And.intro h2; use x1, h1 -- grind [replacement_axiom]
 
 open Classical in
 noncomputable abbrev SetTheory.Set.index_example : ({1,2,3}:Set) → Set :=
@@ -362,7 +372,12 @@ theorem SetTheory.Set.iUnion_eq (I: Set) (A: I → Set) :
     (iUnion I A : _root_.Set Object) = ⋃ α, (A α: _root_.Set Object) := by
   ext; simp [mem_iUnion]
 
-theorem SetTheory.Set.iUnion_of_empty (A: (∅:Set) → Set) : iUnion (∅:Set) A = ∅ := by sorry
+theorem SetTheory.Set.iUnion_of_empty (A: (∅:Set) → Set) : iUnion (∅:Set) A = ∅ := by
+  rw [Set.ext_iff]
+  intro x
+  constructor
+  · rw [mem_iUnion]; rintro ⟨y, hy⟩; exfalso; apply not_mem_empty y y.property
+  intro h; exfalso; apply not_mem_empty x h
 
 /-- Indexed intersection -/
 noncomputable abbrev SetTheory.Set.nonempty_choose {I:Set} (hI: I ≠ ∅) : I :=
