@@ -391,12 +391,37 @@ noncomputable abbrev SetTheory.Set.iInter (I: Set) (hI: I ≠ ∅) (A: I → Set
 
 theorem SetTheory.Set.mem_iInter {I:Set} (hI: I ≠ ∅) (A: I → Set) (x:Object) :
     x ∈ iInter I hI A ↔ ∀ α:I, x ∈ A α := by
-  sorry
+  rw [Set.specification_axiom'']
+  constructor
+  · rintro ⟨h1, h2⟩; exact h2
+  intro h
+  use h (nonempty_choose hI)
 
 /-- Exercise 3.4.1 -/
 theorem SetTheory.Set.preimage_eq_image_of_inv {X Y V:Set} (f:X → Y) (f_inv: Y → X)
-  (hf: Function.LeftInverse f_inv f ∧ Function.RightInverse f_inv f) (hV: V ⊆ Y) :
-    image f_inv V = preimage f V := by sorry
+  (hf: Function.LeftInverse f_inv f ∧ Function.RightInverse f_inv f) (_: V ⊆ Y) :
+    image f_inv V = preimage f V := by
+    rw [Set.ext_iff]
+    intro x
+    rw [mem_image, specification_axiom'']
+    constructor
+    · rintro ⟨y, hy, hx⟩
+      have hy2 := hf.2 y
+      have h1 := (f_inv y).property
+      rw [hx] at h1
+      use h1
+      have h2 : f_inv y = ⟨x, h1⟩ := by
+        rw [← Subtype.val_inj]
+        exact hx
+      have h3: (f ⟨x, h1⟩).val = y.val := by
+        rw [Subtype.val_inj, ← hy2, h2]
+      rw [h3]
+      exact hy
+    rintro ⟨h1, h2⟩
+    use (f ⟨x, h1⟩)
+    apply And.intro h2
+    have h3 : f_inv (f ⟨x, h1⟩) = ⟨x, h1⟩ := by apply hf.left
+    apply Subtype.val_inj.mpr h3
 
 /- Exercise 3.4.2.  State and prove an assertion connecting `preimage f (image f S)` and `S`. -/
 -- theorem SetTheory.Set.preimage_of_image {X Y:Set} (f:X → Y) (S: Set) (hS: S ⊆ X) : sorry := by sorry
