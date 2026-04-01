@@ -25,3 +25,5 @@ Claude.md
 **/tobeIgnored/
 **/tmp
 **/docker/
+
+.agents/
