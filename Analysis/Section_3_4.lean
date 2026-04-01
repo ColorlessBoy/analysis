@@ -424,27 +424,93 @@ theorem SetTheory.Set.preimage_eq_image_of_inv {X Y V:Set} (f:X → Y) (f_inv: Y
     apply Subtype.val_inj.mpr h3
 
 /- Exercise 3.4.2.  State and prove an assertion connecting `preimage f (image f S)` and `S`. -/
--- theorem SetTheory.Set.preimage_of_image {X Y:Set} (f:X → Y) (S: Set) (hS: S ⊆ X) : sorry := by sorry
+theorem SetTheory.Set.preimage_of_image {X Y:Set} (f:X → Y) (S: Set) (hS: S ⊆ X) : S ⊆ preimage f (image f S) := by
+  intro x hx
+  rw [specification_axiom'']
+  have hx2 := hS x hx
+  use hx2
+  rw [mem_image]
+  use ⟨x, hx2⟩
 
 /- Exercise 3.4.2.  State and prove an assertion connecting `image f (preimage f U)` and `U`.
 Interestingly, it is not needed for U to be a subset of Y. -/
--- theorem SetTheory.Set.image_of_preimage {X Y:Set} (f:X → Y) (U: Set) : sorry := by sorry
+theorem SetTheory.Set.image_of_preimage {X Y:Set} (f:X → Y) (U: Set) : image f (preimage f U) ⊆ U := by
+  intro y hy
+  rw [mem_image] at hy
+  obtain ⟨x, hx', hx''⟩ := hy
+  rw [← hx'']
+  rw [specification_axiom''] at hx'
+  obtain ⟨h1, h2⟩ := hx'
+  exact h2
 
 /- Exercise 3.4.2.  State and prove an assertion connecting `preimage f (image f (preimage f U))` and `preimage f U`.
 Interestingly, it is not needed for U to be a subset of Y.-/
--- theorem SetTheory.Set.preimage_of_image_of_preimage {X Y:Set} (f:X → Y) (U: Set) : sorry := by sorry
+theorem SetTheory.Set.preimage_of_image_of_preimage {X Y:Set} (f:X → Y) (U: Set) : preimage f (image f (preimage f U)) = preimage f U := by
+  rw [Set.ext_iff]
+  intro x
+  rw [specification_axiom'', specification_axiom'']
+  constructor
+  · rintro ⟨h1, h2⟩
+    use h1
+    apply image_of_preimage f
+    exact h2
+  rintro ⟨h1, h2⟩
+  use h1
+  rw [mem_image]
+  use ⟨x, h1⟩
+  rw [mem_preimage]
+  exact ⟨h2, rfl⟩
 
 /--
   Exercise 3.4.3.
 -/
 theorem SetTheory.Set.image_of_inter {X Y:Set} (f:X → Y) (A B: Set) :
-    image f (A ∩ B) ⊆ (image f A) ∩ (image f B) := by sorry
+    image f (A ∩ B) ⊆ (image f A) ∩ (image f B) := by
+    intro y hy
+    rw [mem_image] at hy
+    obtain ⟨x, hx', hx''⟩ := hy
+    rw [mem_inter] at hx'
+    rw [mem_inter, mem_image, mem_image]
+    constructor
+    · use x; exact ⟨hx'.1, hx''⟩
+    use x; exact ⟨hx'.2, hx''⟩
 
 theorem SetTheory.Set.image_of_diff {X Y:Set} (f:X → Y) (A B: Set) :
-    (image f A) \ (image f B) ⊆ image f (A \ B) := by sorry
+    (image f A) \ (image f B) ⊆ image f (A \ B) := by
+    intro y
+    rw [mem_sdiff, mem_image, mem_image, mem_image, not_exists]
+    rintro ⟨⟨x, h1, h2⟩, h3⟩
+    use x
+    rw [mem_sdiff]
+    have h4 := h3 x
+    rw [and_comm, not_and] at h4
+    have h5 := h4 h2
+    exact ⟨⟨h1, h5⟩, h2⟩
 
 theorem SetTheory.Set.image_of_union {X Y:Set} (f:X → Y) (A B: Set) :
-    image f (A ∪ B) = (image f A) ∪ (image f B) := by sorry
+    image f (A ∪ B) = (image f A) ∪ (image f B) := by
+    rw [Set.ext_iff]
+    intro y
+    rw [mem_image, mem_union]
+    constructor
+    -- ⊢ (∃ x_1, ↑x_1 ∈ A ∪ B ∧ ↑(f x_1) = x) → x ∈ image f A ∨ x ∈ image f B
+    · rintro ⟨x1, h1, h2⟩
+      rw [mem_image, mem_image]
+      rw [mem_union] at h1
+      apply Or.imp _ _ h1
+      · intro h3; use x1
+      intro h3; use x1
+    rw [mem_image, mem_image]
+    intro h
+    rcases h with h | h
+    · obtain ⟨x, h1, h2⟩ := h
+      use x
+      rw [mem_union]
+      exact ⟨Or.inl h1, h2⟩
+    obtain ⟨x, h1, h2⟩ := h
+    use x
+    rw [mem_union]
+    exact ⟨Or.inr h1, h2⟩
 
 def SetTheory.Set.image_of_inter' : Decidable (∀ X Y:Set, ∀ f:X → Y, ∀ A B: Set, image f (A ∩ B) = (image f A) ∩ (image f B)) := by
   -- The first line of this construction should be either `apply isTrue` or `apply isFalse`
