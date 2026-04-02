@@ -515,25 +515,35 @@ theorem SetTheory.Set.image_of_union {X Y:Set} (f:X → Y) (A B: Set) :
 def SetTheory.Set.image_of_inter' : Decidable (∀ X Y:Set, ∀ f:X → Y, ∀ A B: Set, image f (A ∩ B) = (image f A) ∩ (image f B)) := by
   -- The first line of this construction should be either `apply isTrue` or `apply isFalse`
   apply isFalse
-  /-
-  case h
-  inst✝ : SetTheory
-  ⊢ ¬∀ (X Y : Set) (f : X.toSubtype → Y.toSubtype) (A B : Set), image f (A ∩ B) = image f A ∩ image f B
-  -/
   intro h
   have h1 := h {0,1} {0} (fun n => ⟨0, by simp⟩) {0} {1}
   rw [Set.ext_iff] at h1
   have h2 := h1 (0:Object)
-  rw [mem_image, mem_inter, mem_image, mem_image] at h2
   simp at h2
 
 def SetTheory.Set.image_of_diff' : Decidable (∀ X Y:Set, ∀ f:X → Y, ∀ A B: Set, image f (A \ B) = (image f A) \ (image f B)) := by
   -- The first line of this construction should be either `apply isTrue` or `apply isFalse`
-  sorry
+  apply isFalse
+  intro h
+  have h1 := h {0, 1} {0} (fun n => ⟨0, by simp⟩) {0, 1} {1}
+  rw [Set.ext_iff] at h1
+  have h2 := h1 (0: Object)
+  simp at h2
 
 /-- Exercise 3.4.4 -/
 theorem SetTheory.Set.preimage_of_inter {X Y:Set} (f:X → Y) (A B: Set) :
-    preimage f (A ∩ B) = (preimage f A) ∩ (preimage f B) := by sorry
+    preimage f (A ∩ B) = (preimage f A) ∩ (preimage f B) := by
+    rw [Set.ext_iff]
+    intro x
+    rw [mem_inter, specification_axiom'', specification_axiom'', specification_axiom'']
+    constructor
+    · rintro ⟨hx, hAB⟩
+      rw [mem_inter] at hAB
+      constructor
+      · use hx; exact hAB.1
+      use hx; exact hAB.2
+    rintro ⟨⟨h1, h2⟩,⟨h3,h4⟩⟩
+    use h1; rw [mem_inter]; exact ⟨h2, h4⟩
 
 theorem SetTheory.Set.preimage_of_union {X Y:Set} (f:X → Y) (A B: Set) :
     preimage f (A ∪ B) = (preimage f A) ∪ (preimage f B) := by sorry
