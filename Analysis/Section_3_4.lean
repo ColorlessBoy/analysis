@@ -546,10 +546,37 @@ theorem SetTheory.Set.preimage_of_inter {X Y:Set} (f:X → Y) (A B: Set) :
     use h1; rw [mem_inter]; exact ⟨h2, h4⟩
 
 theorem SetTheory.Set.preimage_of_union {X Y:Set} (f:X → Y) (A B: Set) :
-    preimage f (A ∪ B) = (preimage f A) ∪ (preimage f B) := by sorry
+    preimage f (A ∪ B) = (preimage f A) ∪ (preimage f B) := by
+    rw [Set.ext_iff]
+    intro x
+    rw [mem_union, specification_axiom'', specification_axiom'', specification_axiom'']
+    constructor
+    · rintro ⟨hx, hAB⟩
+      rw [mem_union] at hAB
+      rcases hAB with hAB | hAB
+      · left; use hx
+      right; use hx
+    intro h
+    rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · use h1; rw [mem_union]; left; exact h2
+    use h1; rw [mem_union]; right; exact h2
 
 theorem SetTheory.Set.preimage_of_diff {X Y:Set} (f:X → Y) (A B: Set) :
-    preimage f (A \ B) = (preimage f A) \ (preimage f B)  := by sorry
+    preimage f (A \ B) = (preimage f A) \ (preimage f B)  := by
+    rw [Set.ext_iff]
+    intro x
+    rw [mem_sdiff, specification_axiom'', specification_axiom'', specification_axiom'']
+    constructor
+    · rintro ⟨hx, hAB⟩
+      rw [mem_sdiff] at hAB
+      constructor
+      · use hx; exact hAB.1
+      rintro ⟨h2, h3⟩
+      exact hAB.2 h3
+    rintro ⟨⟨h1, h2⟩, h3⟩
+    use h1; rw [mem_sdiff]; apply And.intro h2
+    contrapose! h3
+    use h1
 
 /-- Exercise 3.4.5 -/
 theorem SetTheory.Set.image_preimage_of_surj {X Y:Set} (f:X → Y) :
