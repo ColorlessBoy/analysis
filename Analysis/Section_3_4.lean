@@ -580,11 +580,55 @@ theorem SetTheory.Set.preimage_of_diff {X Y:Set} (f:X → Y) (A B: Set) :
 
 /-- Exercise 3.4.5 -/
 theorem SetTheory.Set.image_preimage_of_surj {X Y:Set} (f:X → Y) :
-    (∀ S, S ⊆ Y → image f (preimage f S) = S) ↔ Function.Surjective f := by sorry
+    (∀ S, S ⊆ Y → image f (preimage f S) = S) ↔ Function.Surjective f := by
+    constructor
+    · intro h y
+      let S := ({y.val}: Set)
+      have : S ⊆ Y := by intro x; rw [mem_singleton]; intro h; rw [h]; exact y.property
+      have := h _ this
+      have : y.val ∈ image f (preimage f S) := by rw [this,mem_singleton]
+      rw [mem_image] at this
+      obtain ⟨x, hx, hx'⟩ := this
+      use x; rw [← Subtype.val_inj]; exact hx'
+    intro h1 S h2
+    apply subset_antisymm
+    apply image_of_preimage f
+    intro y hy
+    rw [mem_image]
+    obtain ⟨x, hx⟩ := h1 ⟨y,h2 y hy⟩
+    use x
+    constructor
+    · rw [mem_preimage, hx]; exact hy
+    exact Subtype.val_inj.mpr hx
 
 /-- Exercise 3.4.5 -/
 theorem SetTheory.Set.preimage_image_of_inj {X Y:Set} (f:X → Y) :
-    (∀ S, S ⊆ X → preimage f (image f S) = S) ↔ Function.Injective f := by sorry
+    (∀ S, S ⊆ X → preimage f (image f S) = S) ↔ Function.Injective f := by
+    constructor
+    · intro h x y hxy
+      let S := ({x.val}: Set)
+      have : S ⊆ X := by intro z; rw [mem_singleton]; intro h; rw [h]; exact x.property
+      have h1 := h _ this
+      rw [Set.ext_iff] at h1
+      have h2 := h1 y
+      rw [mem_preimage, mem_image, mem_singleton, Eq.comm] at h2
+      apply Subtype.val_inj.mp
+      apply h2.mp
+      use x
+      rw [mem_singleton]
+      apply And.intro rfl
+      apply Subtype.val_inj.mpr hxy
+    intro h1 S hS
+    rw [Set.ext_iff]
+    intro y
+    rw [specification_axiom'']
+    constructor
+    · rintro ⟨h2, h3⟩; rw [mem_image] at h3; obtain ⟨x, hx, hx'⟩ := h3
+      have h4 := h1 (Subtype.val_inj.mp hx')
+      rw [← Subtype.val_inj] at h4
+      rw [h4] at hx
+      exact hx
+    intro h1; use (hS y h1); rw [mem_image]; use  ⟨y, hS y h1⟩
 
 /-- Helper lemma for Exercise 3.4.7. -/
 @[simp]
@@ -600,7 +644,53 @@ lemma SetTheory.Set.mem_union_powerset_replace_iff {S : Set} {P : S.powerset →
 /-- Exercise 3.4.7 -/
 theorem SetTheory.Set.partial_functions {X Y:Set} :
     ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X' Y':Set, X' ⊆ X ∧ Y' ⊆ Y ∧ ∃ f: X' → Y', F = f := by
+  -- P S U 表示: 存在 S':Set 使得 (S':Object) = S.val 且 U = Y^S'
+  -- 即 U 包含所有从 S' (X的子集) 到 Y 的函数
+  have : ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X':Set, X' ⊆ X ∧ ∃ f: X' → Y, F = f := by
+    let P (S : X.powerset) (U : Object) : Prop :=
+      ∃ S' : Set, (S' : Object) = S.val ∧ U = (Y ^ S' : Set)
+    -- 唯一性条件
+    have hP : ∀ (S : X.powerset) (U U' : Object), P S U ∧ P S U' → U = U' := by
+      intro S U U' ⟨⟨S1, hS1, hU1⟩, ⟨S2, hS2, hU2⟩⟩
+      have : (S1 : Object) = (S2 : Object) := by
+        rw [hS1, hS2]
+      have : S1 = S2 := Set.coe_eq this
+      simp [this, hU1, hU2]
+    -- 定义 Z
+    use union (X.powerset.replace hP)
+    intro F
+    rw [mem_union_powerset_replace_iff]
+    constructor
+    · -- F ∈ Z ⇒ F 是部分函数
+      rintro ⟨S, U, ⟨S', hS', hU⟩, hF⟩
+      -- hU : set_to_object U = set_to_object (Y ^ S')
+      -- 需要先得到 U = Y ^ S'
+      have hU' : U = Y ^ S' := Set.coe_eq hU
+      rw [hU'] at hF
+      rw [powerset_axiom] at hF
+      obtain ⟨f, hf⟩ := hF
+      -- f : S' → Y, F = f
+      -- 需要构造 Y' ⊆ Y 使得存在 f' : S' → Y', F = f'
+      use S'
+      constructor
+      · intro x hx
+        have := S.property
+        rw [← hS'] at this
+        apply mem_powerset'.mp at this
+        exact this x hx
+      use f; rw [hf]
+    · -- F 是部分函数 ⇒ F ∈ Z
+      rintro ⟨X', hX', f, hf⟩
+      have hX'' : (X' : Object) ∈ X.powerset := mem_powerset'.mpr hX'
+      use ⟨X', hX''⟩, Y^X'
+      constructor
+      · use X'
+      rw [powerset_axiom]
+      use f
+      rw [hf]
   sorry
+
+
 
 /--
   Exercise 3.4.8.  The point of this exercise is to prove it without using the
