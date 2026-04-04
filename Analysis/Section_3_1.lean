@@ -1129,7 +1129,6 @@ theorem SetTheory.Set.singleton_iff (A:Set) (hA: A ≠ ∅) : (¬∃ B ⊂ A, B 
     rw [hx, not_and, not_not]
     intro ⟨hy1, hy2⟩
     contrapose hy2
-    rw [not_not]
     obtain ⟨z, hz⟩ := nonempty_def hy2
     have h4 := (mem_singleton _ _).mp (hy1 z hz)
     rw [h4] at hz
