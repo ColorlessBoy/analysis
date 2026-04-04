@@ -663,9 +663,13 @@ lemma SetTheory.Set.mem_partial_functions_inner {Y S' : Set} {F : Object} :
     constructor
     · have := Y'.property
       rw [← h1, mem_powerset'] at this; exact this
-    sorry
+    apply coe_eq at h2
+    rw [h2, powerset_axiom] at h3
+    obtain ⟨f, hf⟩ := h3
+    use f
+    rw [hf]
   rintro ⟨Y', hY', ⟨f, hf⟩⟩
-  use ⟨Y', by sorry⟩, Y'^S'
+  use ⟨Y', by rw [mem_powerset']; exact hY'⟩, Y'^S'
   constructor
   · use Y'
   rw [powerset_axiom]
