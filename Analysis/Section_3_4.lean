@@ -353,10 +353,8 @@ abbrev SetTheory.Set.iUnion (I: Set) (A: I → Set) : Set :=
 theorem SetTheory.Set.mem_iUnion {I:Set} (A: I → Set) (x:Object) :
     x ∈ iUnion I A ↔ ∃ α:I, x ∈ A α := by
   rw [union_axiom]; constructor
-  . simp_all [replacement_axiom];
-    intro x1 h1 x2 h2 h3; use x2, h2; rw [← h3]; exact h1 -- grind
+  . simp_all [replacement_axiom]
   simp_all [replacement_axiom]
-  intro x1 h1 h2; use (A ⟨x1, h1⟩); apply And.intro h2; use x1, h1 -- grind [replacement_axiom]
 
 open Classical in
 noncomputable abbrev SetTheory.Set.index_example : ({1,2,3}:Set) → Set :=
