@@ -655,24 +655,22 @@ lemma SetTheory.Set.mem_partial_functions_inner {Y S' : Set} {F : Object} :
     F ∈ partial_functions_inner Y S' ↔
     ∃ Y' : Set, Y' ⊆ Y ∧ ∃ f : S' → Y', F = f := by
   unfold SetTheory.Set.partial_functions_inner;
-  simp [mem_union_powerset_replace_iff] at *;
+  rw [mem_union_powerset_replace_iff]
+  -- simp [mem_union_powerset_replace_iff] at *;
   constructor
-  · rintro ⟨A, ⟨⟨Y', h1, h2⟩, ⟨B, ⟨T', h3, h4⟩, h5⟩⟩⟩
-    rw [h4, powerset_axiom] at h5
-    obtain ⟨g, hg⟩ := h5
-    use Y'
-    apply And.intro h2
-    rw [h1, Set.coe_eq_iff] at h3
+  · rintro ⟨Y', U, ⟨⟨T', h1, h2⟩, h3⟩⟩
+    use T'
+    constructor
+    · have := Y'.property
+      rw [← h1, mem_powerset'] at this; exact this
     sorry
   rintro ⟨Y', hY', ⟨f, hf⟩⟩
-  use Y'
+  use ⟨Y', by sorry⟩, Y'^S'
   constructor
   · use Y'
-  use Y' ^ S'
-  constructor
-  · use Y'
-  rw [hf, powerset_axiom]
+  rw [powerset_axiom]
   use f
+  rw [hf]
 
 /-- Exercise 3.4.7 -/
 theorem SetTheory.Set.partial_functions {X Y:Set} :
