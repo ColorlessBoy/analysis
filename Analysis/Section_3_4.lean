@@ -641,52 +641,70 @@ lemma SetTheory.Set.mem_union_powerset_replace_iff {S : Set} {P : S.powerset →
     ∃ (S' : S.powerset) (U : Set), P S' U ∧ x ∈ U := by
   grind [union_axiom, replacement_axiom]
 
+noncomputable def SetTheory.Set.partial_functions_inner (Y : Set) (S' : Set) : Set :=
+  let Q (T : Y.powerset) (U : Object) : Prop :=
+    ∃ T' : Set, (T' : Object) = T.val ∧ U = (T' ^ S' : Set)
+  have hQ : ∀ (T : Y.powerset) (U U' : Object), Q T U ∧ Q T U' → U = U' := by
+    intro T U U' ⟨⟨T1, hT1, hU1⟩, ⟨T2, hT2, hU2⟩⟩
+    have h1 : (T1 : Object) = (T2 : Object) := by rw [hT1, hT2]
+    have h2 : T1 = T2 := Set.coe_eq h1
+    subst h2; simp_all
+  union (Y.powerset.replace hQ)
+
+lemma SetTheory.Set.mem_partial_functions_inner {Y S' : Set} {F : Object} :
+    F ∈ partial_functions_inner Y S' ↔
+    ∃ Y' : Set, Y' ⊆ Y ∧ ∃ f : S' → Y', F = f := by
+  unfold SetTheory.Set.partial_functions_inner;
+  simp [mem_union_powerset_replace_iff] at *;
+  constructor
+  · rintro ⟨A, ⟨⟨Y', h1, h2⟩, ⟨B, ⟨T', h3, h4⟩, h5⟩⟩⟩
+    rw [h4, powerset_axiom] at h5
+    obtain ⟨g, hg⟩ := h5
+    use Y'
+    apply And.intro h2
+    rw [h1, Set.coe_eq_iff] at h3
+    sorry
+  rintro ⟨Y', hY', ⟨f, hf⟩⟩
+  use Y'
+  constructor
+  · use Y'
+  use Y' ^ S'
+  constructor
+  · use Y'
+  rw [hf, powerset_axiom]
+  use f
+
 /-- Exercise 3.4.7 -/
 theorem SetTheory.Set.partial_functions {X Y:Set} :
     ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X' Y':Set, X' ⊆ X ∧ Y' ⊆ Y ∧ ∃ f: X' → Y', F = f := by
-    let P (S : X.powerset) (U : Object) : Prop :=
-      ∃ S' : Set, (S' : Object) = S.val ∧ U = (Y ^ S' : Set)
-    -- 唯一性条件
-    have hP : ∀ (S : X.powerset) (U U' : Object), P S U ∧ P S U' → U = U' := by
-      intro S U U' ⟨⟨S1, hS1, hU1⟩, ⟨S2, hS2, hU2⟩⟩
-      have : (S1 : Object) = (S2 : Object) := by
-        rw [hS1, hS2]
-      have : S1 = S2 := Set.coe_eq this
-      simp [this, hU1, hU2]
-    -- 定义 Z
-    use union (X.powerset.replace hP)
-    intro F
-    rw [mem_union_powerset_replace_iff]
+  -- Z = ⋃_{X' ⊆ X} (⋃_{Y' ⊆ Y} Y'^X')
+  let P (S : X.powerset) (U : Object) : Prop :=
+    ∃ S' : Set, (S' : Object) = S.val ∧ U = partial_functions_inner Y S'
+  have hP : ∀ (S : X.powerset) (U U' : Object), P S U ∧ P S U' → U = U' := by
+    intro S U U' ⟨⟨S1, hS1, hU1⟩, ⟨S2, hS2, hU2⟩⟩
+    have h1 : (S1 : Object) = (S2 : Object) := by rw [hS1, hS2]
+    have h2 : S1 = S2 := Set.coe_eq h1
+    subst h2; simp_all
+  use union (X.powerset.replace hP)
+  intro F
+  rw [mem_union_powerset_replace_iff]
+  constructor
+  · -- F ∈ Z → partial function
+    rintro ⟨S, U, ⟨S', hS', hU⟩, hF⟩
+    have hU' : U = partial_functions_inner Y S' := Set.coe_eq hU
+    rw [hU', mem_partial_functions_inner] at hF
+    obtain ⟨Y', hY', f, hf⟩ := hF
+    refine ⟨S', Y', ?_, hY', f, hf⟩
+    have := S.property
+    rw [← hS'] at this
+    exact mem_powerset'.mp this
+  · -- partial function → F ∈ Z
+    rintro ⟨X', Y', h1, h2, f, hf⟩
+    use ⟨X', mem_powerset'.mpr h1⟩, partial_functions_inner Y X'
     constructor
-    · -- F ∈ Z ⇒ F 是部分函数
-      rintro ⟨S, U, ⟨S', hS', hU⟩, hF⟩
-      -- hU : set_to_object U = set_to_object (Y ^ S')
-      -- 需要先得到 U = Y ^ S'
-      have hU' : U = Y ^ S' := Set.coe_eq hU
-      rw [hU'] at hF
-      rw [powerset_axiom] at hF
-      obtain ⟨f, hf⟩ := hF
-      -- f : S' → Y, F = f
-      -- 需要构造 Y' ⊆ Y 使得存在 f' : S' → Y', F = f'
-      use S', Y
-      constructor
-      · intro x hx
-        have := S.property
-        rw [← hS'] at this
-        apply mem_powerset'.mp at this
-        exact this x hx
-      apply And.intro (subset_self Y)
-      use f; rw [hf]
-    · -- F 是部分函数 ⇒ F ∈ Z
-      rintro ⟨X', Y', h1, h2, fsub, hfsub⟩
-      have hX'' : (X' : Object) ∈ X.powerset := mem_powerset'.mpr h1
-      use ⟨X', mem_powerset'.mpr h1⟩, Y ^ X'
-      constructor
-      · unfold P
-        use X'
-      rw [powerset_axiom]
-
-      sorry
+    · exact ⟨X', rfl, rfl⟩
+    · rw [mem_partial_functions_inner]
+      exact ⟨Y', h2, f, hf⟩
 
 /--
   Exercise 3.4.8.  The point of this exercise is to prove it without using the
