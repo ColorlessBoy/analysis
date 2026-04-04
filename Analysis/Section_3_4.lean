@@ -646,7 +646,7 @@ theorem SetTheory.Set.partial_functions {X Y:Set} :
     ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X' Y':Set, X' ⊆ X ∧ Y' ⊆ Y ∧ ∃ f: X' → Y', F = f := by
   -- P S U 表示: 存在 S':Set 使得 (S':Object) = S.val 且 U = Y^S'
   -- 即 U 包含所有从 S' (X的子集) 到 Y 的函数
-  have : ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X':Set, X' ⊆ X ∧ ∃ f: X' → Y, F = f := by
+  have h1 {X Y:Set}: ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X':Set, X' ⊆ X ∧ ∃ f: X' → Y, F = f := by
     let P (S : X.powerset) (U : Object) : Prop :=
       ∃ S' : Set, (S' : Object) = S.val ∧ U = (Y ^ S' : Set)
     -- 唯一性条件
