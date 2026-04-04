@@ -644,9 +644,6 @@ lemma SetTheory.Set.mem_union_powerset_replace_iff {S : Set} {P : S.powerset →
 /-- Exercise 3.4.7 -/
 theorem SetTheory.Set.partial_functions {X Y:Set} :
     ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X' Y':Set, X' ⊆ X ∧ Y' ⊆ Y ∧ ∃ f: X' → Y', F = f := by
-  -- P S U 表示: 存在 S':Set 使得 (S':Object) = S.val 且 U = Y^S'
-  -- 即 U 包含所有从 S' (X的子集) 到 Y 的函数
-  have h1 {X Y:Set}: ∃ Z:Set, ∀ F:Object, F ∈ Z ↔ ∃ X':Set, X' ⊆ X ∧ ∃ f: X' → Y, F = f := by
     let P (S : X.powerset) (U : Object) : Prop :=
       ∃ S' : Set, (S' : Object) = S.val ∧ U = (Y ^ S' : Set)
     -- 唯一性条件
@@ -671,26 +668,25 @@ theorem SetTheory.Set.partial_functions {X Y:Set} :
       obtain ⟨f, hf⟩ := hF
       -- f : S' → Y, F = f
       -- 需要构造 Y' ⊆ Y 使得存在 f' : S' → Y', F = f'
-      use S'
+      use S', Y
       constructor
       · intro x hx
         have := S.property
         rw [← hS'] at this
         apply mem_powerset'.mp at this
         exact this x hx
+      apply And.intro (subset_self Y)
       use f; rw [hf]
     · -- F 是部分函数 ⇒ F ∈ Z
-      rintro ⟨X', hX', f, hf⟩
-      have hX'' : (X' : Object) ∈ X.powerset := mem_powerset'.mpr hX'
-      use ⟨X', hX''⟩, Y^X'
+      rintro ⟨X', Y', h1, h2, fsub, hfsub⟩
+      have hX'' : (X' : Object) ∈ X.powerset := mem_powerset'.mpr h1
+      use ⟨X', mem_powerset'.mpr h1⟩, Y ^ X'
       constructor
-      · use X'
+      · unfold P
+        use X'
       rw [powerset_axiom]
-      use f
-      rw [hf]
-  sorry
 
-
+      sorry
 
 /--
   Exercise 3.4.8.  The point of this exercise is to prove it without using the
