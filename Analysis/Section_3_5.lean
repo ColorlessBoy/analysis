@@ -47,17 +47,88 @@ structure OrderedPair where
 /-- Definition 3.5.1 (Ordered pair) -/
 @[simp]
 theorem OrderedPair.eq (x y x' y' : Object) :
-    (⟨ x, y ⟩ : OrderedPair) = (⟨ x', y' ⟩ : OrderedPair) ↔ x = x' ∧ y = y' := by aesop
+    (⟨ x, y ⟩ : OrderedPair) = (⟨ x', y' ⟩ : OrderedPair) ↔ x = x' ∧ y = y' := by
+    rw [OrderedPair.ext_iff]
+
 
 /-- Helper lemma for Exercise 3.5.1 -/
 lemma SetTheory.Set.pair_eq_singleton_iff {a b c: Object} : {a, b} = ({c}: Set) ↔
     a = c ∧ b = c := by
-  sorry
+  constructor
+  . intro h
+    constructor
+    · rw [← mem_singleton, ← h, mem_pair]; left; rfl
+    rw [← mem_singleton, ← h, mem_pair]; right; rfl
+  rintro ⟨h1, h2⟩
+  rw [h1, h2, pair_self]
 
 /-- Exercise 3.5.1, first part -/
 def OrderedPair.toObject : OrderedPair ↪ Object where
   toFun p := ({ (({p.fst}:Set):Object), (({p.fst, p.snd}:Set):Object) }:Set)
-  inj' := by sorry
+  inj' := by
+    intro x y h
+    simp at h
+    rw [SetTheory.Set.ext_iff] at h
+    rw [OrderedPair.ext_iff]
+    have h1 : x.fst = y.fst := by
+      have := (h ({x.fst}:Set)).mp
+      rw [mem_pair, mem_pair, coe_eq_iff, coe_eq_iff, coe_eq_iff, coe_eq_iff] at this
+      have := this (Or.inl rfl)
+      rcases this with h | h
+      · rw [← mem_singleton, ← h, mem_singleton]
+      rw [Eq.comm, pair_eq_singleton_iff] at h
+      rw [h.left]
+    apply And.intro h1
+    have h2 := (h ({x.fst, x.snd}:Set)).mp
+    rw [mem_pair, mem_pair, coe_eq_iff, coe_eq_iff, coe_eq_iff, coe_eq_iff, h1, pair_eq_singleton_iff] at h2
+    have h2 := h2 (Or.inr rfl)
+
+    have h3 := (h ({y.fst, y.snd}:Set)).mpr
+    rw [mem_pair, mem_pair, coe_eq_iff, coe_eq_iff, coe_eq_iff, coe_eq_iff, h1, pair_eq_singleton_iff] at h3
+    have h3 := h3 (Or.inr rfl)
+
+    rcases h2 with h2 | h2
+    · rcases h3 with h3 | h3
+      · rw [h2.2, h3.2]
+      rw [SetTheory.Set.ext_iff] at h3
+      have h4 := (h3 y.snd).mp
+      rw [mem_pair, mem_pair] at h4
+      have h4 := h4 (Or.inr rfl)
+      have h5 := (h3 x.snd).mpr
+      rw [mem_pair, mem_pair] at h5
+      have h5 := h5 (Or.inr rfl)
+      rcases h4 with h4 | h4
+      · rcases h5 with h5 | h5
+        · rw [h4, h5]
+        exact h5
+      rw [h4]
+    rcases h3 with h3 | h3
+    · rw [SetTheory.Set.ext_iff] at h2
+      have h4 := (h2 y.snd).mpr
+      rw [mem_pair, mem_pair] at h4
+      have h4 := h4 (Or.inr rfl)
+      have h5 := (h2 x.snd).mp
+      rw [mem_pair, mem_pair] at h5
+      have h5 := h5 (Or.inr rfl)
+      rcases h4 with h4 | h4
+      · rcases h5 with h5 | h5
+        · rw [h4, h5]
+        exact h5
+      rw [h4]
+    rw [SetTheory.Set.ext_iff] at h2
+    have h4 := (h2 x.snd).mp
+    rw [mem_pair, mem_pair] at h4
+    have h4 := h4 (Or.inr rfl)
+    have h5 := (h2 y.snd).mpr
+    rw [mem_pair, mem_pair] at h5
+    have h5 := h5 (Or.inr rfl)
+    rcases h4 with h4 | h4
+    · rcases h5 with h5 | h5
+      · rw [h4, h5]
+      rw [h5]
+    rcases h5 with h5 | h5
+    · exact h4
+    exact h4
 
 instance OrderedPair.inst_coeObject : Coe OrderedPair Object where
   coe := toObject
