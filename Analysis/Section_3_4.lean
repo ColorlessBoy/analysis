@@ -711,7 +711,17 @@ theorem SetTheory.Set.partial_functions {X Y:Set} :
   pairwise union operation {kw (of := «term_∪_»)}`∪`.
 -/
 theorem SetTheory.Set.union_pair_exists (X Y:Set) : ∃ Z:Set, ∀ x, x ∈ Z ↔ (x ∈ X ∨ x ∈ Y) := by
-  sorry
+  constructor;
+  convert SetTheory.Set.union_axiom ( SetTheory.Set.replace ( SetTheory.nat ) _ );
+  case h.convert_1 => exact fun n y => ( n.val = 0 ∧ y = X ) ∨ ( n.val = 1 ∧ y = Y );
+  swap;
+  intro n y y' h; cases h.1 <;> cases h.2 <;> simp_all +decide;
+  constructor <;> intro h;
+  · cases h <;> [ exact ⟨ X, by assumption, by rw [ SetTheory.Set.replacement_axiom ] ; exact ⟨ 0, by simp +decide ⟩ ⟩ ; exact ⟨ Y, by assumption, by rw [ SetTheory.Set.replacement_axiom ] ; exact ⟨ 1, by simp +decide ⟩ ⟩ ];
+  · obtain ⟨ S, hS₁, hS₂ ⟩ := h;
+    rw [ SetTheory.Set.replacement_axiom ] at hS₂;
+    rcases hS₂ with ⟨ x, hx | hx ⟩ <;> simp_all +decide
+
 
 /-- Exercise 3.4.9 -/
 theorem SetTheory.Set.iInter'_insensitive {I:Set} (β β':I) (A: I → Set) :
