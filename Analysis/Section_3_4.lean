@@ -711,16 +711,35 @@ theorem SetTheory.Set.partial_functions {X Y:Set} :
   pairwise union operation {kw (of := «term_∪_»)}`∪`.
 -/
 theorem SetTheory.Set.union_pair_exists (X Y:Set) : ∃ Z:Set, ∀ x, x ∈ Z ↔ (x ∈ X ∨ x ∈ Y) := by
-  constructor;
-  convert SetTheory.Set.union_axiom ( SetTheory.Set.replace ( SetTheory.nat ) _ );
-  case h.convert_1 => exact fun n y => ( n.val = 0 ∧ y = X ) ∨ ( n.val = 1 ∧ y = Y );
-  swap;
-  intro n y y' h; cases h.1 <;> cases h.2 <;> simp_all +decide;
-  constructor <;> intro h;
-  · cases h <;> [ exact ⟨ X, by assumption, by rw [ SetTheory.Set.replacement_axiom ] ; exact ⟨ 0, by simp +decide ⟩ ⟩ ; exact ⟨ Y, by assumption, by rw [ SetTheory.Set.replacement_axiom ] ; exact ⟨ 1, by simp +decide ⟩ ⟩ ];
-  · obtain ⟨ S, hS₁, hS₂ ⟩ := h;
-    rw [ SetTheory.Set.replacement_axiom ] at hS₂;
-    rcases hS₂ with ⟨ x, hx | hx ⟩ <;> simp_all +decide
+  let P := fun (n:SetTheory.nat) (y:Object) => ( n.val = 0 ∧ y = X ) ∨ ( n.val = 1 ∧ y = Y )
+  let Z := union ((SetTheory.Set.replace (SetTheory.nat) (P := P) (by
+      intro n y y' ⟨h1, h2⟩
+      unfold P at h1
+      unfold P at h2
+      rcases h1 with h1 | h1
+      · rcases h2 with h2 | h2
+        · rw [h1.2, h2.2]
+        have : (0:Object) = 1 := by rw [← h1.1, h2.1]
+        simp at this
+      rcases h2 with h2 | h2
+      · have : (1:Object) = 0 := by rw [← h1.1, h2.1]
+        simp at this
+      rw [h1.2, h2.2]
+    )))
+  use Z
+  intro x
+  constructor
+  · intro h; rw [union_axiom] at h; obtain ⟨S, h1, h2⟩ := h
+    rw [replacement_axiom] at h2; obtain ⟨y, hy⟩ := h2; unfold P at hy
+    rcases hy with hy | hy
+    · have : S = X := coe_eq hy.2
+      rw [this] at h1; exact Or.inl h1
+    have : S = Y := coe_eq hy.2
+    rw [this] at h1; exact Or.inr h1
+  rw [union_axiom]
+  rintro (h | h)
+  · use X; apply And.intro h; rw [replacement_axiom]; use 0; simp [P]
+  use Y; apply And.intro h; rw [replacement_axiom]; use 1; simp [P]
 
 
 /-- Exercise 3.4.9 -/
