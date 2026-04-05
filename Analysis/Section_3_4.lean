@@ -43,8 +43,6 @@ theorem SetTheory.Set.mem_image {X Y:Set} (f:X → Y) (S: Set) (y:Object) :
   intro ⟨x, hx⟩; use x; exact ⟨hx.2, hx.1⟩
   -- grind [replacement_axiom]
 
-#print SetTheory.Set.mem_image
-
 /-- Alternate definition of image using axiom of specification -/
 theorem SetTheory.Set.image_eq_specify {X Y:Set} (f:X → Y) (S: Set) :
   image f S = Y.specify (fun y ↦ ∃ x:X, x.val ∈ S ∧ f x = y) := by
@@ -129,8 +127,6 @@ theorem SetTheory.Set.mem_preimage' {X Y:Set} (f:X → Y) (U: Set) (x:Object) :
     apply And.intro (Eq.refl x)
     apply (mem_preimage _ _ _).mp h -- simp_all
   . rintro ⟨ x', rfl, hfx' ⟩; rwa [mem_preimage]
-
-#print SetTheory.Set.mem_preimage'
 
 /-- Connection with Mathlib's notion of preimage. -/
 theorem SetTheory.Set.preimage_eq {X Y:Set} (f:X → Y) (U: Set) :
