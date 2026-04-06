@@ -110,7 +110,7 @@ theorem SetTheory.Set.mem_cartesian (z:Object) (X Y:Set) :
     z ∈ X ×ˢ Y ↔ ∃ x:X, ∃ y:Y, z = (⟨x, y⟩:OrderedPair) := by
   simp only [SProd.sprod, union_axiom]; constructor
   . intro ⟨ S, hz, hS ⟩; rw [replacement_axiom] at hS; obtain ⟨ x, hx ⟩ := hS
-    use x; simp_all
+    use x; rw [coe_eq_iff] at hx; rw [hx, mem_slice] at hz; exact hz
   rintro ⟨ x, y, rfl ⟩; use slice x Y; refine ⟨ by simp, ?_ ⟩
   rw [replacement_axiom]; use x
 
@@ -125,11 +125,13 @@ theorem SetTheory.Set.pair_eq_fst_snd {X Y:Set} (z:X ×ˢ Y) :
   have := (mem_cartesian _ _ _).mp z.property
   obtain ⟨ y, hy: z.val = (⟨ fst z, y ⟩:OrderedPair)⟩ := this.choose_spec
   obtain ⟨ x, hx: z.val = (⟨ x, snd z ⟩:OrderedPair)⟩ := (exists_comm.mp this).choose_spec
-  simp_all [EmbeddingLike.apply_eq_iff_eq]
+  rw [hx, EmbeddingLike.apply_eq_iff_eq, OrderedPair.eq] at hy
+  rw [hx, EmbeddingLike.apply_eq_iff_eq, OrderedPair.eq]
+  exact And.intro hy.1 rfl
 
 /-- This equips an {name}`OrderedPair` with proofs that $`x ∈ X` and $`y ∈ Y`. -/
 def SetTheory.Set.mk_cartesian {X Y:Set} (x:X) (y:Y) : X ×ˢ Y :=
-  ⟨(⟨ x, y ⟩:OrderedPair), by simp⟩
+  ⟨(⟨ x, y ⟩:OrderedPair), by rw [mem_cartesian]; use x, y⟩
 
 @[simp]
 theorem SetTheory.Set.fst_of_mk_cartesian {X Y:Set} (x:X) (y:Y) :
@@ -175,10 +177,10 @@ example : ({1, 2}: Set) ×ˢ ({3, 4, 5}: Set) = ({
 
 /-- Example 3.5.5 / Exercise 3.6.5. There is a bijection between {lean}`X ×ˢ Y` and {lean}`Y ×ˢ X`. -/
 noncomputable abbrev SetTheory.Set.prod_commutator (X Y:Set) : X ×ˢ Y ≃ Y ×ˢ X where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun z := ⟨mk_cartesian (snd z) (fst z), by rw [mk_cartesian, mem_cartesian]; use snd z, fst z⟩
+  invFun z := mk_cartesian (snd z) (fst z)
+  left_inv := by intro x; simp
+  right_inv := by intro x; simp
 
 /-- Example 3.5.5. A function of two variables can be thought of as a function of a pair. -/
 noncomputable abbrev SetTheory.Set.curry_equiv {X Y Z:Set} : (X → Y → Z) ≃ (X ×ˢ Y → Z) where
@@ -203,7 +205,7 @@ theorem SetTheory.Set.mem_iProd {I: Set} {X: I → Set} (t:Object) :
   simp only [iProd, specification_axiom'']; constructor
   . intro ⟨ ht, x, h ⟩; use x
   intro ⟨ x, hx ⟩
-  have h : t ∈ (I.iUnion X)^I := by simp [hx]
+  have h : t ∈ (I.iUnion X)^I := by rw [hx, powerset_axiom]; simp
   use h, x
 
 theorem SetTheory.Set.tuple_mem_iProd {I: Set} {X: I → Set} (x: ∀ i, X i) :
@@ -211,7 +213,18 @@ theorem SetTheory.Set.tuple_mem_iProd {I: Set} {X: I → Set} (x: ∀ i, X i) :
 
 @[simp]
 theorem SetTheory.Set.tuple_inj {I:Set} {X: I → Set} (x y: ∀ i, X i) :
-    tuple x = tuple y ↔ x = y := by sorry
+    tuple x = tuple y ↔ x = y := by
+    rw [coe_of_fun_inj]
+    constructor
+    · intro h
+      apply funext
+      intro i
+      have := congr_fun h i
+      rw [← Subtype.val_inj] at this
+      rw [← Subtype.val_inj]
+      exact this
+    intro h
+    rw [h]
 
 /-- Example 3.5.8. There is a bijection between {lean}`(X ×ˢ Y) ×ˢ Z` and {lean}`X ×ˢ (Y ×ˢ Z)`. -/
 noncomputable abbrev SetTheory.Set.prod_associator (X Y Z:Set) : (X ×ˢ Y) ×ˢ Z ≃ X ×ˢ (Y ×ˢ Z) where
