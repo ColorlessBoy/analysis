@@ -239,10 +239,26 @@ noncomputable abbrev SetTheory.Set.prod_associator (X Y Z:Set) : (X ×ˢ Y) ×ˢ
 -/
 noncomputable abbrev SetTheory.Set.singleton_iProd_equiv (i:Object) (X:Set) :
     iProd (fun _:({i}:Set) ↦ X) ≃ X where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun t := ((mem_iProd _).mp t.property).choose ⟨i, by simp⟩
+  invFun x := ⟨tuple (fun j : ({i}:Set) ↦ x), by apply tuple_mem_iProd⟩
+  left_inv := by
+    intro t
+    ext
+    have h := (mem_iProd _).mp t.property
+    rw [h.choose_spec, tuple_inj]
+    ext j
+    have hj : j = ⟨i, by simp⟩ := by
+      apply Subtype.ext
+      exact (mem_singleton j.val i).mp j.property
+    rw [hj]
+  right_inv := by
+    intro x
+    simp only
+    have h := (mem_iProd _).mp (tuple_mem_iProd (fun j : ({i}:Set) ↦ x))
+    have hspec := h.choose_spec
+    rw [tuple_inj] at hspec
+    have : h.choose = fun j : ({i}:Set) ↦ x := hspec.symm
+    rw [this]
 
 /-- Example 3.5.10 -/
 abbrev SetTheory.Set.empty_iProd_equiv (X: (∅:Set) → Set) : iProd X ≃ Unit where
