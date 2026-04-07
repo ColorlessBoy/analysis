@@ -279,11 +279,23 @@ abbrev SetTheory.Set.empty_iProd_equiv (X: (∅:Set) → Set) : iProd X ≃ Unit
 
 /-- Example 3.5.10 -/
 noncomputable abbrev SetTheory.Set.iProd_of_const_equiv (I:Set) (X: Set) :
-    iProd (fun _:I ↦ X) ≃ (I → X) where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+    iProd (fun _ :I ↦ X) ≃ (I → X) where
+  toFun t := ((mem_iProd t.val).mp t.property).choose
+  invFun x := ⟨tuple (fun i : I ↦ x i), by apply tuple_mem_iProd⟩
+  left_inv := by
+    intro t
+    ext
+    have h := (mem_iProd t.val).mp t.property
+    rw [h.choose_spec, tuple_inj]
+  right_inv := by
+    intro x
+    simp only
+    apply funext
+    intro i
+    have h := (mem_iProd _).mp (tuple_mem_iProd (fun i : I ↦ x i))
+    have hspec := h.choose_spec
+    rw [tuple_inj] at hspec
+    rw [← hspec]
 
 /-- Example 3.5.10 -/
 noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
