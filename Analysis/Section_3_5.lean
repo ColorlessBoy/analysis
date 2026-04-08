@@ -300,7 +300,7 @@ noncomputable abbrev SetTheory.Set.iProd_of_const_equiv (I:Set) (X: Set) :
 /-- Example 3.5.10 -/
 noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
     iProd X ≃ (X ⟨ 0, by simp ⟩) ×ˢ (X ⟨ 1, by simp ⟩) where
-  toFun := sorry
+  toFun t :=  by have h := ((mem_iProd t.val).mp t.property).choose; apply mk_cartesian (h ⟨0, by simp⟩) (h ⟨1, by simp⟩)
   invFun := sorry
   left_inv := sorry
   right_inv := sorry
