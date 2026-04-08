@@ -333,7 +333,10 @@ noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
     have : i = ⟨1, by simp⟩ := Subtype.ext hi
     subst this; unfold iProd_equiv_prod_aux;
     rw [dif_neg (by intro h; rw [h, ofNat_inj'] at hi; apply Nat.succ_ne_zero 0; apply Eq.symm; exact hi), snd_of_mk_cartesian]
-  right_inv := sorry
+  right_inv := by
+    intro x
+    simp only
+    sorry
 
 set_option pp.proofs true
 #print SetTheory.Set.iProd_equiv_prod
