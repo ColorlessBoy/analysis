@@ -335,8 +335,17 @@ noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
     rw [dif_neg (by intro h; rw [h, ofNat_inj'] at hi; apply Nat.succ_ne_zero 0; apply Eq.symm; exact hi), snd_of_mk_cartesian]
   right_inv := by
     intro x
-    simp only
-    sorry
+    dsimp only
+    have h := (mem_iProd _).mp (tuple_mem_iProd (iProd_equiv_prod_aux X (fst x) (snd x)))
+    have hspec := h.choose_spec
+    rw [tuple_inj] at hspec
+    simp only [← hspec, iProd_equiv_prod_aux]
+    split_ifs with h1 h2
+    · have : (1:Object) ≠ 0 := by simp
+      exact absurd h2 this
+    · exact mk_cartesian_fst_snd_eq x
+    · exact absurd (by trivial : True) h1
+    · exact absurd (by trivial : True) h1
 
 set_option pp.proofs true
 #print SetTheory.Set.iProd_equiv_prod
