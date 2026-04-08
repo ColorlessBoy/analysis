@@ -42,8 +42,6 @@ structure OrderedPair where
   fst: Object
   snd: Object
 
-#check OrderedPair.ext
-
 /-- Definition 3.5.1 (Ordered pair) -/
 @[simp]
 theorem OrderedPair.eq (x y x' y' : Object) :
@@ -297,21 +295,152 @@ noncomputable abbrev SetTheory.Set.iProd_of_const_equiv (I:Set) (X: Set) :
     rw [tuple_inj] at hspec
     rw [← hspec]
 
+/-- Helper for iProd_equiv_prod -/
+noncomputable def SetTheory.Set.iProd_equiv_prod_aux (X: ({0,1}:Set) → Set)
+    (x0 : X ⟨0, by simp⟩) (x1 : X ⟨1, by simp⟩)
+    (i : ({0,1}:Set)) : X i := by
+  -- 不需要 classical，因为 Nat 有 DecidableEq 实例
+  if hi : i.val = 0 then
+    have : i = ⟨0, by simp⟩ := Subtype.ext hi
+    subst this; exact x0
+  else
+    have hi1 : i.val = 1 := by
+      have hp := i.property
+      rw [mem_insert, mem_singleton] at hp
+      rcases hp with hp | hp
+      · contradiction
+      · exact hp
+    have : i = ⟨1, by simp⟩ := Subtype.ext hi1
+    subst this; exact x1
+
 /-- Example 3.5.10 -/
 noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
     iProd X ≃ (X ⟨ 0, by simp ⟩) ×ˢ (X ⟨ 1, by simp ⟩) where
   toFun t :=  by have h := ((mem_iProd t.val).mp t.property).choose; apply mk_cartesian (h ⟨0, by simp⟩) (h ⟨1, by simp⟩)
-  invFun := sorry
-  left_inv := sorry
+  invFun x := ⟨tuple (iProd_equiv_prod_aux X (fst x) (snd x)), by apply tuple_mem_iProd⟩
+  left_inv := by
+    intro t
+    rw [Subtype.ext_iff]
+    have h := (mem_iProd t.val).mp t.property
+    have hspec := h.choose_spec
+    rw [h.choose_spec, tuple_inj]
+    funext i
+    have hi := (mem_pair _ _ _).mp i.property
+    rcases hi with hi | hi
+    · have : i = ⟨0, (mem_pair 0 0 1).mpr (Or.inl rfl)⟩ := Subtype.ext hi
+      subst this; unfold iProd_equiv_prod_aux
+      rw [dif_pos rfl, fst_of_mk_cartesian]
+    have : i = ⟨1, by simp⟩ := Subtype.ext hi
+    subst this; unfold iProd_equiv_prod_aux;
+    rw [dif_neg (by intro h; rw [h, ofNat_inj'] at hi; apply Nat.succ_ne_zero 0; apply Eq.symm; exact hi), snd_of_mk_cartesian]
   right_inv := sorry
+
+set_option pp.proofs true
+#print SetTheory.Set.iProd_equiv_prod
+
+/-- Example 3.5.10 -/
+noncomputable def SetTheory.Set.iProd_equiv_prod_triple_aux (X: ({0,1,2}:Set) → Set)
+    (x0 : X ⟨0, by simp⟩) (x1 : X ⟨1, by simp⟩) (x2 : X ⟨2, by simp⟩)
+    (i : ({0,1,2}:Set)) : X i := by
+  classical
+  if hi0 : i.val = 0 then
+    have : i = ⟨0, by simp⟩ := Subtype.ext hi0
+    subst this; exact x0
+  else if hi1 : i.val = 1 then
+    have : i = ⟨1, by simp⟩ := Subtype.ext hi1
+    subst this; exact x1
+  else
+    have hi2 : i.val = 2 := by
+      have h := i.property
+      rw [mem_insert, mem_insert, mem_singleton] at h
+      rcases h with h | h | h
+      all_goals simp_all
+    have : i = ⟨2, by simp⟩ := Subtype.ext hi2
+    subst this; exact x2
+
+/-- Auxiliary definitions for iProd_equiv_prod_triple -/
+def SetTheory.Set.index0 : ({0,1,2}:Set) := ⟨0, by simp⟩
+def SetTheory.Set.index1 : ({0,1,2}:Set) := ⟨1, by simp⟩
+def SetTheory.Set.index2 : ({0,1,2}:Set) := ⟨2, by simp⟩
+
+@[simp]
+theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index0 (X: ({0,1,2}:Set) → Set)
+    (x0 : X index0) (x1 : X index1) (x2 : X index2) :
+    iProd_equiv_prod_triple_aux X x0 x1 x2 index0 = x0 := by
+  simp only [iProd_equiv_prod_triple_aux, index0]
+  classical
+  simp
+
+@[simp]
+theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index1 (X: ({0,1,2}:Set) → Set)
+    (x0 : X index0) (x1 : X index1) (x2 : X index2) :
+    iProd_equiv_prod_triple_aux X x0 x1 x2 index1 = x1 := by
+  simp only [iProd_equiv_prod_triple_aux, index1]
+  classical
+  simp
+
+@[simp]
+theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index2 (X: ({0,1,2}:Set) → Set)
+    (x0 : X index0) (x1 : X index1) (x2 : X index2) :
+    iProd_equiv_prod_triple_aux X x0 x1 x2 index2 = x2 := by
+  simp only [iProd_equiv_prod_triple_aux, index2]
+  classical
+  simp
 
 /-- Example 3.5.10 -/
 noncomputable abbrev SetTheory.Set.iProd_equiv_prod_triple (X: ({0,1,2}:Set) → Set) :
-    iProd X ≃ (X ⟨ 0, by simp ⟩) ×ˢ (X ⟨ 1, by simp ⟩) ×ˢ (X ⟨ 2, by simp ⟩) where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+    iProd X ≃ (X index0) ×ˢ (X index1) ×ˢ (X index2) where
+  toFun t := mk_cartesian (((mem_iProd t.val).mp t.property).choose index0)
+      (mk_cartesian (((mem_iProd t.val).mp t.property).choose index1)
+        (((mem_iProd t.val).mp t.property).choose index2))
+  invFun x := ⟨tuple (iProd_equiv_prod_triple_aux X (fst x) (fst (snd x)) (snd (snd x))), by apply tuple_mem_iProd⟩
+  left_inv := by
+    intro t
+    ext
+    dsimp only
+    set f := ((mem_iProd t.val).mp t.property).choose
+    have hspec : t.val = tuple f := ((mem_iProd t.val).mp t.property).choose_spec
+    rw [hspec, tuple_inj]
+    ext i
+    classical
+    -- Enter inside the coercion and simplify
+    conv =>
+      lhs
+      arg 1  -- enter the argument of the coercion
+      simp only [fst_of_mk_cartesian, snd_of_mk_cartesian]
+    by_cases hi0 : i.val = 0
+    · have hi : i = index0 := Subtype.ext hi0
+      rw [hi, iProd_equiv_prod_triple_aux_index0]
+      show (fst (mk_cartesian (f index0) (mk_cartesian (f index1) (f index2)))).val = (f index0).val
+      rw [fst_of_mk_cartesian]
+    · by_cases hi1 : i.val = 1
+      · have hi : i = index1 := Subtype.ext hi1
+        rw [hi, iProd_equiv_prod_triple_aux_index1]
+        show (fst (snd (mk_cartesian (f index0) (mk_cartesian (f index1) (f index2))))).val = (f index1).val
+        rw [snd_of_mk_cartesian, fst_of_mk_cartesian]
+      · have hi2 : i.val = 2 := by
+          have hp := i.property
+          rw [mem_insert, mem_insert, mem_singleton] at hp
+          rcases hp with hp | hp | hp
+          all_goals simp_all
+        have hi : i = index2 := Subtype.ext hi2
+        rw [hi, iProd_equiv_prod_triple_aux_index2]
+        show (snd (snd (mk_cartesian (f index0) (mk_cartesian (f index1) (f index2))))).val = (f index2).val
+        rw [snd_of_mk_cartesian, snd_of_mk_cartesian]
+  right_inv := by
+    intro x
+    simp only
+    have h := (mem_iProd _).mp (tuple_mem_iProd (iProd_equiv_prod_triple_aux X (fst x) (fst (snd x)) (snd (snd x))))
+    have hspec := h.choose_spec
+    rw [tuple_inj] at hspec
+    rw [← hspec]
+    simp only [iProd_equiv_prod_triple_aux_index0, iProd_equiv_prod_triple_aux_index1, iProd_equiv_prod_triple_aux_index2]
+    -- Need to show mk_cartesian (fst x) (mk_cartesian (fst (snd x)) (snd (snd x))) = x
+    calc mk_cartesian (fst x) (mk_cartesian (fst (snd x)) (snd (snd x)))
+        = mk_cartesian (fst x) (snd x) := by
+            apply congr_arg
+            exact mk_cartesian_fst_snd_eq (snd x)
+        _ = x := mk_cartesian_fst_snd_eq x
 
 /-- Connections with Mathlib's {name}`Set.pi` -/
 noncomputable abbrev SetTheory.Set.iProd_equiv_pi (I:Set) (X: I → Set) :
