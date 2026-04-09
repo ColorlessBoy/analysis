@@ -347,14 +347,10 @@ noncomputable abbrev SetTheory.Set.iProd_equiv_prod (X: ({0,1}:Set) → Set) :
     · exact absurd (by trivial : True) h1
     · exact absurd (by trivial : True) h1
 
-set_option pp.proofs true
-#print SetTheory.Set.iProd_equiv_prod
-
 /-- Example 3.5.10 -/
 noncomputable def SetTheory.Set.iProd_equiv_prod_triple_aux (X: ({0,1,2}:Set) → Set)
     (x0 : X ⟨0, by simp⟩) (x1 : X ⟨1, by simp⟩) (x2 : X ⟨2, by simp⟩)
     (i : ({0,1,2}:Set)) : X i := by
-  classical
   if hi0 : i.val = 0 then
     have : i = ⟨0, by simp⟩ := Subtype.ext hi0
     subst this; exact x0
@@ -370,7 +366,6 @@ noncomputable def SetTheory.Set.iProd_equiv_prod_triple_aux (X: ({0,1,2}:Set) �
     have : i = ⟨2, by simp⟩ := Subtype.ext hi2
     subst this; exact x2
 
-/-- Auxiliary definitions for iProd_equiv_prod_triple -/
 def SetTheory.Set.index0 : ({0,1,2}:Set) := ⟨0, by simp⟩
 def SetTheory.Set.index1 : ({0,1,2}:Set) := ⟨1, by simp⟩
 def SetTheory.Set.index2 : ({0,1,2}:Set) := ⟨2, by simp⟩
@@ -380,7 +375,6 @@ theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index0 (X: ({0,1,2}:Set) → S
     (x0 : X index0) (x1 : X index1) (x2 : X index2) :
     iProd_equiv_prod_triple_aux X x0 x1 x2 index0 = x0 := by
   simp only [iProd_equiv_prod_triple_aux, index0]
-  classical
   simp
 
 @[simp]
@@ -388,7 +382,6 @@ theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index1 (X: ({0,1,2}:Set) → S
     (x0 : X index0) (x1 : X index1) (x2 : X index2) :
     iProd_equiv_prod_triple_aux X x0 x1 x2 index1 = x1 := by
   simp only [iProd_equiv_prod_triple_aux, index1]
-  classical
   simp
 
 @[simp]
@@ -396,7 +389,6 @@ theorem SetTheory.Set.iProd_equiv_prod_triple_aux_index2 (X: ({0,1,2}:Set) → S
     (x0 : X index0) (x1 : X index1) (x2 : X index2) :
     iProd_equiv_prod_triple_aux X x0 x1 x2 index2 = x2 := by
   simp only [iProd_equiv_prod_triple_aux, index2]
-  classical
   simp
 
 /-- Example 3.5.10 -/
@@ -414,7 +406,6 @@ noncomputable abbrev SetTheory.Set.iProd_equiv_prod_triple (X: ({0,1,2}:Set) →
     have hspec : t.val = tuple f := ((mem_iProd t.val).mp t.property).choose_spec
     rw [hspec, tuple_inj]
     ext i
-    classical
     -- Enter inside the coercion and simplify
     conv =>
       lhs
