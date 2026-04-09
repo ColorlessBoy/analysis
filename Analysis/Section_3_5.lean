@@ -735,10 +735,46 @@ theorem SetTheory.Set.tuple_trans {I:Set} {X: I → Set} {a b c: ∀ i, X i}
   exact (tuple_inj a c).mpr (hab'.trans hbc')
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.prod_union (A B C:Set) : A ×ˢ (B ∪ C) = (A ×ˢ B) ∪ (A ×ˢ C) := by sorry
+theorem SetTheory.Set.prod_union (A B C:Set) : A ×ˢ (B ∪ C) = (A ×ˢ B) ∪ (A ×ˢ C) := by
+  rw [Set.ext_iff]
+  intro x
+  rw [mem_cartesian, mem_union, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨a, z, hx⟩
+    have := z.property
+    rw [mem_union] at this
+    rcases this with h | h
+    · left; use a, ⟨z, h⟩
+    right; use a, ⟨z, h⟩
+  intro h
+  rcases h with ⟨a, z, ha⟩ | ⟨a, z, ha⟩
+  · use a, ⟨z.val, by rw [mem_union]; left; exact z.property⟩
+  use a, ⟨z.val, by rw [mem_union]; right; exact z.property⟩
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.prod_inter (A B C:Set) : A ×ˢ (B ∩ C) = (A ×ˢ B) ∩ (A ×ˢ C) := by sorry
+theorem SetTheory.Set.prod_inter (A B C:Set) : A ×ˢ (B ∩ C) = (A ×ˢ B) ∩ (A ×ˢ C) := by
+  apply Set.ext
+  intro x
+  rw [mem_cartesian, mem_inter, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨a, z, hx⟩
+    have := z.property
+    rw [mem_inter] at this
+    rcases this with ⟨hB, hC⟩
+    constructor
+    · use a, ⟨z, hB⟩
+    · use a, ⟨z, hC⟩
+  intro h
+  obtain ⟨a, z, ha⟩ := h.1
+  obtain ⟨a', z', ha'⟩ := h.2
+  have hz : z.val = z'.val := by
+    rw [ha'] at ha
+    apply OrderedPair.toObject.inj' at ha
+    rw [OrderedPair.eq] at ha
+    exact ha.2.symm
+  have := z'.property
+  rw [← hz] at this
+  use a, ⟨z.val, by rw [mem_inter]; exact ⟨z.property, this⟩⟩
 
 /-- Exercise 3.5.4 -/
 theorem SetTheory.Set.prod_diff (A B C:Set) : A ×ˢ (B \ C) = (A ×ˢ B) \ (A ×ˢ C) := by sorry
