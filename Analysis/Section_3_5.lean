@@ -633,14 +633,66 @@ lemma SetTheory.Set.Tuple.ext {n:ℕ} {t t':Tuple n}
 
 /-- Exercise 3.5.2 -/
 theorem SetTheory.Set.Tuple.eq {n:ℕ} (t t':Tuple n) :
-    t = t' ↔ ∀ n : Fin n, ((t.x n):Object) = ((t'.x n):Object) := by sorry
+    t = t' ↔ ∀ n : Fin n, ((t.x n):Object) = ((t'.x n):Object) := by
+  constructor
+  · intro h n
+    rw [h]
+  intro h
+  apply Tuple.ext _ h
+  ext a
+  constructor
+  · intro ha
+    obtain ⟨i, hi⟩ := t.surj ⟨a, ha⟩
+    have hxi : (t.x i : Object) = a := congrArg Subtype.val hi
+    rw [← hxi, h i]
+    exact (t'.x i).property
+  · intro ha
+    obtain ⟨i, hi⟩ := t'.surj ⟨a, ha⟩
+    have hxi : (t'.x i : Object) = a := congrArg Subtype.val hi
+    rw [← hxi, ← h i]
+    exact (t.x i).property
+
+noncomputable def SetTheory.Set.iProd_equiv_tuples_aux {n:ℕ} {X: Fin n → Set} (f: ∀ i, X i) : Tuple n where
+  X := (iUnion (Fin n) X).specify (fun y ↦ ∃ i : Fin n, (f i : Object) = y.val)
+  x i := ⟨(f i : Object), by
+    rw [specification_axiom'']
+    exact ⟨by rw [mem_iUnion]; exact ⟨i, (f i).property⟩, i, rfl⟩⟩
+  surj := by
+    intro y
+    obtain ⟨_, i, hi⟩ := (specification_axiom'' (fun y ↦ ∃ i : Fin n, (f i : Object) = y.val) y.val).mp y.property
+    use i; exact Subtype.ext hi
+
+@[simp]
+theorem SetTheory.Set.iProd_equiv_tuples_aux_x_val {n:ℕ} {X: Fin n → Set} (f: ∀ i, X i) (i : Fin n) :
+    ((iProd_equiv_tuples_aux f).x i : Object) = (f i : Object) := rfl
 
 noncomputable abbrev SetTheory.Set.iProd_equiv_tuples (n:ℕ) (X: Fin n → Set) :
     iProd X ≃ { t:Tuple n // ∀ i, (t.x i:Object) ∈ X i } where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun t := by
+    have h := (mem_iProd t.val).mp t.property
+    exact ⟨iProd_equiv_tuples_aux h.choose, fun i ↦ (h.choose i).property⟩
+  invFun t := by
+    have hx (i : Fin n) : X i := ⟨(t.val.x i : Object), t.property i⟩
+    exact ⟨tuple (fun i ↦ hx i), tuple_mem_iProd (fun i ↦ hx i)⟩
+  left_inv := by
+    intro t
+    ext
+    have h := (mem_iProd t.val).mp t.property
+    have hf : t.val = tuple h.choose := h.choose_spec
+    show (tuple fun i ↦ ⟨↑((iProd_equiv_tuples_aux h.choose).x i), _⟩) = ↑t
+    have key : (fun i ↦ (⟨↑((iProd_equiv_tuples_aux h.choose).x i),
+        (h.choose i).property⟩ : X i)) = h.choose := by ext i; rfl
+    rw [key, ← hf]
+  right_inv := by
+    intro t
+    apply Subtype.ext
+    apply (Tuple.eq _ _).mpr
+    intro i
+    simp only [iProd_equiv_tuples_aux_x_val]
+    generalize_proofs h1 h2
+    have key : h2.choose = fun i ↦ (⟨(t.val.x i : Object), h1 i⟩ : X i) :=
+      (tuple_inj _ _).mp h2.choose_spec.symm
+    simp [key]
 
 /--
   Exercise 3.5.3. The spirit here is to avoid direct rewrites (which make all of these claims
