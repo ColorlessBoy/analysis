@@ -569,9 +569,49 @@ theorem SetTheory.Set.finite_choice {n:ℕ} {X: Fin n → Set} (h: ∀ i, X i �
   exact nonempty_of_inhabited (tuple_mem_iProd x)
 
 /-- Exercise 3.5.1, second part (requires axiom of regularity) -/
-abbrev OrderedPair.toObject' : OrderedPair ↪ Object where
+def OrderedPair.toObject' : OrderedPair ↪ Object where
   toFun p := ({ p.fst, (({p.fst, p.snd}:Set):Object) }:Set)
-  inj' := by sorry
+  inj' := by
+    intro x y h
+    rw [OrderedPair.ext_iff]
+    -- 分析 pair 相等的两种情况
+    have hxy := SetTheory.Set.coe_eq h
+    rcases SetTheory.Set.pair_eq_pair hxy with hxy | hxy
+    · -- 情况1：x.fst = y.fst 且 {x.fst, x.snd} = {y.fst, y.snd}
+      have hfst : x.fst = y.fst := hxy.1
+      apply And.intro hfst
+      have hpair := SetTheory.Set.coe_eq hxy.2
+      rcases SetTheory.Set.pair_eq_pair hpair with hs | hs
+      · -- 子情况A：x.fst = y.fst 且 x.snd = y.snd
+        exact hs.2
+      -- 子情况B：x.fst = y.snd 且 x.snd = y.fst
+      -- 从 hfst : x.fst = y.fst 和 hs.1 : x.fst = y.snd，得 y.fst = y.snd
+      -- 从 hs.2 : x.snd = y.fst 和 y.fst = y.snd，得 x.snd = y.snd
+      exact hs.2.trans (hfst.symm.trans hs.1)
+    · -- 情况2：x.fst = {y.fst, y.snd} 且 {x.fst, x.snd} = y.fst
+      -- 这个情况违反 not_mem_mem
+      -- 定义 X := {y.fst, y.snd}，Y := {x.fst, x.snd}
+      -- 则 x.fst = X，y.fst = Y
+      -- y.fst ∈ X（因为 y.fst ∈ {y.fst, y.snd} = X），即 Y ∈ X
+      -- x.fst ∈ Y（因为 x.fst ∈ {x.fst, x.snd} = Y），即 X ∈ Y
+      -- 这违反了 not_mem_mem X Y
+      set X : Set := {y.fst, y.snd}
+      set Y : Set := {x.fst, x.snd}
+      have hxX : (x.fst:Object) = X := hxy.1
+      have hyY : (y.fst:Object) = Y := hxy.2.symm
+      have h1 : (y.fst:Object) ∈ X := by
+        rw [mem_pair]
+        left; rfl
+      have h2 : (x.fst:Object) ∈ Y := by
+        rw [mem_pair]
+        left; rfl
+      have h3 : (Y:Object) ∈ X := by
+        rw [hyY] at h1; exact h1
+      have h4 : (X:Object) ∈ Y := by
+        rw [hxX] at h2; exact h2
+      have hcontr := not_mem_mem X Y
+      rw [← not_and_or] at hcontr
+      exact False.elim (hcontr ⟨h4, h3⟩)
 
 /-- An alternate definition of a tuple, used in Exercise 3.5.2 -/
 structure SetTheory.Set.Tuple (n:ℕ) where
