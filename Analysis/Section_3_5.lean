@@ -698,21 +698,41 @@ noncomputable abbrev SetTheory.Set.iProd_equiv_tuples (n:ℕ) (X: Fin n → Set)
   Exercise 3.5.3. The spirit here is to avoid direct rewrites (which make all of these claims
   trivial), and instead use {name}`OrderedPair.eq` or {name}`SetTheory.Set.tuple_inj`
 -/
-theorem OrderedPair.refl (p: OrderedPair) : p = p := by sorry
+theorem OrderedPair.refl (p: OrderedPair) : p = p := by
+  exact (OrderedPair.eq p.fst p.snd p.fst p.snd).mpr ⟨rfl, rfl⟩
 
-theorem OrderedPair.symm (p q: OrderedPair) : p = q ↔ q = p := by sorry
+theorem OrderedPair.symm (p q: OrderedPair) : p = q ↔ q = p := by
+  constructor
+  · intro h
+    rw [OrderedPair.eq] at h
+    have : p.fst = q.fst ∧ p.snd = q.snd := h
+    have : q.fst = p.fst ∧ q.snd = p.snd := ⟨this.1.symm, this.2.symm⟩
+    exact (OrderedPair.eq q.fst q.snd p.fst p.snd).mpr this
+  · intro h
+    rw [OrderedPair.eq] at h
+    have : q.fst = p.fst ∧ q.snd = p.snd := h
+    have : p.fst = q.fst ∧ p.snd = q.snd := ⟨this.1.symm, this.2.symm⟩
+    exact (OrderedPair.eq p.fst p.snd q.fst q.snd).mpr this
 
-theorem OrderedPair.trans {p q r: OrderedPair} (hpq: p=q) (hqr: q=r) : p=r := by sorry
+theorem OrderedPair.trans {p q r: OrderedPair} (hpq: p=q) (hqr: q=r) : p=r := by
+  rw [OrderedPair.eq] at hpq hqr
+  exact (OrderedPair.eq p.fst p.snd r.fst r.snd).mpr
+    ⟨hpq.1.trans hqr.1, hpq.2.trans hqr.2⟩
 
 theorem SetTheory.Set.tuple_refl {I:Set} {X: I → Set} (a: ∀ i, X i) :
-    tuple a = tuple a := by sorry
+    tuple a = tuple a := (tuple_inj a a).mpr (Eq.refl a)
 
 theorem SetTheory.Set.tuple_symm {I:Set} {X: I → Set} (a b: ∀ i, X i) :
-    tuple a = tuple b ↔ tuple b = tuple a := by sorry
+    tuple a = tuple b ↔ tuple b = tuple a :=
+  ⟨fun h ↦ (tuple_inj b a).mpr (Eq.symm ((tuple_inj a b).mp h)),
+   fun h ↦ (tuple_inj a b).mpr (Eq.symm ((tuple_inj b a).mp h))⟩
 
 theorem SetTheory.Set.tuple_trans {I:Set} {X: I → Set} {a b c: ∀ i, X i}
   (hab: tuple a = tuple b) (hbc : tuple b = tuple c) :
-    tuple a = tuple c := by sorry
+    tuple a = tuple c := by
+  have hab' := (tuple_inj a b).mp hab
+  have hbc' := (tuple_inj b c).mp hbc
+  exact (tuple_inj a c).mpr (hab'.trans hbc')
 
 /-- Exercise 3.5.4 -/
 theorem SetTheory.Set.prod_union (A B C:Set) : A ×ˢ (B ∪ C) = (A ×ˢ B) ∪ (A ×ˢ C) := by sorry
