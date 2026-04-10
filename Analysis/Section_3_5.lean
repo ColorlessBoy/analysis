@@ -777,16 +777,80 @@ theorem SetTheory.Set.prod_inter (A B C:Set) : A ×ˢ (B ∩ C) = (A ×ˢ B) ∩
   use a, ⟨z.val, by rw [mem_inter]; exact ⟨z.property, this⟩⟩
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.prod_diff (A B C:Set) : A ×ˢ (B \ C) = (A ×ˢ B) \ (A ×ˢ C) := by sorry
+theorem SetTheory.Set.prod_diff (A B C:Set) : A ×ˢ (B \ C) = (A ×ˢ B) \ (A ×ˢ C) := by
+  apply Set.ext
+  intro x
+  rw [mem_cartesian, mem_sdiff, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨y, z, h⟩
+    have hz := (mem_sdiff _ _ _).mp z.property
+    constructor
+    · use y, ⟨z, hz.1⟩
+    rintro ⟨y', z', h'⟩
+    rw [h] at h'
+    apply OrderedPair.toObject.inj' at h'
+    rw [OrderedPair.eq] at h'
+    rw [h'.2] at hz
+    exact hz.2 z'.property
+  rintro ⟨⟨y, z, h⟩, h'⟩
+  have h'' := not_exists.mp ((not_exists.mp h') y)
+  by_cases cond: z.val ∈ C
+  · have h''' := h'' ⟨z.val, cond⟩
+    exfalso; apply h'''; rw [h]
+  have : z.val ∈ B \ C := by rw [mem_sdiff]; exact ⟨z.property, cond⟩
+  use y, ⟨z, this⟩
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.union_prod (A B C:Set) : (A ∪ B) ×ˢ C = (A ×ˢ C) ∪ (B ×ˢ C) := by sorry
+theorem SetTheory.Set.union_prod (A B C:Set) : (A ∪ B) ×ˢ C = (A ×ˢ C) ∪ (B ×ˢ C) := by
+  apply Set.ext; intro x
+  rw [mem_cartesian, mem_union, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨a, b, h⟩
+    have := (mem_union _ _ _).mp a.property
+    rcases this with h' | h'
+    · left; use ⟨a, h'⟩, b
+    right; use ⟨a, h'⟩, b
+  intro h
+  rcases h with ⟨a, b, h⟩ | ⟨a, b, h⟩
+  · have : a.val ∈ A ∪ B := by rw [mem_union]; left; exact a.property
+    use ⟨a.val, this⟩, b
+  have : a.val ∈ A ∪ B := by rw [mem_union]; right; exact a.property
+  use ⟨a.val, this⟩, b
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.inter_prod (A B C:Set) : (A ∩ B) ×ˢ C = (A ×ˢ C) ∩ (B ×ˢ C) := by sorry
+theorem SetTheory.Set.inter_prod (A B C:Set) : (A ∩ B) ×ˢ C = (A ×ˢ C) ∩ (B ×ˢ C) := by
+  apply Set.ext; intro x
+  rw [mem_cartesian, mem_inter, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨a, b, h⟩
+    have ha := (mem_inter _ _ _).mp a.property
+    constructor
+    · use ⟨a, ha.1⟩, b
+    use ⟨a, ha.2⟩, b
+  rintro ⟨⟨a, b, h1⟩, ⟨c, d, h2⟩⟩
+  have h3 := (OrderedPair.toObject.inj' (Eq.trans h1.symm h2))
+  rw [OrderedPair.eq] at h3
+  have : a.val ∈ A ∩ B := by rw [mem_inter]; apply And.intro a.property; rw [h3.1]; exact c.property
+  use ⟨a.val, this⟩, d
+  rw [h3.1, h2]
 
 /-- Exercise 3.5.4 -/
-theorem SetTheory.Set.diff_prod (A B C:Set) : (A \ B) ×ˢ C = (A ×ˢ C) \ (B ×ˢ C) := by sorry
+theorem SetTheory.Set.diff_prod (A B C:Set) : (A \ B) ×ˢ C = (A ×ˢ C) \ (B ×ˢ C) := by
+  apply Set.ext; intro x
+  rw [mem_cartesian, mem_sdiff, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨a, b, h⟩
+    have h1 := (mem_sdiff _ _ _).mp a.property
+    constructor
+    · use ⟨a.val, h1.1⟩, b
+    rintro ⟨c, d, h'⟩
+    have h2 := OrderedPair.toObject.inj' (Eq.trans h.symm h')
+    rw [OrderedPair.eq] at h2
+    have h3 := c.property
+    rw [← h2.1] at h3
+    exact h1.2 h3
+  rintro ⟨⟨a, b, h1⟩, h2⟩
+  sorry
 
 /-- Exercise 3.5.5 -/
 theorem SetTheory.Set.inter_of_prod (A B C D:Set) :
