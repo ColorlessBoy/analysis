@@ -858,19 +858,98 @@ theorem SetTheory.Set.diff_prod (A B C:Set) : (A \ B) ×ˢ C = (A ×ˢ C) \ (B �
 
 /-- Exercise 3.5.5 (a) -/
 theorem SetTheory.Set.inter_of_prod (A B C D:Set) :
-    (A ×ˢ B) ∩ (C ×ˢ D) = (A ∩ C) ×ˢ (B ∩ D) := by sorry
+    (A ×ˢ B) ∩ (C ×ˢ D) = (A ∩ C) ×ˢ (B ∩ D) := by
+  apply Set.ext; intro x
+  rw [mem_inter, mem_cartesian, mem_cartesian, mem_cartesian]
+  constructor
+  · rintro ⟨⟨a, b, h1⟩, c, d, h2⟩
+    have h3 := (OrderedPair.toObject.inj' (Eq.trans h1.symm h2))
+    rw [OrderedPair.eq] at h3
+    use ⟨a.val, by rw [mem_inter]; exact ⟨a.property, h3.1 ▸ c.property⟩⟩,
+        ⟨b.val, by rw [mem_inter]; exact ⟨b.property, h3.2 ▸ d.property⟩⟩
+  · rintro ⟨a, b, h⟩
+    have ha := (mem_inter _ _ _).mp a.property
+    have hb := (mem_inter _ _ _).mp b.property
+    exact ⟨⟨⟨a.val, ha.1⟩, ⟨b.val, hb.1⟩, h⟩, ⟨⟨a.val, ha.2⟩, ⟨b.val, hb.2⟩, h⟩⟩
 
 /-- Exercise 3.5.5 (b) -/
 def SetTheory.Set.union_of_prod :
   Decidable (∀ (A B C D:Set), (A ×ˢ B) ∪ (C ×ˢ D) = (A ∪ C) ×ˢ (B ∪ D)) := by
   -- the first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  let A : Set := {0}
+  let B : Set := {1}
+  let C : Set := {2}
+  let D : Set := {3}
+  have hABCD := h A B C D
+  have h2 : (⟨0, 3⟩ : OrderedPair).toObject ∈ (A ∪ C) ×ˢ (B ∪ D) := by
+    rw [mem_cartesian]
+    have h0 : (0 : Object) ∈ A ∪ C := by
+      rw [mem_union, mem_singleton, mem_singleton]; exact Or.inl rfl
+    have h3 : (3 : Object) ∈ B ∪ D := by
+      rw [mem_union, mem_singleton, mem_singleton]; exact Or.inr rfl
+    use ⟨(0 : Object), h0⟩, ⟨(3 : Object), h3⟩
+  have h3 : (⟨0, 3⟩ : OrderedPair).toObject ∉ (A ×ˢ B) ∪ (C ×ˢ D) := by
+    rw [mem_union, mem_cartesian, mem_cartesian]
+    rintro (⟨a, b, hab⟩ | ⟨a, b, hab⟩)
+    · have ha : a.val ∈ A := a.property
+      rw [mem_singleton] at ha
+      have hb : b.val ∈ B := b.property
+      rw [mem_singleton] at hb
+      have := (OrderedPair.toObject.inj' hab).symm
+      rw [OrderedPair.eq] at this
+      rw [ha, hb] at this
+      simp at this
+    · have ha : a.val ∈ C := a.property
+      rw [mem_singleton] at ha
+      have hb : b.val ∈ D := b.property
+      rw [mem_singleton] at hb
+      have := (OrderedPair.toObject.inj' hab).symm
+      rw [OrderedPair.eq] at this
+      rw [ha, hb] at this
+      simp at this
+  have : (⟨0, 3⟩ : OrderedPair).toObject ∈ (A ×ˢ B) ∪ (C ×ˢ D) := by
+    rw [hABCD]; exact h2
+  exact h3 this
 
 /-- Exercise 3.5.5 (c) -/
 def SetTheory.Set.diff_of_prod :
   Decidable (∀ (A B C D:Set), (A ×ˢ B) \ (C ×ˢ D) = (A \ C) ×ˢ (B \ D)) := by
   -- the first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  let A : Set := {0, 1}
+  let B : Set := {2}
+  let C : Set := {1}
+  let D : Set := {3}
+  have hABCD := h A B C D
+  have h_in_l : (⟨1, 2⟩ : OrderedPair).toObject ∈ (A ×ˢ B) \ (C ×ˢ D) := by
+    rw [mem_sdiff, mem_cartesian, mem_cartesian]
+    constructor
+    · use ⟨(1 : Object), by rw [mem_insert, mem_singleton]; exact Or.inr rfl⟩,
+            ⟨(2 : Object), by rw [mem_singleton]⟩
+    · rintro ⟨a, b, hab⟩
+      have ha : a.val ∈ C := a.property
+      rw [mem_singleton] at ha
+      have hb : b.val ∈ D := b.property
+      rw [mem_singleton] at hb
+      have := (OrderedPair.toObject.inj' hab).symm
+      rw [OrderedPair.eq] at this
+      rw [ha, hb] at this
+      simp at this
+  have h_not_in_r : (⟨1, 2⟩ : OrderedPair).toObject ∉ (A \ C) ×ˢ (B \ D) := by
+    rw [mem_cartesian]
+    rintro ⟨a, b, hab⟩
+    have ha : a.val ∈ A \ C := a.property
+    rw [mem_sdiff] at ha
+    have h1 : (1 : Object) ∈ C := by rw [mem_singleton]
+    have := (OrderedPair.toObject.inj' hab).symm
+    rw [OrderedPair.eq] at this
+    exact ha.2 (by rw [this.1]; exact h1)
+  have : (⟨1, 2⟩ : OrderedPair).toObject ∈ (A \ C) ×ˢ (B \ D) := by
+    rw [← hABCD]; exact h_in_l
+  exact h_not_in_r this
 
 /--
   Exercise 3.5.6.
