@@ -956,7 +956,35 @@ def SetTheory.Set.diff_of_prod :
 -/
 theorem SetTheory.Set.prod_subset_prod {A B C D:Set}
   (hA: A ≠ ∅) (hB: B ≠ ∅) (hC: C ≠ ∅) (hD: D ≠ ∅) :
-    A ×ˢ B ⊆ C ×ˢ D ↔ A ⊆ C ∧ B ⊆ D := by sorry
+    A ×ˢ B ⊆ C ×ˢ D ↔ A ⊆ C ∧ B ⊆ D := by
+  obtain ⟨a, ha⟩ := nonempty_def hA
+  obtain ⟨b, hb⟩ := nonempty_def hB
+  obtain ⟨c, hc⟩ := nonempty_def hC
+  obtain ⟨d, hd⟩ := nonempty_def hD
+  constructor
+  · intro h
+    constructor
+    · intro x hx
+      have h1 := h (⟨x, b⟩: OrderedPair)
+      rw [mem_cartesian, mem_cartesian] at h1
+      have h2 : (∃ (x_1 : A) (y: B), OrderedPair.toObject { fst := x, snd := b } = OrderedPair.toObject { fst := ↑x_1, snd := ↑y }) := by use ⟨x, hx⟩, ⟨b, hb⟩
+      have h3 := h1 h2
+      have h4 := ((OrderedPair.eq _ _ _ _).mp (OrderedPair.toObject.inj' h3.choose_spec.choose_spec)).left
+      rw [h4]
+      exact h3.choose.property
+    intro x hx
+    have h1 := h (⟨a, x⟩: OrderedPair)
+    rw [mem_cartesian, mem_cartesian] at h1
+    have h2 : (∃ (x_1 : A) (y: B), OrderedPair.toObject { fst := a, snd := x } = OrderedPair.toObject { fst := ↑x_1, snd := ↑y }) := by use ⟨a, ha⟩, ⟨x, hx⟩
+    have h3 := h1 h2
+    have h4 := ((OrderedPair.eq _ _ _ _).mp (OrderedPair.toObject.inj' h3.choose_spec.choose_spec)).right
+    rw [h4]
+    exact h3.choose_spec.choose.property
+  · rintro ⟨hAC, hBD⟩ z hz
+    rw [mem_cartesian] at hz
+    obtain ⟨x, y, rfl⟩ := hz
+    rw [mem_cartesian]
+    use ⟨(x : Object), hAC x x.property⟩, ⟨(y : Object), hBD y y.property⟩
 
 def SetTheory.Set.prod_subset_prod' :
   Decidable (∀ (A B C D:Set), A ×ˢ B ⊆ C ×ˢ D ↔ A ⊆ C ∧ B ⊆ D) := by
