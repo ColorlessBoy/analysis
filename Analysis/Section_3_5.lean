@@ -989,11 +989,42 @@ theorem SetTheory.Set.prod_subset_prod {A B C D:Set}
 def SetTheory.Set.prod_subset_prod' :
   Decidable (∀ (A B C D:Set), A ×ˢ B ⊆ C ×ˢ D ↔ A ⊆ C ∧ B ⊆ D) := by
   -- the first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  let A : Set := {0}
+  let B : Set := ∅
+  let C : Set := ∅
+  let D : Set := {0}
+  have hABCD := h A B C D
+  have h_subset : A ×ˢ B ⊆ C ×ˢ D := by
+    intro z hz
+    rw [mem_cartesian] at hz
+    obtain ⟨x, y, _⟩ := hz
+    exact (not_mem_empty y.val y.property).elim
+  have h_not : ¬(A ⊆ C ∧ B ⊆ D) := by
+    intro ⟨hAC, _⟩
+    have h0 : (0 : Object) ∈ A := by rw [mem_singleton]
+    have h0C : (0 : Object) ∉ C := not_mem_empty 0
+    exact h0C (hAC 0 h0)
+  have : A ×ˢ B ⊆ C ×ˢ D ↔ A ⊆ C ∧ B ⊆ D := hABCD
+  exact h_not (this.mp h_subset)
 
 /-- Exercise 3.5.7 -/
 theorem SetTheory.Set.direct_sum {X Y Z:Set} (f: Z → X) (g: Z → Y) :
-    ∃! h: Z → X ×ˢ Y, fst ∘ h = f ∧ snd ∘ h = g := by sorry
+    ∃! h: Z → X ×ˢ Y, fst ∘ h = f ∧ snd ∘ h = g := by
+  let h := fun (z : Z) => mk_cartesian (f z) (g z)
+  use h
+  constructor
+  · simp only; constructor;
+    · funext; simp
+    funext; simp
+  intro h1 h2
+  funext z
+  unfold h
+  have h3 := funext_iff.mp h2.1 z
+  have h4 := funext_iff.mp h2.2 z
+  rw [← h3, ← h4]
+  simp
 
 /-- Exercise 3.5.8 -/
 @[simp]
