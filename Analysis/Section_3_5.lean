@@ -850,7 +850,11 @@ theorem SetTheory.Set.diff_prod (A B C:Set) : (A \ B) ×ˢ C = (A ×ˢ C) \ (B �
     rw [← h2.1] at h3
     exact h1.2 h3
   rintro ⟨⟨a, b, h1⟩, h2⟩
-  sorry
+  by_cases h : (↑a ∈ B)
+  · exfalso
+    apply h2
+    use ⟨↑a, h⟩, b
+  · use ⟨↑a, (mem_sdiff ↑a A B).mpr ⟨a.property, h⟩⟩, b
 
 /-- Exercise 3.5.5 -/
 theorem SetTheory.Set.inter_of_prod (A B C D:Set) :
