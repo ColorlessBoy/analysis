@@ -1029,7 +1029,15 @@ theorem SetTheory.Set.direct_sum {X Y Z:Set} (f: Z → X) (g: Z → Y) :
 /-- Exercise 3.5.8 -/
 @[simp]
 theorem SetTheory.Set.iProd_empty_iff {n:ℕ} {X: Fin n → Set} :
-    iProd X = ∅ ↔ ∃ i, X i = ∅ := by sorry
+    iProd X = ∅ ↔ ∃ i, X i = ∅ := by
+  rw [← not_iff_not, not_exists, iff_comm]
+  constructor
+  · apply finite_choice
+  intro h x
+  have ⟨a, ha⟩ := nonempty_def h
+  have ⟨b, hb⟩ := (mem_iProd _).mp ha
+  have hb' := b x
+  apply nonempty_of_inhabited hb'.property
 
 /-- Exercise 3.5.9-/
 theorem SetTheory.Set.iUnion_inter_iUnion {I J: Set} (A: I → Set) (B: J → Set) :
