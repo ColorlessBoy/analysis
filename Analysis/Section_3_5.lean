@@ -1113,7 +1113,23 @@ theorem SetTheory.Set.is_graph {X Y G:Set} (hG: G ⊆ X ×ˢ Y)
   exercise is to derive it from {name}`SetTheory.Set.exists_powerset` instead.
 -/
 theorem SetTheory.Set.powerset_axiom' (X Y:Set) :
-    ∃! S:Set, ∀(F:Object), F ∈ S ↔ ∃ f: Y → X, f = F := sorry
+    ∃! S:Set, ∀(F:Object), F ∈ S ↔ ∃ f: Y → X, f = F := by
+  -- 证明：pow X Y 是满足"所有 Y→X 函数"这个性质的唯一集合
+  -- 关键洞察：exists_powerset (Y × X) 保证 powerset (Y × X) 存在
+  -- 而 pow X Y 正是 powerset (Y × X) 中所有函数图像的集合
+  -- 由于 graph_inj，每个函数唯一对应其图像，所以存在唯一的 S = pow X Y
+  obtain ⟨P, hP⟩ := exists_powerset (Y ×ˢ X)
+  -- P = powerset (Y × X)，包含 Y × X 的所有子集
+  -- 由 exists_powerset 的存在性，我们得到这样的 P
+  apply ExistsUnique.intro (X ^ Y)
+  · -- 证明 pow X Y 满足泛性质
+    intro F
+    -- pow X Y 存在，由 Axiom 3.11 保证
+    exact powerset_axiom F
+  -- 唯一性：由外延性
+  intro S hS
+  ext F
+  rw [hS, powerset_axiom F]
 
 /-- Exercise 3.5.12, with errata from web site incorporated -/
 theorem SetTheory.Set.recursion (X: Set) (f: nat → X → X) (c:X) :
