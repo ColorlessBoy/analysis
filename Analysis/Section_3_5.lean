@@ -1041,18 +1041,72 @@ theorem SetTheory.Set.iProd_empty_iff {n:ℕ} {X: Fin n → Set} :
 
 /-- Exercise 3.5.9-/
 theorem SetTheory.Set.iUnion_inter_iUnion {I J: Set} (A: I → Set) (B: J → Set) :
-    (iUnion I A) ∩ (iUnion J B) = iUnion (I ×ˢ J) (fun p ↦ (A (fst p)) ∩ (B (snd p))) := by sorry
+    (iUnion I A) ∩ (iUnion J B) = iUnion (I ×ˢ J) (fun p ↦ (A (fst p)) ∩ (B (snd p))) := by
+  ext x
+  rw [mem_inter, mem_iUnion, mem_iUnion, mem_iUnion]
+  constructor
+  · rintro ⟨ ⟨i, hi⟩, ⟨j, hj⟩⟩
+    use mk_cartesian i j
+    rw [fst_of_mk_cartesian, snd_of_mk_cartesian, mem_inter]
+    exact ⟨hi, hj⟩
+  rintro ⟨p, hp⟩
+  rw [mem_inter] at hp
+  constructor
+  · use fst p; exact hp.1
+  use snd p; exact hp.2
 
 abbrev SetTheory.Set.graph {X Y:Set} (f: X → Y) : Set :=
   (X ×ˢ Y).specify (fun p ↦ (f (fst p) = snd p))
 
 /-- Exercise 3.5.10 -/
 theorem SetTheory.Set.graph_inj {X Y:Set} (f f': X → Y) :
-    graph f = graph f' ↔ f = f' := by sorry
+    graph f = graph f' ↔ f = f' := by
+    constructor
+    · intro h; funext x;
+      have : (mk_cartesian x (f x)).val ∈ graph f := by
+        rw [specification_axiom', fst_of_mk_cartesian, snd_of_mk_cartesian]
+      rw [h, specification_axiom', fst_of_mk_cartesian, snd_of_mk_cartesian] at this
+      exact this.symm
+    intro h; rw [h]
 
 theorem SetTheory.Set.is_graph {X Y G:Set} (hG: G ⊆ X ×ˢ Y)
   (hvert: ∀ x:X, ∃! y:Y, ((⟨x,y⟩:OrderedPair):Object) ∈ G) :
-    ∃! f: X → Y, G = graph f := by sorry
+    ∃! f: X → Y, G = graph f := by
+  -- Step 1: Define f using the unique y from hvert
+  let f := fun x:X ↦ (hvert x).exists.choose
+  -- Step 2: Show G = graph f
+  have hGf : G = graph f := by
+    ext z
+    rw [specification_axiom'']
+    constructor
+    -- G ⊆ graph f
+    · intro hzG
+      have hzX := hG z hzG
+      rcases (mem_cartesian z X Y).mp hzX with ⟨x, y, hxyz⟩
+      subst hxyz
+      have hfG : ((⟨x, f x⟩:OrderedPair):Object) ∈ G := (hvert x).exists.choose_spec
+      have heq : y = f x := (hvert x).unique hzG hfG
+      use hzX
+      -- Bridge: ⟨(⟨x,y⟩:OP).toObject, hzX⟩ = mk_cartesian x y as elements of X ×ˢ Y
+      have hpmk : mk_cartesian x y = ⟨(⟨x, y⟩:OrderedPair).toObject, hzX⟩ := Subtype.ext rfl
+      rw [← hpmk, fst_of_mk_cartesian, snd_of_mk_cartesian]
+      exact heq.symm
+    -- graph f ⊆ G
+    · rintro ⟨hzX, hf⟩
+      rcases (mem_cartesian z X Y).mp hzX with ⟨x, y, hxyz⟩
+      subst hxyz
+      have hfG : ((⟨x, f x⟩:OrderedPair):Object) ∈ G := (hvert x).exists.choose_spec
+      have hpmk : mk_cartesian x y = ⟨(⟨x, y⟩:OrderedPair).toObject, hzX⟩ := Subtype.ext rfl
+      rw [← hpmk, fst_of_mk_cartesian, snd_of_mk_cartesian] at hf
+      -- hf : f x = y, hfG : (⟨x, f x⟩:OP) ∈ G; rewrite f x → y
+      rw [hf] at hfG
+      exact hfG
+  -- Step 3: Use ExistsUnique.intro with hGf in scope for uniqueness
+  apply ExistsUnique.intro f hGf
+  -- Uniqueness: any f' with G = graph f' must equal f
+  intro f' hf'
+  -- graph f = graph f' follows from G = graph f and G = graph f'
+  exact ((graph_inj f f').mp (hGf.symm.trans hf')).symm
 
 /--
   Exercise 3.5.11. This trivially follows from {name}`SetTheory.Set.powerset_axiom`, but the
