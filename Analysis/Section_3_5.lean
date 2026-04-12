@@ -1114,22 +1114,61 @@ theorem SetTheory.Set.is_graph {X Y G:Set} (hG: G ⊆ X ×ˢ Y)
 -/
 theorem SetTheory.Set.powerset_axiom' (X Y:Set) :
     ∃! S:Set, ∀(F:Object), F ∈ S ↔ ∃ f: Y → X, f = F := by
-  -- 证明：pow X Y 是满足"所有 Y→X 函数"这个性质的唯一集合
-  -- 关键洞察：exists_powerset (Y × X) 保证 powerset (Y × X) 存在
-  -- 而 pow X Y 正是 powerset (Y × X) 中所有函数图像的集合
-  -- 由于 graph_inj，每个函数唯一对应其图像，所以存在唯一的 S = pow X Y
+  -- 关键思路：从 exists_powerset (Y × X) 出发
+  -- 1. P = powerset(Y × X) 包含 Y × X 的所有子集
+  -- 2. 用 specification 筛选出函数图像
+  -- 3. 用 replacement 将图像替换为对应的函数对象
+  -- 4. graph_inj 保证了替换的唯一性
   obtain ⟨P, hP⟩ := exists_powerset (Y ×ˢ X)
-  -- P = powerset (Y × X)，包含 Y × X 的所有子集
-  -- 由 exists_powerset 的存在性，我们得到这样的 P
-  apply ExistsUnique.intro (X ^ Y)
-  · -- 证明 pow X Y 满足泛性质
+  -- hP: ∀ x, x ∈ P ↔ ∃ W:Set, x = W ∧ W ⊆ Y ×ˢ X
+  -- Step 1: 用 specification 从 P 中筛出函数图像
+  let isGraph (G : P) : Prop := ∃ f : Y → X, (graph f : Object) = (G.val : Object)
+  let PG := P.specify isGraph
+  -- Step 2: 用 replacement 将每个图像 G 替换为对应的函数对象 f
+  let PFun (G : PG) (F : Object) : Prop :=
+    ∃ f : Y → X, (graph f : Object) = (G.val : Object) ∧ F = (f : Object)
+  have hPFun : ∀ (G : PG) (F F' : Object), PFun G F ∧ PFun G F' → F = F' := by
+    intro G F F' ⟨⟨f1, hG1, hF1⟩, ⟨f2, hG2, hF2⟩⟩
+    have hGf : (graph f1 : Object) = (graph f2 : Object) := hG1.trans hG2.symm
+    have hf : f1 = f2 := (graph_inj f1 f2).mp (coe_eq hGf)
+    rw [hF1, hF2, hf]
+  let S := PG.replace (P := PFun) hPFun
+  -- Step 3: 证明 S 满足泛性质
+  apply ExistsUnique.intro S
+  · -- 证明 S 满足 ∀ F, F ∈ S ↔ ∃ f, f = F
     intro F
-    -- pow X Y 存在，由 Axiom 3.11 保证
-    exact powerset_axiom F
+    rw [replacement_axiom]
+    constructor
+    · -- F ∈ S → ∃ f, f = F
+      rintro ⟨G, f, hGf, hFf⟩
+      use f; exact hFf.symm
+    · -- ∃ f, f = F → F ∈ S
+      intro ⟨f, hFf⟩
+      -- graph f ⊆ Y ×ˢ X，所以 (graph f : Object) ∈ P
+      have hGfP : (graph f : Object) ∈ P := by
+        rw [hP]; use graph f, rfl; exact specify_subset (fun p ↦ f (fst p) = snd p)
+      -- graph f 满足 isGraph 条件
+      have hGfPG : (graph f : Object) ∈ PG := by
+        rw [specification_axiom'']
+        exact ⟨hGfP, f, rfl⟩
+      use ⟨graph f, hGfPG⟩
+      exact ⟨f, rfl, hFf.symm⟩
   -- 唯一性：由外延性
-  intro S hS
+  intro S' hS'
   ext F
-  rw [hS, powerset_axiom F]
+  rw [hS' F, replacement_axiom]
+  constructor
+  · -- (∃ f, ↑f = F) → ∃ x, PFun x F
+    rintro ⟨f, hFf⟩
+    have hGfP : (graph f : Object) ∈ P := by
+      rw [hP]; use graph f, rfl; exact specify_subset (fun p ↦ f (fst p) = snd p)
+    have hGfPG : (graph f : Object) ∈ PG := by
+      rw [specification_axiom'']; exact ⟨hGfP, f, rfl⟩
+    use ⟨graph f, hGfPG⟩
+    exact ⟨f, rfl, hFf.symm⟩
+  · -- (∃ x, PFun x F) → ∃ f, ↑f = F
+    rintro ⟨G, g, hGg, hFg⟩
+    use g; exact hFg.symm
 
 /-- Exercise 3.5.12, with errata from web site incorporated -/
 theorem SetTheory.Set.recursion (X: Set) (f: nat → X → X) (c:X) :
