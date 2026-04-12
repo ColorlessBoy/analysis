@@ -1172,7 +1172,33 @@ theorem SetTheory.Set.powerset_axiom' (X Y:Set) :
 
 /-- Exercise 3.5.12, with errata from web site incorporated -/
 theorem SetTheory.Set.recursion (X: Set) (f: nat → X → X) (c:X) :
-    ∃! a: nat → X, a 0 = c ∧ ∀ n, a (n + 1:ℕ) = f n (a n) := by sorry
+    ∃! a: nat → X, a 0 = c ∧ ∀ n, a (n + 1:ℕ) = f n (a n) := by
+  -- Strategy: define g on ℕ by Nat.rec, then a := g ∘ nat_equiv.symm
+  let g : ℕ → X := Nat.rec c (fun m acc => f (nat_equiv m) acc)
+  let a : nat → X := fun n => g (nat_equiv.symm n)
+  use a
+  -- Prove a satisfies the recursion equations
+  constructor
+  · -- a 0 = c
+    show a (nat_equiv 0) = c ∧ ∀ (n : ℕ), a ↑(n + 1) = f (↑n) (a ↑n)
+    constructor
+    · simp only [a, Equiv.symm_apply_apply]; rfl
+    · intro n; simp only [a, Nat.cast, NatCast.natCast, Equiv.symm_apply_apply]; rfl
+  -- Prove uniqueness
+  intro a' ha'
+  funext n
+  have h : ∀ m : ℕ, g m = a' (nat_equiv m) := by
+    intro m
+    induction m with
+    | zero =>
+      simp only [g]; simp only [OfNat.ofNat]; exact ha'.1.symm
+    | succ m ih =>
+      simp only [g]
+      simp only [Nat.cast, NatCast.natCast, OfNat.ofNat] at ha' ⊢
+      have h2 := ha'.2 m
+      rw [← ih] at h2
+      exact h2.symm
+  simp only [a, Equiv.apply_symm_apply, h]
 
 /-- Exercise 3.5.13 -/
 theorem SetTheory.Set.nat_unique (nat':Set) (zero:nat') (succ:nat' → nat')
@@ -1180,20 +1206,121 @@ theorem SetTheory.Set.nat_unique (nat':Set) (zero:nat') (succ:nat' → nat')
   (ind: ∀ P: nat' → Prop, P zero → (∀ n, P n → P (succ n)) → ∀ n, P n) :
     ∃! f : nat → nat', Function.Bijective f ∧ f 0 = zero
     ∧ ∀ (n:nat) (n':nat'), f n = n' ↔ f (n+1:ℕ) = succ n' := by
-  have nat_coe_eq {m:nat} {n} : (m:ℕ) = n → m = n := by aesop
-  have nat_coe_eq_zero {m:nat} : (m:ℕ) = 0 → m = 0 := nat_coe_eq
-  obtain ⟨f, hf⟩ := recursion nat' sorry sorry
+  -- Use recursion to define f with f 0 = zero, f (n+1) = succ (f n)
+  obtain ⟨f, hf⟩ := recursion nat' (fun _ n' => succ n') zero
+  -- Extract the properties from hf (beta-reduce the lambda)
+  have hf1 : f 0 = zero ∧ ∀ (n : ℕ), f ↑(n + 1) = succ (f ↑n) := hf.1
+  have hf_zero : f 0 = zero := hf1.1
+  have hf_succ (n : ℕ) : f ↑(n + 1) = succ (f ↑n) := hf1.2 n
+  -- Helper: convert between f n and f ↑(nat_equiv.symm n)
+  have f_cast (n : nat) : f ↑(nat_equiv.symm n) = f n := by
+    simp only [Nat.cast, NatCast.natCast, Equiv.apply_symm_apply]
   apply existsUnique_of_exists_of_unique
-  · use f
-    constructor
-    · constructor
-      · intro x1 x2 heq
-        induction' hx1: (x1:ℕ) with i ih generalizing x1 x2
-        · sorry
-        sorry
-      sorry
-    sorry
-  sorry
+  · -- Existence
+    use f
+    have h_inj : Function.Injective f := by
+      -- suffices: for all k and n, f n = f ↑k implies n = ↑k
+      suffices h : ∀ (k : ℕ) (n : nat), f n = f ↑k → n = ↑k by
+        intro x1 x2 heq
+        have h1 : x1 = ↑(nat_equiv.symm x2) :=
+          h _ x1 (heq.trans (f_cast x2).symm)
+        simp only [Nat.cast, NatCast.natCast, Equiv.apply_symm_apply] at h1
+        exact h1
+      intro k
+      induction k with
+      | zero =>
+        intro n hn
+        -- hn : f n = f ↑0 = f 0 = zero
+        have hn0 : f n = zero := by
+          rw [hn]; exact hf_zero
+        -- Case split on nat_equiv.symm n
+        cases hnk : nat_equiv.symm n with
+        | zero =>
+          -- nat_equiv.symm n = 0 means n = ↑0
+          have : n = ↑0 := by
+            have := congrArg nat_equiv hnk
+            simp only [Equiv.apply_symm_apply] at this
+            exact this
+          exact this
+        | succ m =>
+          -- nat_equiv.symm n = m + 1 means f n = f ↑(m+1) = succ (f ↑m)
+          exfalso
+          have hfn : f n = succ (f ↑m) := by
+            have : f ↑(m + 1) = succ (f ↑m) := hf_succ m
+            rw [← this]
+            have : n = ↑(m + 1) := by
+              have := congrArg nat_equiv hnk
+              simp only [Equiv.apply_symm_apply] at this
+              exact this
+            rw [this]
+          exact succ_ne _ (hfn ▸ hn0)
+      | succ k ih =>
+        intro n hn
+        -- hn : f n = f ↑(k+1) = succ (f ↑k)
+        have hn_s : f n = succ (f ↑k) := by rw [hn]; exact hf_succ k
+        -- n cannot be 0, since f 0 = zero ≠ succ (f ↑k)
+        have hnk : nat_equiv.symm n ≠ 0 := by
+          intro hnk0
+          have : n = ↑0 := by
+            have := congrArg nat_equiv hnk0
+            simp only [Equiv.apply_symm_apply] at this
+            exact this
+          rw [this] at hn_s
+          exact succ_ne _ (hf_zero ▸ hn_s).symm
+        -- So nat_equiv.symm n = m + 1 for some m
+        obtain ⟨m, hnm⟩ : ∃ m, nat_equiv.symm n = m + 1 := by
+          cases hnk' : nat_equiv.symm n with
+          | zero => exact absurd hnk' hnk
+          | succ m => exact ⟨m, rfl⟩
+        -- So n = ↑(m + 1) and f n = f ↑(m+1) = succ (f ↑m)
+        have hn_eq : n = ↑(m + 1) := by
+          have := congrArg nat_equiv hnm
+          simp only [Equiv.apply_symm_apply] at this
+          exact this
+        have hn_m : f n = succ (f ↑m) := by rw [hn_eq]; exact hf_succ m
+        -- succ (f ↑m) = succ (f ↑k), so by contrapositive of succ_of_ne: f ↑m = f ↑k
+        have h_mk : f ↑m = f ↑k := by
+          by_contra h_ne
+          exact succ_of_ne _ _ h_ne (hn_m.symm.trans hn_s)
+        -- By induction hypothesis, m = k, so n = ↑(k + 1)
+        have := ih m h_mk
+        rw [hn_eq, (nat_equiv_inj m k).mp this]
+    have h_surj : Function.Surjective f := by
+      intro y
+      exact ind (fun y => ∃ n : nat, f n = y)
+        ⟨0, hf_zero⟩
+        (fun y' ⟨n, hn⟩ => ⟨↑(nat_equiv.symm n + 1), by
+          rw [hf_succ (nat_equiv.symm n), f_cast]; exact congrArg succ hn⟩)
+        y
+    have h_iff : ∀ (n : nat) (n' : nat'),
+        f n = n' ↔ f ↑(nat_equiv.symm n + 1) = succ n' := by
+      intro n n'
+      constructor
+      · intro h
+        have := hf_succ (nat_equiv.symm n)
+        rw [f_cast] at this
+        rw [h] at this
+        exact this
+      · intro h
+        have := hf_succ (nat_equiv.symm n)
+        rw [f_cast] at this
+        -- this : f ↑(nat_equiv.symm n + 1) = succ (f n)
+        -- h   : f ↑(nat_equiv.symm n + 1) = succ n'
+        have heq : succ (f n) = succ n' := this.symm.trans h
+        -- By contrapositive of succ_of_ne: f n ≠ n' → succ (f n) ≠ succ n'
+        by_contra hne
+        exact succ_of_ne _ _ hne heq
+    exact ⟨⟨h_inj, h_surj⟩, hf_zero, h_iff⟩
+  · -- Uniqueness: any two functions satisfying the predicate are equal
+    intro f1 f2 ⟨_, hf1_zero, hf1_iff⟩ ⟨_, hf2_zero, hf2_iff⟩
+    -- Both f1 and f2 satisfy the recursion, so by hf.2 they both equal f
+    have hf1_eq : f1 = f := hf.2 f1 ⟨hf1_zero, fun n => by
+      have h := (hf1_iff ↑n (f1 ↑n)).mp rfl
+      simp only [Nat.cast, NatCast.natCast, Equiv.symm_apply_apply] at h; exact h⟩
+    have hf2_eq : f2 = f := hf.2 f2 ⟨hf2_zero, fun n => by
+      have h := (hf2_iff ↑n (f2 ↑n)).mp rfl
+      simp only [Nat.cast, NatCast.natCast, Equiv.symm_apply_apply] at h; exact h⟩
+    exact hf1_eq.trans hf2_eq.symm
 
 
 end Chapter3
