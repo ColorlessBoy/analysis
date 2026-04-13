@@ -1180,6 +1180,7 @@ theorem SetTheory.Set.recursion (X: Set) (f: nat → X → X) (c:X) :
   -- Prove a satisfies the recursion equations
   constructor
   · -- a 0 = c
+    -- show: replace goal with explicit goal
     show a (nat_equiv 0) = c ∧ ∀ (n : ℕ), a ↑(n + 1) = f (↑n) (a ↑n)
     constructor
     · simp only [a, Equiv.symm_apply_apply]; rfl
@@ -1194,6 +1195,7 @@ theorem SetTheory.Set.recursion (X: Set) (f: nat → X → X) (c:X) :
       simp only [g]; simp only [OfNat.ofNat]; exact ha'.1.symm
     | succ m ih =>
       simp only [g]
+      -- simplify the assumption ha' and the goal ⊢
       simp only [Nat.cast, NatCast.natCast, OfNat.ofNat] at ha' ⊢
       have h2 := ha'.2 m
       rw [← ih] at h2
