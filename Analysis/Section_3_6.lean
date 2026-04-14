@@ -52,7 +52,40 @@ theorem SetTheory.Set.Example_3_6_2 : EqualCard {0,1,2} {3,4,5} := by
   · use ⟨2, by simp⟩; aesop
 
 /-- Example 3.6.3 -/
-theorem SetTheory.Set.Example_3_6_3 : EqualCard nat (nat.specify (fun x ↦ Even (x:ℕ))) := by sorry
+theorem SetTheory.Set.Example_3_6_3 : EqualCard nat (nat.specify (fun x ↦ Even (x:ℕ))) := by
+  -- The bijection is n ↦ 2n from nat to the even naturals.
+  let f : nat.toSubtype → (nat.specify (fun x ↦ Even (x:ℕ))).toSubtype := fun x =>
+    let n : ℕ := nat_equiv.symm x
+    let two_n_nat : nat.toSubtype := nat_equiv (2 * n)
+    ⟨two_n_nat.val, by
+      rw [specification_axiom'']
+      refine ⟨two_n_nat.property, ?_⟩
+      show Even (nat_equiv.symm ⟨two_n_nat.val, two_n_nat.property⟩)
+      simp [two_n_nat]⟩
+  use f
+  constructor
+  · -- injective
+    intro x1 x2 h
+    have hval : (f x1).val = (f x2).val := congrArg Subtype.val h
+    simp only [f] at hval
+    have hval2 : nat_equiv (2 * nat_equiv.symm x1) = nat_equiv (2 * nat_equiv.symm x2) :=
+      Subtype.val_injective hval
+    have hval3 : 2 * nat_equiv.symm x1 = 2 * nat_equiv.symm x2 := nat_equiv.injective hval2
+    have hval4 : nat_equiv.symm x1 = nat_equiv.symm x2 := by omega
+    exact nat_equiv.symm.injective hval4
+  · -- surjective
+    intro y
+    have hy_spec := y.property
+    rw [specification_axiom''] at hy_spec
+    obtain ⟨hy_mem, hy_even⟩ := hy_spec
+    obtain ⟨k, hk⟩ := hy_even
+    use nat_equiv k
+    apply Subtype.ext
+    simp only [f, Equiv.symm_apply_apply]
+    have : nat_equiv (k + k) = ⟨y.val, hy_mem⟩ := by
+      apply nat_equiv.symm.injective; simp [hk]
+    rw [show 2 * k = k + k from by ring]
+    exact congrArg Subtype.val this
 
 @[refl]
 theorem SetTheory.Set.EqualCard.refl (X:Set) : EqualCard X X := by
