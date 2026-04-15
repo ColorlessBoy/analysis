@@ -89,15 +89,42 @@ theorem SetTheory.Set.Example_3_6_3 : EqualCard nat (nat.specify (fun x ↦ Even
 
 @[refl]
 theorem SetTheory.Set.EqualCard.refl (X:Set) : EqualCard X X := by
-  sorry
+  use fun x : X => x
+  constructor
+  · intro a b h; exact h
+  intro x; use x
 
 @[symm]
 theorem SetTheory.Set.EqualCard.symm {X Y:Set} (h: EqualCard X Y) : EqualCard Y X := by
-  sorry
+  obtain ⟨f, ⟨h1, h2⟩⟩ := h
+  let g := fun (y : Y) => (h2 y).choose
+  use g
+  constructor
+  · intro y1 y2 h
+    have h3 := (h2 y1).choose_spec
+    have h4 := (h2 y2).choose_spec
+    unfold g at h
+    rw [h] at h3
+    rw [h3] at h4
+    exact h4
+  intro x; use f x
+  unfold g
+  apply h1
+  exact (h2 (f x)).choose_spec
 
 @[trans]
 theorem SetTheory.Set.EqualCard.trans {X Y Z:Set} (h1: EqualCard X Y) (h2: EqualCard Y Z) : EqualCard X Z := by
-  sorry
+  obtain ⟨f, ⟨hf1, hf2⟩⟩ := h1
+  obtain ⟨g, ⟨hg1, hg2⟩⟩ := h2
+  let h := fun (x : X) => g (f x)
+  use h
+  constructor
+  · intro x1 x2 h'; apply hf1; apply hg1; exact h'
+  intro z
+  obtain ⟨y', hy'⟩ := hg2 z
+  obtain ⟨x', hx'⟩ := hf2 y'
+  use x'; unfold h
+  rw [hx', hy']
 
 /-- Proposition 3.6.4 / Exercise 3.6.1 -/
 instance SetTheory.Set.EqualCard.inst_setoid : Setoid SetTheory.Set := ⟨ EqualCard, {refl, symm, trans} ⟩
