@@ -143,8 +143,24 @@ theorem SetTheory.Set.Remark_3_6_6 (n:ℕ) :
   use fun x => Fin_mk _ (((⟨x.val, by apply ((specification_axiom'' _ _).mp x.property).choose⟩:nat) : ℕ) - 1) (by
     have hx := x.property; rw [specification_axiom''] at hx; obtain ⟨hx1, hx2⟩ := hx; omega)
   constructor
-  · intro x1 x2 h; sorry
-  · intro y; sorry
+  · intro x1 x2 h;
+    simp at h
+    have ⟨h1, ⟨h2, h3⟩⟩ := (specification_axiom'' _ x1).mp (x1.property)
+    have ⟨h1', ⟨h2', h3'⟩⟩ := (specification_axiom'' _ x2).mp (x2.property)
+    rw [Nat.sub_eq_iff_eq_add h2, Nat.sub_add_cancel h2'] at h
+    apply nat_equiv.symm.injective at h
+    rw [← Subtype.val_inj, Subtype.val_inj (a := x1)] at h
+    exact h
+  · intro y
+    let m := (y : ℕ) + 1
+    have hm1 : 1 ≤ m := by omega
+    have hm2 : m ≤ n := by have := Fin.toNat_lt y; omega
+    have hm : (nat_equiv m : Object) ∈ nat.specify (fun x ↦ 1 ≤ nat_equiv.symm x ∧ nat_equiv.symm x ≤ n) := by
+      rw [specification_axiom'']
+      exact ⟨(nat_equiv m).property, by simp; exact ⟨hm1, hm2⟩⟩
+    use ⟨nat_equiv m, hm⟩
+    simp
+    omega
 
 /-- Example 3.6.7 -/
 theorem SetTheory.Set.Example_3_6_7a (a:Object) : ({a}:Set).has_card 1 := by
