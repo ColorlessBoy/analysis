@@ -138,7 +138,13 @@ theorem SetTheory.Set.has_card_iff (X:Set) (n:ℕ) :
 
 /-- Remark 3.6.6 -/
 theorem SetTheory.Set.Remark_3_6_6 (n:ℕ) :
-    (nat.specify (fun x ↦ 1 ≤ (x:ℕ) ∧ (x:ℕ) ≤ n)).has_card n := by sorry
+    (nat.specify (fun x ↦ 1 ≤ (x:ℕ) ∧ (x:ℕ) ≤ n)).has_card n := by
+  simp [SetTheory.Set.has_card_iff]
+  use fun x => Fin_mk _ (((⟨x.val, by apply ((specification_axiom'' _ _).mp x.property).choose⟩:nat) : ℕ) - 1) (by
+    have hx := x.property; rw [specification_axiom''] at hx; obtain ⟨hx1, hx2⟩ := hx; omega)
+  constructor
+  · intro x1 x2 h; sorry
+  · intro y; sorry
 
 /-- Example 3.6.7 -/
 theorem SetTheory.Set.Example_3_6_7a (a:Object) : ({a}:Set).has_card 1 := by
