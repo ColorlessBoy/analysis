@@ -224,8 +224,14 @@ theorem SetTheory.Set.has_card_zero {X:Set} : X.has_card 0 ↔ X = ∅ := by
     rw [has_card_iff]
     by_contra h
     push_neg at h
-    sorry
-
+    let f := fun (x : (∅:Set)) => (⟨x, by exfalso; exact not_mem_empty _ (x.property)⟩ : Fin 0)
+    apply h f
+    constructor
+    · intro x; exfalso; exact not_mem_empty _ (x.property)
+    intro y; have hy := y.property; rw [specification_axiom''] at hy
+    obtain ⟨z, hz⟩ := hy
+    exfalso
+    exact Nat.not_lt_zero _ hz
 
 /-- Lemma 3.6.9 -/
 theorem SetTheory.Set.card_erase {n:ℕ} (h: n ≥ 1) {X:Set} (hX: X.has_card n) (x:X) :
