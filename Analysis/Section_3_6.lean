@@ -207,7 +207,25 @@ theorem SetTheory.Set.pos_card_nonempty {n:ℕ} (h: n ≥ 1) {X:Set} (hX: X.has_
 
 /-- Exercise 3.6.2a -/
 theorem SetTheory.Set.has_card_zero {X:Set} : X.has_card 0 ↔ X = ∅ := by
-  sorry
+  constructor
+  · intro hX
+    rw [has_card_iff] at hX
+    obtain ⟨f, hf⟩ := hX
+    -- If X were nonempty, f would map an element to Fin 0, which is empty
+    by_contra hne
+    obtain ⟨x, hx⟩ := Set.nonempty_def hne
+    let y := f ⟨x, hx⟩
+    have hy := y.property
+    rw [specification_axiom''] at hy
+    obtain ⟨hy1, hy2⟩ := hy
+    exact Nat.not_lt_zero _ hy2
+  · intro hX
+    rw [hX]
+    rw [has_card_iff]
+    by_contra h
+    push_neg at h
+    sorry
+
 
 /-- Lemma 3.6.9 -/
 theorem SetTheory.Set.card_erase {n:ℕ} (h: n ≥ 1) {X:Set} (hX: X.has_card n) (x:X) :
