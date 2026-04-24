@@ -252,7 +252,94 @@ theorem SetTheory.Set.card_erase {n:ℕ} (h: n ≥ 1) {X:Set} (hX: X.has_card n)
     else Fin_mk _ (f (ι x') - 1) (by omega)
   have hg_def (x':X') : if (f (ι x'):ℕ) < m₀ then (g x':ℕ) = f (ι x') else (g x':ℕ) = f (ι x') - 1 := by
     split_ifs with h' <;> simp [g,h']
-  have hg : Function.Bijective g := by sorry
+  have hg : Function.Bijective g := by
+    constructor
+    · intro x1 x2 h;
+      by_cases h1 : f (ι x1) < m₀
+      by_cases h2 : f (ι x2) < m₀
+      · unfold g at h
+        simp [dif_pos h1, dif_pos h2] at h
+        apply Subtype.val_inj.mp at h
+        apply hf.1 at h
+        apply Subtype.val_inj.mpr at h
+        rw [hι, hι x2, Subtype.val_inj] at h
+        exact h
+      · unfold g at h
+        simp [dif_pos h1, dif_neg h2] at h
+        rw [h] at h1
+        have : f (ι x2) = m₀ := by omega
+        simp [← this] at hm₀f
+        apply Subtype.val_inj.mp at hm₀f
+        apply hf.1 at hm₀f
+        apply Subtype.val_inj.mpr at hm₀f
+        rw [hι] at hm₀f
+        have hx2 := x2.property
+        rw [mem_sdiff, mem_singleton] at hx2
+        exfalso
+        apply hx2.2
+        rw [hm₀f]
+      by_cases h2 : f (ι x2) < m₀
+      · unfold g at h
+        simp [dif_neg h1, dif_pos h2] at h
+        have : (f (ι x1) : ℕ) - 1 = f (ι x2) := by
+          rw [← Fin.coe_toNat] at h; exact Object.natCast_inj _ _ |>.mp h
+        rw [← this] at h2
+        have : f (ι x1) = m₀ := by omega
+        simp [← this] at hm₀f
+        apply Subtype.val_inj.mp at hm₀f
+        apply hf.1 at hm₀f
+        apply Subtype.val_inj.mpr at hm₀f
+        rw [hι] at hm₀f
+        have hx1 := x1.property
+        rw [mem_sdiff, mem_singleton] at hx1
+        exfalso
+        apply hx1.2
+        rw [hm₀f]
+      · unfold g at h
+        simp [dif_neg h1, dif_neg h2] at h
+        have hm₀f_nat : (f x : ℕ) = m₀ := Object.natCast_inj _ _ |>.mp (by simpa using hm₀f)
+        have hne : ι x1 ≠ x := by intro h; have := x1.property; aesop
+        have hne' : f (ι x1) ≠ f x := fun h => hne (hf.1 h)
+        have hne2 : (f (ι x1) : ℕ) ≠ m₀ := by
+          intro h; apply hne'; exact Fin.coe_inj.mpr (h.trans hm₀f_nat.symm)
+        have h3 : ((f (ι x1)) : ℕ) > 0 := by omega
+        have hne3 : ι x2 ≠ x := by intro h; have := x2.property; aesop
+        have hne4 : f (ι x2) ≠ f x := fun h => hne3 (hf.1 h)
+        have hne5 : (f (ι x2) : ℕ) ≠ m₀ := by
+          intro h; apply hne4; exact Fin.coe_inj.mpr (h.trans hm₀f_nat.symm)
+        have h4 : ((f (ι x2)) : ℕ) > 0 := by omega
+        have h5 : (f (ι x1) : ℕ) = (f (ι x2) : ℕ) := by omega
+        rw [← Fin.coe_inj] at h5
+        apply hf.1 at h5
+        rw [← Subtype.val_inj, hι, hι x2, Subtype.val_inj] at h5
+        exact h5
+    intro y
+    set k := (y : ℕ)
+    have hk : k < n - 1 := Fin.toNat_lt y
+    have hm₀f_nat : (f x : ℕ) = m₀ := Object.natCast_inj _ _ |>.mp (by simpa using hm₀f)
+    by_cases hk_lt : k < m₀
+    · have hk_fin : k < n := by omega
+      obtain ⟨w, hw⟩ := hf.2 (Fin_mk n k hk_fin)
+      have hwk : (f w : ℕ) = k := by rw [hw, Fin.toNat_mk]
+      by_cases hw_eq : (w:Object) = x
+      · exfalso
+        have : w = x := Subtype.val_inj.mp hw_eq
+        rw [this] at hwk; omega
+      use ⟨w, by rw [mem_sdiff, mem_singleton]; exact ⟨w.property, hw_eq⟩⟩
+      have hgi := hg_def ⟨w, by rw [mem_sdiff, mem_singleton]; exact ⟨w.property, hw_eq⟩⟩
+      simp [hwk, hk_lt] at hgi
+      exact Fin.coe_inj.mpr hgi
+    · have hk1 : k + 1 < n := by omega
+      obtain ⟨w, hw⟩ := hf.2 (Fin_mk n (k + 1) hk1)
+      have hwk : (f w : ℕ) = k + 1 := by rw [hw, Fin.toNat_mk]
+      by_cases hw_eq : (w:Object) = x
+      · exfalso
+        have : w = x := Subtype.val_inj.mp hw_eq
+        rw [this] at hwk; omega
+      use ⟨w, by rw [mem_sdiff, mem_singleton]; exact ⟨w.property, hw_eq⟩⟩
+      have hgi := hg_def ⟨w, by rw [mem_sdiff, mem_singleton]; exact ⟨w.property, hw_eq⟩⟩
+      simp [hwk, show ¬(k + 1) < m₀ by omega] at hgi
+      exact Fin.coe_inj.mpr hgi
   use g
 
 /-- Proposition 3.6.8 (Uniqueness of cardinality) -/
