@@ -391,7 +391,28 @@ abbrev SetTheory.Set.finite (X:Set) : Prop := ∃ n:ℕ, X.has_card n
 abbrev SetTheory.Set.infinite (X:Set) : Prop := ¬ finite X
 
 /-- Exercise 3.6.3, phrased using Mathlib natural numbers -/
-theorem SetTheory.Set.bounded_on_finite {n:ℕ} (f: Fin n → nat) : ∃ M, ∀ i, (f i:ℕ) ≤ M := by sorry
+theorem SetTheory.Set.bounded_on_finite {n:ℕ} (f: Fin n → nat) : ∃ M, ∀ i, (f i:ℕ) ≤ M := by
+  by_cases hn : n = 0
+  . subst hn; have : Fin 0 = ∅ := by rw [SetTheory.Set.Fin, SetTheory.Set.specify, eq_empty_iff_forall_notMem]; grind [SetTheory.Set.specification_axiom'']
+    rw [this] at *; use 0; intro x;
+    have ⟨n, hn, _⟩ := mem_Fin _ _ |>.mp x.property
+    exfalso; exact Nat.not_lt_zero _ hn
+  rename_i hn
+  let e := SetTheory.Set.Fin.Fin_equiv_Fin n
+  let g (i : _root_.Fin n) : ℕ := (f (e.invFun i) : ℕ)
+  let L := List.ofFn g
+  have hL : L.length = n := List.length_ofFn
+  have hL' : 0 < L.length := Nat.zero_lt_of_ne_zero (by aesop)
+  let M := L.maximum_of_length_pos hL'
+  use M
+  intro i
+  let j := e.toFun i
+  have hij : j.1 < n := j.2
+  have hij' : j.1 < L.length := by rw [hL]; exact hij
+  calc (f i : ℕ) = (f (e.invFun j) : ℕ) := by rw [e.left_inv]
+    _ = g j := rfl
+    _ = L.get ⟨j.1, hij'⟩ := (List.get_ofFn g ⟨j.1, hij'⟩).symm
+    _ ≤ M := List.le_maximum_of_length_pos_of_mem (List.get_mem L ⟨j.1, hij'⟩) hL'
 
 /-- Theorem 3.6.12 -/
 theorem SetTheory.Set.nat_infinite : infinite nat := by
