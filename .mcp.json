@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lean-lsp": {
+      "command": "/Users/penglingwei/.local/bin/lean-lsp-mcp",
+      "args": [
+        "--lean-project-path",
+        "."
+      ],
+      "cwd": "."
+    }
+  }
+}
