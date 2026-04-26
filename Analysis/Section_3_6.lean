@@ -394,10 +394,9 @@ abbrev SetTheory.Set.infinite (X:Set) : Prop := ¬ finite X
 theorem SetTheory.Set.bounded_on_finite {n:ℕ} (f: Fin n → nat) : ∃ M, ∀ i, (f i:ℕ) ≤ M := by
   by_cases hn : n = 0
   . subst hn; have : Fin 0 = ∅ := by rw [SetTheory.Set.Fin, SetTheory.Set.specify, eq_empty_iff_forall_notMem]; grind [SetTheory.Set.specification_axiom'']
-    rw [this] at *; use 0; intro x;
+    use 0; intro x;
     have ⟨n, hn, _⟩ := mem_Fin _ _ |>.mp x.property
     exfalso; exact Nat.not_lt_zero _ hn
-  rename_i hn
   let e := SetTheory.Set.Fin.Fin_equiv_Fin n
   let g (i : _root_.Fin n) : ℕ := (f (e.invFun i) : ℕ)
   let L := List.ofFn g
