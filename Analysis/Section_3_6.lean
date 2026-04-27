@@ -459,7 +459,16 @@ theorem SetTheory.Set.EquivCard_to_card_eq {X Y:Set} (h: X ≈ Y): X.card = Y.ca
 
 /-- Exercise 3.6.2 -/
 theorem SetTheory.Set.empty_iff_card_eq_zero {X:Set} : X = ∅ ↔ X.finite ∧ X.card = 0 := by
-  sorry
+  constructor
+  · intro h; rw [h]
+    constructor
+    · use 0; simp [has_card_zero]
+    apply has_card_to_card; rw [has_card_zero]
+  intro ⟨h1, h2⟩
+  rw [card, dif_pos h1] at h2
+  have h3 := h1.choose_spec
+  rw [h2] at h3
+  exact has_card_zero.mp h3
 
 lemma SetTheory.Set.empty_of_card_eq_zero {X:Set} (hX : X.finite) : X.card = 0 → X = ∅ := by
   intro h
