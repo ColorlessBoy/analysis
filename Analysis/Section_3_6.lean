@@ -493,7 +493,71 @@ lemma SetTheory.Set.empty_card_eq_zero : (∅: Set).card = 0 := card_eq_zero_of_
 
 /-- Proposition 3.6.14 (a) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_insert {X:Set} (hX: X.finite) {x:Object} (hx: x ∉ X) :
-    (X ∪ {x}).finite ∧ (X ∪ {x}).card = X.card + 1 := by sorry
+    (X ∪ {x}).finite ∧ (X ∪ {x}).card = X.card + 1 := by
+  have hXn := has_card_card hX
+  set n := X.card
+  rw [has_card_iff] at hXn
+  obtain ⟨f, hf⟩ := hXn
+  classical
+  have hXux : (X ∪ {x}).has_card (n + 1) := by
+    rw [has_card_iff]
+    set g : ↥(X ∪ {x}) → ↥(Fin (n + 1)) := fun y =>
+      if hy : (y : Object) ∈ X then
+        Fin_mk (n + 1) ((f ⟨(y : Object), hy⟩) : ℕ) (by have := Fin.toNat_lt (f ⟨(y : Object), hy⟩); omega)
+      else
+        Fin_mk (n + 1) n (by omega)
+    use g
+    constructor
+    · -- injective
+      intro y1 y2 hg
+      unfold g at hg; split_ifs at hg
+      · -- both in X
+        have h1 := Fin.coe_inj.mp hg; simp only [Fin.toNat_mk] at h1
+        have h2 := hf.1 (Fin.coe_inj.mpr h1)
+        have h3 : (y1 : Object) = (y2 : Object) := congrArg (fun z : X => (z : Object)) h2
+        exact Subtype.ext h3
+      · -- y1 in X, y2 not in X
+        have h1 := Fin.coe_inj.mp hg; simp only [Fin.toNat_mk] at h1
+        have : (f ⟨(y1 : Object), ‹(y1 : Object) ∈ X›⟩ : ℕ) < n := Fin.toNat_lt _
+        omega
+      · -- y1 not in X, y2 in X
+        have h1 := Fin.coe_inj.mp hg; simp only [Fin.toNat_mk] at h1
+        have : (f ⟨(y2 : Object), ‹(y2 : Object) ∈ X›⟩ : ℕ) < n := Fin.toNat_lt _
+        omega
+      · -- both not in X
+        have ey1 : (y1 : Object) = x := by
+          have h := y1.property; rw [mem_union] at h
+          rcases h with (h | h); · exact absurd h ‹¬(y1 : Object) ∈ X›
+          rw [mem_singleton] at h; exact h
+        have ey2 : (y2 : Object) = x := by
+          have h := y2.property; rw [mem_union] at h
+          rcases h with (h | h); · exact absurd h ‹¬(y2 : Object) ∈ X›
+          rw [mem_singleton] at h; exact h
+        exact Subtype.ext (ey1.trans ey2.symm)
+    · -- surjective
+      intro k
+      by_cases hk : (k : ℕ) < n
+      · -- k < n: find preimage in X
+        obtain ⟨w, hw⟩ := hf.2 (Fin_mk n (k : ℕ) hk)
+        use ⟨(w : Object), by rw [mem_union]; left; exact w.property⟩
+        unfold g; split_ifs
+        · -- (w : Object) ∈ X
+          apply Fin.coe_inj.mpr; simp only [Fin.toNat_mk]
+          have : (f w : ℕ) = (k : ℕ) := by rw [hw]; simp only [Fin.toNat_mk]
+          exact this
+        · -- (w : Object) ∉ X, contradiction since w : X
+          have : (w : Object) ∈ X := w.property
+          contradiction
+      · -- k = n: x is the preimage
+        use ⟨x, by rw [mem_union]; right; rw [mem_singleton]⟩
+        unfold g; split_ifs
+        · -- x ∈ X, contradiction since hx : x ∉ X
+          contradiction
+        · -- x ∉ X
+          apply Fin.coe_inj.mpr; simp only [Fin.toNat_mk]
+          have hlt : (k : ℕ) < n + 1 := Fin.toNat_lt k
+          omega
+  exact ⟨⟨n + 1, hXux⟩, has_card_to_card hXux⟩
 
 /-- Proposition 3.6.14 (b) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_union {X Y:Set} (hX: X.finite) (hY: Y.finite) :
