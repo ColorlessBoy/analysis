@@ -1,0 +1,30 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "lean-lsp": {
+      "type": "local",
+      "command": ["uvx", "lean-lsp-mcp"],
+      "enabled": true,
+      "timeout": 60000
+    }
+  },
+  "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "bash": "allow",
+    "task": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "skill": "allow",
+    "lsp": "allow",
+    "external_directory": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "question": "allow",
+    "doom_loop": "allow",
+    "lean-lsp_*": "allow"
+  }
+}
