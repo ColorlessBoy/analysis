@@ -561,7 +561,67 @@ theorem SetTheory.Set.card_insert {X:Set} (hX: X.finite) {x:Object} (hx: x ∉ X
 
 /-- Proposition 3.6.14 (b) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_union {X Y:Set} (hX: X.finite) (hY: Y.finite) :
-    (X ∪ Y).finite ∧ (X ∪ Y).card ≤ X.card + Y.card := by sorry
+    (X ∪ Y).finite ∧ (X ∪ Y).card ≤ X.card + Y.card := by
+  have hXn := has_card_card hX
+  have hYn := has_card_card hY
+  set n := X.card with hn
+  set m := Y.card with hm
+  -- Prove by induction on k: for any Y' with has_card k, (X ∪ Y').finite ∧ card ≤ n + k
+  have h_main : ∀ (k : ℕ), ∀ (Y' : Set), Y'.has_card k → ((X ∪ Y').finite ∧ (X ∪ Y').card ≤ n + k) := by
+    intro k
+    induction' k with k ih
+    · -- k = 0, so Y' is empty
+      intro Y' hY'0
+      have hY'_empty : Y' = ∅ := has_card_zero.mp hY'0
+      rw [hY'_empty, union_empty, hn]
+      exact ⟨hX, le_rfl⟩
+    · -- k = k.succ
+      intro Y' hY'Sk
+      have hk_pos : k.succ ≥ 1 := by omega
+      have hY'_nonempty : Y' ≠ ∅ := pos_card_nonempty hk_pos hY'Sk
+      rcases Set.nonempty_def hY'_nonempty with ⟨y, hy⟩
+      set Y'' := Y' \ {y} with hY''
+      have hY''_card : Y''.has_card k := by
+        have h_card := card_erase hk_pos hY'Sk ⟨y, hy⟩
+        have h_sub : k.succ - 1 = k := by omega
+        simpa [hY'', h_sub] using h_card
+      have h_induction := ih Y'' hY''_card
+      rcases h_induction with ⟨h_fin, h_card⟩
+      by_cases hy_in : y ∈ X ∪ Y''
+      · -- y already in X ∪ Y'', so X ∪ Y' = X ∪ Y''
+        have h_union_eq : X ∪ Y' = X ∪ Y'' := by
+          apply Set.ext; intro z
+          constructor
+          · intro hz
+            rw [mem_union] at hz ⊢
+            rcases hz with (hzX | hzY')
+            · exact Or.inl hzX
+            · by_cases hzy : z = y
+              · subst z; rw [mem_union] at hy_in; exact hy_in
+              · right; rw [hY'', mem_sdiff]; exact ⟨hzY', by simpa [mem_singleton]⟩
+          · intro hz
+            rw [mem_union] at hz ⊢
+            rcases hz with (hzX | hzY'')
+            · exact Or.inl hzX
+            · right; rw [hY'', mem_sdiff] at hzY''; exact hzY''.1
+        rw [h_union_eq]
+        have : n + k ≤ n + k.succ := by omega
+        exact ⟨h_fin, le_trans h_card this⟩
+      · -- y ∉ X ∪ Y'', apply card_insert
+        have h_singleton_subset : ({y} : Set) ⊆ Y' := by
+          intro z hz; rw [mem_singleton] at hz; subst hz; exact hy
+        have h_singleton_union_sdiff : ({y} : Set) ∪ Y'' = Y' := by
+          rw [hY'']
+          exact union_compl h_singleton_subset
+        have h_union_eq : X ∪ Y' = (X ∪ Y'') ∪ {y} := by
+          rw [h_singleton_union_sdiff.symm, ← union_assoc, union_comm X {y}, union_assoc, union_comm]
+        have h_card_insert := card_insert h_fin hy_in
+        rcases h_card_insert with ⟨h_fin', h_card'⟩
+        rw [h_union_eq]
+        rw [h_card']
+        have h_bound : (X ∪ Y'').card + 1 ≤ n + (k + 1) := by omega
+        exact ⟨h_fin', h_bound⟩
+  exact h_main m Y hYn
 
 /-- Proposition 3.6.14 (b) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_union_disjoint {X Y:Set} (hX: X.finite) (hY: Y.finite)
