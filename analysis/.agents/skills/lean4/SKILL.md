@@ -28,6 +28,7 @@ Use this skill whenever you're editing Lean 4 proofs, debugging Lean builds, for
 | `/lean4:autoformalize` | Autonomous end-to-end formalization from informal sources |
 | `/lean4:prove` | Guided cycle-by-cycle theorem proving with explicit checkpoints |
 | `/lean4:autoprove` | Autonomous multi-cycle theorem proving with hard stop rules |
+| `/lean4:coprove` | See § Dual-Agent - workflow using 2× general-purpose agents |
 | `/lean4:checkpoint` | Save progress with a safe commit checkpoint |
 | `/lean4:review` | Read-only code review of Lean proofs |
 | `/lean4:refactor` | Leverage mathlib, extract helpers, simplify proof strategies |
@@ -43,6 +44,7 @@ Use this skill whenever you're editing Lean 4 proofs, debugging Lean builds, for
 | Draft + prove interactively | `/lean4:formalize` |
 | Filling sorries (interactive) | `/lean4:prove` |
 | Filling sorries (unattended) | `/lean4:autoprove` |
+| Dual-agent cooperative proving | Manual: spawn 2× `general-purpose` + shared markdown |
 | Save point (per-file + project build, axiom check, commit) | `/lean4:checkpoint` |
 | Quality check (read-only) | `/lean4:review` |
 | Simplify proof strategies (mathlib leverage, helpers) | `/lean4:refactor` |
@@ -101,6 +103,207 @@ Use `/lean4:learn` at any point to explore repo structure or navigate mathlib. T
 - `/lean4:autoformalize` wraps draft+autoprove in a single command (source → claims → skeletons → proofs); replaces `autoprove --formalize=auto`
 - Proof engines (`prove`/`autoprove`) never modify declaration headers (header fence)
 - If you hit environment issues, run `/lean4:doctor` to diagnose
+
+## Dual-Agent Cooperative Proving (Workflow: 2× general-purpose agents)
+
+> **Note**: Since `/lean4:autoprove` and `/lean4:prove` are **skills/commands** (not agent types), coprove is implemented by spawning **two `general-purpose` agents** that coordinate via a shared markdown file. Both agents appear as separate tasks in Claude Code's UI.
+
+### How to Invoke
+
+```
+/lean4:coprove --target=Section_3_6.lean:42 --goal=card_union
+```
+
+This internally:
+1. Creates a shared markdown log at `${TMPDIR:-/tmp}/lean4_coprove_<timestamp>.md`
+2. Spawns **Agent 1 (Prover)** as a `general-purpose` agent
+3. Spawns **Agent 2 (Monitor)** as a `general-purpose` agent
+4. Both agents coordinate via the markdown file until success or max cycles
+
+### Agent Roles
+
+| Agent | Name | Type | Responsibility |
+|-------|------|------|----------------|
+| **1** | Prover | `general-purpose` | Edit tactics, fill sorries, iterate based on errors |
+| **2** | Monitor | `general-purpose` | Track errors/solutions, assess progress, provide feedback via markdown |
+
+### How It Works
+
+1. **Startup**: Shared markdown file created at `${TMPDIR:-/tmp}/lean4_coprove_<timestamp>.md`
+2. **Iteration loop**:
+   - Agent 1 (Prover): Writes its attempt to the markdown
+   - Agent 2 (Monitor): Reads Agent 1's attempt from markdown, evaluates, writes feedback
+   - Lean compiles → success or error
+   - Agent 1 reads Agent 2's feedback from markdown before next attempt
+3. **Exit conditions**:
+   - Success: proof compiles with zero sorries in target scope
+   - Hard stop: max iterations reached
+   - Stagnation: Agent 2 reports no progress for N consecutive cycles
+
+### Communication Protocol
+
+- **Shared markdown file**: `${TMPDIR:-/tmp}/lean4_coprove_<timestamp>.md`
+  - Agent 1 writes: attempts, tactic choices, compile results
+  - Agent 2 writes: error analysis, progress assessment, recommendations
+  - Both agents read each other's entries before their next action
+- **Agent 1 reads feedback**: Before each attempt, reads Agent 2's last evaluation
+- **Cycle limit**: Default 50 cycles; configurable via `--max-cycles=N`
+
+### Error Log Format (Markdown)
+
+```markdown
+# Lean4 Coprove Log
+
+## Session Info
+- **Target**: Foo.lean:42 `theorem bar`
+- **Start Time**: 2026-04-30 10:00:00
+- **Max Cycles**: 50
+
+## Statistics (Live)
+| Metric | Value |
+|--------|-------|
+| Total Goals | 1 |
+| Remaining Goals | 1 |
+| Completed Goals | 0 |
+| Total Errors Encountered | 3 |
+| Unique Error Types | 2 |
+| Current Cycle | 3 |
+
+## Cycle History
+
+### Cycle 3 (2026-04-30 10:05:00)
+**Status**: 🔄 Stagnating
+
+**Statistics Update**:
+| Metric | Before | After |
+|--------|--------|-------|
+| Remaining Goals | 1 | 1 |
+| Error Count | 2 | 3 |
+| Proof Complexity | medium | medium |
+
+**Attempt**:
+\`\`\`lean
+by simp [h] at *
+\`\`\`
+
+**Error**:
+\`\`\`
+type mismatch at *
+  h : ℕ
+expected : ℤ
+\`\`\`
+
+**Analysis**:
+- Same error as Cycle 1: type mismatch
+- simp approach not working because `h` has wrong type
+- Suggestion: try `intToNat h` first or use `aesop`
+
+**Recommendation for Agent 1**:
+Try `aesop` or manually apply `Int.ofNat_eqCast` before simp.
+```
+
+### Progress Assessment Criteria
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| **advancing** | Fewer sorries, simpler tactics, or closer to goal | Continue with current approach |
+| **stagnating** | Same error repeated, no measurable progress | Suggest alternative strategy |
+| **regressing** | New errors introduced, proof complexity increased | Rollback and replan |
+
+### Difference from Autoprove
+
+| Aspect | `/lean4:autoprove` | `/lean4:coprove` |
+|--------|---------------------|-------------------|
+| Agents | Single (main thread) | Two parallel agents |
+| Error tracking | Internal state | Persistent markdown log (Agent 2) |
+| Progress feedback | None | Agent 2 assessment on each cycle |
+| Stagnation detection | Hard stop on cycle limit | Agent 2 can early-exit on stagnation |
+| Communication | Loop internal | Via shared markdown file |
+
+### Usage (Manual Invocation)
+
+Since this is a workflow using 2× `general-purpose` agents, invoke it by asking Claude Code to:
+
+```
+Start a dual-agent coprove session for Section_3_6.lean:card_union:
+- Agent 1 (Prover): general-purpose agent - work on the proof
+- Agent 2 (Monitor): general-purpose agent - evaluate progress via shared markdown
+- Use /tmp/lean4_coprove_<timestamp>.md as the shared log
+```
+
+Or with specific parameters:
+```
+/lean4:coprove --target=Section_3_6.lean:42 --goal=card_union --max-cycles=50
+```
+
+**Parameters**:
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--target` | Current file | File and line: `foo.lean:42` |
+| `--goal` | First sorry | Theorem name to prove |
+| `--max-cycles` | 50 | Maximum iteration cycles |
+| `--scope` | `all` | `all` = all sorries, `sorry` = only fill existing |
+
+### Example Session
+
+**Shared Markdown Log** (`/tmp/lean4_coprove_xxx.md`):
+```markdown
+# Lean4 Coprove Log
+## Target: Foo.lean:42 `theorem bar`
+
+## Statistics (Live)
+| Metric | Value |
+|--------|-------|
+| Total Goals | 1 |
+| Remaining Goals | 0 |
+| Completed Goals | 1 |
+| Total Errors Encountered | 2 |
+| Unique Error Types | 2 |
+| Current Cycle | 3 |
+
+## Cycle History
+
+### Agent 1 Attempt (Cycle 1)
+**Tactic**: `by simp [h] at *`
+**Result**: FAILED
+**Error**: type mismatch - ring tactic inapplicable
+
+### Agent 2 Evaluation (Cycle 1)
+**Status**: 🔄 Stagnating
+**Statistics**: Errors 0→1, Unique errors: 1
+**Analysis**: ring/simp cannot handle this goal structure
+**Recommendation**: Try `aesop` or manual lemma application
+
+---
+
+### Agent 1 Attempt (Cycle 2)
+**Tactic**: `by aesop`
+**Result**: FAILED (timeout)
+**Error**: aesop timed out after 60s
+
+### Agent 2 Evaluation (Cycle 2)
+**Status**: 🔴 Regressing
+**Statistics**: Errors 1→2, Complexity: medium→high
+**Analysis**: goal too complex for full automation
+**Recommendation**: Use `simp only [...]` + explicit `apply` statements
+
+---
+
+### Agent 1 Attempt (Cycle 3)
+**Tactic**: `by simp only [h, Nat.add_comm] then apply foo`
+**Result**: SUCCESS ✓
+
+### Agent 2 Evaluation (Cycle 3)
+**Status**: 🟢 Advancing
+**Statistics**: Goals: 1→0 (complete)
+**Analysis**: explicit tactic sequence worked
+**Verdict**: Proof complete ✓
+```
+
+**Terminal Output**:
+```
+>>> Cycles: 3, Total Errors: 2, Final: SUCCESS ✓
+```
 
 ## LSP Tools (Preferred)
 
