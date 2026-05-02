@@ -810,21 +810,184 @@ theorem SetTheory.Set.card_ssubset {X Y:Set} (hX: X.finite) (hY: Y ⊂ X) :
 
 /-- Proposition 3.6.14 (d) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_image {X Y:Set} (hX: X.finite) (f: X → Y) :
-    (image f X).finite ∧ (image f X).card ≤ X.card := by sorry
+    (image f X).finite ∧ (image f X).card ≤ X.card := by
+  have hXc := has_card_card hX
+  have h_main : ∀ (k : ℕ) (S : Set), S ⊆ X → S.has_card k →
+      ((image f S).finite ∧ (image f S).card ≤ k) := by
+    intro k S hS_sub hSk
+    induction' k with k ih generalizing S
+    · have hS_empty : S = ∅ := has_card_zero.mp hSk
+      subst hS_empty
+      have himg_empty : image f (∅ : Set) = ∅ := by
+        apply eq_empty_iff_forall_notMem.mpr
+        intro y hy; rw [mem_image] at hy; rcases hy with ⟨x, hx, _⟩
+        exact not_mem_empty _ hx
+      rw [himg_empty]; simp
+    · have hpos : k.succ ≥ 1 := by omega
+      have hne : S ≠ ∅ := pos_card_nonempty hpos hSk
+      rcases Set.nonempty_def hne with ⟨x, hx⟩
+      set S' := S \ {x} with hS'
+      have hS'_sub : S' ⊆ X := by
+        intro z hz; rw [hS', mem_sdiff] at hz; exact hS_sub _ hz.1
+      have hS'_card : S'.has_card k := by
+        have h := card_erase hpos hSk ⟨x, hx⟩
+        have hsub : k.succ - 1 = k := by omega
+        simpa [hS', hsub] using h
+      have h_induction := ih S' hS'_sub hS'_card
+      rcases h_induction with ⟨h_fin_S', h_card_S'⟩
+      have himg_singleton_eq : image f {x} = {(f ⟨x, hS_sub x hx⟩).val} := by
+        apply Set.ext; intro y; constructor
+        · rw [mem_image]; rintro ⟨x', mem_sing, h⟩
+          rw [mem_singleton] at mem_sing
+          have hx'_eq : x' = ⟨x, hS_sub x hx⟩ := Subtype.val_inj.mp mem_sing
+          subst hx'_eq; subst h; simp
+        · intro hy; simp at hy; subst hy; rw [mem_image]
+          use ⟨x, hS_sub x hx⟩; simp
+      have himg_singleton_fin : (image f {x}).finite := by
+        rw [himg_singleton_eq]; exact ⟨1, Example_3_6_7a _⟩
+      have himg_singleton_card : (image f {x}).card ≤ 1 := by
+        rw [himg_singleton_eq]
+        rw [has_card_to_card (Example_3_6_7a _)]
+      have h_singleton_subset : ({x} : Set) ⊆ S := by
+        intro z hz; rw [mem_singleton] at hz; subst z; exact hx
+      have h_union_eq : S = S' ∪ {x} :=
+        calc
+          S = ({x} : Set) ∪ (S \ {x}) := (union_compl h_singleton_subset).symm
+          _ = ({x} : Set) ∪ S' := by rw [hS']
+          _ = S' ∪ {x} := by rw [union_comm]
+      rw [h_union_eq]
+      have himg_union : image f (S' ∪ {x}) = image f S' ∪ image f {x} := image_of_union f S' {x}
+      rw [himg_union]
+      have h_union := card_union h_fin_S' himg_singleton_fin
+      rcases h_union with ⟨h_fin_union, h_card_union⟩
+      have h_card_total : (image f S').card + (image f {x}).card ≤ k.succ := by omega
+      exact ⟨h_fin_union, le_trans h_card_union h_card_total⟩
+  apply h_main X.card X (by intro _ h; exact h) hXc
 
 /-- Proposition 3.6.14 (d) / Exercise 3.6.4 -/
-theorem SetTheory.Set.card_image_inj {X Y:Set} (hX: X.finite) {f: X → Y}
-  (hf: Function.Injective f) : (image f X).card = X.card := by sorry
+theorem SetTheory.Set.card_image_inj {X Y:Set} (_: X.finite) {f: X → Y}
+  (hf: Function.Injective f) : (image f X).card = X.card := by
+  have h_eq_card : X ≈ image f X := by
+    let g : X → image f X := fun x => ⟨f x, by rw [mem_image]; use x; exact ⟨x.property, rfl⟩⟩
+    use g
+    constructor
+    · intro a b h
+      apply hf
+      apply Subtype.val_inj.mp
+      simpa [g] using congrArg Subtype.val h
+    · intro y
+      rcases (mem_image f X y.val).mp y.property with ⟨x, hx, h⟩
+      use x
+      apply Subtype.val_inj.mp
+      simpa [g] using h
+  exact (EquivCard_to_card_eq h_eq_card).symm
 
 /-- Proposition 3.6.14 (e) / Exercise 3.6.4 -/
 theorem SetTheory.Set.card_prod {X Y:Set} (hX: X.finite) (hY: Y.finite) :
-    (X ×ˢ Y).finite ∧ (X ×ˢ Y).card = X.card * Y.card := by sorry
+    (X ×ˢ Y).finite ∧ (X ×ˢ Y).card = X.card * Y.card := by
+  have hXc := has_card_card hX
+  have hYc := has_card_card hY
+  have hempty_prod : (∅ : Set) ×ˢ Y = ∅ := by
+    apply eq_empty_iff_forall_notMem.mpr
+    intro z hz; rw [mem_cartesian] at hz
+    rcases hz with ⟨x, y, h⟩; exact not_mem_empty _ x.property
+  have h_singleton_info (S : Set) (hS_sub : S ⊆ X) (x : Object) (hx : x ∈ S) :
+      (({x} : Set) ×ˢ Y).finite ∧ (({x} : Set) ×ˢ Y).card = Y.card := by
+    rcases (has_card_iff Y Y.card).mp hYc with ⟨φ, hφ⟩
+    let e := Equiv.ofBijective φ hφ
+    have h_has_card : (({x} : Set) ×ˢ Y).has_card Y.card := by
+      rw [has_card_iff]
+      let f : (({x} : Set) ×ˢ Y) → Fin Y.card := fun p => e (snd p)
+      use f
+      constructor
+      · intro a b h
+        have h_snd : snd a = snd b := e.bijective.injective h
+        have h_fst : fst a = fst b := by
+          have h_val_a : (fst a).val = x := by
+            have hmem := (fst a).property; rwa [mem_singleton] at hmem
+          have h_val_b : (fst b).val = x := by
+            have hmem := (fst b).property; rwa [mem_singleton] at hmem
+          apply Subtype.val_inj.mp; rw [h_val_a, h_val_b]
+        calc
+          a = mk_cartesian (fst a) (snd a) := (mk_cartesian_fst_snd_eq a).symm
+          _ = mk_cartesian (fst b) (snd b) := by rw [h_fst, h_snd]
+          _ = b := mk_cartesian_fst_snd_eq b
+      · intro i
+        let y := e.symm i
+        let p : (({x} : Set) ×ˢ Y) := mk_cartesian (X := {x}) (Y := Y) (⟨x, by simp⟩) y
+        use p
+        calc
+          f p = e (snd p) := rfl
+          _ = e (snd (mk_cartesian (X := {x}) (Y := Y) (⟨x, by simp⟩) y)) := rfl
+          _ = e y := by simp
+          _ = e (e.symm i) := rfl
+          _ = i := by simp
+    exact ⟨⟨Y.card, h_has_card⟩, has_card_to_card h_has_card⟩
+  have h_main : ∀ (k : ℕ) (S : Set), S ⊆ X → S.has_card k →
+      ((S ×ˢ Y).finite ∧ (S ×ˢ Y).card = k * Y.card) := by
+    intro k S hS_sub hSk
+    induction' k with k ih generalizing S
+    · have hS_empty : S = ∅ := has_card_zero.mp hSk
+      subst hS_empty; rw [hempty_prod]; simp
+    · have hpos : k.succ ≥ 1 := by omega
+      have hne : S ≠ ∅ := pos_card_nonempty hpos hSk
+      rcases Set.nonempty_def hne with ⟨x, hx⟩
+      set S' := S \ {x} with hS'
+      have hS'_sub : S' ⊆ X := by
+        intro z hz; rw [hS', mem_sdiff] at hz; exact hS_sub _ hz.1
+      have hS'_card : S'.has_card k := by
+        have h := card_erase hpos hSk ⟨x, hx⟩
+        have hsub : k.succ - 1 = k := by omega
+        simpa [hS', hsub] using h
+      have h_induction := ih S' hS'_sub hS'_card
+      rcases h_induction with ⟨h_fin_prod_S', h_card_prod_S'⟩
+      have h_singleton_info := h_singleton_info S hS_sub x hx
+      rcases h_singleton_info with ⟨h_fin_singleton, h_card_singleton⟩
+      have h_disj : Disjoint (S' ×ˢ Y) (({x} : Set) ×ˢ Y) := by
+        rw [disjoint_iff]
+        calc
+          (S' ×ˢ Y) ∩ (({x} : Set) ×ˢ Y) = (S' ∩ {x}) ×ˢ (Y ∩ Y) := inter_of_prod S' Y {x} Y
+          _ = (S' ∩ {x}) ×ˢ Y := by simp
+          _ = ∅ ×ˢ Y := by
+            rw [hS']
+            have : (S \ {x}) ∩ {x} = ∅ := by
+              apply eq_empty_iff_forall_notMem.mpr
+              intro z hz; rw [mem_inter, mem_sdiff, mem_singleton] at hz
+              rcases hz with ⟨⟨_, hz_not⟩, hz_eq⟩; exact hz_not hz_eq
+            rw [this]
+          _ = ∅ := hempty_prod
+      have h_singleton_subset : ({x} : Set) ⊆ S := by
+        intro z hz; rw [mem_singleton] at hz; subst z; exact hx
+      have h_union_eq : S = S' ∪ {x} :=
+        calc
+          S = ({x} : Set) ∪ (S \ {x}) := (union_compl h_singleton_subset).symm
+          _ = ({x} : Set) ∪ S' := by rw [hS']
+          _ = S' ∪ {x} := by rw [union_comm]
+      rw [h_union_eq]
+      rw [union_prod S' {x} Y]
+      have h_card_union := card_union_disjoint h_fin_prod_S' h_fin_singleton h_disj
+      rw [h_card_prod_S', h_card_singleton] at h_card_union
+      have h_card_total : k * Y.card + Y.card = (k + 1) * Y.card := by ring
+      rw [h_card_total] at h_card_union
+      exact ⟨by
+        have := card_union h_fin_prod_S' h_fin_singleton
+        exact this.1, h_card_union⟩
+  exact h_main X.card X (by intro _ h; exact h) hXc
 
 noncomputable def SetTheory.Set.pow_fun_equiv {A B : Set} : ↑(A ^ B) ≃ (B → A) where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun F := ((powerset_axiom (F := F.val)).mp F.property).choose
+  invFun f := ⟨(f : Object), by
+    rw [powerset_axiom]
+    exact ⟨f, rfl⟩⟩
+  left_inv F := by
+    ext
+    have h := (powerset_axiom (F := F.val)).mp F.property
+    simpa using h.choose_spec
+  right_inv f := by
+    have h := (powerset_axiom (X := A) (Y := B) (F := (f : Object))).mp (by
+      rw [powerset_axiom (X := A) (Y := B)]
+      exact ⟨f, rfl⟩)
+    exact (coe_of_fun_inj _ _).mp h.choose_spec
 
 lemma SetTheory.Set.pow_fun_eq_iff {A B : Set} (x y : ↑(A ^ B)) : x = y ↔ pow_fun_equiv x = pow_fun_equiv y := by
   rw [←pow_fun_equiv.apply_eq_iff_eq]
@@ -835,33 +998,128 @@ theorem SetTheory.Set.card_pow {X Y:Set} (hY: Y.finite) (hX: X.finite) :
 
 /-- Exercise 3.6.5. You might find {name}`SetTheory.Set.prod_commutator` useful. -/
 theorem SetTheory.Set.prod_EqualCard_prod (A B:Set) :
-    EqualCard (A ×ˢ B) (B ×ˢ A) := by sorry
+    EqualCard (A ×ˢ B) (B ×ˢ A) := by
+  let e := prod_commutator (X := A) (Y := B)
+  use e; exact e.bijective
 
 noncomputable abbrev SetTheory.Set.pow_fun_equiv' (A B : Set) : ↑(A ^ B) ≃ (B → A) :=
   pow_fun_equiv (A:=A) (B:=B)
 
 /-- Exercise 3.6.6. You may find {name}`SetTheory.Set.curry_equiv` useful. -/
 theorem SetTheory.Set.pow_pow_EqualCard_pow_prod (A B C:Set) :
-    EqualCard ((A ^ B) ^ C) (A ^ (B ×ˢ C)) := by sorry
+    EqualCard ((A ^ B) ^ C) (A ^ (B ×ˢ C)) := by
+  let e := calc
+    ↑((A ^ B) ^ C) ≃ (C → ↑(A ^ B)) := pow_fun_equiv
+    _ ≃ (C → (B → A)) := {
+      toFun := fun g c => pow_fun_equiv (g c)
+      invFun := fun g c => (pow_fun_equiv (A := A) (B := B)).symm (g c)
+      left_inv := by intro g; ext c; simp
+      right_inv := by intro g; ext c; simp
+    }
+    _ ≃ (C ×ˢ B → A) := curry_equiv
+    _ ≃ (B ×ˢ C → A) := {
+      toFun := fun g bc => g (prod_commutator (X := B) (Y := C) bc)
+      invFun := fun g cb => g ((prod_commutator (X := B) (Y := C)).symm cb)
+      left_inv := by intro g; ext cb; simp
+      right_inv := by intro g; ext bc; simp
+    }
+    _ ≃ ↑(A ^ (B ×ˢ C)) := (pow_fun_equiv (A := A) (B := B ×ˢ C)).symm
+  use e; exact e.bijective
 
-theorem SetTheory.Set.pow_pow_eq_pow_mul (a b c:ℕ): (a^b)^c = a^(b*c) := by sorry
+set_option linter.unusedSectionVars false
+theorem SetTheory.Set.pow_pow_eq_pow_mul (a b c:ℕ): (a^b)^c = a^(b*c) := by
+  induction' c with c ih
+  · simp
+  · rw [Nat.pow_succ, ih, mul_add, pow_add, mul_one]
 
 theorem SetTheory.Set.pow_prod_pow_EqualCard_pow_union (A B C:Set) (hd: Disjoint B C) :
     EqualCard ((A ^ B) ×ˢ (A ^ C)) (A ^ (B ∪ C)) := by sorry
 
-theorem SetTheory.Set.pow_mul_pow_eq_pow_add (a b c:ℕ): (a^b) * a^c = a^(b+c) := by sorry
+theorem SetTheory.Set.pow_mul_pow_eq_pow_add (a b c:ℕ): (a^b) * a^c = a^(b+c) := by
+  rw [pow_add]
 
 /-- Exercise 3.6.7 -/
 theorem SetTheory.Set.injection_iff_card_le {A B:Set} (hA: A.finite) (hB: B.finite) :
-    (∃ f:A → B, Function.Injective f) ↔ A.card ≤ B.card := sorry
+    (∃ f:A → B, Function.Injective f) ↔ A.card ≤ B.card := by
+  constructor
+  · rintro ⟨f, hf⟩
+    have h_card_image := card_image_inj hA hf
+    have h_image_subset : image f A ⊆ B := by
+      intro y hy; rw [mem_image] at hy; rcases hy with ⟨x, hx, h⟩; rw [← h]; exact (f x).property
+    have h_card_subset := card_subset hB h_image_subset
+    rcases h_card_subset with ⟨_, h_le⟩
+    rw [h_card_image] at h_le; exact h_le
+  · intro h
+    have hAc := has_card_card hA
+    have hBc := has_card_card hB
+    rcases (has_card_iff A A.card).mp hAc with ⟨φA, hφA⟩
+    rcases (has_card_iff B B.card).mp hBc with ⟨φB, hφB⟩
+    let eA := Equiv.ofBijective φA hφA
+    let eB := Equiv.ofBijective φB hφB
+    let emb : ↥(Fin A.card) → ↥(Fin B.card) := Fin_embed A.card B.card h
+    have hemb_inj : Function.Injective emb := by
+      intro x y heq; apply Subtype.val_inj.mp; simpa [Fin_embed] using congrArg Subtype.val heq
+    let f : A → B := eB.symm ∘ emb ∘ eA
+    use f
+    intro x y h
+    apply eA.injective
+    apply hemb_inj
+    apply eB.symm.injective
+    simpa [f] using h
 
 /-- Exercise 3.6.8 -/
 theorem SetTheory.Set.surjection_from_injection {A B:Set} (hA: A ≠ ∅) (f: A → B)
-  (hf: Function.Injective f) : ∃ g:B → A, Function.Surjective g := by sorry
+  (hf: Function.Injective f) : ∃ g:B → A, Function.Surjective g := by
+  rcases Set.nonempty_def hA with ⟨a0, ha0⟩
+  classical
+    let g : B → A := fun b =>
+      if h : b.val ∈ image f A then
+        ((mem_image f A b.val).mp h).choose
+      else
+        ⟨a0, ha0⟩
+  use g
+  intro a
+  use f a
+  dsimp [g]
+  have hmem : (f a).val ∈ image f A := by
+    rw [mem_image]; use a; exact ⟨a.property, rfl⟩
+  rw [dif_pos hmem]
+  have h_pre := (mem_image f A (f a).val).mp hmem
+  have h_val_eq : (f h_pre.choose).val = (f a).val := by
+    simpa using h_pre.choose_spec.2
+  have h_f_eq : f h_pre.choose = f a := Subtype.val_inj.mp h_val_eq
+  exact hf h_f_eq
 
 /-- Exercise 3.6.9 -/
 theorem SetTheory.Set.card_union_add_card_inter {A B:Set} (hA: A.finite) (hB: B.finite) :
-    A.card + B.card = (A ∪ B).card + (A ∩ B).card := by  sorry
+    A.card + B.card = (A ∪ B).card + (A ∩ B).card := by
+  have hBA_fin : (B \ A).finite := by
+    have := card_subset hB (show (B \ A) ⊆ B from by intro x h; rw [mem_sdiff] at h; exact h.1)
+    exact this.1
+  have hAB_fin : (A ∩ B).finite := by
+    have := card_subset hA (show (A ∩ B) ⊆ A from by intro x h; rw [mem_inter] at h; exact h.1)
+    exact this.1
+  have h_disj1 : Disjoint A (B \ A) := by
+    rw [disjoint_iff, eq_empty_iff_forall_notMem]
+    intro x hx; rw [mem_inter] at hx; rcases hx with ⟨hxA, hxBA⟩
+    rw [mem_sdiff] at hxBA; exact hxBA.2 hxA
+  have h_union1 : A ∪ (B \ A) = A ∪ B := by
+    apply Set.ext; intro x; rw [mem_union, mem_union, mem_sdiff]; tauto
+  have h_card1 := card_union_disjoint hA hBA_fin h_disj1
+  have h_disj2 : Disjoint (B \ A) (A ∩ B) := by
+    rw [disjoint_iff, eq_empty_iff_forall_notMem]
+    intro x hx; rw [mem_inter] at hx; rcases hx with ⟨hxBA, hxAB⟩
+    rw [mem_sdiff] at hxBA; rcases hxBA with ⟨hxB, hxnA⟩
+    rw [mem_inter] at hxAB; exact hxnA hxAB.1
+  have h_union2 : (B \ A) ∪ (A ∩ B) = B := by
+    apply Set.ext; intro x; rw [mem_union, mem_inter, mem_sdiff]; tauto
+  have h_card2 := card_union_disjoint hBA_fin hAB_fin h_disj2
+  have h_card1' : (A ∪ B).card = A.card + (B \ A).card := by
+    simpa [h_union1] using h_card1
+  have h_card2' : B.card = (B \ A).card + (A ∩ B).card := by
+    simpa [h_union2] using h_card2
+  rw [h_card2', h_card1']
+  omega
 
 /-- Exercise 3.6.10 -/
 theorem SetTheory.Set.pigeonhole_principle {n:ℕ} {A: Fin n → Set}
@@ -871,12 +1129,55 @@ theorem SetTheory.Set.pigeonhole_principle {n:ℕ} {A: Fin n → Set}
 theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective f ↔
     ∀ S ⊆ X, S.card = 2 → (image f S).card = 2 := by sorry
 
+/-- Connections with Mathlib's {name}`Finite` -/
+theorem SetTheory.Set.finite_iff_finite {X:Set} : X.finite ↔ Finite X := by
+  constructor
+  · rintro ⟨n, hn⟩
+    rcases (has_card_iff X n).mp hn with ⟨f, hf⟩
+    have eq : X ≃ _root_.Fin n := (Equiv.ofBijective f hf).trans (Fin.Fin_equiv_Fin n)
+    exact Finite.of_equiv _ eq.symm
+  · intro hFin
+    rcases Finite.exists_equiv_fin X with ⟨n, h⟩
+    use n
+    let e : X ≃ _root_.Fin n := Classical.choice h
+    have eq : X ≃ Fin n := e.trans (Fin.Fin_equiv_Fin n).symm
+    rw [has_card_iff]
+    use eq; exact eq.bijective
+
+/-- Connections with Mathlib's {name}`Set.Finite` -/
+theorem SetTheory.Set.finite_iff_set_finite {X:Set} :
+    X.finite ↔ (X :_root_.Set Object).Finite := by
+  rw [finite_iff_finite]
+  rfl
+
 /-- Exercise 3.6.12 -/
 def SetTheory.Set.Permutations (n: ℕ): Set := (Fin n ^ Fin n).specify (fun F ↦
     Function.Bijective (pow_fun_equiv F))
 
 /-- Exercise 3.6.12 (i), first part -/
-theorem SetTheory.Set.Permutations_finite (n: ℕ): (Permutations n).finite := by sorry
+theorem SetTheory.Set.Permutations_finite (n: ℕ): (Permutations n).finite := by
+  have h_fin_pow : (Fin n ^ Fin n).finite := by
+    rw [finite_iff_finite]
+    have h_equiv : ↑(Fin n ^ Fin n) ≃ (_root_.Fin n → _root_.Fin n) :=
+      (pow_fun_equiv (A := Fin n) (B := Fin n)).trans
+      { toFun := fun f x => Fin.Fin_equiv_Fin n (f ((Fin.Fin_equiv_Fin n).symm x))
+        invFun := fun g x => (Fin.Fin_equiv_Fin n).symm (g (Fin.Fin_equiv_Fin n x))
+        left_inv := by
+          intro f; ext x
+          have hx_spec := Fin.toNat_spec x
+          rcases hx_spec with ⟨hx_lt, hx_eq⟩
+          rw [hx_eq]
+          simp [Fin.Fin_equiv_Fin, Fin.toNat_mk]
+        right_inv := by
+          intro g; ext x
+          simp [Fin.Fin_equiv_Fin] }
+    exact Finite.of_equiv _ h_equiv.symm
+  have h_sub : Permutations n ⊆ Fin n ^ Fin n := by
+    intro x hx
+    rw [Permutations] at hx
+    exact ((specification_axiom'' (x := x) (A := Fin n ^ Fin n)
+      (P := fun F => Function.Bijective (pow_fun_equiv F))).mp hx).choose
+  exact (card_subset h_fin_pow h_sub).1
 
 /- To continue Exercise 3.6.12 (i), we'll first develop some theory about `Permutations` and `Fin`. -/
 
@@ -886,18 +1187,94 @@ noncomputable def SetTheory.Set.Permutations_toFun {n: ℕ} (p: Permutations n) 
   exact this.choose.choose
 
 theorem SetTheory.Set.Permutations_bijective {n: ℕ} (p: Permutations n) :
-    Function.Bijective (Permutations_toFun p) := by sorry
+    Function.Bijective (Permutations_toFun p) := by
+  have hp_mem : p.val ∈ Permutations n := p.property
+  rcases ((specification_axiom'' (x := p.val) (A := Fin n ^ Fin n)
+    (P := fun F => Function.Bijective (pow_fun_equiv F))).mp hp_mem) with ⟨h_pow_mem, h_bijective⟩
+  have h_val : (Permutations_toFun p : Object) = p.val := by
+    unfold Permutations_toFun
+    have h := p.property
+    simp only [Permutations, specification_axiom'', powerset_axiom] at h
+    have h_inner := h.choose.choose_spec
+    simpa using h_inner
+  have h_fun_eq : Permutations_toFun p = pow_fun_equiv ⟨p.val, h_pow_mem⟩ := by
+    apply (coe_of_fun_inj _ _).mp
+    rw [h_val]
+    have hpow := (powerset_axiom (F := p.val)).mp h_pow_mem
+    simpa [pow_fun_equiv] using hpow.choose_spec.symm
+  rw [h_fun_eq]; exact h_bijective
 
 theorem SetTheory.Set.Permutations_inj {n: ℕ} (p1 p2: Permutations n) :
-    Permutations_toFun p1 = Permutations_toFun p2 ↔ p1 = p2 := by sorry
+    Permutations_toFun p1 = Permutations_toFun p2 ↔ p1 = p2 := by
+  constructor
+  · intro h
+    apply Subtype.val_inj.mp
+    have hp1 := p1.property
+    have hp2 := p2.property
+    simp only [Permutations, specification_axiom'', powerset_axiom] at hp1 hp2
+    calc
+      p1.val = (Permutations_toFun p1 : Object) := by
+        unfold Permutations_toFun; symm; simpa using hp1.choose.choose_spec
+      _ = (Permutations_toFun p2 : Object) := by rw [h]
+      _ = p2.val := by
+        unfold Permutations_toFun; simpa using hp2.choose.choose_spec
+  · intro h; subst h; rfl
 
 /-- This connects our concept of a permutation with Mathlib's {name}`Equiv` between {lean}`Fin n` and {lean}`Fin n`. -/
-noncomputable def SetTheory.Set.perm_equiv_equiv {n : ℕ} : Permutations n ≃ (Fin n ≃ Fin n) := {
-  toFun := fun p => Equiv.ofBijective (Permutations_toFun p) (Permutations_bijective p)
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
-}
+noncomputable def SetTheory.Set.perm_equiv_equiv {n : ℕ} : Permutations n ≃ (Fin n ≃ Fin n) :=
+  let toF : Permutations n → (Fin n ≃ Fin n) := fun p =>
+    Equiv.ofBijective (Permutations_toFun p) (Permutations_bijective p)
+  let invF : (Fin n ≃ Fin n) → Permutations n := fun e =>
+    have h_mem : ((e : Fin n → Fin n) : Object) ∈ Fin n ^ Fin n := by
+      rw [powerset_axiom]; exact ⟨e, rfl⟩
+    have h_bijective : Function.Bijective (pow_fun_equiv ⟨(e : Object), h_mem⟩) := by
+      have h_eq : pow_fun_equiv ⟨(e : Object), h_mem⟩ = (e : Fin n → Fin n) := by
+        apply (coe_of_fun_inj _ _).mp
+        have hpow := (powerset_axiom (F := (e : Object))).mp h_mem
+        simp [pow_fun_equiv]
+      rw [h_eq]; exact e.bijective
+    ⟨(e : Object), by
+      rw [Permutations, specification_axiom'']
+      exact ⟨h_mem, h_bijective⟩⟩
+  {
+    toFun := toF
+    invFun := invF
+    left_inv := by
+      intro p
+      have h_val : (Permutations_toFun p : Object) = p.val := by
+        unfold Permutations_toFun
+        have h := p.property
+        simp only [Permutations, specification_axiom'', powerset_axiom] at h
+        have h_inner := h.choose.choose_spec
+        simpa using h_inner
+      apply Subtype.val_inj.mp
+      calc
+        (invF (toF p)).val = ((toF p : Fin n → Fin n) : Object) := rfl
+        _ = (Permutations_toFun p : Object) := rfl
+        _ = p.val := h_val
+    right_inv := by
+      intro e
+      ext x
+      let p : Permutations n := invF e
+      have h_fun : Permutations_toFun p = (e : Fin n → Fin n) := by
+        apply (coe_of_fun_inj _ _).mp
+        have h_perm_val : (Permutations_toFun p : Object) = p.val := by
+          unfold Permutations_toFun
+          have h := p.property
+          simp only [Permutations, specification_axiom'', powerset_axiom] at h
+          have h_inner := h.choose.choose_spec
+          simpa using h_inner
+        have hp_val : p.val = (e : Object) := rfl
+        rw [h_perm_val, hp_val]
+      have h_eq : (toF (invF e)) x = e x := by
+        calc
+          (toF (invF e)) x = (toF p) x := rfl
+          _ = (Equiv.ofBijective (Permutations_toFun p) (Permutations_bijective p)) x := rfl
+          _ = (Permutations_toFun p) x := rfl
+          _ = (e : Fin n → Fin n) x := by rw [h_fun]
+          _ = e x := rfl
+      simpa using congrArg Subtype.val h_eq
+  }
 
 /- Exercise 3.6.12 involves a lot of moving between `Fin n` and `Fin (n + 1)` so let's add some conveniences. -/
 
@@ -906,10 +1283,19 @@ def SetTheory.Set.Fin.castSucc {n} (x : Fin n) : Fin (n + 1) :=
   Fin_embed _ _ (by omega) x
 
 @[simp]
-lemma SetTheory.Set.Fin.castSucc_inj {n} {x y : Fin n} : castSucc x = castSucc y ↔ x = y := by sorry
+lemma SetTheory.Set.Fin.castSucc_inj {n} {x y : Fin n} : castSucc x = castSucc y ↔ x = y := by
+  constructor
+  · intro h
+    apply Subtype.val_inj.mp
+    simpa [castSucc] using congrArg Subtype.val h
+  · intro h; subst h; rfl
 
 @[simp]
-theorem SetTheory.Set.Fin.castSucc_ne {n} (x : Fin n) : castSucc x ≠ n := by sorry
+theorem SetTheory.Set.Fin.castSucc_ne {n} (x : Fin n) : castSucc x ≠ n := by
+  have hx := Fin.toNat_lt x
+  have hcast : (castSucc x : ℕ) = (x : ℕ) := by simp [castSucc, Fin_embed]
+  rw [hcast]
+  omega
 
 /-- Any {lean}`Fin (n + 1)` except {lean}`n` can be cast to {lean}`Fin n`. Compare to Mathlib {name}`Fin.castPred`. -/
 noncomputable def SetTheory.Set.Fin.castPred {n} (x : Fin (n + 1)) (h : (x : ℕ) ≠ n) : Fin n :=
@@ -917,11 +1303,13 @@ noncomputable def SetTheory.Set.Fin.castPred {n} (x : Fin (n + 1)) (h : (x : ℕ
 
 @[simp]
 theorem SetTheory.Set.Fin.castSucc_castPred {n} (x : Fin (n + 1)) (h : (x : ℕ) ≠ n) :
-    castSucc (castPred x h) = x := by sorry
+    castSucc (castPred x h) = x := by
+  apply Subtype.val_inj.mp; simp [castSucc, castPred, Fin_embed]
 
 @[simp]
 theorem SetTheory.Set.Fin.castPred_castSucc {n} (x : Fin n) (h : ((castSucc x : Fin (n + 1)) : ℕ) ≠ n) :
-    castPred (castSucc x) h = x := by sorry
+    castPred (castSucc x) h = x := by
+  apply Subtype.val_inj.mp; simp [castSucc, castPred, Fin_embed]
 
 /-- Any natural {lean}`n` can be cast to {lean}`Fin (n + 1)`. Compare to Mathlib {name}`Fin.last`. -/
 def SetTheory.Set.Fin.last (n : ℕ) : Fin (n + 1) := Fin_mk _ n (by omega)
@@ -930,7 +1318,75 @@ def SetTheory.Set.Fin.last (n : ℕ) : Fin (n + 1) := Fin_mk _ n (by omega)
 theorem SetTheory.Set.card_iUnion_card_disjoint {n m: ℕ} {S : Fin n → Set}
     (hSc : ∀ i, (S i).has_card m)
     (hSd : Pairwise fun i j => Disjoint (S i) (S j)) :
-    ((Fin n).iUnion S).finite ∧ ((Fin n).iUnion S).card = n * m := by sorry
+    ((Fin n).iUnion S).finite ∧ ((Fin n).iUnion S).card = n * m := by
+  revert S; induction' n with n ih
+  · intro S hSc hSd
+    have h_empty : (Fin 0).iUnion S = ∅ := by
+      apply eq_empty_iff_forall_notMem.mpr
+      intro x hx; rw [mem_iUnion] at hx; rcases hx with ⟨i, hi⟩
+      have h := Fin.toNat_lt i; omega
+    rw [h_empty]; simp
+  · intro S hSc hSd
+    set S' : Fin n → Set := fun i => S (Fin.castSucc i) with hS'
+    have hSc' : ∀ i, (S' i).has_card m := by intro i; simp [hS', hSc]
+    have hSd' : Pairwise fun (i j : Fin n) => Disjoint (S' i) (S' j) := by
+      intro i j h_ne
+      dsimp [S']
+      apply hSd
+      intro h_eq; apply h_ne; exact (Fin.castSucc_inj.mp h_eq)
+    rcases ih hSc' hSd' with ⟨h_fin_iUnion, h_card_iUnion⟩
+    have h_last_fin : (S (Fin.last n)).finite := ⟨m, hSc (Fin.last n)⟩
+    have h_last_card : (S (Fin.last n)).card = m := has_card_to_card (hSc (Fin.last n))
+    have h_disj_mem : ∀ i : Fin n, Disjoint (S' i) (S (Fin.last n)) := by
+      intro i
+      have h_ne : Fin.castSucc i ≠ Fin.last n := by
+        intro h_eq
+        have h_val := (Fin.coe_inj (n := n.succ)).mp h_eq
+        have h_cast_val : (Fin.castSucc i : ℕ) = (i : ℕ) := by simp [Fin.castSucc, Fin_embed]
+        have h_last_val : (Fin.last n : ℕ) = n := by simp [Fin.last]
+        rw [h_cast_val, h_last_val] at h_val
+        have hi_lt_n : (i : ℕ) < n := Fin.toNat_lt i
+        omega
+      apply hSd; exact h_ne
+    have h_disj : Disjoint ((Fin n).iUnion S') (S (Fin.last n)) := by
+      rw [disjoint_iff, eq_empty_iff_forall_notMem]
+      intro x hx; rw [mem_inter] at hx; rcases hx with ⟨hx_union, hx_last⟩
+      rw [mem_iUnion] at hx_union; rcases hx_union with ⟨i, hi⟩
+      have hd := h_disj_mem i
+      rw [disjoint_iff] at hd
+      have hx_inter : x ∈ S' i ∩ S (Fin.last n) := by rw [mem_inter]; exact ⟨hi, hx_last⟩
+      rw [hd] at hx_inter
+      exact not_mem_empty _ hx_inter
+    have h_union_eq : (Fin n.succ).iUnion S = ((Fin n).iUnion S') ∪ S (Fin.last n) := by
+      apply SetTheory.Set.ext; intro x
+      rw [mem_iUnion, mem_union, mem_iUnion]
+      refine ⟨by
+        rintro ⟨i, hi⟩
+        by_cases hi_last : i = Fin.last n
+        · subst i; right; exact hi
+        · have hi_ne_n : (i : ℕ) ≠ n := by
+            intro h_eq; apply hi_last
+            apply (Fin.coe_inj (n := n.succ)).mpr
+            have h_last_val : (Fin.last n : ℕ) = n := by simp [Fin.last]
+            rw [h_last_val, h_eq]
+          let j : Fin n := Fin.castPred i hi_ne_n
+          have hi_eq : Fin.castSucc j = i := Fin.castSucc_castPred i hi_ne_n
+          left; use j; dsimp [S']; rw [hi_eq]; exact hi
+      , by
+        intro h; rcases h with (⟨i, hi⟩ | h)
+        · use Fin.castSucc i
+        · use Fin.last n
+      ⟩
+    rw [h_union_eq]
+    have h_card_union := card_union_disjoint h_fin_iUnion h_last_fin h_disj
+    rw [h_card_iUnion, h_last_card] at h_card_union
+    have h_card_total : n * m + m = n.succ * m := by
+      rw [Nat.succ_mul]
+    rw [h_card_total] at h_card_union
+    have h_fin_union : (((Fin n).iUnion S') ∪ S (Fin.last n)).finite := by
+      have h := card_union h_fin_iUnion h_last_fin
+      exact h.1
+    exact ⟨h_fin_union, h_card_union⟩
 
 /- Finally, we'll set up a way to shrink `Fin (n + 1)` into `Fin n` (or expand the latter) by making a hole. -/
 
@@ -940,9 +1396,26 @@ theorem SetTheory.Set.card_iUnion_card_disjoint {n m: ℕ} {S : Fin n → Set}
 -/
 noncomputable def SetTheory.Set.Fin.predAbove {n} (i : Fin (n + 1)) (x : Fin (n + 1)) (h : x ≠ i) : Fin n :=
   if hx : (x:ℕ) < i then
-    Fin_mk _ (x:ℕ) (by sorry)
+    Fin_mk _ (x:ℕ) (by
+      have hx_bound := Fin.toNat_lt x
+      have hi_bound := Fin.toNat_lt i
+      by_cases h_eq : (x : ℕ) = n
+      · have : (i : ℕ) = n := by omega
+        have heq : x = i := (Fin.coe_inj (n := n + 1)).mpr (by simp [h_eq, this])
+        exact absurd heq h
+      · omega)
   else
-    Fin_mk _ ((x:ℕ) - 1) (by sorry)
+    Fin_mk _ ((x:ℕ) - 1) (by
+      have hx_bound := Fin.toNat_lt x
+      have hn_pos : n ≥ 1 := by
+        by_contra! hle
+        have hn0 : n = 0 := by omega
+        subst hn0
+        have hi0 : (i : ℕ) = 0 := by have hi := Fin.toNat_lt i; omega
+        have hx0 : (x : ℕ) = 0 := by omega
+        have heqx : x = i := (Fin.coe_inj (n := 1)).mpr (by simp [hi0, hx0])
+        exact h heqx
+      omega)
 
 /--
   We can expand {lean}`x : Fin n` into {lean}`Fin (n + 1)` by shifting all {lean}`(x : ℕ) ≥ i` up by one.
@@ -951,20 +1424,93 @@ noncomputable def SetTheory.Set.Fin.predAbove {n} (i : Fin (n + 1)) (x : Fin (n 
 -/
 noncomputable def SetTheory.Set.Fin.succAbove {n} (i : Fin (n + 1)) (x : Fin n) : Fin (n + 1) :=
   if (x:ℕ) < i then
-    Fin_embed _ _ (by sorry) x
+    Fin_embed _ _ (by omega) x
   else
-    Fin_mk _ ((x:ℕ) + 1) (by sorry)
+    Fin_mk _ ((x:ℕ) + 1) (by
+      have hx := Fin.toNat_lt x
+      omega)
 
 @[simp]
-theorem SetTheory.Set.Fin.succAbove_ne {n} (i : Fin (n + 1)) (x : Fin n) : succAbove i x ≠ i := by sorry
+theorem SetTheory.Set.Fin.succAbove_ne {n} (i : Fin (n + 1)) (x : Fin n) : succAbove i x ≠ i := by
+  dsimp [succAbove]
+  split_ifs with h_lt
+  · intro h_eq
+    have h_val := (Fin.coe_inj (n := n + 1)).mp h_eq
+    simp [Fin_embed] at h_val
+    omega
+  · intro h_eq
+    have h_val := (Fin.coe_inj (n := n + 1)).mp h_eq
+    simp at h_val
+    omega
 
 @[simp]
 theorem SetTheory.Set.Fin.succAbove_predAbove {n} (i : Fin (n + 1)) (x : Fin (n + 1)) (h : x ≠ i) :
-    (succAbove i) (predAbove i x h) = x := by sorry
+    (succAbove i) (predAbove i x h) = x := by
+  apply (Fin.coe_inj (n := n + 1)).mpr
+  by_cases h1 : (x : ℕ) < i
+  · have h_pred_val : (predAbove i x h : ℕ) = (x : ℕ) := by
+      simp [predAbove, h1, Fin.toNat_mk]
+    have h_cond : (predAbove i x h : ℕ) < i := by rw [h_pred_val]; exact h1
+    calc
+      (succAbove i (predAbove i x h) : ℕ) = (predAbove i x h : ℕ) := by
+        have h_eq : succAbove i (predAbove i x h) = Fin_embed n (n+1) (by omega) (predAbove i x h) := by
+          delta succAbove; rw [if_pos h_cond]
+        rw [h_eq]; simp [Fin_embed]
+      _ = (x : ℕ) := h_pred_val
+  · have h_pred_val : (predAbove i x h : ℕ) = (x : ℕ) - 1 := by
+      simp [predAbove, h1, Fin.toNat_mk]
+    by_cases h2 : (x : ℕ) - 1 < i
+    · have hi_eq_x : (i : ℕ) = (x : ℕ) := by omega
+      have heq : x = i := (Fin.coe_inj (n := n + 1)).mpr hi_eq_x.symm
+      exact absurd heq h
+    · have h_cond : ¬ ((predAbove i x h : ℕ) < i) := by rw [h_pred_val]; exact h2
+      have hx_pos : (x : ℕ) ≥ 1 := by
+        by_contra! hle
+        have hx0 : (x : ℕ) = 0 := by omega
+        have hi0 : (i : ℕ) = 0 := by omega
+        have heq' : x = i := (Fin.coe_inj (n := n + 1)).mpr (by rw [hx0, hi0])
+        exact h heq'
+      calc
+        (succAbove i (predAbove i x h) : ℕ) = ((predAbove i x h : ℕ) + 1) := by
+          have h_eq : succAbove i (predAbove i x h) =
+              Fin_mk (n + 1) (((predAbove i x h) : ℕ) + 1) (by
+                have hx := Fin.toNat_lt (predAbove i x h); omega) := by
+            delta succAbove; rw [if_neg h_cond]
+          rw [h_eq]; simp [Fin.toNat_mk]
+        _ = ((x : ℕ) - 1) + 1 := by rw [h_pred_val]
+        _ = (x : ℕ) := by omega
 
 @[simp]
 theorem SetTheory.Set.Fin.predAbove_succAbove {n} (i : Fin (n + 1)) (x : Fin n) :
-    (predAbove i) (succAbove i x) (succAbove_ne i x) = x := by sorry
+    (predAbove i) (succAbove i x) (succAbove_ne i x) = x := by
+  apply (Fin.coe_inj (n := n)).mpr
+  by_cases h1 : (x : ℕ) < i
+  · have h_succ_val : (succAbove i x : ℕ) = (x : ℕ) := by
+      simp [succAbove, h1, Fin_embed]
+    have h_cond : (succAbove i x : ℕ) < i := by rw [h_succ_val]; exact h1
+    calc
+      (predAbove i (succAbove i x) (succAbove_ne i x) : ℕ) = (succAbove i x : ℕ) := by
+        have h_eq : predAbove i (succAbove i x) (succAbove_ne i x) =
+            Fin_mk n ((succAbove i x : ℕ)) (by rw [h_succ_val]; exact Fin.toNat_lt x) := by
+          by_cases htemp : (succAbove i x : ℕ) < i
+          · simp [predAbove, htemp]
+          · exfalso; exact htemp h_cond
+        rw [h_eq]; simp [Fin.toNat_mk]
+      _ = (x : ℕ) := h_succ_val
+  · have h_succ_val : (succAbove i x : ℕ) = (x : ℕ) + 1 := by
+      simp [succAbove, h1, Fin.toNat_mk]
+    have h_cond : ¬ ((succAbove i x : ℕ) < i) := by rw [h_succ_val]; omega
+    calc
+      (predAbove i (succAbove i x) (succAbove_ne i x) : ℕ) = ((succAbove i x : ℕ) - 1) := by
+        have h_eq : predAbove i (succAbove i x) (succAbove_ne i x) =
+            Fin_mk n (((succAbove i x : ℕ)) - 1) (by
+              rw [h_succ_val]; have hx := Fin.toNat_lt x; omega) := by
+          by_cases htemp : (succAbove i x : ℕ) < i
+          · exfalso; exact h_cond htemp
+          · simp [predAbove, htemp]
+        rw [h_eq]; simp [Fin.toNat_mk]
+      _ = ((x : ℕ) + 1) - 1 := by rw [h_succ_val]
+      _ = (x : ℕ) := by omega
 
 /-- Exercise 3.6.12 (i), second part -/
 theorem SetTheory.Set.Permutations_ih (n: ℕ):
@@ -983,26 +1529,6 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
 /-- Exercise 3.6.12 (ii) -/
 theorem SetTheory.Set.Permutations_card (n: ℕ):
     (Permutations n).card = n.factorial := by sorry
-
-/-- Connections with Mathlib's {name}`Finite` -/
-theorem SetTheory.Set.finite_iff_finite {X:Set} : X.finite ↔ Finite X := by
-  rw [finite_iff_exists_equiv_fin, finite]
-  constructor
-  · rintro ⟨n, hn⟩
-    use n
-    obtain ⟨f, hf⟩ := hn
-    have eq := (Equiv.ofBijective f hf).trans (Fin.Fin_equiv_Fin n)
-    exact ⟨eq⟩
-  rintro ⟨n, hn⟩
-  use n
-  have eq := hn.some.trans (Fin.Fin_equiv_Fin n).symm
-  exact ⟨eq, eq.bijective⟩
-
-/-- Connections with Mathlib's {name}`Set.Finite` -/
-theorem SetTheory.Set.finite_iff_set_finite {X:Set} :
-    X.finite ↔ (X :_root_.Set Object).Finite := by
-  rw [finite_iff_finite]
-  rfl
 
 /-- Connections with Mathlib's {name}`Nat.card` -/
 theorem SetTheory.Set.card_eq_nat_card {X:Set} : X.card = Nat.card X := by
