@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第4.1节：整数 - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            font-style: italic;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .lemma {
+            background: #faf8f5;
+            border-left: 4px solid #d4a054;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .lemma .label {
+            font-weight: 600;
+            color: #8b6914;
+        }
+
+        .proposition {
+            background: #f5f8f5;
+            border-left: 4px solid #5a9a5a;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .proposition .label {
+            font-weight: 600;
+            color: #2d5a2d;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "Proof.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long {
+            font-size: 0.95em;
+        }
+
+        .book-title {
+            font-style: italic;
+        }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .highlight {
+            background: #fffde7;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "Note: ";
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9em;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .navigation:hover {
+            background: #555;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+    </style>
+    <!-- MathJax for rendering mathematical notation -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_4">10.1007/978-981-19-7261-4_4</a>
+</div>
+
+<h1>4 整数与有理数</h1>
+
+<h2 class="section-title">
+    <span class="section-number">第4.1节</span>
+    整数
+    <span class="page-ref">第63–68页</span>
+</h2>
+
+<p>
+在第二章中，我们建立了自然数系的大部分基本性质，但我们已经达到了仅靠加法和乘法所能做的极限。
+现在我们想引入一个新的运算——减法，但要正确地做到这一点，我们必须从自然数系过渡到一个更大的数系，即整数系。
+</p>
+
+<p>
+直观地说，整数是我们可以从两个自然数相减得到的数；例如，3 − 5 应该是整数，6 − 2 也应该是整数。
+但这不是一个完整的定义，因为 (a) 它没有说明何时两个差相等（例如，我们应该知道为什么 3 − 5 等于 2 − 4，但又不等于 1 − 6），以及 (b) 它没有说明如何对这些差进行算术运算（例如，如何将 3 − 5 加上 6 − 2？）。
+此外，(c) 这个定义是循环的，因为它需要减法的概念，而减法只有在整数构造完成后才能充分定义。
+</p>
+
+<p>
+幸运的是，由于我们之前的整数经验，我们知道这些问题的答案应该是什么。
+对于 (a)，我们从代数知识中知道，a − b = c − d 当且仅当 a + d = c + b，因此我们可以用加法来刻画差的相等性。
+类似地，对于 (b)，我们从代数中知道
+</p>
+
+<div class="formula">
+\[(a - b) + (c - d) = (a + c) - (b + d)\]
+</div>
+
+<p>and that</p>
+
+<div class="formula">
+\[(a - b)(c - d) = (ac + bd) - (ad + bc).\]
+</div>
+
+<p>
+所以我们将利用我们的预知，将所有这些内容纳入整数的定义中，我们稍后就会这样做。
+</p>
+
+<p>
+我们仍然要解决 (c)。为了绕过这个问题，我们使用以下变通方法：我们暂时不将整数写成差 a − b，而是使用新的符号 a — b 来定义整数，其中 — 是一个无意义的占位符，类似于笛卡尔坐标表示 (x, y) 中使用的逗号。
+稍后当我们定义减法时，我们将看到 a — b 实际上等于 a − b，因此我们可以丢弃 — 这个符号；它现在只是需要用来避免循环性。
+（这些技巧类似于建造建筑物时使用的脚手架；它们暂时是必不可少的，以确保建筑物正确建造，但一旦建筑物建成，它们就会被拆除，不再使用。）
+</p>
+
+<div class="definition" id="def-4.1.1">
+    <span class="label">定义 4.1.1（整数）。</span>
+    整数是形如 a — b 的表达式<sup>1</sup>，其中 a 和 b 是自然数。
+    当且仅当
+    <div class="formula">
+    \[a + d = c + b,\]
+    </div>
+    时，我们认为两个整数相等，记作 a — b = c — d。
+    我们用 \(\mathbb{Z}\) 表示所有整数的集合。
+</div>
+
+<p>
+因此，例如 3—5 是一个整数，并且等于 2—4，因为 3+4 = 2+5。
+另一方面，3—5 不等于 2—3，因为 3+3 ≠ 2+5。
+这种符号看起来很奇怪，而且有一些缺陷；例如，3 还不是整数，因为它不是 a — b 的形式！我们稍后将纠正这些问题。
+</p>
+
+<p>
+我们必须检查这是否是一个合法的相等概念。我们需要验证自反性、对称性、传递性和替换公理（见 A.7 节）。
+我们把自反性和对称性留给习题 4.1.1，这里只验证传递性公理。
+假设我们知道 a—b = c—d 和 c—d = e—f。那么我们有 a+d = c+b 和 c+f = d+e。
+将这两个等式相加得到
+</p>
+
+<div class="formula">
+\[a + d + c + f = c + b + d + e.\]
+</div>
+
+<p>
+根据命题 2.2.6，我们可以消去 c 和 d，得到 a + f = b + e，即 a—b = e—f。
+因此需要消去律来确保我们的相等概念是合理的。
+</p>
+
+<div class="definition" id="def-4.1.2">
+    <span class="label">定义 4.1.2（加法与乘法）。</span>
+    两个整数的和 \((a-b) + (c-d)\) 定义为
+    <div class="formula">
+    \[(a-b) + (c-d) := (a+c) - (b+d).\]
+    </div>
+    两个整数的积 \((a - b) \times (c-d)\) 定义为
+    <div class="formula">
+    \[(a-b) \times (c-d) := (ac+bd) - (ad+bc).\]
+    </div>
+</div>
+
+<div class="note">
+    <sup>1</sup> 用集合论的语言来说，我们在这里所做的是从自然数有序对 (a,b) 的空间 \(\mathbb{N} \times \mathbb{N}\) 出发。
+    然后我们在这些有序对上放置一个等价关系 ∼，规定当且仅当 a + d = c + b 时，(a,b) ∼ (c,d)。
+    符号 a — b 的集合论解释是：它是与 (a,b) 等价的所有有序对的空间，即 a — b := {(c,d) ∈ N×N : (a,b) ∼ (c,d)}；
+    整数的集合 \(\mathbb{Z} = \{a-b : (a,b) \in \mathbb{N}\times\mathbb{N}\}\) 的存在性随后可以从两次应用替换公理得出。
+</div>
+
+<div class="lemma" id="lem-4.1.3">
+    <span class="label">引理 4.1.3（加法和乘法是良好定义的）。</span>
+    设 a, b, a', b', c, d 是自然数。如果 \((a - b) = (a' - b')\)，那么
+    \((a - b) + (c-d) = (a'-b') + (c-d)\) 和 \((a-b) \times (c-d) = (a'-b') \times (c-d)\)，
+    同样也有 \((c-d) + (a-b) = (c-d) + (a'-b')\) 和 \((c-d) \times (a-b) = (c-d) \times (a'-b')\)。
+    因此加法和乘法是良好定义的运算（相同的输入给出相同的输出）。
+</div>
+
+<div class="proof">
+    为了证明 \((a-b)+(c-d) = (a'-b')+(c-d)\)，我们分别计算两侧为 \((a+c)-(b+d)\) 和 \((a'+c)-(b'+d)\)。
+    因此我们需要证明 \(a+c+b'+d = a'+c+b+d\)。
+    但由于 \((a-b) = (a'-b')\)，我们有 \(a+b' = a'+b\)，于是两边加上 \(c+d\) 即得所证。
+</div>
+
+<p>
+整数 \(n - 0\) 的行为与自然数 n 相同；事实上可以验证 \((n-0)+(m-0) = (n+m)-0\) 和 \((n-0) \times (m-0) = nm - 0\)。
+此外，\((n-0)\) 等于 \((m-0)\) 当且仅当 \(n = m\)。（数学术语称此为自然数 n 与形如 \(n - 0\) 的整数之间存在同构。）
+因此我们可以通过设 \(n \equiv n - 0\) 来将自然数与整数等同起来；这不会影响我们的加法、乘法或相等的定义，因为它们彼此是一致的。
+例如，自然数 3 现在被认为是与整数 3—0 相同的，因此 \(3 = 3 - 0\)。特别地，0 等于 \(0-0\)，1 等于 \(1-0\)。
+</p>
+
+<div class="definition" id="def-4.1.4">
+    <span class="label">定义 4.1.4（整数的否定）。</span>
+    如果 \((a-b)\) 是一个整数，我们定义它的否定 \(-(a-b)\) 为整数 \((b-a)\)。
+    特别是，如果 \(n = n-0\) 是一个正自然数，我们可以定义它的否定 \(-n = 0-n\)。
+</div>
+
+<p>
+例如，\(-(3-5) = (5-3)\)。可以验证这个定义是良好定义的（见习题 4.1.2）。
+</p>
+
+<div class="lemma" id="lem-4.1.5">
+    <span class="label">引理 4.1.5（整数的三歧性）。</span>
+    设 x 是一个整数。那么以下三条陈述中恰好有一条为真：
+    <ol type="(a)">
+        <li>x 为零；</li>
+        <li>x 等于某个正自然数 n；</li>
+        <li>x 是某个正自然数 n 的否定 −n。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    我们首先证明 (a)、(b)、(c) 中至少有一个为真。
+    由定义，x = a—b，其中 a, b 是自然数。
+    我们有三种情况：a > b, a = b, 或 a < b。
+    若 a > b，则 a = b + c，其中 c 是某个正自然数，这意味着 a—b = c—0 = c，即为 (b)。
+    若 a = b，则 a—b = a—a = 0—0 = 0，即为 (a)。
+    若 a < b，则 b > a，因此 b—a = n（由前面的推理可得某个自然数 n），于是 a—b = −n，即为 (c)。
+</div>
+
+<p>
+如果 n 是正自然数，我们称 n 为<strong>正整数</strong>，而 −n 为<strong>负整数</strong>。
+因此每个整数要么是正的，要么是零，要么是负的，但不能同时属于多于一种情况。
+</p>
+
+<div class="proposition" id="prop-4.1.6">
+    <span class="label">命题 4.1.6（整数的代数定律）。</span>
+    设 x, y, z 是整数。那么我们有
+    <div class="formula formula-long">
+    \[
+    \begin{aligned}
+    x + y &= y + x \\
+    (x + y) + z &= x + (y + z) \\
+    x + 0 = 0 + x &= x \\
+    x + (-x) = (-x) + x &= 0 \\
+    xy &= yx \\
+    (xy)z &= x(yz) \\
+    x \cdot 1 = 1 \cdot x &= x \\
+    x(y + z) &= xy + xz \\
+    (y + z)x &= yx + zx.
+    \end{aligned}
+    \]
+    </div>
+</div>
+
+<div class="remark">
+    <strong>注 4.1.7。</strong> 上述九个恒等式组有一个名称；它们声称整数构成了一个<strong>交换环</strong>。
+    （如果删去 xy = yx，那么它们只声称整数构成了一个环。）
+</div>
+
+<p>
+现在我们定义两个整数 \(x - y\) 的减法运算为
+</p>
+
+<div class="formula">
+\[x - y := x + (-y).\]
+</div>
+
+<p>
+我们不需要为这个运算验证替换公理，因为我们已经将减法用整数的另外两个运算——加法和否定——来定义了，而我们已经验证过那些运算是良好定义的。
+</p>
+
+<div class="proposition" id="prop-4.1.8">
+    <span class="label">命题 4.1.8（整数没有零因子）。</span>
+    设 a 和 b 是整数，使得 ab = 0。那么要么 a = 0，要么 b = 0（或两者同时为零）。
+</div>
+
+<div class="corollary" id="cor-4.1.9">
+    <span class="label">推论 4.1.9（整数的消去律）。</span>
+    如果 a, b, c 是整数且 ac = bc，且 c 不为零，则 a = b。
+</div>
+
+<div class="definition" id="def-4.1.10">
+    <span class="label">定义 4.1.10（整数的序）。</span>
+    设 n 和 m 是整数。我们说 n 大于或等于 m，记作 \(n \geq m\) 或 \(m \leq n\)，当且仅当存在某个自然数 a 使得 \(n = m + a\)。
+    我们说 n 严格大于 m，记作 \(n > m\) 或 \(m < n\)，当且仅当 \(n \geq m\) 且 \(n \neq m\)。
+</div>
+
+<div class="lemma" id="lem-4.1.11">
+    <span class="label">引理 4.1.11（序的性质）。</span>
+    设 a, b, c 是整数。
+    <ol type="(a)">
+        <li>a > b 当且仅当 a − b 是正自然数。</li>
+        <li>（加法保持序）若 a > b，则 a + c > b + c。</li>
+        <li>（正数乘法保持序）若 a > b 且 c 为正，则 ac > bc。</li>
+        <li>（取负反转序）若 a > b，则 −a < −b。</li>
+        <li>（序的传递性）若 a > b 且 b > c，则 a > c。</li>
+        <li>（序的三歧性）a > b, a < b, 或 a = b 中恰好有一个为真。</li>
+    </ol>
+</div>
+
+<hr>
+
+<div class="exercises">
+    <h3 style="margin-top: 2em;">— 习题 —</h3>
+
+    <div class="exercise" id="ex-4.1.1">
+        <span class="label">习题 4.1.1.</span>
+        验证整数相等的定义既是自反的也是对称的。
+    </div>
+
+    <div class="exercise" id="ex-4.1.2">
+        <span class="label">习题 4.1.2.</span>
+        证明整数的否定定义是良好定义的，即如果 \((a - b) = (a' - b')\)，那么 \(-(a - b) = -(a' - b')\)（因此相等的整数有相等的否定）。
+    </div>
+
+    <div class="exercise" id="ex-4.1.3">
+        <span class="label">习题 4.1.3.</span>
+        证明 \((-1) \times a = -a\) 对每个整数 a 成立。
+    </div>
+
+    <div class="exercise" id="ex-4.1.4">
+        <span class="label">习题 4.1.4.</span>
+        证明命题 4.1.6 中剩余的恒等式。
+    </div>
+
+    <div class="exercise" id="ex-4.1.5">
+        <span class="label">习题 4.1.5.</span>
+        证明命题 4.1.8。
+    </div>
+
+    <div class="exercise" id="ex-4.1.6">
+        <span class="label">习题 4.1.6.</span>
+        证明推论 4.1.9。
+    </div>
+
+    <div class="exercise" id="ex-4.1.7">
+        <span class="label">习题 4.1.7.</span>
+        证明引理 4.1.11。
+    </div>
+
+    <div class="exercise" id="ex-4.1.8">
+        <span class="label">习题 4.1.8.</span>
+        证明归纳原理（公理 2.5）不能直接应用于整数。更准确地说，给出一个关于整数 n 的性质 P(n) 的例子，使得 P(0) 为真，且 P(n) 蕴含 P(n++) 对所有整数 n 成立，但 P(n) 并不是对所有整数 n 都为真。
+    </div>
+
+    <div class="exercise" id="ex-4.1.9">
+        <span class="label">习题 4.1.9.</span>
+        证明整数的平方总是自然数。也就是说，证明对每个整数 n，n² ≥ 0。
+    </div>
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.1 节的正文。</p>
+    <p>相应的 Lean 形式化证明，见 <code>Section_4_1.lean</code>。</p>
+</div>
+
+<!-- Lean 代码部分 -->
+<div class="lean-code-section" style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+    <h3 style="text-align: center; color: #2c2c2c;">Lean 形式化代码</h3>
+
+    <div class="code-block" style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; overflow-x: auto; white-space: pre;"><code>
+-- 分析学 I，第4.1节：整数
+-- 本文件忠实于原文文本的翻译，力求在 idiomatic Lean 解决方案和忠实翻译之间选择后者。
+
+import Mathlib.Tactic
+import Mathlib.Algebra.Group.MinimalAxioms
+
+set_option doc.verso.suggestions false
+
+/-!
+# 分析学 I, 第4.1节: 整数
+
+本节的主要构造和结果：
+
+- 将"第4.1节"整数 `Section_4_1.Int` 定义为自然数 `a b:ℕ` 的形式差 `a —— b`，直到等价。
+  （这是脚手架类型 `Section_4_1.PreInt` 的商，`PreInt` 由不施加任何等价关系的形式差组成。）
+
+- 这些整数的环运算和序，以及 ℕ 的嵌入。
+
+- 与 Mathlib 整数 {name}`_root_.Int`（或 {lean}`ℤ`）的等价，我们将在后续继续使用。
+
+## 来自以往用户的提示
+
+完成本节习题的用户欢迎发送他们对本节未来用户的提示作为 PRs。
+-/
+
+namespace Section_4_1
+
+-- PreInt（预整数）是整数的"脚手架"定义：由两个自然数组成的有序对 (a, b)，表示形式差 a — b。
+-- 在引入等价关系之前，我们先用这个结构来表示形式差。
+structure PreInt where
+  minuend : ℕ      -- 被减数 a
+  subtrahend : ℕ   -- 减数 b
+
+-- 定义 4.1.1：PreInt 上的等价关系
+-- 两个预整数相等当且仅当 a + d = c + b
+-- 这对应于教科书中的定义：a — b = c — d ⟺ a + d = c + b
+instance PreInt.instSetoid : Setoid PreInt where
+  r a b := a.minuend + b.subtrahend = b.minuend + a.subtrahend
+  iseqv := {
+    refl := by sorry                          -- 自反性：a + b = a + b
+    symm := by sorry                          -- 对称性
+    trans := by
+      -- 传递性证明参照原文结构
+      intro ⟨ a,b ⟩ ⟨ c,d ⟩ ⟨ e,f ⟩ h1 h2; simp_all
+      have h3 := congrArg₂ (· + ·) h1 h2; simp at h3
+      have : (a + f) + (c + d) = (e + b) + (c + d) := calc
+        (a + f) + (c + d) = a + d + (c + f) := by abel
+        _ = c + b + (e + d) := h3
+        _ = (e + b) + (c + d) := by abel
+      exact Nat.add_right_cancel this
+  }
+
+-- 简化版的等价条件
+@[simp]
+theorem PreInt.eq (a b c d:ℕ) : (⟨ a,b ⟩: PreInt) ≈ ⟨ c,d ⟩ ↔ a + d = c + b := by rfl
+
+-- Int（整数）是 PreInt 对上述等价关系的商
+abbrev Int := Quotient PreInt.instSetoid
+
+-- 形式差的记号：a —— b 表示整数 a — b
+abbrev Int.formalDiff (a b:ℕ)  : Int := Quotient.mk PreInt.instSetoid ⟨ a,b ⟩
+
+infix:100 " —— " => Int.formalDiff
+
+-- 定义 4.1.1（整数）：相等的条件
+-- a —— b = c —— d 当且仅当 a + d = c + b
+theorem Int.eq (a b c d:ℕ): a —— b = c —— d ↔ a + d = c + b :=
+  ⟨ Quotient.exact, by intro h; exact Quotient.sound h ⟩
+
+-- 整数相等的可判定性
+instance Int.decidableEq : DecidableEq Int := by
+  intro a b
+  have : ∀ (n:PreInt) (m: PreInt),
+      Decidable (Quotient.mk PreInt.instSetoid n = Quotient.mk PreInt.instSetoid m) := by
+    intro ⟨ a,b ⟩ ⟨ c,d ⟩
+    rw [eq]
+    exact decEq _ _
+  exact Quotient.recOnSubsingleton₂ a b this
+
+-- 定义 4.1.1（整数）：每个整数都可以表示为形式差
+theorem Int.eq_diff (n:Int) : ∃ a b, n = a —— b := by apply n.ind _; intro ⟨ a, b ⟩; use a, b
+
+-- 引理 4.1.3（加法良好定义）：如果两个整数表示相同，则与第三个整数相加的结果也相同
+instance Int.instAdd : Add Int where
+  add := Quotient.lift₂ (fun ⟨ a, b ⟩ ⟨ c, d ⟩ ↦ (a+c) —— (b+d) ) (by
+    intro ⟨ a, b ⟩ ⟨ c, d ⟩ ⟨ a', b' ⟩ ⟨ c', d' ⟩ h1 h2
+    simp [eq] at *
+    omega)
+
+-- 定义 4.1.2（加法定义）：(a — b) + (c — d) = (a + c) — (b + d)
+theorem Int.add_eq (a b c d:ℕ) : a —— b + c —— d = (a+c)——(b+d) := Quotient.lift₂_mk _ _ _ _
+
+-- 引理 4.1.3（乘法良好定义）：左相等
+theorem Int.mul_congr_left (a b a' b' c d : ℕ) (h: a —— b = a' —— b') :
+    (a*c+b*d) —— (a*d+b*c) = (a'*c+b'*d) —— (a'*d+b'*c) := by
+  simp only [eq] at *
+  calc
+    _ = c*(a+b') + d*(a'+b) := by ring
+    _ = c*(a'+b) + d*(a+b') := by rw [h]
+    _ = _ := by ring
+
+-- 引理 4.1.3（乘法良好定义）：右相等
+theorem Int.mul_congr_right (a b c d c' d' : ℕ) (h: c —— d = c' —— d') :
+    (a*c+b*d) —— (a*d+b*c) = (a*c'+b*d') —— (a*d'+b*c') := by
+  simp only [eq] at *
+  calc
+    _ = a*(c+d') + b*(c'+d) := by ring
+    _ = a*(c'+d) + b*(c+d') := by rw [h]
+    _ = _ := by ring
+
+-- 引理 4.1.3（乘法良好定义）：双边相等
+theorem Int.mul_congr {a b c d a' b' c' d' : ℕ} (h1: a —— b = a' —— b') (h2: c —— d = c' —— d') :
+  (a*c+b*d) —— (a*d+b*c) = (a'*c'+b'*d') —— (a'*d'+b'*c') := by
+  rw [mul_congr_left a b a' b' c d h1, mul_congr_right a' b' c d c' d' h2]
+
+-- 乘法实例
+instance Int.instMul : Mul Int where
+  mul := Quotient.lift₂ (fun ⟨ a, b ⟩ ⟨ c, d ⟩ ↦ (a * c + b * d) —— (a * d + b * c)) (by
+    intro ⟨ a, b ⟩ ⟨ c, d ⟩ ⟨ a', b' ⟩ ⟨ c', d' ⟩ h1 h2
+    exact mul_congr (Quotient.eq.mpr h1) (Quotient.eq.mpr h2)
+    )
+
+-- 定义 4.1.2（乘法定义）：(a — b) × (c — d) = (ac + bd) — (ad + bc)
+theorem Int.mul_eq (a b c d:ℕ) : a —— b * c —— d = (a*c+b*d) —— (a*d+b*c) := Quotient.lift₂_mk _ _ _ _
+
+-- 自然数嵌入：n 对应于 n — 0
+instance Int.instOfNat {n:ℕ} : OfNat Int n where
+  ofNat := n —— 0
+
+instance Int.instNatCast : NatCast Int where
+  natCast n := n —— 0
+
+-- 自然数嵌入的性质
+theorem Int.ofNat_eq (n:ℕ) : ofNat(n) = n —— 0 := rfl
+theorem Int.natCast_eq (n:ℕ) : (n:Int) = n —— 0 := rfl
+
+-- 自然数嵌入是单射的
+@[simp]
+theorem Int.natCast_ofNat (n:ℕ) : ((ofNat(n):ℕ): Int) = ofNat(n) := by rfl
+
+@[simp]
+theorem Int.ofNat_inj (n m:ℕ) : (ofNat(n) : Int) = (ofNat(m) : Int) ↔ ofNat(n) = ofNat(m) := by
+  simp only [ofNat_eq, eq, add_zero]; rfl
+
+@[simp]
+theorem Int.natCast_inj (n m:ℕ) : (n : Int) = (m : Int) ↔ n = m := by
+  simp only [natCast_eq, eq, add_zero]
+
+-- 示例：3 = 3 — 0
+example : 3 = 3 —— 0 := rfl
+
+-- 示例：3 = 4 — 1（因为 3 + 1 = 4）
+example : 3 = 4 —— 1 := by rw [Int.ofNat_eq, Int.eq]
+
+-- 定义 4.1.4（整数的否定）：-(a — b) = b — a
+instance Int.instNeg : Neg Int where
+  neg := Quotient.lift (fun ⟨ a, b ⟩ ↦ b —— a) (by sorry)
+
+theorem Int.neg_eq (a b:ℕ) : -(a —— b) = b —— a := rfl
+
+-- 示例：-(3 — 5) = 5 — 3
+example : -(3 —— 5) = 5 —— 3 := rfl
+
+-- 正整数的定义：存在正自然数 n 使得 x = n
+abbrev Int.IsPos (x:Int) : Prop := ∃ (n:ℕ), n > 0 ∧ x = n
+abbrev Int.IsNeg (x:Int) : Prop := ∃ (n:ℕ), n > 0 ∧ x = -n
+
+-- 引理 4.1.5（整数的三歧性）
+theorem Int.trichotomous (x:Int) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by
+  obtain ⟨ a, b, rfl ⟩ := eq_diff x
+  obtain h_lt | rfl | h_gt := _root_.trichotomous (r := LT.lt) a b
+  . obtain ⟨ c, rfl ⟩ := Nat.exists_eq_add_of_lt h_lt
+    right; right; refine ⟨ c+1, by linarith, ?_ ⟩
+    simp_rw [natCast_eq, neg_eq, eq]; abel
+  . left; simp_rw [ofNat_eq, eq, add_zero, zero_add]
+  obtain ⟨ c, rfl ⟩ := Nat.exists_eq_add_of_lt h_gt
+  right; left; refine ⟨ c+1, by linarith, ?_ ⟩
+  simp_rw [natCast_eq, eq]; abel
+
+-- 三歧性的其他性质
+theorem Int.not_pos_zero (x:Int) : x = 0 ∧ x.IsPos → False := by
+  rintro ⟨ rfl, ⟨ n, _, _ ⟩ ⟩; simp_all [←natCast_ofNat]
+
+theorem Int.not_neg_zero (x:Int) : x = 0 ∧ x.IsNeg → False := by
+  rintro ⟨ rfl, ⟨ n, _, hn ⟩ ⟩; simp_rw [←natCast_ofNat, natCast_eq, neg_eq, eq] at hn
+  linarith
+
+theorem Int.not_pos_neg (x:Int) : x.IsPos ∧ x.IsNeg → False := by
+  rintro ⟨ ⟨ n, _, rfl ⟩, ⟨ m, _, hm ⟩ ⟩; simp_rw [natCast_eq, neg_eq, eq] at hm
+  linarith
+
+-- 命题 4.1.6（代数定律）：整数构成交换环
+instance Int.instAddGroup : AddGroup Int :=
+  AddGroup.ofLeftAxioms (by sorry) (by sorry) (by sorry)
+
+instance Int.instAddCommGroup : AddCommGroup Int where
+  add_comm := by sorry
+
+instance Int.instCommMonoid : CommMonoid Int where
+  mul_comm := by sorry
+  mul_assoc := by
+    intro x y z
+    obtain ⟨ a, b, rfl ⟩ := eq_diff x
+    obtain ⟨ c, d, rfl ⟩ := eq_diff y
+    obtain ⟨ e, f, rfl ⟩ := eq_diff z
+    simp_rw [mul_eq]; congr 1 <;> ring
+  one_mul := by sorry
+  mul_one := by sorry
+
+instance Int.instCommRing : CommRing Int where
+  left_distrib := by sorry
+  right_distrib := by sorry
+  zero_mul := by sorry
+  mul_zero := by sorry
+
+-- 减法的定义：x - y = x + (-y)
+theorem Int.sub_eq (a b:Int) : a - b = a + (-b) := by rfl
+
+-- 自然数相减等于形式差
+theorem Int.sub_eq_formal_sub (a b:ℕ) : (a:Int) - (b:Int) = a —— b := by sorry
+
+-- 命题 4.1.8（无零因子）：ab = 0 ⟹ a = 0 ∨ b = 0
+theorem Int.mul_eq_zero {a b:Int} (h: a * b = 0) : a = 0 ∨ b = 0 := by sorry
+
+-- 推论 4.1.9（消去律）：ac = bc, c ≠ 0 ⟹ a = b
+theorem Int.mul_right_cancel₀ (a b c:Int) (h: a*c = b*c) (hc: c ≠ 0) : a = b := by sorry
+
+-- 定义 4.1.10（整数的序）：n ≥ m 当且仅当存在自然数 a 使得 n = m + a
+instance Int.instLE : LE Int where
+  le n m := ∃ a:ℕ, m = n + a
+
+-- n > m 当且仅当 n ≥ m 且 n ≠ m
+instance Int.instLT : LT Int where
+  lt n m := n ≤ m ∧ n ≠ m
+
+-- 序的性质
+theorem Int.le_iff (a b:Int) : a ≤ b ↔ ∃ t:ℕ, b = a + t := by rfl
+theorem Int.lt_iff (a b:Int): a < b ↔ (∃ t:ℕ, b = a + t) ∧ a ≠ b := by rfl
+
+-- 引理 4.1.11(a)：a < b 当且仅当存在非零自然数 n 使得 b = a + n
+theorem Int.lt_iff_exists_positive_difference (a b:Int) : a < b ↔ ∃ n:ℕ, n ≠ 0 ∧ b = a + n := by sorry
+
+-- 引理 4.1.11(b)：加法保持序
+theorem Int.add_lt_add_right {a b:Int} (c:Int) (h: a < b) : a+c < b+c := by sorry
+
+-- 引理 4.1.11(c)：正数乘法保持序
+theorem Int.mul_lt_mul_of_pos_right {a b c:Int} (hab : a < b) (hc: 0 < c) : a*c < b*c := by sorry
+
+-- 引理 4.1.11(d)：取负反转序
+theorem Int.neg_gt_neg {a b:Int} (h: b < a) : -a < -b := by sorry
+theorem Int.neg_ge_neg {a b:Int} (h: b ≤ a) : -a ≤ -b := by sorry
+
+-- 引理 4.1.11(e)：序的传递性
+theorem Int.lt_trans {a b c:Int} (hab: a < b) (hbc: b < c) : a < c := by sorry
+
+-- 引理 4.1.11(f)：序的三歧性
+theorem Int.trichotomous' (a b:Int) : a > b ∨ a < b ∨ a = b := by sorry
+theorem Int.not_gt_and_lt (a b:Int) : ¬ (a > b ∧ a < b):= by sorry
+theorem Int.not_gt_and_eq (a b:Int) : ¬ (a > b ∧ a = b):= by sorry
+theorem Int.not_lt_and_eq (a b:Int) : ¬ (a < b ∧ a = b):= by sorry
+
+-- 序的可判定性
+instance Int.decidableRel : DecidableRel (· ≤ · : Int → Int → Prop) := by
+  intro n m
+  have : ∀ (n:PreInt) (m: PreInt),
+      Decidable (Quotient.mk PreInt.instSetoid n ≤ Quotient.mk PreInt.instSetoid m) := by
+    intro ⟨ a,b ⟩ ⟨ c,d ⟩
+    change Decidable (a —— b ≤ c —— d)
+    cases (a + d).decLe (b + c) with
+      | isTrue h =>
+        apply isTrue
+        sorry
+      | isFalse h =>
+        apply isFalse
+        sorry
+  exact Quotient.recOnSubsingleton₂ n m this
+
+-- 零是唯一的加法单位元
+lemma Int.is_additive_identity_iff_eq_0 (b : Int) : (∀ a, a = a + b) ↔ b = 0 := by sorry
+
+-- 整数具有线性序结构
+instance Int.instLinearOrder : LinearOrder Int where
+  le_refl := sorry
+  le_trans := sorry
+  lt_iff_le_not_ge := sorry
+  le_antisymm := sorry
+  le_total := sorry
+  toDecidableLE := decidableRel
+
+-- 习题 4.1.3：(-1) × a = -a
+theorem Int.neg_one_mul (a:Int) : -1 * a = -a := by sorry
+
+-- 习题 4.1.8：归纳原理不适用于整数
+-- 存在性质 P(n) 使得 P(0) 真，P(n) ⟹ P(n+1) 真，但并非对所有整数都成立
+theorem Int.no_induction : ∃ P: Int → Prop, (P 0 ∧ ∀ n, P n → P (n+1)) ∧ ¬ ∀ n, P n := by sorry
+
+-- 非负数的平方非负
+lemma Int.sq_nonneg_of_pos (n:Int) (h: 0 ≤ n) : 0 ≤ n*n := by sorry
+
+-- 习题 4.1.9：任何整数的平方都是非负的
+theorem Int.sq_nonneg (n:Int) : 0 ≤ n*n := by sorry
+
+-- 习题 4.1.9：整数的平方是自然数
+theorem Int.sq_nonneg' (n:Int) : ∃ (m:Nat), n*n = m := by sorry
+
+-- 不在教科书中：建立 Int 与 ℤ 的等价
+abbrev Int.equivInt : Int ≃ ℤ where
+  toFun := Quotient.lift (fun ⟨ a, b ⟩ ↦ a - b) (by
+    sorry)
+  invFun := sorry
+  left_inv n := sorry
+  right_inv n := sorry
+
+-- 不在教科书中：等价保持序和环运算
+abbrev Int.equivInt_ordered_ring : Int ≃+*o ℤ where
+  toEquiv := equivInt
+  map_add' := by sorry
+  map_mul' := by sorry
+  map_le_map_map' := by sorry
+
+end Section_4_1</code></div>
+</div>
+
+</body>
+</html>
