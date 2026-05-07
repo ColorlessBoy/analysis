@@ -287,32 +287,32 @@
 </p>
 
 <p>
-我们仍然要解决 (c)。为了绕过这个问题，我们使用以下变通方法：我们暂时不将整数写成差 a − b，而是使用新的符号 a — b 来定义整数，其中 — 是一个无意义的占位符，类似于笛卡尔坐标表示 (x, y) 中使用的逗号。
-稍后当我们定义减法时，我们将看到 a — b 实际上等于 a − b，因此我们可以丢弃 — 这个符号；它现在只是需要用来避免循环性。
+我们仍然要解决 (c)。为了绕过这个问题，我们使用以下变通方法：我们暂时不将整数写成差 a − b，而是使用新的符号 S(a, b) 来定义整数，其中 S 是一个无意义的占位符，类似于笛卡尔坐标表示 (x, y) 中使用的逗号。
+稍后当我们定义减法时，我们将看到 S(a, b) 实际上等于 a − b，因此我们可以丢弃 S 这个符号；它现在只是需要用来避免循环性。
 （这些技巧类似于建造建筑物时使用的脚手架；它们暂时是必不可少的，以确保建筑物正确建造，但一旦建筑物建成，它们就会被拆除，不再使用。）
 </p>
 
 <div class="definition" id="def-4.1.1">
     <span class="label">定义 4.1.1（整数）。</span>
-    整数是形如 a — b 的表达式<sup>1</sup>，其中 a 和 b 是自然数。
+    整数是形如 S(a, b) 的表达式<sup>1</sup>，其中 a 和 b 是自然数。
     当且仅当
     <div class="formula">
     \[a + d = c + b,\]
     </div>
-    时，我们认为两个整数相等，记作 a — b = c — d。
+    时，我们认为两个整数相等，记作 S(a, b) = S(c, d)。
     我们用 \(\mathbb{Z}\) 表示所有整数的集合。
 </div>
 
 <p>
-因此，例如 3—5 是一个整数，并且等于 2—4，因为 3+4 = 2+5。
-另一方面，3—5 不等于 2—3，因为 3+3 ≠ 2+5。
-这种符号看起来很奇怪，而且有一些缺陷；例如，3 还不是整数，因为它不是 a — b 的形式！我们稍后将纠正这些问题。
+因此，例如 S(3, 5) 是一个整数，并且等于 S(2, 4)，因为 3+4 = 2+5。
+另一方面，S(3, 5) 不等于 S(2, 3)，因为 3+3 ≠ 2+5。
+这种符号看起来很奇怪，而且有一些缺陷；例如，3 还不是整数，因为它不是 S(a, b) 的形式！我们稍后将纠正这些问题。
 </p>
 
 <p>
 我们必须检查这是否是一个合法的相等概念。我们需要验证自反性、对称性、传递性和替换公理（见 A.7 节）。
 我们把自反性和对称性留给习题 4.1.1，这里只验证传递性公理。
-假设我们知道 a—b = c—d 和 c—d = e—f。那么我们有 a+d = c+b 和 c+f = d+e。
+假设我们知道 S(a, b) = S(c, d) 和 S(c, d) = S(e, f)。那么我们有 a+d = c+b 和 c+f = d+e。
 将这两个等式相加得到
 </p>
 
@@ -321,7 +321,7 @@
 </div>
 
 <p>
-根据命题 2.2.6，我们可以消去 c 和 d，得到 a + f = b + e，即 a—b = e—f。
+根据命题 2.2.6，我们可以消去 c 和 d，得到 a + f = b + e，即 S(a, b) = S(e, f)。
 因此需要消去律来确保我们的相等概念是合理的。
 </p>
 
@@ -340,7 +340,7 @@
 <div class="note">
     <sup>1</sup> 用集合论的语言来说，我们在这里所做的是从自然数有序对 (a,b) 的空间 \(\mathbb{N} \times \mathbb{N}\) 出发。
     然后我们在这些有序对上放置一个等价关系 ∼，规定当且仅当 a + d = c + b 时，(a,b) ∼ (c,d)。
-    符号 a — b 的集合论解释是：它是与 (a,b) 等价的所有有序对的空间，即 a — b := {(c,d) ∈ N×N : (a,b) ∼ (c,d)}；
+    符号 S(a, b) 的集合论解释是：它是与 (a,b) 等价的所有有序对的空间，即 S(a, b) := {(c,d) ∈ N×N : (a,b) ∼ (c,d)}；
     整数的集合 \(\mathbb{Z} = \{a-b : (a,b) \in \mathbb{N}\times\mathbb{N}\}\) 的存在性随后可以从两次应用替换公理得出。
 </div>
 
@@ -362,7 +362,7 @@
 整数 \(n - 0\) 的行为与自然数 n 相同；事实上可以验证 \((n-0)+(m-0) = (n+m)-0\) 和 \((n-0) \times (m-0) = nm - 0\)。
 此外，\((n-0)\) 等于 \((m-0)\) 当且仅当 \(n = m\)。（数学术语称此为自然数 n 与形如 \(n - 0\) 的整数之间存在同构。）
 因此我们可以通过设 \(n \equiv n - 0\) 来将自然数与整数等同起来；这不会影响我们的加法、乘法或相等的定义，因为它们彼此是一致的。
-例如，自然数 3 现在被认为是与整数 3—0 相同的，因此 \(3 = 3 - 0\)。特别地，0 等于 \(0-0\)，1 等于 \(1-0\)。
+例如，自然数 3 现在被认为是与整数 S(3, 0) 相同的，因此 \(3 = 3 - 0\)。特别地，0 等于 \(0-0\)，1 等于 \(1-0\)。
 </p>
 
 <div class="definition" id="def-4.1.4">
@@ -387,11 +387,11 @@
 
 <div class="proof">
     我们首先证明 (a)、(b)、(c) 中至少有一个为真。
-    由定义，x = a—b，其中 a, b 是自然数。
+    由定义，x = S(a, b)，其中 a, b 是自然数。
     我们有三种情况：a > b, a = b, 或 a < b。
-    若 a > b，则 a = b + c，其中 c 是某个正自然数，这意味着 a—b = c—0 = c，即为 (b)。
-    若 a = b，则 a—b = a—a = 0—0 = 0，即为 (a)。
-    若 a < b，则 b > a，因此 b—a = n（由前面的推理可得某个自然数 n），于是 a—b = −n，即为 (c)。
+    若 a > b，则 a = b + c，其中 c 是某个正自然数，这意味着 S(a, b) = S(c, 0) = c，即为 (b)。
+    若 a = b，则 S(a, b) = S(a, a) = S(0, 0) = 0，即为 (a)。
+    若 a < b，则 b > a，因此 S(b, a) = n（由前面的推理可得某个自然数 n），于是 S(a, b) = −n，即为 (c)。
 </div>
 
 <p>
@@ -553,7 +553,7 @@ set_option doc.verso.suggestions false
 
 namespace Section_4_1
 
--- PreInt（预整数）是整数的"脚手架"定义：由两个自然数组成的有序对 (a, b)，表示形式差 a — b。
+-- PreInt（预整数）是整数的"脚手架"定义：由两个自然数组成的有序对 (a, b)，表示形式差 S(a, b)。
 -- 在引入等价关系之前，我们先用这个结构来表示形式差。
 structure PreInt where
   minuend : ℕ      -- 被减数 a
@@ -561,7 +561,7 @@ structure PreInt where
 
 -- 定义 4.1.1：PreInt 上的等价关系
 -- 两个预整数相等当且仅当 a + d = c + b
--- 这对应于教科书中的定义：a — b = c — d ⟺ a + d = c + b
+-- 这对应于教科书中的定义：S(a, b) = S(c, d) ⟺ a + d = c + b
 instance PreInt.instSetoid : Setoid PreInt where
   r a b := a.minuend + b.subtrahend = b.minuend + a.subtrahend
   iseqv := {
@@ -585,7 +585,7 @@ theorem PreInt.eq (a b c d:ℕ) : (⟨ a,b ⟩: PreInt) ≈ ⟨ c,d ⟩ ↔ a + 
 -- Int（整数）是 PreInt 对上述等价关系的商
 abbrev Int := Quotient PreInt.instSetoid
 
--- 形式差的记号：a —— b 表示整数 a — b
+-- 形式差的记号：a —— b 表示整数 S(a, b)
 abbrev Int.formalDiff (a b:ℕ)  : Int := Quotient.mk PreInt.instSetoid ⟨ a,b ⟩
 
 infix:100 " —— " => Int.formalDiff
@@ -615,7 +615,7 @@ instance Int.instAdd : Add Int where
     simp [eq] at *
     omega)
 
--- 定义 4.1.2（加法定义）：(a — b) + (c — d) = (a + c) — (b + d)
+-- 定义 4.1.2（加法定义）：S(a, b) + S(c, d) = S(a + c, b + d)
 theorem Int.add_eq (a b c d:ℕ) : a —— b + c —— d = (a+c)——(b+d) := Quotient.lift₂_mk _ _ _ _
 
 -- 引理 4.1.3（乘法良好定义）：左相等
@@ -648,10 +648,10 @@ instance Int.instMul : Mul Int where
     exact mul_congr (Quotient.eq.mpr h1) (Quotient.eq.mpr h2)
     )
 
--- 定义 4.1.2（乘法定义）：(a — b) × (c — d) = (ac + bd) — (ad + bc)
+-- 定义 4.1.2（乘法定义）：S(a, b) × S(c, d) = S(ac + bd, ad + bc)
 theorem Int.mul_eq (a b c d:ℕ) : a —— b * c —— d = (a*c+b*d) —— (a*d+b*c) := Quotient.lift₂_mk _ _ _ _
 
--- 自然数嵌入：n 对应于 n — 0
+-- 自然数嵌入：n 对应于 S(n, 0)
 instance Int.instOfNat {n:ℕ} : OfNat Int n where
   ofNat := n —— 0
 
@@ -680,7 +680,7 @@ example : 3 = 3 —— 0 := rfl
 -- 示例：3 = 4 — 1（因为 3 + 1 = 4）
 example : 3 = 4 —— 1 := by rw [Int.ofNat_eq, Int.eq]
 
--- 定义 4.1.4（整数的否定）：-(a — b) = b — a
+-- 定义 4.1.4（整数的否定）：-S(a, b) = S(b, a)
 instance Int.instNeg : Neg Int where
   neg := Quotient.lift (fun ⟨ a, b ⟩ ↦ b —— a) (by sorry)
 
