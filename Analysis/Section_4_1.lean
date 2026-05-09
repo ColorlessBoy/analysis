@@ -142,11 +142,17 @@ example : 3 = 3 —— 0 := rfl
 example : 3 = 4 —— 1 := by rw [Int.ofNat_eq, Int.eq]
 
 /--（不在教科书中）0 是唯一其类型转换后为 0 的自然数 -/
-lemma Int.cast_eq_0_iff_eq_0 (n : ℕ) : (n : Int) = 0 ↔ n = 0 := by sorry
+lemma Int.cast_eq_0_iff_eq_0 (n : ℕ) : (n : Int) = 0 ↔ n = 0 := by
+  have : 0 = 0 —— 0 := rfl
+  simp only [natCast_eq, this, eq, add_zero]
 
 /-- 定义 4.1.4（整数的否定）/ 习题 4.1.2 -/
 instance Int.instNeg : Neg Int where
-  neg := Quotient.lift (fun ⟨ a, b ⟩ ↦ b —— a) (by sorry)
+  neg := Quotient.lift (fun ⟨ a, b ⟩ ↦ b —— a) (by
+    intro ⟨ a, b ⟩ ⟨ c, d ⟩ h
+    simp only [eq] at *
+    rw [add_comm, add_comm d, eq_comm]
+    omega)
 
 theorem Int.neg_eq (a b:ℕ) : -(a —— b) = b —— a := rfl
 
@@ -162,7 +168,7 @@ theorem Int.trichotomous (x:Int) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by
   obtain h_lt | rfl | h_gt := _root_.trichotomous (r := LT.lt) a b
   . obtain ⟨ c, rfl ⟩ := Nat.exists_eq_add_of_lt h_lt
     right; right; refine ⟨ c+1, by linarith, ?_ ⟩
-    simp_rw [natCast_eq, neg_eq, eq]; abel
+    simp_rw [natCast_eq, neg_eq, eq, zero_add, add_assoc]
   . left; simp_rw [ofNat_eq, eq, add_zero, zero_add]
   obtain ⟨ c, rfl ⟩ := Nat.exists_eq_add_of_lt h_gt
   right; left; refine ⟨ c+1, by linarith, ?_ ⟩
