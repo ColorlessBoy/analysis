@@ -111,9 +111,11 @@ instance Int.instMul : Mul Int where
 /-- 定义 4.1.2（整数乘法） -/
 theorem Int.mul_eq (a b c d:ℕ) : a —— b * c —— d = (a*c+b*d) —— (a*d+b*c) := Quotient.lift₂_mk _ _ _ _
 
+-- natural numbers as integers
 instance Int.instOfNat {n:ℕ} : OfNat Int n where
   ofNat := n —— 0
 
+-- 定义 4.1.2（自然数作为整数） -/
 instance Int.instNatCast : NatCast Int where
   natCast n := n —— 0
 
@@ -121,13 +123,16 @@ theorem Int.ofNat_eq (n:ℕ) : ofNat(n) = n —— 0 := rfl
 
 theorem Int.natCast_eq (n:ℕ) : (n:Int) = n —— 0 := rfl
 
+-- 自然数转自然数再转整数等于自然数转整数
 @[simp]
 theorem Int.natCast_ofNat (n:ℕ) : ((ofNat(n):ℕ): Int) = ofNat(n) := by rfl
 
+-- 自然数转整数相等， 等价于自然数相等
 @[simp]
 theorem Int.ofNat_inj (n m:ℕ) : (ofNat(n) : Int) = (ofNat(m) : Int) ↔ ofNat(n) = ofNat(m) := by
   simp only [ofNat_eq, eq, add_zero]; rfl
 
+-- 自然数转整数相等， 等价于自然数相等
 @[simp]
 theorem Int.natCast_inj (n m:ℕ) : (n : Int) = (m : Int) ↔ n = m := by
   simp only [natCast_eq, eq, add_zero]
