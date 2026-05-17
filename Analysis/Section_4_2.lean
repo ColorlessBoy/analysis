@@ -483,8 +483,12 @@ def Rat.coe_int_hom : ℤ →+* Rat where
   toFun n := (n:Rat)
   map_zero' := rfl
   map_one' := rfl
-  map_add' := by sorry
-  map_mul' := by sorry
+  map_add' := by
+    intro n m
+    rw [← intCast_add n m]
+  map_mul' := by
+    intro n m
+    rw [← intCast_mul n m]
 
 /-- Definition 4.2.6 (positivity) -/
 def Rat.isPos (q:Rat) : Prop := ∃ a b:ℤ, a > 0 ∧ b > 0 ∧ q = a/b
@@ -492,17 +496,115 @@ def Rat.isPos (q:Rat) : Prop := ∃ a b:ℤ, a > 0 ∧ b > 0 ∧ q = a/b
 /-- Definition 4.2.6 (negativity) -/
 def Rat.isNeg (q:Rat) : Prop := ∃ r:Rat, r.isPos ∧ q = -r
 
-/-- Lemma 4.2.7 (trichotomy of rationals) / Exercise 4.2.4 -/
-theorem Rat.trichotomous (x:Rat) : x = 0 ∨ x.isPos ∨ x.isNeg := by sorry
+lemma Rat.div_eq_formalDiv (a : ℤ) {b : ℤ} (hb : b ≠ 0) : (a : Rat) / (b : Rat) = a // b := by
+  calc
+    (a : Rat) / (b : Rat) = (a : Rat) * ((b : Rat)⁻¹) := rfl
+    _ = (a // 1) * ((b // 1)⁻¹) := by simp [coe_Int_eq]
+    _ = (a // 1) * (1 // b) := by rw [inv_eq (b : ℤ) (by norm_num : (1 : ℤ) ≠ 0)]
+    _ = (a*1) // (1*b) := by rw [mul_eq (a : ℤ) 1 (by norm_num : (1 : ℤ) ≠ 0) hb]
+    _ = a // b := by simp
 
 /-- Lemma 4.2.7 (trichotomy of rationals) / Exercise 4.2.4 -/
-theorem Rat.not_zero_and_pos (x:Rat) : ¬(x = 0 ∧ x.isPos) := by sorry
+theorem Rat.trichotomous (x:Rat) : x = 0 ∨ x.isPos ∨ x.isNeg := by
+  obtain ⟨a, b, hb, rfl⟩ := Rat.eq_diff x
+  by_cases ha0 : a = 0
+  · left
+    apply (Rat.eq a 0 hb (by norm_num : (1 : ℤ) ≠ 0)).mpr
+    simp [ha0]
+  · have ha0' : a ≠ 0 := ha0
+    by_cases ha_pos : a > 0
+    · by_cases hb_pos : b > 0
+      · right; left
+        refine ⟨a, b, ha_pos, hb_pos, ?_⟩
+        symm; exact Rat.div_eq_formalDiv a hb
+      · have hb_neg : b < 0 := by omega
+        right; right
+        have hnegb_pos : -b > 0 := by omega
+        refine ⟨a // (-b), ?_, ?_⟩
+        · refine ⟨a, -b, ha_pos, hnegb_pos, ?_⟩
+          symm; exact Rat.div_eq_formalDiv a (by omega : -b ≠ 0)
+        · calc
+            a // b = (-a) // (-b) := by
+              rw [Rat.eq a (-a) hb (by omega : -b ≠ 0)]
+              ring
+            _ = -(a // (-b)) := by rw [← Rat.neg_eq a (by omega : -b ≠ 0)]
+    · have ha_neg : a < 0 := by omega
+      by_cases hb_pos : b > 0
+      · right; right
+        have hneg_a_pos : -a > 0 := by omega
+        refine ⟨(-a) // b, ?_, ?_⟩
+        · refine ⟨-a, b, hneg_a_pos, hb_pos, ?_⟩
+          symm; exact Rat.div_eq_formalDiv (-a) hb
+        · have hneg : -((-a) // b) = a // b := by
+            calc
+              -((-a) // b) = (-(-a)) // b := Rat.neg_eq (-a) hb
+              _ = a // b := by simp
+          symm; exact hneg
+      · have hb_neg : b < 0 := by omega
+        right; left
+        have hneg_a_pos : -a > 0 := by omega
+        have hneg_b_pos : -b > 0 := by omega
+        refine ⟨-a, -b, hneg_a_pos, hneg_b_pos, ?_⟩
+        calc
+          a // b = (-a) // (-b) := by
+            rw [Rat.eq a (-a) hb (by omega : -b ≠ 0)]
+            ring
+          _ = (-a : Rat) / (-b : Rat) := by
+            symm; exact Rat.div_eq_formalDiv (-a) (by omega : -b ≠ 0)
 
 /-- Lemma 4.2.7 (trichotomy of rationals) / Exercise 4.2.4 -/
-theorem Rat.not_zero_and_neg (x:Rat) : ¬(x = 0 ∧ x.isNeg) := by sorry
+theorem Rat.not_zero_and_pos (x:Rat) : ¬(x = 0 ∧ x.isPos) := by
+  rintro ⟨hx, ⟨a, b, ha, hb, h⟩⟩
+  have hb_ne : b ≠ 0 := by omega
+  have h_eq : a // b = (0 : Rat) := by
+    calc
+      a // b = (a : Rat) / (b : Rat) := by symm; exact Rat.div_eq_formalDiv a hb_ne
+      _ = x := by symm; exact h
+      _ = 0 := hx
+  have hzero : a * (1 : ℤ) = (0 : ℤ) * b :=
+    ((Rat.eq a 0 hb_ne (by norm_num : (1 : ℤ) ≠ 0)).mp h_eq)
+  simp at hzero
+  omega
 
 /-- Lemma 4.2.7 (trichotomy of rationals) / Exercise 4.2.4 -/
-theorem Rat.not_pos_and_neg (x:Rat) : ¬(x.isPos ∧ x.isNeg) := by sorry
+theorem Rat.not_zero_and_neg (x:Rat) : ¬(x = 0 ∧ x.isNeg) := by
+  rintro ⟨hx, ⟨r, hr, hx'⟩⟩
+  have hzero : r = 0 := by
+    calc
+      r = -(-r) := by simp
+      _ = -x := by rw [hx']
+      _ = -(0 : Rat) := by rw [hx]
+      _ = 0 := by simp
+  exact not_zero_and_pos r ⟨hzero, hr⟩
+
+/-- Lemma 4.2.7 (trichotomy of rationals) / Exercise 4.2.4 -/
+theorem Rat.not_pos_and_neg (x:Rat) : ¬(x.isPos ∧ x.isNeg) := by
+  rintro ⟨hpos, hneg⟩
+  rcases hpos with ⟨a, b, ha, hb, hx⟩
+  rcases hneg with ⟨r, hr, hx'⟩
+  have hb_ne : b ≠ 0 := by omega
+  have h_eq : a // b = -r := by
+    calc
+      a // b = (a : Rat) / (b : Rat) := by symm; exact Rat.div_eq_formalDiv a hb_ne
+      _ = x := hx.symm
+      _ = -r := hx'
+  rcases hr with ⟨c, d, hc, hd, hr_eq⟩
+  have hd_ne : d ≠ 0 := by omega
+  have h_eq2 : r = c // d := by
+    calc
+      r = (c : Rat) / (d : Rat) := hr_eq
+      _ = c // d := Rat.div_eq_formalDiv c hd_ne
+  have h_sum : a // b + c // d = 0 := by
+    calc
+      a // b + c // d = (-r) + r := by rw [h_eq, h_eq2]
+      _ = 0 := by simp
+  rw [add_eq a c hb_ne hd_ne] at h_sum
+  have hbd_ne : b*d ≠ 0 := mul_ne_zero hb_ne hd_ne
+  have hzero : (a*d + b*c) * (1 : ℤ) = (0 : ℤ) * (b*d) :=
+    ((Rat.eq (a*d + b*c) 0 hbd_ne (by norm_num : (1 : ℤ) ≠ 0)).mp h_sum)
+  simp at hzero
+  have hpos_sum : a*d + b*c > 0 := by nlinarith
+  nlinarith
 
 /-- Definition 4.2.8 (Ordering of the rationals) -/
 instance Rat.instLT : LT Rat where
