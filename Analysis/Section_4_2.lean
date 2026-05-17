@@ -263,31 +263,122 @@ AddGroup.ofLeftAxioms (by
 
 /-- Proposition 4.2.4 (laws of algebra) / Exercise 4.2.3 -/
 instance Rat.instAddCommGroup : AddCommGroup Rat where
-  add_comm := by sorry
+  add_comm := by
+    intro x y
+    obtain ⟨ a1, b1, hb1, rfl ⟩ := eq_diff x
+    obtain ⟨ a2, b2, hb2, rfl ⟩ := eq_diff y
+    have hbd : b1*b2 ≠ 0 := Int.mul_ne_zero hb1 hb2     -- can also use `observe hbd : b1*b2 ≠ 0` here
+    rw [add_eq _ _ hb1 hb2, add_eq _ _ hb2 hb1, mul_comm b2 b1, mul_comm b2, mul_comm b1, add_comm]
 
 /-- Proposition 4.2.4 (laws of algebra) / Exercise 4.2.3 -/
 instance Rat.instCommMonoid : CommMonoid Rat where
-  mul_comm := by sorry
-  mul_assoc := by sorry
-  one_mul := by sorry
-  mul_one := by sorry
+  mul_comm := by
+    intro x y
+    obtain ⟨ a1, b1, hb1, rfl ⟩ := eq_diff x
+    obtain ⟨ a2, b2, hb2, rfl ⟩ := eq_diff y
+    have hbd : b1*b2 ≠ 0 := Int.mul_ne_zero hb1 hb2
+    rw [mul_eq _ _ hb1 hb2, mul_eq _ _ hb2 hb1, mul_comm a1 a2, mul_comm b1 b2]
+  mul_assoc := by
+    intro x y z
+    obtain ⟨ a1, b1, hb1, rfl ⟩ := eq_diff x
+    obtain ⟨ a2, b2, hb2, rfl ⟩ := eq_diff y
+    obtain ⟨ a3, b3, hb3, rfl ⟩ := eq_diff z
+    have hb12 : b1*b2 ≠ 0 := Int.mul_ne_zero hb1 hb2
+    have hb23 : b2*b3 ≠ 0 := Int.mul_ne_zero hb2 hb3
+    have hb123 : (b1*b2)*b3 ≠ 0 := Int.mul_ne_zero hb12 hb3
+    have hb1_23 : b1*(b2*b3) ≠ 0 := Int.mul_ne_zero hb1 hb23
+    rw [mul_eq _ _ hb1 hb2, mul_eq _ _ hb12 hb3, mul_eq _ _ hb2 hb3, mul_eq _ _ hb1 hb23]
+    rw [eq ((a1*a2)*a3) (a1*(a2*a3)) hb123 hb1_23]
+    ring
+  one_mul := by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    have h1 : (1:ℤ) ≠ 0 := by norm_num
+    have h1b : (1:ℤ)*b ≠ 0 := Int.mul_ne_zero h1 hb
+    calc
+      1 * (a // b) = ((1:ℤ) // 1) * (a // b) := rfl
+      _ = (1*a) // (1*b) := by rw [mul_eq 1 a h1 hb]
+      _ = a // b := by
+        rw [eq (1*a) a h1b hb]
+        simp
+  mul_one := by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    have h1 : (1:ℤ) ≠ 0 := by norm_num
+    have hb1 : b*(1:ℤ) ≠ 0 := Int.mul_ne_zero hb h1
+    calc
+      (a // b) * 1 = (a // b) * ((1:ℤ) // 1) := rfl
+      _ = (a*1) // (b*1) := by rw [mul_eq a 1 hb h1]
+      _ = a // b := by
+        rw [eq (a*1) a hb1 hb]
+        simp
 
 /-- Proposition 4.2.4 (laws of algebra) / Exercise 4.2.3 -/
 instance Rat.instCommRing : CommRing Rat where
-  left_distrib := by sorry
-  right_distrib := by sorry
-  zero_mul := by sorry
-  mul_zero := by sorry
-  mul_assoc := by sorry
-  -- Usually CommRing will generate a natCast instance and a proof for this.
-  -- However, we are using a custom natCast for which `natCast_succ` cannot
-  -- be proven automatically by `rfl`. Luckily we have proven it already.
+  left_distrib := by
+    intro x y z
+    obtain ⟨ a1, b1, hb1, rfl ⟩ := eq_diff x
+    obtain ⟨ a2, b2, hb2, rfl ⟩ := eq_diff y
+    obtain ⟨ a3, b3, hb3, rfl ⟩ := eq_diff z
+    have hb12 : b1*b2 ≠ 0 := Int.mul_ne_zero hb1 hb2
+    have hb13 : b1*b3 ≠ 0 := Int.mul_ne_zero hb1 hb3
+    have hb23 : b2*b3 ≠ 0 := Int.mul_ne_zero hb2 hb3
+    have hb123 : b1*(b2*b3) ≠ 0 := Int.mul_ne_zero hb1 hb23
+    have hb12_13 : (b1*b2)*(b1*b3) ≠ 0 := Int.mul_ne_zero hb12 hb13
+    rw [add_eq a2 a3 hb2 hb3, mul_eq a1 (a2*b3 + b2*a3) hb1 hb23,
+      mul_eq a1 a2 hb1 hb2, mul_eq a1 a3 hb1 hb3, add_eq (a1*a2) (a1*a3) hb12 hb13]
+    rw [eq (a1*(a2*b3 + b2*a3)) ((a1*a2)*(b1*b3) + (b1*b2)*(a1*a3)) hb123 hb12_13]
+    ring
+  right_distrib := by
+    intro x y z
+    obtain ⟨ a1, b1, hb1, rfl ⟩ := eq_diff x
+    obtain ⟨ a2, b2, hb2, rfl ⟩ := eq_diff y
+    obtain ⟨ a3, b3, hb3, rfl ⟩ := eq_diff z
+    have hb12 : b1*b2 ≠ 0 := Int.mul_ne_zero hb1 hb2
+    have hb13 : b1*b3 ≠ 0 := Int.mul_ne_zero hb1 hb3
+    have hb23 : b2*b3 ≠ 0 := Int.mul_ne_zero hb2 hb3
+    have hb123 : (b1*b2)*b3 ≠ 0 := Int.mul_ne_zero hb12 hb3
+    have hb13_23 : (b1*b3)*(b2*b3) ≠ 0 := Int.mul_ne_zero hb13 hb23
+    rw [add_eq a1 a2 hb1 hb2, mul_eq (a1*b2 + b1*a2) a3 hb12 hb3,
+      mul_eq a1 a3 hb1 hb3, mul_eq a2 a3 hb2 hb3, add_eq (a1*a3) (a2*a3) hb13 hb23]
+    rw [eq ((a1*b2 + b1*a2)*a3) ((a1*a3)*(b2*b3) + (b1*b3)*(a2*a3)) hb123 hb13_23]
+    ring
+  zero_mul := by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    have h1 : (1:ℤ) ≠ 0 := by norm_num
+    have h1b : (1:ℤ)*b ≠ 0 := Int.mul_ne_zero h1 hb
+    calc
+      0 * (a // b) = ((0:ℤ) // 1) * (a // b) := rfl
+      _ = (0*a) // (1*b) := by rw [mul_eq 0 a h1 hb]
+      _ = 0 // (1*b) := by simp
+      _ = (0:ℤ) // 1 := (eq 0 0 h1b h1).mpr (by simp)
+      _ = (0 : Rat) := (coe_Int_eq 0).symm
+  mul_zero := by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    have h1 : (1:ℤ) ≠ 0 := by norm_num
+    have hb1 : b*(1:ℤ) ≠ 0 := Int.mul_ne_zero hb h1
+    calc
+      (a // b) * 0 = (a // b) * ((0:ℤ) // 1) := rfl
+      _ = (a*0) // (b*1) := by rw [mul_eq a 0 hb h1]
+      _ = 0 // (b*1) := by simp
+      _ = (0:ℤ) // 1 := (eq 0 0 hb1 h1).mpr (by simp)
+      _ = (0 : Rat) := (coe_Int_eq 0).symm
+  mul_assoc := mul_assoc
   natCast_succ := natCast_succ
 
 instance Rat.instRatCast : RatCast Rat where
   ratCast q := q.num // q.den
 
-theorem Rat.ratCast_inj : Function.Injective (fun n:ℚ ↦ (n:Rat)) := by sorry
+theorem Rat.ratCast_inj : Function.Injective (fun n:ℚ ↦ (n:Rat)) := by
+  intro n m h
+  have hnz : (n.den : ℤ) ≠ 0 := Nat.cast_ne_zero.mpr n.den_nz
+  have hmz : (m.den : ℤ) ≠ 0 := Nat.cast_ne_zero.mpr m.den_nz
+  have h' : n.num // (n.den : ℤ) = m.num // (m.den : ℤ) := by
+    simpa [Rat.instRatCast] using h
+  rw [Rat.eq _ _ hnz hmz] at h'
+  exact (Rat.eq_iff_mul_eq_mul (p := n) (q := m)).mpr h'
 
 theorem Rat.coe_Rat_eq (a:ℤ) {b:ℤ} (hb: b ≠ 0) : (a/b:ℚ) = a // b := by
   set q := (a/b:ℚ)
@@ -305,23 +396,85 @@ instance Rat.instDivInvMonoid : DivInvMonoid Rat where
 
 theorem Rat.div_eq (q r:Rat) : q/r = q * r⁻¹ := by rfl
 
+instance Rat.instNNRatCast : NNRatCast Rat where
+  nnratCast := fun q => ((q : ℚ) : Rat)
+
+lemma Rat.nnratCast_def' (q : ℚ≥0) : (q : Rat) = (q.num : Rat) / (q.den : Rat) := by
+  calc
+    (q : Rat) = ((q : ℚ) : Rat) := rfl
+    _ = ((q : ℚ).num : Rat) / ((q : ℚ).den : Rat) := by
+      have h1 : (1 : ℤ) ≠ 0 := by norm_num
+      have hden : ((q : ℚ).den : ℤ) ≠ 0 := Nat.cast_ne_zero.mpr (q : ℚ).den_nz
+      calc
+        ((q : ℚ) : Rat) = (q : ℚ).num // (q : ℚ).den := rfl
+        _ = ((q : ℚ).num * 1) // (1 * (q : ℚ).den) := by simp
+        _ = ((q : ℚ).num // 1) * (1 // (q : ℚ).den) := by
+          rw [Rat.mul_eq ((q : ℚ).num : ℤ) 1 h1 hden]
+        _ = ((q : ℚ).num : Rat) * (((q : ℚ).den : Rat)⁻¹) := by
+          simp [Rat.coe_Int_eq, Rat.coe_Nat_eq, Rat.inv_eq ((q : ℚ).den : ℤ) h1]
+        _ = ((q : ℚ).num : Rat) / ((q : ℚ).den : Rat) := rfl
+    _ = (q.num : Rat) / (q.den : Rat) := by
+      simp [NNRat.num_coe, NNRat.den_coe]
+
 /-- Proposition 4.2.4 (laws of algebra) / Exercise 4.2.3 -/
 instance Rat.instField : Field Rat where
-  exists_pair_ne := by sorry
-  mul_inv_cancel := by sorry
+  exists_pair_ne := by
+    have h1 : (1 : ℤ) ≠ 0 := by norm_num
+    refine ⟨0, 1, ?_⟩
+    intro h
+    have := ((Rat.eq (0 : ℤ) (1 : ℤ) h1 h1).mp h)
+    norm_num at this
+  mul_inv_cancel := by
+    intro x hx0
+    obtain ⟨a, b, hb, rfl⟩ := Rat.eq_diff x
+    have ha : a ≠ 0 := by
+      intro hazero
+      apply hx0
+      have hzero : (0 : Rat) = (0 : ℤ) // 1 := rfl
+      rw [hzero, Rat.eq a 0 hb (by norm_num : (1 : ℤ) ≠ 0)]
+      simp [hazero]
+    have h1 : (1 : ℤ) ≠ 0 := by norm_num
+    have hab : a*b ≠ 0 := mul_ne_zero ha hb
+    calc
+      (a // b) * ((a // b)⁻¹) = (a // b) * (b // a) := by rw [Rat.inv_eq a hb]
+      _ = (a*b) // (b*a) := by rw [Rat.mul_eq a b hb ha]
+      _ = (a*b) // (a*b) := by rw [mul_comm b a]
+      _ = (1 : ℤ) // 1 := by
+        rw [Rat.eq (a*b) 1 hab h1]
+        simp
+      _ = (1 : Rat) := rfl
   inv_zero := rfl
   ratCast_def := by
     intro q
-    set num := q.num
-    set den := q.den
-    have hden : (den:ℤ) ≠ 0 := by simp [den, q.den_nz]
-    rw [← Rat.num_div_den q]
-    convert coe_Rat_eq _ hden
-    rw [coe_Int_eq, coe_Nat_eq, div_eq, inv_eq, mul_eq, eq] <;> simp [num, den, q.den_nz]
-  qsmul := _
-  nnqsmul := _
+    have h1 : (1 : ℤ) ≠ 0 := by norm_num
+    have hden : (q.den : ℤ) ≠ 0 := Nat.cast_ne_zero.mpr q.den_nz
+    calc
+      (q : Rat) = q.num // q.den := rfl
+      _ = (q.num * 1) // (1 * q.den) := by simp
+      _ = (q.num // 1) * (1 // q.den) := by rw [Rat.mul_eq q.num 1 h1 hden]
+      _ = (q.num : Rat) * ((q.den : Rat)⁻¹) := by
+        simp [Rat.coe_Int_eq, Rat.coe_Nat_eq, Rat.inv_eq (q.den : ℤ) h1]
+      _ = (q.num : Rat) / (q.den : Rat) := rfl
+  nnratCast_def := Rat.nnratCast_def'
+  qsmul := (fun a x => (a : Rat) * x)
+  qsmul_def := by
+    intro a x
+    rfl
+  nnqsmul := (fun a x => ((a : ℚ) : Rat) * x)
+  nnqsmul_def := by
+    intro a x
+    rfl
 
-example : (3//4) / (5//6) = 9 // 10 := by sorry
+example : (3//4) / (5//6) = 9 // 10 := by
+  calc
+    (3//4) / (5//6) = (3//4) * ((5//6)⁻¹) := rfl
+    _ = (3//4) * (6//5) := by rw [Rat.inv_eq (5 : ℤ) (by norm_num : (6 : ℤ) ≠ 0)]
+    _ = (3*6) // (4*5) := by
+      rw [Rat.mul_eq (3 : ℤ) (6 : ℤ) (by norm_num : (4 : ℤ) ≠ 0) (by norm_num : (5 : ℤ) ≠ 0)]
+    _ = 18 // 20 := by norm_num
+    _ = 9 // 10 := by
+      rw [Rat.eq (18 : ℤ) (9 : ℤ) (by norm_num : (20 : ℤ) ≠ 0) (by norm_num : (10 : ℤ) ≠ 0)]
+      norm_num
 
 /-- Definition of subtraction -/
 theorem Rat.sub_eq (a b:Rat) : a - b = a + (-b) := by rfl
