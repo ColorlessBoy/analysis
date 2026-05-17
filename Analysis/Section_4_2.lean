@@ -47,9 +47,19 @@ structure PreRat where
 instance PreRat.instSetoid : Setoid PreRat where
   r a b := a.numerator * b.denominator = b.numerator * a.denominator
   iseqv := {
-    refl := by sorry
-    symm := by sorry
-    trans := by sorry
+    refl := by intro; rfl
+    symm := by intro x y h; simpa [eq_comm] using h
+    trans := by
+      intro x y z h1 h2
+      have hden : y.denominator ≠ 0 := y.nonzero
+      apply mul_right_cancel₀ hden
+      calc
+        x.numerator * z.denominator * y.denominator
+            = x.numerator * y.denominator * z.denominator := by ring
+        _ = y.numerator * x.denominator * z.denominator := by rw [h1]
+        _ = y.numerator * z.denominator * x.denominator := by ring
+        _ = z.numerator * y.denominator * x.denominator := by rw [h2]
+        _ = z.numerator * x.denominator * y.denominator := by ring
     }
 
 @[simp]
@@ -81,7 +91,12 @@ theorem Rat.eq_diff (n:Rat) : ∃ a b, b ≠ 0 ∧ n = a // b := by
 
 -/
 instance Rat.decidableEq : DecidableEq Rat := by
-  sorry
+  intro a b
+  have : ∀ (n:PreRat) (m: PreRat),
+      Decidable (Quotient.mk PreRat.instSetoid n = Quotient.mk PreRat.instSetoid m) := by
+    intro ⟨ a,b,h1 ⟩ ⟨ c,d,h2 ⟩
+    exact decidable_of_iff (a * d = c * b) ((PreRat.eq a b c d h1 h2).symm.trans (Quotient.eq).symm)
+  exact Quotient.recOnSubsingleton₂ a b this
 
 /-- Lemma 4.2.3 (Addition well-defined) -/
 instance Rat.add_inst : Add Rat where
@@ -98,7 +113,15 @@ theorem Rat.add_eq (a c:ℤ) {b d:ℤ} (hb: b ≠ 0) (hd: d ≠ 0) :
 
 /-- Lemma 4.2.3 (Multiplication well-defined) -/
 instance Rat.mul_inst : Mul Rat where
-  mul := Quotient.lift₂ (fun ⟨ a, b, h1 ⟩ ⟨ c, d, h2 ⟩ ↦ (a*c) // (b*d)) (by sorry)
+  mul := Quotient.lift₂ (fun ⟨ a, b, h1 ⟩ ⟨ c, d, h2 ⟩ ↦ (a*c) // (b*d)) (by
+    intro ⟨ a, b, h1 ⟩ ⟨ c, d, h2 ⟩ ⟨ a', b', h1' ⟩ ⟨ c', d', h2' ⟩ h3 h4
+    simp_all [Quotient.eq]
+    calc
+      a*c*(b'*d') = a*b'*(c*d') := by ring
+      _ = a'*b*(c*d') := by rw [h3]
+      _ = a'*b*(c'*d) := by rw [h4]
+      _ = a'*c'*(b*d) := by ring
+  )
 
 /-- Definition 4.2.2 (Multiplication of rationals) -/
 theorem Rat.mul_eq (a c:ℤ) {b d:ℤ} (hb: b ≠ 0) (hd: d ≠ 0) :
@@ -107,7 +130,10 @@ theorem Rat.mul_eq (a c:ℤ) {b d:ℤ} (hb: b ≠ 0) (hd: d ≠ 0) :
 
 /-- Lemma 4.2.3 (Negation well-defined) -/
 instance Rat.neg_inst : Neg Rat where
-  neg := Quotient.lift (fun ⟨ a, b, h1 ⟩ ↦ (-a) // b) (by sorry)
+  neg := Quotient.lift (fun ⟨ a, b, h1 ⟩ ↦ (-a) // b) (by
+    intro ⟨ a, b, h1 ⟩ ⟨ c, d, h2 ⟩ h3
+    simp_all [Quotient.eq]
+  )
 
 /-- Definition 4.2.2 (Negation of rationals) -/
 theorem Rat.neg_eq (a:ℤ) {b:ℤ} (hb: b ≠ 0) : - (a // b) = (-a) // b := by
@@ -130,18 +156,33 @@ theorem Rat.coe_Nat_eq (n:ℕ) : (n:Rat) = n // 1 := rfl
 theorem Rat.of_Nat_eq (n:ℕ) : (ofNat(n):Rat) = (ofNat(n):Nat) // 1 := rfl
 
 /-- natCast distributes over successor -/
-theorem Rat.natCast_succ (n: ℕ) : ((n + 1: ℕ): Rat) = (n: Rat) + 1 := by sorry
+theorem Rat.natCast_succ (n: ℕ) : ((n + 1: ℕ): Rat) = (n: Rat) + 1 := by
+  have : 1 = 1 // 1 := rfl
+  rw [Rat.coe_Nat_eq, Rat.coe_Nat_eq, this, add_eq, eq] <;> simp
 
 /-- intCast distributes over addition -/
-lemma Rat.intCast_add (a b:ℤ) : (a:Rat) + (b:Rat) = (a+b:ℤ) := by sorry
+lemma Rat.intCast_add (a b:ℤ) : (a:Rat) + (b:Rat) = (a+b:ℤ) := by
+  rw [coe_Int_eq, coe_Int_eq, coe_Int_eq, add_eq a b (by norm_num) (by norm_num)]
+  rw [eq _ _ (by norm_num : (1:ℤ)*1 ≠ 0) (by norm_num : (1:ℤ) ≠ 0)]
+  ring
 
 /-- intCast distributes over multiplication -/
-lemma Rat.intCast_mul (a b:ℤ) : (a:Rat) * (b:Rat) = (a*b:ℤ) := by sorry
+lemma Rat.intCast_mul (a b:ℤ) : (a:Rat) * (b:Rat) = (a*b:ℤ) := by
+  rw [coe_Int_eq, coe_Int_eq, coe_Int_eq, mul_eq a b (by norm_num) (by norm_num)]
+  rw [eq _ _ (by norm_num : (1:ℤ)*1 ≠ 0) (by norm_num : (1:ℤ) ≠ 0)]
+  ring
 
 /-- intCast commutes with negation -/
 lemma Rat.intCast_neg (a:ℤ) : - (a:Rat) = (-a:ℤ) := rfl
 
-theorem Rat.coe_Int_inj : Function.Injective (fun n:ℤ ↦ (n:Rat)) := by sorry
+theorem Rat.coe_Int_inj : Function.Injective (fun n:ℤ ↦ (n:Rat)) := by
+  intro a b h
+  have h1 : (1:ℤ) ≠ 0 := by norm_num
+  simp at h
+  rw [coe_Int_eq, coe_Int_eq, eq, mul_one, mul_one] at h
+  exact h
+  omega
+  omega
 
 /--
   Whereas the book leaves the inverse of 0 undefined, it is more convenient in Lean to assign a
@@ -149,8 +190,29 @@ theorem Rat.coe_Int_inj : Function.Injective (fun n:ℤ ↦ (n:Rat)) := by sorry
 -/
 instance Rat.instInv : Inv Rat where
   inv := Quotient.lift (fun ⟨ a, b, h1 ⟩ ↦ b // a) (by
-    sorry -- hint: split into the `a=0` and `a≠0` cases
-)
+    intro ⟨ a, b, h1 ⟩ ⟨ a', b', h1' ⟩ h
+    by_cases ha : a = 0
+    · subst ha
+      have ha' : a' = 0 := by
+        have h0 : 0 = a' * b := by simpa using h
+        rcases eq_zero_or_eq_zero_of_mul_eq_zero h0.symm with (haz | hbz)
+        · exact haz
+        · exact absurd hbz h1
+      subst ha'
+      simp [formalDiv]
+    · by_cases ha' : a' = 0
+      · subst ha'
+        have h0 : a * b' = 0 := by simpa using h
+        rcases eq_zero_or_eq_zero_of_mul_eq_zero h0 with (haz | hb'z)
+        · exact absurd haz ha
+        · exact absurd hb'z h1'
+      · simp [ha, ha', formalDiv]
+        apply Quotient.sound
+        simpa [PreRat.instSetoid] using calc
+          b * a' = a' * b := mul_comm _ _
+          _ = a * b' := by rw [← h]
+          _ = b' * a := mul_comm _ _
+  )
 
 lemma Rat.inv_eq (a:ℤ) {b:ℤ} (hb: b ≠ 0) : (a // b)⁻¹ = b // a := by
   convert Quotient.lift_mk _ _ _ <;> simp [hb]
@@ -173,7 +235,31 @@ AddGroup.ofLeftAxioms (by
       add_eq _ _ hb hdf, ←mul_assoc b, eq _ _ hbdf hbdf]
   ring
 )
- (by sorry) (by sorry)
+ (by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    calc
+      (0:Rat) + (a // b) = ((0:ℤ) // 1) + (a // b) := rfl
+      _ = (0 * b + 1 * a) // (1 * b) := by rw [add_eq 0 a (by norm_num) hb]
+      _ = a // b := by
+        rw [eq (0 * b + 1 * a) a (Int.mul_ne_zero (by norm_num : (1:ℤ) ≠ 0) hb) hb]
+        simp)
+  (by
+    intro x
+    obtain ⟨ a, b, hb, rfl ⟩ := eq_diff x
+    calc
+      (-(a // b)) + (a // b) = ((-a) // b) + (a // b) := by rw [neg_eq a hb]
+      _ = ((-a) * b + b * a) // (b * b) := by rw [add_eq (-a) a hb hb]
+      _ = 0 // (b * b) := by
+        have hbb : b * b ≠ 0 := Int.mul_ne_zero hb hb
+        rw [eq ((-a) * b + b * a) 0 hbb hbb]
+        ring
+      _ = (0:Rat) := by
+        have hbb : b * b ≠ 0 := Int.mul_ne_zero hb hb
+        have h1 : (1:ℤ) ≠ 0 := by norm_num
+        calc
+          0 // (b * b) = (0:ℤ) // 1 := (eq 0 0 hbb h1).mpr (by simp)
+          _ = (0:Rat) := (coe_Int_eq 0).symm)
 
 /-- Proposition 4.2.4 (laws of algebra) / Exercise 4.2.3 -/
 instance Rat.instAddCommGroup : AddCommGroup Rat where
