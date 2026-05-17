@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第4.2节：有理数 - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            font-style: italic;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .lemma {
+            background: #faf8f5;
+            border-left: 4px solid #d4a054;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .lemma .label {
+            font-weight: 600;
+            color: #8b6914;
+        }
+
+        .proposition {
+            background: #f5f8f5;
+            border-left: 4px solid #5a9a5a;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .proposition .label {
+            font-weight: 600;
+            color: #2d5a2d;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "证明.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long {
+            font-size: 0.95em;
+        }
+
+        .book-title {
+            font-style: italic;
+        }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "注: ";
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9em;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .navigation:hover {
+            background: #555;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_4">10.1007/978-981-19-7261-4_4</a>
+</div>
+
+<h1>4 整数与有理数</h1>
+
+<h2 class="section-title">
+    <span class="section-number">第4.2节</span>
+    有理数
+    <span class="page-ref">第69–73页</span>
+</h2>
+
+<p>
+我们现在已经构造了整数，以及加法、减法、乘法运算和序关系，并验证了所有预期的代数和序理论性质。
+现在我们将使用类似的构造来建造有理数，将除法加入我们的运算组合中。
+</p>
+
+<p>
+正如整数是通过两个自然数相减构造出来的，有理数可以通过两个整数相除来构造，
+不过当然我们必须有通常的警告：分母不能为零。<sup>2</sup>
+当然，正如两个差 \(a-b\) 和 \(c-d\) 可以在 \(a+d=c+b\) 时相等一样，
+我们从更高级的知识中知道，两个商 \(a/b\) 和 \(c/d\) 可以在 \(ad=bc\) 时相等。
+因此，类比整数，我们创建一个新的无意义符号 //（最终将被除法取代），并定义：
+</p>
+
+<div class="definition" id="def-4.2.1">
+    <span class="label">定义 4.2.1（有理数）。</span>
+    一个有理数是形如 \(a//b\) 的表达式，其中 \(a\) 和 \(b\) 是整数且 \(b\) 非零；\(a//0\) 不被视为有理数。
+    当且仅当 \(ad = cb\) 时，我们认为两个有理数相等，记作 \(a//b = c//d\)。
+    所有有理数的集合记作 \(\mathbb{Q}\)。
+</div>
+
+<p>
+因此例如 \(3//4 = 6//8 = -3//-4\)，但 \(3//4 \neq 4//3\)。
+这是一个合法的相等定义（习题 4.2.1）。
+现在我们需要加法、乘法和否定的概念。同样，我们将利用我们已有的知识，
+它告诉我们 \(a/b + c/d\) 应等于 \((ad+bc)/(bd)\)，
+且 \(a/b \times c/d\) 应等于 \(ac/bd\)，而 \(-(a/b)\) 等于 \((-a)/b\)。
+受此先验知识的启发，我们定义：
+</p>
+
+<div class="definition" id="def-4.2.2">
+    <span class="label">定义 4.2.2（有理数的加法、乘法与否定）。</span>
+    如果 \(a//b\) 和 \(c//d\) 是有理数，我们定义它们的和
+    <div class="formula">
+    \[(a//b) + (c//d) := (ad + bc)//(bd),\]
+    </div>
+    它们的积
+    <div class="formula">
+    \[(a//b) \times (c//d) := (ac)//(bd),\]
+    </div>
+    以及否定
+    <div class="formula">
+    \[-(a//b) := (-a)//b.\]
+    </div>
+</div>
+
+<p>
+注意如果 \(b\) 和 \(d\) 非零，由命题 4.1.8 可知 \(bd\) 也非零，因此两个有理数的和或积仍然是有理数。
+</p>
+
+<div class="lemma" id="lem-4.2.3">
+    <span class="label">引理 4.2.3（和、积与否定运算是良好定义的）。</span>
+    有理数上的加法、乘法和否定运算是良好定义的，即如果将 \(a//b\) 替换为与之相等的另一个有理数 \(a'//b'\)，
+    上述运算的输出保持不变；对于 \(c//d\) 也同样成立。
+</div>
+
+<div class="proof">
+    我们只验证加法；其余断言留给习题 4.2.2。
+    假设 \(a//b = a'//b'\)，因此 \(b\) 和 \(b'\) 非零且 \(ab' = a'b\)。
+    我们要证明 \(a//b + c//d = a'//b' + c//d\)。
+    由定义，左边是 \((ad+bc)//bd\)，右边是 \((a'd+b'c)//b'd\)，
+    因此我们需要证明
+    \[(ad+bc)b'd = (a'd+b'c)bd,\]
+    展开得到
+    \[ab'd^2 + bb'cd = a'bd^2 + bb'cd.\]
+    但由 \(ab' = a'b\)，结论成立。同样地，如果将 \(c//d\) 替换为 \(c'//d'\) 也成立。
+</div>
+
+<p>
+我们注意到，形如 \(a//1\) 的有理数的行为与整数 \(a\) 完全相同：
+</p>
+
+<div class="formula">
+\[(a//1) + (b//1) = (a+b)//1;\qquad
+(a//1) \times (b//1) = (ab)//1;\qquad
+-(a//1) = (-a)//1.\]
+</div>
+
+<p>
+此外，\(a//1\) 与 \(b//1\) 相等当且仅当 \(a\) 与 \(b\) 相等。
+因此，我们将每个整数 \(a\) 等同于 \(a//1\)：\(a \equiv a//1\)；
+上述恒等式保证了整数的算术与有理数的算术是一致的。
+正如我们将自然数嵌入整数一样，我们将整数嵌入有理数。
+特别地，所有自然数都是有理数，例如 \(0\) 等于 \(0//1\)，\(1\) 等于 \(1//1\)。
+</p>
+
+<p>
+注意一个有理数 \(a//b\) 等于 \(0 = 0//1\) 当且仅当 \(a \times 1 = b \times 0\)，
+即分子 \(a\) 等于 \(0\)。因此如果 \(a\) 和 \(b\) 都非零，则 \(a//b\) 也非零。
+</p>
+
+<p>
+我们现在在有理数上定义一个新的运算：倒数。
+如果 \(x = a//b\) 是一个非零有理数（因此 \(a, b \neq 0\)），
+我们定义 \(x\) 的倒数 \(x^{-1}\) 为有理数 \(x^{-1} := b//a\)。
+容易验证这个运算与我们的相等概念是一致的：
+如果两个有理数 \(a//b\) 与 \(a'//b'\) 相等，那么它们的倒数也相等。
+（相比之下，像"分子"这样的运算不是良好定义的：有理数 \(3//4\) 和 \(6//8\) 相等，但分子不相等，
+因此我们在引用像"\(x\) 的分子"这样的术语时必须小心。）然而，我们将 \(0\) 的倒数保留为未定义。
+</p>
+
+<p>
+现在我们总结有理数的代数性质。
+</p>
+
+<div class="proposition" id="prop-4.2.4">
+    <span class="label">命题 4.2.4（有理数的代数定律）。</span>
+    设 \(x, y, z\) 是有理数。那么以下代数定律成立：
+    <div class="formula formula-long">
+    \[
+    \begin{aligned}
+    x + y &= y + x \\
+    (x + y) + z &= x + (y + z) \\
+    x + 0 = 0 + x &= x \\
+    x + (-x) = (-x) + x &= 0 \\
+    xy &= yx \\
+    (xy)z &= x(yz) \\
+    x \cdot 1 = 1 \cdot x &= x \\
+    x(y + z) &= xy + xz \\
+    (y + z)x &= yx + zx.
+    \end{aligned}
+    \]
+    </div>
+    如果 \(x\) 非零，我们还有
+    <div class="formula">
+    \[xx^{-1} = x^{-1}x = 1.\]
+    </div>
+</div>
+
+<div class="remark">
+    <strong>注 4.2.5。</strong> 上述十条恒等式有一个名称；它们断言有理数 \(\mathbb{Q}\) 构成了一个<strong>域</strong>。
+    这比成为交换环更好，因为有了第十条恒等式 \(xx^{-1}=x^{-1}x=1\)。
+    注意本命题取代了命题 4.1.6。
+</div>
+
+<div class="proof">
+    为了证明这些恒等式，将 \(x = a//b\)，\(y = c//d\)，\(z = e//f\)，
+    其中 \(a, c, e\) 是整数，\(b, d, f\) 是非零整数，然后依次使用整数的代数验证每个恒等式。
+    我们只证明最长的那个，即 \((x+y)+z = x+(y+z)\)：
+    <div class="formula">
+    \[
+    \begin{aligned}
+    (x + y) + z &= ((a//b) + (c//d)) + (e//f) \\
+    &= ((ad+bc)//bd) + (e//f) \\
+    &= (adf + bcf + bde)//bdf; \\
+    x + (y + z) &= (a//b) + ((c//d) + (e//f)) \\
+    &= (a//b) + ((cf+de)//df) \\
+    &= (adf + bcf + bde)//bdf
+    \end{aligned}
+    \]
+    </div>
+    由此可见 \((x+y)+z\) 与 \(x+(y+z)\) 相等。其他恒等式的证明类似，留给习题 4.2.3。
+</div>
+
+<p>
+现在我们可以定义两个有理数 \(x\) 和 \(y\) 的商 \(x/y\)，前提是 \(y\) 非零：
+</p>
+
+<div class="formula">
+\[x/y := x \times y^{-1}.\]
+</div>
+
+<p>
+例如，
+\[(3//4)/(5//6) = (3//4) \times (6//5) = (18//20) = (9//10).\]
+利用这个公式容易看出，对每个整数 \(a\) 和每个非零整数 \(b\)，有 \(a/b = a//b\)。
+因此我们现在可以丢弃 // 记号，使用更常规的 \(a/b\) 代替 \(a//b\)。
+</p>
+
+<p>
+类似地，我们定义有理数上的减法：
+</p>
+
+<div class="formula">
+\[x - y := x + (-y),\]
+</div>
+
+<p>和我们在整数时所做的完全一样。</p>
+
+<p>
+命题 4.2.4 允许我们使用所有通常的代数规则；从现在起我们将不加说明地使用它们。
+</p>
+
+<p>
+在上一节中，我们将整数分为正数、零和负数。现在我们对有理数做同样的事。
+</p>
+
+<div class="definition" id="def-4.2.6">
+    <span class="label">定义 4.2.6（正有理数与负有理性）。</span>
+    一个有理数 \(x\) 被称为是<strong>正的</strong>，当且仅当存在正整数 \(a\) 和 \(b\) 使得 \(x = a/b\)。
+    它被称为是<strong>负的</strong>，当且仅当存在某个正有理数 \(y\) 使得 \(x = -y\)
+    （即存在正整数 \(a\) 和 \(b\) 使得 \(x = (-a)/b\)）。
+</div>
+
+<p>
+因此，例如每个正整数都是正有理数，每个负整数都是负有理性数，
+所以我们的新定义与旧定义是一致的。
+</p>
+
+<div class="lemma" id="lem-4.2.7">
+    <span class="label">引理 4.2.7（有理数的三歧性）。</span>
+    设 \(x\) 是一个有理数。那么以下三条陈述中恰好有一条为真：
+    (a) \(x\) 等于 \(0\)；(b) \(x\) 是正有理数；(c) \(x\) 是负有理性数。
+</div>
+
+<div class="proof">
+    见习题 4.2.4。
+</div>
+
+<div class="definition" id="def-4.2.8">
+    <span class="label">定义 4.2.8（有理数的序）。</span>
+    设 \(x\) 和 \(y\) 是有理数。我们说 \(x > y\) 当且仅当 \(x - y\) 是正有理数，
+    且 \(x < y\) 当且仅当 \(x - y\) 是负有理性数。
+    我们记 \(x \geq y\) 当 \(x > y\) 或 \(x = y\)，类似地定义 \(x \leq y\)。
+</div>
+
+<div class="proposition" id="prop-4.2.9">
+    <span class="label">命题 4.2.9（有理数序的基本性质）。</span>
+    设 \(x, y, z\) 是有理数。那么以下性质成立：
+    <ol type="(a)">
+        <li><strong>（序的三歧性）</strong>\(x = y\)、\(x < y\) 和 \(x > y\) 中恰好有一个为真。</li>
+        <li><strong>（序是反对称的）</strong>\(x < y\) 当且仅当 \(y > x\)。</li>
+        <li><strong>（序是传递的）</strong>如果 \(x < y\) 且 \(y < z\)，则 \(x < z\)。</li>
+        <li><strong>（加法保持序）</strong>如果 \(x < y\)，则 \(x + z < y + z\)。</li>
+        <li><strong>（正数乘法保持序）</strong>如果 \(x < y\) 且 \(z\) 为正，则 \(xz < yz\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    见习题 4.2.5。
+</div>
+
+<div class="remark">
+    <strong>注 4.2.10。</strong> 命题 4.2.9 中的上述五条性质，结合命题 4.2.4 中的域公理，
+    有一个名称：它们断言有理数 \(\mathbb{Q}\) 构成了一个<strong>有序域</strong>。
+    重要的是要记住命题 4.2.9(e) 仅在 \(z\) 为正时成立，见习题 4.2.6。
+</div>
+
+<hr>
+
+<div class="exercises">
+    <h3 style="margin-top: 2em;">— 习题 —</h3>
+
+    <div class="exercise" id="ex-4.2.1">
+        <span class="label">习题 4.2.1.</span>
+        证明有理数相等的定义是自反的、对称的和传递的。（提示：对于传递性，使用推论 4.1.9。）
+    </div>
+
+    <div class="exercise" id="ex-4.2.2">
+        <span class="label">习题 4.2.2.</span>
+        证明引理 4.2.3 的其余部分。
+    </div>
+
+    <div class="exercise" id="ex-4.2.3">
+        <span class="label">习题 4.2.3.</span>
+        证明命题 4.2.4 的其余部分。（提示：与命题 4.1.6 一样，你可以通过使用一些恒等式来证明其他恒等式以节省工作量。）
+    </div>
+
+    <div class="exercise" id="ex-4.2.4">
+        <span class="label">习题 4.2.4.</span>
+        证明引理 4.2.7。（注意，和命题 2.2.13 一样，你需要证明两件不同的事：首先，(a)、(b)、(c) 中至少有一个为真；其次，至多有一个为真。）
+    </div>
+
+    <div class="exercise" id="ex-4.2.5">
+        <span class="label">习题 4.2.5.</span>
+        证明命题 4.2.9。
+    </div>
+
+    <div class="exercise" id="ex-4.2.6">
+        <span class="label">习题 4.2.6.</span>
+        证明如果 \(x, y, z\) 是有理数，满足 \(x < y\) 且 \(z\) 为负，则 \(xz > yz\)。
+    </div>
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.2 节的正文。</p>
+    <p>相应的 Lean 形式化证明，见 <code>Section_4_2.lean</code>。</p>
+</div>
+
+</body>
+</html>
