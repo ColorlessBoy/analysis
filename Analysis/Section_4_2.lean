@@ -617,8 +617,36 @@ instance Rat.instLE : LE Rat where
 theorem Rat.lt_iff (x y:Rat) : x < y ↔ (x-y).isNeg := by rfl
 theorem Rat.le_iff (x y:Rat) : x ≤ y ↔ (x < y) ∨ (x = y) := by rfl
 
-theorem Rat.gt_iff (x y:Rat) : x > y ↔ (x-y).isPos := by sorry
-theorem Rat.ge_iff (x y:Rat) : x ≥ y ↔ (x > y) ∨ (x = y) := by sorry
+lemma Rat.pos_to_neg (x y: Rat) : (x - y).isPos ↔ (y - x).isNeg := by
+    constructor
+    · rintro ⟨a, b, ha, hb, h⟩
+      refine ⟨a // b, ?_, ?_⟩
+      · use a, b
+        apply And.intro ha (And.intro hb _)
+        rw [Rat.div_eq_formalDiv]
+        omega
+      calc
+        y - x = -(x - y) := (neg_sub x y).symm
+        _ = -((a:Rat) / b) := by rw [h]
+        _ = -a // b := by rw [Rat.div_eq_formalDiv _ (by omega)]
+    rintro ⟨r, ⟨ra, rb, ⟨hr1, hr2, hr3⟩⟩, h⟩
+    obtain ⟨r1, r2, ⟨hr4, hr5⟩⟩ := eq_diff r
+    use ra, rb
+    apply And.intro hr1 (And.intro hr2 _)
+    calc
+      x - y = -(y - x) := (neg_sub y x).symm
+      _ = -(-r) := by rw [h]
+      _ = r := by simp
+      _ = ra / rb := hr3
+
+theorem Rat.gt_iff (x y:Rat) : x > y ↔ (x-y).isPos := by
+  rw [Rat.pos_to_neg]
+  rfl
+
+theorem Rat.ge_iff (x y:Rat) : x ≥ y ↔ (x > y) ∨ (x = y) := by
+  have : x ≥ y ↔ (y - x).isNeg ∨ (y = x) := by rfl
+  rw [this]
+  rw [eq_comm, gt_iff, pos_to_neg]
 
 /-- Proposition 4.2.9(a) (order trichotomy) / Exercise 4.2.5 -/
 theorem Rat.trichotomous' (x y:Rat) : x > y ∨ x < y ∨ x = y := by sorry
