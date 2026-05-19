@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第4.3节：绝对值与指数运算 - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            font-style: italic;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .remark strong {
+            color: #333;
+        }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "证明.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+            margin-top: 0.5em;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long {
+            font-size: 0.95em;
+        }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "注: ";
+            font-weight: 600;
+        }
+
+        .supplement {
+            background: #f0f7ff;
+            border-left: 4px solid #e06090;
+            padding: 15px 20px;
+            margin: 2em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .supplement .sup-title {
+            font-weight: 700;
+            color: #b04060;
+            font-size: 1.05em;
+            margin-bottom: 0.5em;
+            display: block;
+        }
+
+        .supplement p {
+            text-indent: 0;
+            font-size: 0.95em;
+        }
+
+        .supplement ul {
+            font-size: 0.95em;
+            padding-left: 1.5em;
+        }
+
+        .supplement li {
+            margin: 0.3em 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .table-title {
+            font-weight: 600;
+            text-align: center;
+            margin: 1em 0 0.3em 0;
+            font-size: 0.95em;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .toc {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 1.5em 0;
+        }
+
+        .toc .toc-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 0.8em;
+            color: #444;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 1.5em;
+        }
+
+        .toc li {
+            margin: 0.3em 0;
+            font-size: 0.95em;
+        }
+
+        .toc a {
+            color: #4a6fa5;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 2em 0;
+        }
+    </style>
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_4">10.1007/978-981-19-7261-4_4</a>
+</div>
+
+<h1>4 整数与有理数</h1>
+
+<h2 class="section-title">
+    <span class="section-number">第4.3节</span>
+    绝对值与指数运算
+    <span class="page-ref">第73–76页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s43-intro">引言</a></li>
+        <li><a href="#s43-field-review">补充说明：从群到有序域</a></li>
+        <li><a href="#s43-abs-def">定义 4.3.1：绝对值</a></li>
+        <li><a href="#s43-distance">距离与距离基本性质</a></li>
+        <li><a href="#s43-prop33">命题 4.3.3：绝对值与距离的基本性质</a></li>
+        <li><a href="#s43-eps-close">定义 4.3.4：ε-接近</a></li>
+        <li><a href="#s43-close-prop">命题 4.3.7：ε-接近的基本性质</a></li>
+        <li><a href="#s43-exp-def">定义 4.3.9：自然数指数幂</a></li>
+        <li><a href="#s43-exp-prop1">命题 4.3.10：指数运算的性质 I</a></li>
+        <li><a href="#s43-neg-exp">定义 4.3.11：负整数指数幂</a></li>
+        <li><a href="#s43-exp-prop2">命题 4.3.12：指数运算的性质 II</a></li>
+        <li><a href="#s43-supp-ordered-field">补充说明：绝对值与有序域</a></li>
+        <li><a href="#s43-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s43-intro">— 引言 —</div>
+
+<p>
+在前三节中，我们从皮亚诺公理出发构造了自然数 \(\mathbb{N}\)，
+然后通过形式差构造了整数 \(\mathbb{Z}\)，又通过形式商构造了有理数 \(\mathbb{Q}\)。
+每一个阶段，我们都验证了新系统继承了上一阶段的所有代数运算（加法、乘法）
+和序关系，并获得了新的运算能力。有理数 \(\mathbb{Q}\) 的特殊之处在于它同时拥有
+加法、减法、乘法和除法（除数非零），这使它成为一个<strong>有序域</strong>。
+</p>
+
+<p>
+有了有理数的代数结构和序结构之后，本节将引入两个紧密关联的
+分析学基本工具：<strong>绝对值</strong>和<strong>指数运算</strong>。
+它们将在后续章节中用于定义极限、连续性、可微性等核心概念。
+</p>
+
+<hr>
+
+<!-- ========== 补充说明：从群到有序域 ========== -->
+<div class="supplement" id="s43-field-review">
+    <span class="sup-title">&#x1F4D6; 补充说明：我们走到了哪里？—— 从群到有序域</span>
+
+    <p>
+    在继续学习第 4.3 节之前，有必要回顾一下我们迄今为止构造的代数结构。
+    这个问题非常重要，因为 Tao 在书中多次提到"群""环""域""有序域"这些术语，
+    初读时容易产生混淆。下面我们用通俗的语言逐一解释。
+    </p>
+
+    <p><strong>1. 半群 (Semigroup)</strong> — 只有结合律的加法</p>
+    <p>
+    自然数 \(\mathbb{N}\) 上的加法满足结合律 \((a+b)+c = a+(b+c)\)，
+    这就是一个<strong>加法半群</strong>。半群只需要一个二元运算满足结合律，
+    不要求有零元、不要求有逆元。
+    </p>
+
+    <p><strong>2. 幺半群 (Monoid)</strong> — 有零元的半群</p>
+    <p>
+    \(\mathbb{N}\) 加上 0 以后，有了加法的单位元（零元 0）：\(a+0 = 0+a = a\)。
+    这就是一个<strong>加法幺半群</strong>。但自然数仍然没有"负数"，
+    所以 3 - 5 在 \(\mathbb{N}\) 中无意义。
+    </p>
+
+    <p><strong>3. 群 (Group)</strong> — 每个元素都有逆元</p>
+    <p>
+    <strong>定义：</strong>一个<strong>群</strong>是一个集合 \(G\) 配上一个二元运算
+    \(\cdot\)（常写为乘法或加法），满足：
+    </p>
+    <ul>
+        <li><strong>结合律：</strong>\((a \cdot b) \cdot c = a \cdot (b \cdot c)\)；</li>
+        <li><strong>单位元存在：</strong>存在 \(e \in G\) 使得 \(e \cdot a = a \cdot e = a\)；</li>
+        <li><strong>逆元存在：</strong>对每个 \(a \in G\)，存在 \(a^{-1} \in G\) 使得 \(a \cdot a^{-1} = a^{-1} \cdot a = e\)。</li>
+    </ul>
+    <p>
+    如果用加法记号，逆元叫"相反数"（写作 \(-a\)），群叫<strong>加法群</strong>。
+    整数 \(\mathbb{Z}\) 就是一个加法群：每个整数 \(n\) 都有相反数 \(-n\) 满足 \(n+(-n)=0\)。
+    自然数 \(\mathbb{N}\) 不是群（缺少逆元），但整数 \(\mathbb{Z}\) 是。
+    </p>
+    <p>
+    如果运算还满足<strong>交换律</strong> \(a \cdot b = b \cdot a\)，就称为<strong>交换群</strong>
+    （或 Abel 群）。\(\mathbb{Z}\) 在加法下是交换群。
+    </p>
+
+    <p><strong>4. 环 (Ring)</strong> — 有两个运算（加法和乘法）</p>
+    <p>
+    一个<strong>环</strong>是一个集合 \(R\) 配有两种运算 \(+\) 和 \(\times\)，满足：
+    </p>
+    <ul>
+        <li>\(R\) 在加法下是交换群（有零元 0，每个元素有相反数）；</li>
+        <li>乘法满足结合律和分配律：\(a\times(b+c)=a\times b + a\times c\)；</li>
+        <li>乘法有单位元 1（幺环）。</li>
+    </ul>
+    <p>
+    整数 \(\mathbb{Z}\) 构成一个<strong>交换环</strong>（乘法也交换），但它不是域
+    —— 因为 \(2\) 没有乘法逆元（\(1/2\) 不是整数）。
+    Tao 在命题 4.1.6 中验证了整数构成环，在注 4.1.7 中指出它是<strong>交换环</strong>。
+    </p>
+
+    <p><strong>5. 域 (Field)</strong> — 除法总可行的环</p>
+    <p>
+    一个<strong>域</strong>是一个交换环 \(F\)，额外要求：每个<strong>非零</strong>元素
+    \(a \neq 0\) 都有乘法逆元 \(a^{-1}\)，满足 \(a \times a^{-1} = 1\)。
+    </p>
+    <p>
+    有理数 \(\mathbb{Q}\) 就是一个域：任意非零有理数 \(x = a/b\) 有倒数
+    \(x^{-1} = b/a\)。这就是 Tao 在命题 4.2.4 中验证的十条恒等式，
+    并在注 4.2.5 中正式宣布 <strong>\(\mathbb{Q}\) 是一个域</strong>。
+    </p>
+
+    <table>
+        <tr><th>结构</th><th>运算</th><th>比上一个多了什么？</th><th>例子</th></tr>
+        <tr><td>半群</td><td>1个，满足结合律</td><td>—</td><td>\(\mathbb{N},+\)</td></tr>
+        <tr><td>幺半群</td><td>同上</td><td>有单位元</td><td>\(\mathbb{N}\cup\{0\},+\)</td></tr>
+        <tr><td>群</td><td>同上</td><td>每个元素有逆元</td><td>\(\mathbb{Z},+\)</td></tr>
+        <tr><td>环</td><td>2个（+ 和 ×）</td><td>加法群 + 乘法 + 分配律</td><td>\(\mathbb{Z}\)</td></tr>
+        <tr><td>域</td><td>2个（+ 和 ×）</td><td>非零元有乘法逆元</td><td>\(\mathbb{Q}\)</td></tr>
+    </table>
+
+    <p><strong>6. 有序域 (Ordered Field)</strong> — 有序关系的域</p>
+    <p>
+    一个<strong>有序域</strong>是一个域 \(F\)，其元素可以比较大小（有全序关系 \(\leq\)），
+    并且序与域运算相容：
+    </p>
+    <ul>
+        <li><strong>加法保持序：</strong>若 \(a \leq b\)，则 \(a+c \leq b+c\)；</li>
+        <li><strong>正数乘法保持序：</strong>若 \(a \leq b\) 且 \(c \geq 0\)，则 \(a\times c \leq b\times c\)。</li>
+    </ul>
+    <p>
+    有理数 \(\mathbb{Q}\) 就是一个<strong>有序域</strong>——Tao 在注 4.2.10 中正式宣布了这一结论。
+    实数 \(\mathbb{R}\) 也是有有序域，但整数 \(\mathbb{Z}\) 不是（因为不是域），
+    自然数 \(\mathbb{N}\) 更不是（既不是群也不是域）。
+    </p>
+
+    <p><strong>为什么这些概念重要？</strong></p>
+    <p>
+    本节（4.3节）的主题——绝对值——正是<em>有序域</em>上的概念。
+    绝对值定义依赖于：
+    </p>
+    <ul>
+        <li><strong>域的否定运算</strong>（\(-x\)）：来自加法群结构；</li>
+        <li><strong>序关系</strong>（\(x > 0,\; x < 0\)）：来自有序域结构；</li>
+        <li><strong>乘法</strong>：绝对值满足 \(|xy| = |x||y|\)，这是乘法和序共同作用的结果。</li>
+    </ul>
+    <p>
+    因此，理解第 4.3 节内容的真正背景是：我们正在研究<strong>有序域 \(\mathbb{Q}\)</strong> 上
+    绝对值和指数运算的性质。这些性质对任何有序域都成立，但我们目前只在 \(\mathbb{Q}\) 上验证它们。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 4.3.1 绝对值定义 ========== -->
+<div class="definition" id="s43-abs-def">
+    <span class="label">定义 4.3.1（绝对值）。</span>
+    如果 \(x\) 是一个有理数，\(x\) 的<strong>绝对值</strong> \(|x|\) 定义如下：
+    如果 \(x\) 是正的，则 \(|x| := x\)；如果 \(x\) 是负的，则 \(|x| := -x\)；
+    如果 \(x\) 是零，则 \(|x| := 0\)。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 绝对值的直观含义是"数轴上到原点的距离"。\(|5| = 5\)，
+    \(|-5| = 5\)，两者到 0 的距离都是 5。绝对值总是非负的。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：绝对值定义的"三分情况"</span>
+    <p>
+    定义 4.3.1 用三种情况定义了 \(|x|\)：正、负、零。这利用了有理数的
+    <strong>三歧性</strong>（引理 4.2.7）：每个有理数要么是零、要么是正、要么是负，
+    三者恰好居其一。因此定义对所有 \(x\) 都给出了唯一确定的值。
+    </p>
+    <p>
+    在 Lean 中，我们可以用 <code>if ... then ... else</code> 来表达这种分情况定义：
+    </p>
+    <div class="formula" style="text-align:left; background:#f5f5f5; padding:10px; font-family:monospace; font-size:0.85em;">
+    def abs (x : &rational;) : &rational; := if x &gt; 0 then x else (if x &lt; 0 then -x else 0)
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 距离 ========== -->
+<div id="s43-distance">
+<p>
+绝对值的一个直接应用是定义两个数之间的<strong>距离</strong>：
+</p>
+
+<div class="formula">
+\[ d(x, y) := |x - y|. \]
+</div>
+
+<p>
+例如 \(d(3, 5) = |3-5| = |-2| = 2\)，\(d(5, 3) = |5-3| = |2| = 2\)。
+距离是对称的——从 3 到 5 的距离等于从 5 到 3 的距离。
+</p>
+</div>
+
+<!-- ========== 命题 4.3.3 ========== -->
+<div id="s43-prop33">
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.3.3：绝对值与距离的基本性质</h3>
+</div>
+
+<p>
+设 \(x, y, z\) 是有理数。
+</p>
+
+<p>
+<strong>(a) 绝对值的非退化性。</strong> \(|x| \geq 0\)。此外，\(|x| = 0\) 当且仅当 \(x = 0\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：什么是"非退化性"？</span>
+    <p>
+    "非退化"（non-degenerate）意味着绝对值不会把非零元素映为零。
+    更一般地说，一个函数 \(f\) 是"非退化的"当 \(f(x)=0\) 蕴含 \(x=0\)。
+    绝对值 \(| \cdot |\) 正好满足这个性质：\(|x|=0\) 当且仅当 \(x=0\)。
+    这保证了距离函数 \(d(x,y) = |x-y|\) 能够区分不同的点
+    （\(d(x,y)=0 \iff x=y\)）。
+    </p>
+</div>
+
+<p>
+<strong>(b) 绝对值的三角不等式。</strong> \(|x + y| \leq |x| + |y|\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：三角不等式为什么叫"三角"？</span>
+    <p>
+    在平面几何中，三角形任意两边之和大于第三边。对于数轴上的点，
+    "从 \(0\) 到 \(x+y\) 的距离"不超过"从 \(0\) 到 \(x\) 的距离"
+    加上"从 \(0\) 到 \(y\) 的距离"。这就是一维的三角不等式。
+    它是分析学中最重要的不等式之一，后面证明极限、连续性的几乎所有性质
+    都要用到它。
+    </p>
+</div>
+
+<p>
+<strong>(c) 绝对值与不等式的关系。</strong>
+\(-y \leq x \leq y\) 当且仅当 \(y \geq |x|\)。
+特别地，我们有 \(-|x| \leq x \leq |x|\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：这个等价关系为什么有用？</span>
+    <p>
+    性质 (c) 在分析中极其常见，因为它将<strong>绝对值不等式</strong>转化为了
+    <strong>普通的双向不等式</strong>。例如：
+    </p>
+    <ul>
+        <li>\(|x - 3| \leq 0.01\) 等价于 \(-0.01 \leq x - 3 \leq 0.01\)；</li>
+        <li>即 \(2.99 \leq x \leq 3.01\)；</li>
+        <li>这告诉我们 \(x\) 落在一个以 3 为中心、半径为 0.01 的区间内。</li>
+    </ul>
+    <p>
+    这种技巧在后面的极限定义中将反复出现：\(|a_n - L| < \varepsilon\) 等价于
+    \(L - \varepsilon < a_n < L + \varepsilon\)。
+    </p>
+</div>
+
+<p>
+<strong>(d) 绝对值的乘法性质。</strong> \(|xy| = |x|\,|y|\)。
+特别地，\(|-x| = |x|\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：绝对值与乘法</span>
+    <p>
+    \(|xy| = |x||y|\) 意味着绝对值"可乘出去"。这个性质加上三角不等式
+    \(|x+y| \leq |x|+|y|\)，表明绝对值是一种<strong>乘法赋值</strong>
+    （multiplicative valuation）或称<strong>绝对值</strong>（absolute value）
+    在域上的结构。
+    </p>
+    <p>
+    \(|-x| = |x|\) 是 \(|xy|=|x||y|\) 的特例（取 \(y=-1\)，注意 \(|-1|=1\)）。
+    它表明绝对值关于正负号是对称的：一个数和它的相反数有相同的绝对值。
+    </p>
+</div>
+
+<p>
+<strong>(e) 距离的非退化性。</strong> \(d(x, y) \geq 0\) 且 \(d(x, y) = 0\) 当且仅当 \(x = y\)。
+</p>
+
+<p>
+<strong>(f) 距离的对称性与三角不等式。</strong>
+\(d(x, y) = d(y, x)\)；
+\(d(x, z) \leq d(x, y) + d(y, z)\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：距离函数的三个公理</span>
+    <p>
+    性质 (e) 和 (f) 合起来表明 \(d(x, y) := |x - y|\) 满足
+    <strong>度量空间</strong>（metric space）的三条公理：
+    </p>
+    <ul>
+        <li><strong>正定性：</strong>\(d(x,y) \geq 0\)，且 \(d(x,y)=0 \iff x=y\)；</li>
+        <li><strong>对称性：</strong>\(d(x,y) = d(y,x)\)；</li>
+        <li><strong>三角不等式：</strong>\(d(x,z) \leq d(x,y) + d(y,z)\)。</li>
+    </ul>
+    <p>
+    任何满足这三条性质的函数都可以称为"距离"。因此 \((\mathbb{Q}, d)\) 构成了
+    一个<strong>度量空间</strong>——这是第五章构造实数 \(\mathbb{R}\) 的基础框架。
+    第 5 章中，我们将用 Cauchy 序列来"填充"这个度量空间中的"空隙"。
+    </p>
+</div>
+
+<div class="proof">
+    见习题 4.3.1。
+    （提示：虽然所有这些断言都可以通过分情况讨论来证明——比如
+    \(x\) 为正、为负或为零——但命题中有些部分可以<em>不用</em>这样繁复的分类
+    就证明出来。例如可以利用前面部分来证明后面的部分。）
+</div>
+
+<hr>
+
+<!-- ========== 4.3.4 eps-接近 ========== -->
+<div class="definition" id="s43-eps-close">
+    <span class="label">定义 4.3.4（\(\varepsilon\)-接近）。</span>
+    设 \(\varepsilon > 0\) 是一个有理数，\(x, y\) 是有理数。
+    我们说 \(y\) 是 <strong>\(\varepsilon\)-接近</strong> 于 \(x\)，如果
+    \(d(y, x) \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注 4.3.5。</strong> 这个定义在数学教科书中并不是标准定义；
+    我们将用它作为"脚手架"来构造后面更重要的<strong>极限</strong>（以及
+    <strong>Cauchy 序列</strong>）的概念。一旦我们有了那些更高级的概念，
+    我们将丢弃 \(\varepsilon\)-接近这个概念。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：\(\varepsilon\) 的由来和为什么用希腊字母</span>
+    <p>
+    \(\varepsilon\)（epsilon）和 \(\delta\)（delta）是分析学中最著名的两个希腊字母。
+    传统上用 \(\varepsilon\) 表示"任意小的正数"，用 \(\delta\) 表示相应选取的
+    "足够小的正数"。这个传统可以追溯到 Cauchy 和 Weierstrass 的 \(\varepsilon\)-\(\delta\) 语言。
+    </p>
+    <p>
+    Tao 在这里定义的 \(\varepsilon\)-接近，本质上是极限定义的"预演"：
+    </p>
+    <ul>
+        <li>\(\varepsilon\)-接近：\(|x - y| \leq \varepsilon\)（两个数之间的距离不超过 \(\varepsilon\)）；</li>
+        <li>序列收敛：\(\lim a_n = L\) 意味着对于任意 \(\varepsilon > 0\)，
+        存在 \(N\) 使得 \(n \geq N\) 时 \(|a_n - L| \leq \varepsilon\)；</li>
+        <li>Cauchy 序列：对于任意 \(\varepsilon > 0\)，存在 \(N\) 使得
+        \(m, n \geq N\) 时 \(|a_m - a_n| \leq \varepsilon\)。</li>
+    </ul>
+    <p>
+    可以看到，\(\varepsilon\)-接近是后面所有收敛概念的"原子单元"。
+    </p>
+</div>
+
+<div id="s43-examples-436">
+<p><strong>例 4.3.6。</strong></p>
+<ul>
+    <li>0.99 和 1.01 是 0.1-接近的（因为 \(|0.99 - 1.01| = 0.02 \leq 0.1\)）；</li>
+    <li>但它们不是 0.01-接近的（因为 \(0.02 > 0.01\)）；</li>
+    <li>2 和 2 对每个正 \(\varepsilon\) 都是 \(\varepsilon\)-接近的（因为 \(|2-2| = 0 \leq \varepsilon\)）。</li>
+</ul>
+</div>
+
+<hr>
+
+<!-- ========== 命题 4.3.7 ========== -->
+<div id="s43-close-prop">
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.3.7：\(\varepsilon\)-接近的性质</h3>
+</div>
+
+<p>设 \(x, y, z, w\) 是有理数。</p>
+
+<p>
+<strong>(a)</strong> 若 \(x = y\)，则对每个 \(\varepsilon > 0\)，\(x\) 与 \(y\) 是 \(\varepsilon\)-接近的。
+反过来，若 \(x\) 与 \(y\) 对每个 \(\varepsilon > 0\) 都是 \(\varepsilon\)-接近的，则 \(x = y\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：性质 (a) 与相等性的关系</span>
+    <p>
+    性质 (a) 表明 \(\varepsilon\)-接近在 \(\varepsilon \to 0\) 的极限下"趋近于"相等。
+    粗略地说，如果两个数在<em>任意</em>精度下都无法区分，那么它们就是相等的。
+    这是分析学里一个反复出现的思想：要证明两个数相等，只需证明它们的距离
+    可以小于任意正数。
+    </p>
+</div>
+
+<p><strong>(b)</strong> 设 \(\varepsilon > 0\)。若 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的，则 \(y\) 与 \(x\) 也是。</p>
+
+<p><strong>(c)</strong> 设 \(\varepsilon, \delta > 0\)。若 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的，且 \(y\) 与 \(z\)
+是 \(\delta\)-接近的，则 \(x\) 与 \(z\) 是 \((\varepsilon + \delta)\)-接近的。</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：性质 (b)(c) 与 "近似相等"</span>
+    <p>
+    Tao 在注 4.3.8 中指出，性质 (a)(b)(c) 应该与相等的<strong>自反性、对称性、传递性</strong>
+    公理做比较。"相等"是精确的关系，"\(\varepsilon\)-接近"是其近似版本：
+    </p>
+    <ul>
+        <li>自反性（每个事物等于自身）对应 (a) 的前半部分；</li>
+        <li>对称性（若 \(a=b\) 则 \(b=a\)）对应 (b)；</li>
+        <li>传递性（若 \(a=b\) 且 \(b=c\) 则 \(a=c\)）对应 (c)，但误差累加了：
+        从 \(\varepsilon + \delta\) 而非简单的 \(\varepsilon\)。</li>
+    </ul>
+</div>
+
+<p><strong>(d)</strong> 设 \(\varepsilon, \delta > 0\)。若 \(x, y\) 是 \(\varepsilon\)-接近的，且
+\(z, w\) 是 \(\delta\)-接近的，则 \(x+z\) 与 \(y+w\) 是 \((\varepsilon+\delta)\)-接近的，
+且 \(x-z\) 与 \(y-w\) 也是 \((\varepsilon+\delta)\)-接近的。</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：加法和减法保持"近似"</span>
+    <p>
+    性质 (d) 说的是：如果你对近似相等的数做加法或减法，结果的误差是原来误差的和。
+    这是极限运算满足加减法的理论基础。后面我们会看到
+    \(\lim (a_n + b_n) = \lim a_n + \lim b_n\)——这个性质的根源就在这里。
+    </p>
+</div>
+
+<p><strong>(e)</strong> 设 \(\varepsilon > 0\)。若 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的，
+则对任意 \(\varepsilon' > \varepsilon\)，它们也是 \(\varepsilon'\)-接近的。</p>
+
+<p><strong>(f)</strong> 设 \(\varepsilon > 0\)。若 \(y\) 和 \(z\) 都与 \(x\) 是 \(\varepsilon\)-接近的，
+且 \(w\) 在 \(y\) 和 \(z\) 之间（即 \(y \leq w \leq z\) 或 \(z \leq w \leq y\)），
+则 \(w\) 也与 \(x\) 是 \(\varepsilon\)-接近的。</p>
+
+<p><strong>(g)</strong> 设 \(\varepsilon > 0\)。若 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的，
+且 \(z\) 非零，则 \(xz\) 与 \(yz\) 是 \(\varepsilon|z|\)-接近的。</p>
+
+<p><strong>(h)</strong> 设 \(\varepsilon, \delta > 0\)。若 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的，
+且 \(z\) 与 \(w\) 是 \(\delta\)-接近的，则 \(xz\) 与 \(yw\) 是
+\((\varepsilon|z| + \delta|x| + \varepsilon\delta)\)-接近的。</p>
+
+<div class="proof">
+    <p>
+    我们只证明最困难的一个，(h)；其余留给习题 4.3.2。
+    </p>
+    <p>
+    设 \(\varepsilon, \delta > 0\)，且 \(x\) 与 \(y\) 是 \(\varepsilon\)-接近的。
+    令 \(a := y - x\)，则 \(y = x + a\) 且 \(|a| \leq \varepsilon\)。
+    类似地，若 \(z\) 与 \(w\) 是 \(\delta\)-接近的，令 \(b := w - z\)，
+    则 \(w = z + b\) 且 \(|b| \leq \delta\)。
+    </p>
+    <p>
+    由于 \(y = x + a\) 且 \(w = z + b\)，我们有
+    \[ yw = (x + a)(z + b) = xz + az + xb + ab. \]
+    因此
+    \[ |yw - xz| = |az + bx + ab| \leq |az| + |bx| + |ab|
+        = |a||z| + |b||x| + |a||b|. \]
+    由于 \(|a| \leq \varepsilon\) 且 \(|b| \leq \delta\)，得到
+    \[ |yw - xz| \leq \varepsilon|z| + \delta|x| + \varepsilon\delta, \]
+    即 \(xz\) 与 \(yw\) 是 \((\varepsilon|z| + \delta|x| + \varepsilon\delta)\)-接近的。
+    </p>
+</div>
+
+<div class="remark">
+    <strong>注 4.3.8。</strong> 应将该命题中的陈述 (a)–(c) 与相等关系的自反、对称和传递
+    公理进行比较。在分析学中，将 \(\varepsilon\)-接近的概念视为"相等"的近似替代
+    常常是很有用的。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：(h) 的证明为什么那么长？</span>
+    <p>
+    性质 (h) 是乘法情形下的误差传播。加法时误差简单相加 \((\varepsilon + \delta)\)，
+    而乘法时误差依赖于乘数本身的大小（出现了 \(|z|\)，\(|x|\)，和交叉项 \(\varepsilon\delta\)）。
+    这个公式是后面证明 <strong>\(\lim (a_n b_n) = (\lim a_n)(\lim b_n)\)</strong>
+    的理论基础。证明的思路——引入辅助变量 \(a = y-x\) 和 \(b = w-z\)——是分析学中的
+    常见技巧：<strong>将要比较的差分解为已知误差的组合</strong>。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 4.3.9 指数定义 ========== -->
+<div class="definition" id="s43-exp-def">
+    <span class="label">定义 4.3.9（自然数次幂）。</span>
+    设 \(x\) 是一个有理数。定义 \(x\) 的 0 次幂为 \(x^0 := 1\)；
+    特别地，我们定义 \(0^0 := 1\)。现在归纳地假设对某个自然数 \(n\)
+    已经定义了 \(x^n\)，则定义 \(x^{n+1} := x^n \times x\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：指数运算与群结构</span>
+    <p>
+    指数运算 \(x^n\)（\(n\) 是自然数）本质上是<strong>幺半群中的重复乘法</strong>。
+    在任意幺半群 \((M, \cdot, 1)\) 中，我们都可以通过归纳定义 \(a^n\)：
+    \(a^0 = 1\)，\(a^{n+1} = a^n \cdot a\)。这里我们只用到有理数乘法幺半群 \((\mathbb{Q}, \times, 1)\)。
+    </p>
+    <p>
+    注意 \(0^0 = 1\) 这个约定看起来奇怪，但从组合学和幺半群理论的角度却很自然：
+    在指数为 0 时，结果是乘法的单位元 1。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 4.3.10 ========== -->
+<div id="s43-exp-prop1">
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.3.10：指数运算的性质 I</h3>
+</div>
+
+<p>设 \(x, y\) 是有理数，\(n, m\) 是自然数。</p>
+
+<p>
+<strong>(a)</strong> \(x^n x^m = x^{n+m}\)，\((x^n)^m = x^{nm}\)，\((xy)^n = x^n y^n\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：指数律——为什么同底数的幂可以合并指数？</span>
+    <p>
+    这三条是<strong>指数律</strong>（laws of exponents）。用通俗的语言：
+    </p>
+    <ul>
+        <li>\(x^n x^m = x^{n+m}\)：相乘时指数相加；</li>
+        <li>\((x^n)^m = x^{nm}\)：幂的幂是指数相乘；</li>
+        <li>\((xy)^n = x^n y^n\)：积的幂等于幂的积。</li>
+    </ul>
+    <p>
+    这些性质源于指数运算的递归定义，可以通过<strong>数学归纳法</strong>证明。
+    例如 \(x^n x^m = x^{n+m}\)：先固定 \(n\)，对 \(m\) 归纳；或者固定 \(m\)，对 \(n\) 归纳。
+    </p>
+</div>
+
+<p><strong>(b)</strong> 若 \(n > 0\)，则 \(x^n = 0\) 当且仅当 \(x = 0\)。</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：零点与幂</span>
+    <p>
+    性质 (b) 说的是非零元的幂不为零。在域中，非零元的乘积仍为非零元
+    （这在命题 4.2.4 的域公理中有所体现），因此重复相乘也不会变成零。
+    这个性质的另一面是：零的任意正次幂是零。
+    </p>
+</div>
+
+<p>
+<strong>(c)</strong> 若 \(x \geq y \geq 0\)，则 \(x^n \geq y^n \geq 0\)。
+若 \(x > y \geq 0\) 且 \(n > 0\)，则 \(x^n > y^n \geq 0\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：序与指数运算——为什么正数的幂保持序？</span>
+    <p>
+    性质 (c) 反映了有序域的一个重要特征：如果 \(x \geq y \geq 0\)，那么
+    乘以 \(x\) 或 \(y\) 多次不会反转不等式方向。这是由
+    命题 4.2.9(e)（正数乘法保持序）通过归纳得到的直接推论。
+    </p>
+</div>
+
+<p><strong>(d)</strong> \(|x^n| = |x|^n\)。</p>
+
+<div class="proof">
+    见习题 4.3.3。（提示：使用归纳法。）
+</div>
+
+<hr>
+
+<!-- ========== 4.3.11 负指数 ========== -->
+<div class="definition" id="s43-neg-exp">
+    <span class="label">定义 4.3.11（负整数次幂）。</span>
+    设 \(x\) 是一个非零有理数。则对任意负整数 \(-n\)，
+    我们定义 \(x^{-n} := 1/x^n\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：负指数扩展了群结构</span>
+    <p>
+    当指数扩展到全体整数（正、负、零）时，指数运算从幺半群结构升级为了
+    <strong>群结构</strong>。具体来说，非零有理数在乘法下构成一个群
+    \((\mathbb{Q}\setminus\{0\}, \times, 1)\)，而指数运算 \(n \mapsto x^n\)
+    成为了从加法群 \(\mathbb{Z}\) 到这个乘法群的<strong>群同态</strong>：
+    \[x^{n+m} = x^n \cdot x^m, \quad x^0 = 1, \quad x^{-n} = (x^n)^{-1}.\]
+    </p>
+    <p>
+    这就是命题 4.3.12(a) 的群论本质。而我们额外有的就是域上的序结构，
+    它使得命题 4.3.12(b)(c) 成立。
+    </p>
+</div>
+
+<p>例如 \(x^{-3} = 1/x^3 = 1/(x \times x \times x)\)。注意当 \(n = 1\)
+时，\(x^{-1}\) 的定义与第 4.2 节中定义的倒数一致，所以符号上没有冲突。</p>
+
+<p>
+我们现在对任何整数 \(n\)（无论正、负或零）都定义了 \(x^n\)。
+</p>
+
+<hr>
+
+<!-- ========== 命题 4.3.12 ========== -->
+<div id="s43-exp-prop2">
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.3.12：指数运算的性质 II</h3>
+</div>
+
+<p>设 \(x, y\) 是非零有理数，\(n, m\) 是整数。</p>
+
+<p>
+<strong>(a)</strong> \(x^n x^m = x^{n+m}\)，\((x^n)^m = x^{nm}\)，\((xy)^n = x^n y^n\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：整数指数与群同态</span>
+    <p>
+    命题 4.3.12(a) 是将命题 4.3.10(a) 从自然数扩展到全体整数。
+    证明不是简单的归纳法——需要用命题 4.3.10 的结论来处理涉及负指数的情况。
+    在群论的语言中，这三条分别表达了指数映射是<strong>群同态</strong>、
+    <strong>迭代运算的一致性</strong>以及<strong>直积上的同态</strong>。
+    </p>
+</div>
+
+<p>
+<strong>(b)</strong> 若 \(x \geq y > 0\)，则当 \(n\) 为正时 \(x^n \geq y^n > 0\)，
+当 \(n\) 为负时 \(0 < x^n \leq y^n\)。
+注意负指数会<strong>反转</strong>不等式方向！
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：负指数导致不等式反转</span>
+    <p>
+    为什么负指数会反转不等式？因为 \(x^{-n} = 1/x^n\)。
+    如果 \(x > y > 0\)，则 \(x^n > y^n > 0\)（正指数保持序），
+    取倒数后序反转：\(1/x^n < 1/y^n\)，即 \(x^{-n} < y^{-n}\)。
+    </p>
+    <p>
+    例如：\(3 > 2 > 0\)。正指数：\(3^2 = 9 > 2^2 = 4\)。
+    负指数：\(3^{-2} = 1/9 \approx 0.111 < 2^{-2} = 1/4 = 0.25\)。
+    </p>
+</div>
+
+<p>
+<strong>(c)</strong> 若 \(x, y > 0\)，\(n \neq 0\)，且 \(x^n = y^n\)，则 \(x = y\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1D4D6; 补充说明：正数的指数映射是单射</span>
+    <p>
+    性质 (c) 说在正有理数范围内，指数函数 \(x \mapsto x^n\)（\(n \neq 0\)）
+    是单射（injective）——不同的输入给出不同的输出。这个性质在下一章
+    定义 \(n\) 次方根 \(\sqrt[n]{x}\) 时将非常关键。
+    </p>
+</div>
+
+<p><strong>(d)</strong> \(|x^n| = |x|^n\)。</p>
+
+<div class="proof">
+    见习题 4.3.4。（提示：归纳法在这里不适用。应当使用命题 4.3.10。）
+</div>
+
+<hr>
+
+<!-- ========== 补充说明：绝对值与有序域 ========== -->
+<div class="supplement" id="s43-supp-ordered-field">
+    <span class="sup-title">&#x1D4D6; 补充说明：有序域中的绝对值——大格局</span>
+
+    <p>
+    现在我们可以把第 4.3 节的所有内容放在一个更大的框架中理解了。
+    </p>
+
+    <p><strong>绝对值公理。</strong> 在任意有序域 \(F\) 上，
+    我们可以定义绝对值 \(|x|\) 为：
+    \[
+    |x| = \begin{cases}
+    x, & x \geq 0, \\
+    -x, & x < 0.
+    \end{cases}
+    \]
+    这个定义与 Tao 的定义 4.3.1 完全一致（只是用 \(\geq\) 代替了三分情况）。
+    它自动满足命题 4.3.3 中的所有性质——这些证明只用到了域公理和序公理，
+    不需要知道元素具体是什么。
+    </p>
+
+    <p><strong>距离与度量空间。</strong> 一旦有了绝对值，就可以定义距离
+    \(d(x,y) = |x-y|\)。这使 \(F\) 成为一个<strong>度量空间</strong>。
+    </p>
+
+    <p><strong>从 \(\mathbb{Q}\) 到 \(\mathbb{R}\)。</strong>
+    Tao 选择先构造 \(\mathbb{Q}\)（一个具体的有序域），然后在上面定义
+    绝对值和距离，再用 Cauchy 序列构造 \(\mathbb{R}\)（一个完备的有序域）。
+    这是典型的"从小到大"的构造路径。另一种路径是"抽象公理化"：
+    直接假设存在一个完备有序域 \(\mathbb{R}\)，然后证明 \(\mathbb{Q}\) 是其子域——
+    这两种方式在数学上等价。
+    </p>
+
+    <p><strong>第 4 章的层次结构总结。</strong></p>
+    <table>
+        <tr><th>节</th><th>构造对象</th><th>代数结构</th><th>新运算</th></tr>
+        <tr><td>4.1</td><td>整数 \(\mathbb{Z}\)</td><td>交换环</td><td>减法</td></tr>
+        <tr><td>4.2</td><td>有理数 \(\mathbb{Q}\)</td><td>有序域</td><td>除法</td></tr>
+        <tr><td>4.3</td><td>绝对值/指数</td><td>有序域（延续）</td><td>绝对值、指数</td></tr>
+        <tr><td>4.4</td><td>有理数的间隙</td><td>—</td><td>—（动机章节）</td></tr>
+    </table>
+
+    <p>
+    从群到有序域的逐步升级，每一步都增加了一个运算能力（减法、除法、序关系），
+    同时保留了上一步的所有性质。这就是"代数结构的层级体系"。
+    理解这个体系对于后续学习实分析、抽象代数和泛函分析都有重要帮助。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s43-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-4.3.1">
+    <span class="label">习题 4.3.1.</span>
+    证明命题 4.3.3。
+    （提示：虽然所有这些断言都可以通过分情况讨论来证明——比如 \(x\) 为正、为负或为零——但命题中有些部分可以不用这样繁复的分类就证明出来。例如可以利用前面部分来证明后面的部分。）
+</div>
+
+<div class="exercise" id="ex-4.3.2">
+    <span class="label">习题 4.3.2.</span>
+    证明命题 4.3.7 中的其余断言。
+</div>
+
+<div class="exercise" id="ex-4.3.3">
+    <span class="label">习题 4.3.3.</span>
+    证明命题 4.3.10。（提示：使用归纳法。）
+</div>
+
+<div class="exercise" id="ex-4.3.4">
+    <span class="label">习题 4.3.4.</span>
+    证明命题 4.3.12。（提示：归纳法在这里不适用。应当使用命题 4.3.10。）
+</div>
+
+<div class="exercise" id="ex-4.3.5">
+    <span class="label">习题 4.3.5.</span>
+    证明对所有正整数 \(N\) 有 \(2^N \geq N\)。（提示：使用归纳法。）
+</div>
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.3 节的正文，以及关于群、环、域、有序域等代数结构的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_4_3.lean</code>。</p>
+</div>
+
+</body>
+</html>
