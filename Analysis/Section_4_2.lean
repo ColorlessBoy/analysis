@@ -968,11 +968,6 @@ abbrev Rat.equivRat : Rat ≃ ℚ where
     simp [formalDiv]
     simpa using (Rat.num_div_den n)
 
-/-- Not in textbook: equivalence preserves order -/
-abbrev Rat.equivRat_order : Rat ≃o ℚ where
-  toEquiv := equivRat
-  map_rel_iff' := by sorry
-
 /-- Not in textbook: equivalence preserves ring operations -/
 abbrev Rat.equivRat_ring : Rat ≃+* ℚ where
   toEquiv := equivRat
@@ -1006,6 +1001,84 @@ abbrev Rat.equivRat_ring : Rat ≃+* ℚ where
     delta equivRat
     simp [formalDiv, hb, hd, hbd]
     field_simp [hb', hd']
+
+private theorem equivRat_neg_neg (x : Rat) : Rat.equivRat (-x) = -(Rat.equivRat x) := by
+  change Rat.equivRat_ring (-x) = -(Rat.equivRat_ring x)
+  exact RingEquiv.map_neg Rat.equivRat_ring x
+
+private theorem equivRat_sub (a b : Rat) : Rat.equivRat (a - b) = Rat.equivRat a - Rat.equivRat b := by
+  change Rat.equivRat_ring (a - b) = Rat.equivRat_ring a - Rat.equivRat_ring b
+  exact RingEquiv.map_sub Rat.equivRat_ring a b
+
+private theorem equivRat_pos_iff_isPos (y : Rat) : 0 < Rat.equivRat y ↔ y.isPos := by
+  obtain ⟨a, b, hb, rfl⟩ := Rat.eq_diff y
+  have hb' : (b : ℚ) ≠ 0 := by exact_mod_cast hb
+  constructor
+  · intro hlt
+    unfold Rat.equivRat at hlt
+    simp [Rat.formalDiv, hb] at hlt
+    field_simp [hb'] at hlt
+    rw [Rat.isPos]
+    rw [div_pos_iff] at hlt
+    rcases hlt with ⟨ha, hblt⟩ | ⟨ha, hblt⟩
+    · refine ⟨a, b, ?_, ?_, (Rat.div_eq_formalDiv a hb).symm⟩
+      · exact_mod_cast ha
+      · exact_mod_cast hblt
+    · have hna : (0 : ℤ) < -a := by exact_mod_cast (show (0 : ℚ) < -a by linarith)
+      have hnb : (0 : ℤ) < -b := by exact_mod_cast (show (0 : ℚ) < -b by linarith)
+      refine ⟨-a, -b, hna, hnb, ?_⟩
+      rw [Rat.div_eq_formalDiv (-a) (by omega)]
+      rw [Rat.eq a (-a) hb (by omega)]
+      ring
+  · intro hpos
+    obtain ⟨a', b', ha', hb', hab⟩ := hpos
+    rw [hab, Rat.div_eq_formalDiv a' (by omega)]
+    delta Rat.equivRat
+    simp [Rat.formalDiv]
+    split
+    · omega
+    · rw [div_pos_iff]
+      left
+      exact ⟨by exact_mod_cast ha', by exact_mod_cast hb'⟩
+
+private theorem equivRat_lt_zero_iff_isNeg (x : Rat) : Rat.equivRat x < 0 ↔ x.isNeg := by
+  constructor
+  · intro h
+    rw [Rat.isNeg]
+    use (-x)
+    refine ⟨?_, (neg_neg x).symm⟩
+    have h1 : Rat.equivRat (-x) > 0 := by rw [equivRat_neg_neg]; linarith
+    exact equivRat_pos_iff_isPos (-x) |>.mp h1
+  · intro h
+    rcases h with ⟨t, ht_pos, ht_eq⟩
+    subst ht_eq
+    rw [equivRat_neg_neg t]
+    have h2 := equivRat_pos_iff_isPos t |>.mpr ht_pos
+    linarith
+
+/-- Not in textbook: equivalence preserves order -/
+abbrev Rat.equivRat_order : Rat ≃o ℚ where
+  toEquiv := equivRat
+  map_rel_iff' := by
+    intro a b
+    rw [Rat.le_iff, Rat.le_iff_lt_or_eq]
+    constructor
+    · rintro (h | h)
+      · left
+        rw [Rat.lt_iff]
+        have hlt : Rat.equivRat a - Rat.equivRat b < 0 := by rwa [sub_lt_zero]
+        rw [← equivRat_sub a b] at hlt
+        exact equivRat_lt_zero_iff_isNeg (a - b) |>.mp hlt
+      · right
+        exact Equiv.injective Rat.equivRat h
+    · rintro (h | h)
+      · left
+        rw [Rat.lt_iff] at h
+        have hlt : Rat.equivRat (a - b) < 0 := equivRat_lt_zero_iff_isNeg (a - b) |>.mpr h
+        rw [equivRat_sub a b] at hlt
+        rwa [← sub_lt_zero]
+      · right
+        exact congr_arg Rat.equivRat h
 
 /--
   (Not from textbook) The textbook rationals are isomorphic (as a field) to the Mathlib rationals.
