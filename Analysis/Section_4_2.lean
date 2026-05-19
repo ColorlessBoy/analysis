@@ -620,24 +620,41 @@ theorem Rat.le_iff (x y:Rat) : x ≤ y ↔ (x < y) ∨ (x = y) := by rfl
 lemma Rat.pos_to_neg (x y: Rat) : (x - y).isPos ↔ (y - x).isNeg := by
     constructor
     · rintro ⟨a, b, ha, hb, h⟩
-      refine ⟨a // b, ?_, ?_⟩
-      · use a, b
-        apply And.intro ha (And.intro hb _)
-        rw [Rat.div_eq_formalDiv]
-        omega
+      have hb_ne : b ≠ 0 := by omega
+      refine ⟨a // b, ⟨a, b, ha, hb, (Rat.div_eq_formalDiv a hb_ne).symm⟩, ?_⟩
       calc
         y - x = -(x - y) := (neg_sub x y).symm
-        _ = -((a:Rat) / b) := by rw [h]
-        _ = -a // b := by rw [Rat.div_eq_formalDiv _ (by omega)]
-    rintro ⟨r, ⟨ra, rb, ⟨hr1, hr2, hr3⟩⟩, h⟩
-    obtain ⟨r1, r2, ⟨hr4, hr5⟩⟩ := eq_diff r
-    use ra, rb
-    apply And.intro hr1 (And.intro hr2 _)
-    calc
-      x - y = -(y - x) := (neg_sub y x).symm
-      _ = -(-r) := by rw [h]
-      _ = r := by simp
-      _ = ra / rb := hr3
+        _ = -((a : Rat) / b) := by rw [h]
+        _ = -(a // b) := by rw [Rat.div_eq_formalDiv a hb_ne]
+    · rintro ⟨r, ⟨ra, rb, ⟨hr1, hr2, hr3⟩⟩, h⟩
+      refine ⟨ra, rb, hr1, hr2, ?_⟩
+      calc
+        x - y = -(y - x) := (neg_sub y x).symm
+        _ = -(-r) := by rw [h]
+        _ = r := by simp
+        _ = ra / rb := hr3
+
+lemma Rat.add_pos_pos (r s: Rat) (hr: r.isPos) (hs: s.isPos) : (r+s).isPos := by
+  rcases hr with ⟨a, b, ha, hb, hr_eq⟩
+  rcases hs with ⟨c, d, hc, hd, hs_eq⟩
+  have hb_ne : b ≠ 0 := by omega
+  have hd_ne : d ≠ 0 := by omega
+  have hbd_ne : b*d ≠ 0 := mul_ne_zero hb_ne hd_ne
+  refine ⟨a*d + b*c, b*d, by nlinarith, by nlinarith, ?_⟩
+  rw [hr_eq, hs_eq, Rat.div_eq_formalDiv a hb_ne, Rat.div_eq_formalDiv c hd_ne,
+    Rat.add_eq a c hb_ne hd_ne, ← Rat.div_eq_formalDiv (a*d + b*c) hbd_ne]
+
+lemma Rat.mul_pos_pos (r s: Rat) (hr: r.isPos) (hs: s.isPos) : (r*s).isPos := by
+  rcases hr with ⟨a, b, ha, hb, hr_eq⟩
+  rcases hs with ⟨c, d, hc, hd, hs_eq⟩
+  have hb_ne : b ≠ 0 := by omega
+  have hd_ne : d ≠ 0 := by omega
+  have hbd_ne : b*d ≠ 0 := mul_ne_zero hb_ne hd_ne
+  refine ⟨a*c, b*d, by nlinarith, by nlinarith, ?_⟩
+  rw [hr_eq, hs_eq, Rat.div_eq_formalDiv a hb_ne, Rat.div_eq_formalDiv c hd_ne,
+    Rat.mul_eq a c hb_ne hd_ne, ← Rat.div_eq_formalDiv (a*c) hbd_ne]
+
+lemma Rat.neg_pos (r: Rat) (hr: r.isPos) : (-r).isNeg := ⟨r, hr, rfl⟩
 
 theorem Rat.gt_iff (x y:Rat) : x > y ↔ (x-y).isPos := by
   rw [Rat.pos_to_neg]
@@ -649,78 +666,282 @@ theorem Rat.ge_iff (x y:Rat) : x ≥ y ↔ (x > y) ∨ (x = y) := by
   rw [eq_comm, gt_iff, pos_to_neg]
 
 /-- Proposition 4.2.9(a) (order trichotomy) / Exercise 4.2.5 -/
-theorem Rat.trichotomous' (x y:Rat) : x > y ∨ x < y ∨ x = y := by sorry
+theorem Rat.trichotomous' (x y:Rat) : x > y ∨ x < y ∨ x = y := by
+  rw [gt_iff, lt_iff]
+  rcases Rat.trichotomous (x-y) with h | h | h
+  · refine Or.inr (Or.inr ?_)
+    exact eq_of_sub_eq_zero h
+  exact Or.inl h
+  exact Or.inr (Or.inl h)
 
 /-- Proposition 4.2.9(a) (order trichotomy) / Exercise 4.2.5 -/
-theorem Rat.not_gt_and_lt (x y:Rat) : ¬ (x > y ∧ x < y):= by sorry
+theorem Rat.not_gt_and_lt (x y:Rat) : ¬ (x > y ∧ x < y) := by
+  rintro ⟨hgt, hlt⟩
+  rw [gt_iff] at hgt
+  exact not_pos_and_neg (x-y) ⟨hgt, hlt⟩
 
 /-- Proposition 4.2.9(a) (order trichotomy) / Exercise 4.2.5 -/
-theorem Rat.not_gt_and_eq (x y:Rat) : ¬ (x > y ∧ x = y):= by sorry
+theorem Rat.not_gt_and_eq (x y:Rat) : ¬ (x > y ∧ x = y) := by
+  rintro ⟨hgt, heq⟩
+  rw [gt_iff] at hgt
+  have hzero : x - y = 0 := by rw [heq, sub_self]
+  exact not_zero_and_pos (x-y) ⟨hzero, hgt⟩
 
 /-- Proposition 4.2.9(a) (order trichotomy) / Exercise 4.2.5 -/
-theorem Rat.not_lt_and_eq (x y:Rat) : ¬ (x < y ∧ x = y):= by sorry
+theorem Rat.not_lt_and_eq (x y:Rat) : ¬ (x < y ∧ x = y) := by
+  rintro ⟨hlt, heq⟩
+  have hzero : x - y = 0 := by rw [heq, sub_self]
+  exact not_zero_and_neg (x-y) ⟨hzero, hlt⟩
 
 /-- Proposition 4.2.9(b) (order is anti-symmetric) / Exercise 4.2.5 -/
-theorem Rat.antisymm (x y:Rat) : x < y ↔ y > x := by sorry
+theorem Rat.antisymm (x y:Rat) : x < y ↔ y > x := Iff.rfl
 
 /-- Proposition 4.2.9(c) (order is transitive) / Exercise 4.2.5 -/
-theorem Rat.lt_trans {x y z:Rat} (hxy: x < y) (hyz: y < z) : x < z := by sorry
+theorem Rat.lt_trans {x y z:Rat} (hxy: x < y) (hyz: y < z) : x < z := by
+  rw [lt_iff] at hxy hyz ⊢
+  rcases hxy with ⟨r, hr, hxy'⟩
+  rcases hyz with ⟨s, hs, hyz'⟩
+  use r + s
+  refine ⟨add_pos_pos r s hr hs, ?_⟩
+  calc
+    x - z = (x - y) + (y - z) := (sub_add_sub_cancel x y z).symm
+    _ = -r + -s := by rw [hxy', hyz']
+    _ = -(r + s) := by ring
 
 /-- Proposition 4.2.9(d) (addition preserves order) / Exercise 4.2.5 -/
-theorem Rat.add_lt_add_right {x y:Rat} (z:Rat) (hxy: x < y) : x + z < y + z := by sorry
+theorem Rat.add_lt_add_right {x y:Rat} (z:Rat) (hxy: x < y) : x + z < y + z := by
+  rw [lt_iff] at hxy ⊢
+  have : x + z - (y + z) = x - y := by ring
+  rw [this]
+  exact hxy
 
 /-- Proposition 4.2.9(e) (positive multiplication preserves order) / Exercise 4.2.5 -/
-theorem Rat.mul_lt_mul_right {x y z:Rat} (hxy: x < y) (hz: z.isPos) : x * z < y * z := by sorry
+theorem Rat.mul_lt_mul_right {x y z:Rat} (hxy: x < y) (hz: z.isPos) : x * z < y * z := by
+  rw [lt_iff] at hxy ⊢
+  rcases hxy with ⟨r, hr, hxy'⟩
+  use r * z
+  refine ⟨mul_pos_pos r z hr hz, ?_⟩
+  calc
+    x * z - y * z = (x - y) * z := by ring
+    _ = (-r) * z := by rw [hxy']
+    _ = -(r * z) := by ring
 
 /-- (Not from textbook) Establish the decidability of this order. -/
 instance Rat.decidableRel : DecidableRel (· ≤ · : Rat → Rat → Prop) := by
   intro n m
+  have hconv : ∀ (a b : ℤ) (h : b ≠ 0),
+      (Quotient.mk PreRat.instSetoid ⟨a, b, h⟩ : Rat) = a // b := by
+    intro a b h; simp [formalDiv, h]
+
   have : ∀ (n:PreRat) (m: PreRat),
       Decidable (Quotient.mk PreRat.instSetoid n ≤ Quotient.mk PreRat.instSetoid m) := by
     intro ⟨ a,b,hb ⟩ ⟨ c,d,hd ⟩
-    -- at this point, the goal is morally `Decidable(a//b ≤ c//d)`, but there are technical
-    -- issues due to the junk value of formal division when the denominator vanishes.
-    -- It may be more convenient to avoid formal division and work directly with `Quotient.mk`.
+    have hsub : a // b - c // d = (a*d - b*c) // (b*d) := by
+      calc
+        a // b - c // d = a // b + (-(c // d)) := rfl
+        _ = a // b + (-c) // d := by rw [neg_eq c hd]
+        _ = (a*d + b*(-c)) // (b*d) := by rw [add_eq a (-c) hb hd]
+        _ = (a*d - b*c) // (b*d) := by ring_nf
     cases (0:ℤ).decLe (b*d) with
-      | isTrue hbd =>
-        cases (a * d).decLe (b * c) with
-          | isTrue h =>
-            apply isTrue
-            sorry
-          | isFalse h =>
-            apply isFalse
-            sorry
-      | isFalse hbd =>
-        cases (b * c).decLe (a * d) with
-          | isTrue h =>
-            apply isTrue
-            sorry
-          | isFalse h =>
-            apply isFalse
-            sorry
+    | isTrue hbd0 =>
+      have hbd_pos : b*d > 0 := by
+        have hne : b*d ≠ 0 := mul_ne_zero hb hd
+        omega
+      exact decidable_of_iff (a*d ≤ b*c) (by
+        constructor
+        · intro h
+          rcases lt_or_eq_of_le h with (hlt | heq)
+          · refine Or.inl ?_
+            simp [hconv a b hb, hconv c d hd, lt_iff, hsub]
+            use (b*c - a*d) // (b*d)
+            refine ⟨⟨b*c - a*d, b*d, by omega, hbd_pos, ?_⟩, ?_⟩
+            · symm; exact Rat.div_eq_formalDiv (b*c - a*d) hbd_pos.ne.symm
+            · calc
+                (a*d - b*c) // (b*d) = (-(b*c - a*d)) // (b*d) := by ring_nf
+                _ = -((b*c - a*d) // (b*d)) := by rw [neg_eq (b*c - a*d) hbd_pos.ne.symm]
+          · refine Or.inr (by
+            simp [hconv a b hb, hconv c d hd, Rat.eq a c hb hd]
+            calc
+              a*d = b*c := heq
+              _ = c*b := mul_comm b c)
+        · intro hle
+          rcases hle with (hlt | heq)
+          · simp [hconv a b hb, hconv c d hd, lt_iff] at hlt
+            rcases hlt with ⟨r, hr, hlt'⟩
+            rw [hsub] at hlt'
+            by_contra! hgt
+            have num_pos : a*d - b*c > 0 := by omega
+            have hpos : ((a*d - b*c) // (b*d)).isPos :=
+              ⟨a*d - b*c, b*d, num_pos, hbd_pos,
+                (Rat.div_eq_formalDiv (a*d - b*c) hbd_pos.ne.symm).symm⟩
+            have hneg : ((a*d - b*c) // (b*d)).isNeg := ⟨r, hr, hlt'⟩
+            exact not_pos_and_neg ((a*d - b*c) // (b*d)) ⟨hpos, hneg⟩
+          · simp [hconv a b hb, hconv c d hd] at heq
+            have h_eq : a*d = c*b := (Rat.eq a c hb hd).mp heq
+            have : a*d = b*c := by simpa [mul_comm] using h_eq
+            omega
+      )
+    | isFalse hbd0 =>
+      have hbd_neg : b*d < 0 := by omega
+      have hden_pos : -(b*d) > 0 := by omega
+      exact decidable_of_iff (b*c ≤ a*d) (by
+        constructor
+        · intro h
+          rcases lt_or_eq_of_le h with (hlt | heq)
+          · refine Or.inl ?_
+            simp [hconv a b hb, hconv c d hd, lt_iff, hsub]
+            use (a*d - b*c) // (-(b*d))
+            refine ⟨⟨a*d - b*c, -(b*d), by omega, hden_pos, ?_⟩, ?_⟩
+            · symm; exact Rat.div_eq_formalDiv (a*d - b*c) hden_pos.ne.symm
+            · calc
+                (a*d - b*c) // (b*d) = (-(a*d - b*c)) // (-(b*d)) := by
+                  rw [Rat.eq (a*d - b*c) (-(a*d - b*c)) hbd_neg.ne hden_pos.ne.symm]
+                  ring
+                _ = -((a*d - b*c) // (-(b*d))) := by
+                  rw [neg_eq (a*d - b*c) hden_pos.ne.symm]
+          · refine Or.inr (by
+            simp [hconv a b hb, hconv c d hd, Rat.eq a c hb hd]
+            calc
+              a*d = b*c := heq.symm
+              _ = c*b := mul_comm b c)
+        · intro hle
+          rcases hle with (hlt | heq)
+          · simp [hconv a b hb, hconv c d hd, lt_iff] at hlt
+            rcases hlt with ⟨r, hr, hlt'⟩
+            rw [hsub] at hlt'
+            by_contra! hgt
+            have h_eq_raw : (a*d - b*c) // (b*d) = (-(a*d - b*c) : Rat) / (-(b*d) : Rat) := by
+              calc
+                (a*d - b*c) // (b*d) = (-(a*d - b*c)) // (-(b*d)) := by
+                  rw [Rat.eq (a*d - b*c) (-(a*d - b*c)) hbd_neg.ne hden_pos.ne.symm]
+                  ring_nf
+                _ = (-(a*d - b*c) : Rat) / (-(b*d) : Rat) := by
+                  simpa using (Rat.div_eq_formalDiv (-(a*d - b*c)) hden_pos.ne.symm).symm
+            have hpos : ((a*d - b*c) // (b*d)).isPos :=
+              ⟨-(a*d - b*c), -(b*d), by omega, hden_pos, by simpa using h_eq_raw⟩
+            have hneg : ((a*d - b*c) // (b*d)).isNeg := ⟨r, hr, hlt'⟩
+            exact not_pos_and_neg ((a*d - b*c) // (b*d)) ⟨hpos, hneg⟩
+          · simp [hconv a b hb, hconv c d hd] at heq
+            have h_eq : a*d = c*b := (Rat.eq a c hb hd).mp heq
+            have : a*d = b*c := by simpa [mul_comm] using h_eq
+            omega
+      )
   exact Quotient.recOnSubsingleton₂ n m this
 
 /-- (Not from textbook) Rat has the structure of a linear ordering. -/
 instance Rat.instLinearOrder : LinearOrder Rat where
-  le_refl := sorry
-  le_trans := sorry
-  lt_iff_le_not_ge := sorry
-  le_antisymm := sorry
-  le_total := sorry
+  le_refl := fun a => Or.inr rfl
+  le_trans := by
+    intro a b c h h'
+    rcases h with (hlt | heq)
+    · rcases h' with (hlt' | heq')
+      · exact Or.inl (lt_trans hlt hlt')
+      · rw [heq'] at hlt; exact Or.inl hlt
+    · rw [heq]; exact h'
+  lt_iff_le_not_ge := by
+    intro a b
+    constructor
+    · intro hlt
+      constructor
+      · exact Or.inl hlt
+      · intro hge
+        rcases hge with (hgt' | heq')
+        · exact Rat.not_gt_and_lt b a ⟨(Rat.antisymm _ _).mp hlt, hgt'⟩
+        · have : (0 : Rat).isNeg := by
+            have h_self : b < b := by
+              rw [heq'.symm] at hlt
+              exact hlt
+            rw [lt_iff] at h_self
+            simpa [sub_self] using h_self
+          exact not_zero_and_neg 0 ⟨rfl, this⟩
+    · rintro ⟨hle, hnge⟩
+      rcases hle with (hlt | heq)
+      · exact hlt
+      · exfalso
+        apply hnge
+        exact Or.inr heq.symm
+  le_antisymm := by
+    intro a b h h'
+    rcases h with (hlt | heq)
+    · rcases h' with (hlt' | heq')
+      · exact absurd ⟨(Rat.antisymm _ _).mp hlt, hlt'⟩ (Rat.not_gt_and_lt b a)
+      · exact heq'.symm
+    · exact heq
+  le_total := by
+    intro a b
+    rcases Rat.trichotomous' a b with (hgt | hlt | heq)
+    · exact Or.inr (Or.inl hgt)
+    · exact Or.inl (Or.inl hlt)
+    · exact Or.inl (Or.inr heq)
   toDecidableLE := decidableRel
+
+lemma Rat.zero_lt_iff_isPos (x : Rat) : 0 < x ↔ x.isPos := by
+  constructor
+  · intro h
+    rw [lt_iff] at h
+    rcases h with ⟨r, hr, h_eq⟩
+    have hx_eq_r : x = r := neg_injective (by
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using h_eq)
+    rw [hx_eq_r]
+    exact hr
+  · intro h
+    rw [lt_iff]
+    refine ⟨x, h, ?_⟩
+    simp
 
 /-- (Not from textbook) Rat has the structure of a strict ordered ring. -/
 instance Rat.instIsStrictOrderedRing : IsStrictOrderedRing Rat where
-  add_le_add_left := by sorry
-  add_le_add_right := by sorry
-  mul_lt_mul_of_pos_left := by sorry
-  mul_lt_mul_of_pos_right := by sorry
-  le_of_add_le_add_left := by sorry
-  zero_le_one := by sorry
+  add_le_add_left := by
+    intro a b h c
+    rcases h with (hlt | heq)
+    · exact Or.inl (add_lt_add_right c hlt)
+    · rw [heq]
+  add_le_add_right := by
+    intro a b h c
+    rcases h with (hlt | heq)
+    · have h_ac_bc : a + c < b + c := add_lt_add_right c hlt
+      have : a + c ≤ b + c := Or.inl h_ac_bc
+      simpa [add_comm] using this
+    · rw [heq]
+  mul_lt_mul_of_pos_left := by
+    intro a ha b c hbc
+    have ha_pos : a.isPos := (zero_lt_iff_isPos a).mp ha
+    -- need a * b < a * c, have b < c
+    simpa [mul_comm] using mul_lt_mul_right hbc ha_pos
+  mul_lt_mul_of_pos_right := by
+    intro c hc a b hab
+    have hc_pos : c.isPos := (zero_lt_iff_isPos c).mp hc
+    exact mul_lt_mul_right hab hc_pos
+  le_of_add_le_add_left := by
+    intro a b c h
+    rcases h with (hlt | heq)
+    · rw [lt_iff] at hlt
+      have : (a + b) - (a + c) = b - c := by ring
+      rw [this] at hlt
+      exact Or.inl (by rw [lt_iff]; exact hlt)
+    · exact Or.inr (add_left_cancel heq)
+  zero_le_one := by
+    refine Or.inl ?_
+    rw [zero_lt_iff_isPos]
+    refine ⟨1, 1, by norm_num, by norm_num, ?_⟩
+    calc
+      (1 : Rat) = 1 // 1 := rfl
+      _ = (1 : ℤ) / (1 : ℤ) := (Rat.div_eq_formalDiv 1 (by norm_num : (1 : ℤ) ≠ 0)).symm
 
 /-- Exercise 4.2.6 -/
 theorem Rat.mul_lt_mul_right_of_neg (x y z:Rat) (hxy: x < y) (hz: z.isNeg) : x * z > y * z := by
-  sorry
+  rw [gt_iff]
+  rw [lt_iff] at hxy
+  rcases hxy with ⟨s, hs_pos, hxy_eq⟩
+  rcases hz with ⟨r, hr_pos, hz_eq⟩
+  have : x * z - y * z = s * r := by
+    calc
+      x * z - y * z = (x - y) * z := by ring
+      _ = (-s) * z := by rw [hxy_eq]
+      _ = (-s) * (-r) := by rw [hz_eq]
+      _ = s * r := by ring
+  rw [this]
+  exact mul_pos_pos s r hs_pos hr_pos
 
 
 /--
@@ -729,10 +950,23 @@ theorem Rat.mul_lt_mul_right_of_neg (x y z:Rat) (hxy: x < y) (hz: z.isNeg) : x *
 -/
 abbrev Rat.equivRat : Rat ≃ ℚ where
   toFun := Quotient.lift (fun ⟨ a, b, h ⟩ ↦ a / b) (by
-    sorry)
+    intro ⟨a, b, hb⟩ ⟨c, d, hd⟩ h
+    simp [PreRat.eq a b c d hb hd] at h
+    have hb' : (b : ℚ) ≠ 0 := by exact_mod_cast hb
+    have hd' : (d : ℚ) ≠ 0 := by exact_mod_cast hd
+    apply (div_eq_div_iff hb' hd').mpr
+    exact_mod_cast h)
   invFun := fun n: ℚ ↦ (n:Rat)
-  left_inv n := sorry
-  right_inv n := sorry
+  left_inv n := by
+    apply Quotient.ind _ n
+    intro ⟨a, b, hb⟩
+    simpa [formalDiv, hb] using Rat.coe_Rat_eq a hb
+  right_inv n := by
+    dsimp
+    have hcast : (↑n : Rat) = n.num // (n.den : ℤ) := rfl
+    rw [hcast]
+    simp [formalDiv]
+    simpa using (Rat.num_div_den n)
 
 /-- Not in textbook: equivalence preserves order -/
 abbrev Rat.equivRat_order : Rat ≃o ℚ where
@@ -742,8 +976,36 @@ abbrev Rat.equivRat_order : Rat ≃o ℚ where
 /-- Not in textbook: equivalence preserves ring operations -/
 abbrev Rat.equivRat_ring : Rat ≃+* ℚ where
   toEquiv := equivRat
-  map_add' := by sorry
-  map_mul' := by sorry
+  map_add' x y := by
+    refine Quotient.ind₂ (motive := λ x y : Rat => equivRat (x + y) = equivRat x + equivRat y) ?_ x y
+    intro ⟨a, b, hb⟩ ⟨c, d, hd⟩
+    have ha_rep : (⟦{ numerator := a, denominator := b, nonzero := hb }⟧ : Rat) = a // b := by
+      simp [formalDiv, hb]
+    have hc_rep : (⟦{ numerator := c, denominator := d, nonzero := hd }⟧ : Rat) = c // d := by
+      simp [formalDiv, hd]
+    rw [ha_rep, hc_rep]
+    rw [Rat.add_eq a c hb hd]
+    have hb' : (b : ℚ) ≠ 0 := by exact_mod_cast hb
+    have hd' : (d : ℚ) ≠ 0 := by exact_mod_cast hd
+    have hbd : b*d ≠ 0 := mul_ne_zero hb hd
+    delta equivRat
+    simp [formalDiv, hb, hd, hbd]
+    field_simp [hb', hd']
+  map_mul' x y := by
+    refine Quotient.ind₂ (motive := λ x y : Rat => equivRat (x * y) = equivRat x * equivRat y) ?_ x y
+    intro ⟨a, b, hb⟩ ⟨c, d, hd⟩
+    have ha_rep : (⟦{ numerator := a, denominator := b, nonzero := hb }⟧ : Rat) = a // b := by
+      simp [formalDiv, hb]
+    have hc_rep : (⟦{ numerator := c, denominator := d, nonzero := hd }⟧ : Rat) = c // d := by
+      simp [formalDiv, hd]
+    rw [ha_rep, hc_rep]
+    rw [Rat.mul_eq a c hb hd]
+    have hb' : (b : ℚ) ≠ 0 := by exact_mod_cast hb
+    have hd' : (d : ℚ) ≠ 0 := by exact_mod_cast hd
+    have hbd : b*d ≠ 0 := mul_ne_zero hb hd
+    delta equivRat
+    simp [formalDiv, hb, hd, hbd]
+    field_simp [hb', hd']
 
 /--
   (Not from textbook) The textbook rationals are isomorphic (as a field) to the Mathlib rationals.

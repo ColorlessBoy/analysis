@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "lean-lsp": {
-      "command": "/Users/penglingwei/.local/bin/lean-lsp-mcp",
+      "command": "uvx",
       "args": [
+        "lean-lsp-mcp",
         "--lean-project-path",
         "."
       ],
