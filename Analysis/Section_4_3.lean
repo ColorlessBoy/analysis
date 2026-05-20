@@ -53,7 +53,12 @@ theorem abs_of_zero : abs 0 = 0 := rfl
   Henceforth we use the Mathlib absolute value.
 -/
 theorem abs_eq_abs (x: ℚ) : abs x = |x| := by
-  sorry
+  by_cases hx : 0 < x
+  · rw [abs_of_pos hx, abs_of_nonneg (by linarith)]
+  · by_cases hx' : x < 0
+    · rw [abs_of_neg hx', abs_of_nonpos (by linarith)]
+    · have hx0 : x = 0 := by linarith
+      rw [hx0, abs_of_zero, abs_zero]
 
 abbrev dist (x y : ℚ) := |x - y|
 
