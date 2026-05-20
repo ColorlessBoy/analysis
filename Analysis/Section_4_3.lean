@@ -91,10 +91,28 @@ theorem abs_eq_zero_iff (x: ℚ) : |x| = 0 ↔ x = 0 := by
   rw [hx0]; simp
 
 /-- Proposition 4.3.3(b) / Exercise 4.3.1 -/
-theorem abs_add (x y:ℚ) : |x + y| ≤ |x| + |y| := by sorry
+theorem abs_add (x y:ℚ) : |x + y| ≤ |x| + |y| := by
+  by_cases hxy: 0 < x + y
+  · rw [abs_of_nonneg (by linarith)]
+    apply add_le_add
+    apply le_abs_self
+    apply le_abs_self
+  rw [abs_of_nonpos (by linarith), neg_le, neg_add]
+  apply add_le_add
+  apply neg_abs_le
+  apply neg_abs_le
 
 /-- Proposition 4.3.3(c) / Exercise 4.3.1 -/
-theorem abs_le_iff (x y:ℚ) : -y ≤ x ∧ x ≤ y ↔ |x| ≤ y := by sorry
+theorem abs_le_iff (x y:ℚ) : -y ≤ x ∧ x ≤ y ↔ |x| ≤ y := by
+  constructor
+  · intro ⟨h1, h2⟩
+    by_cases hx: x > 0
+    · rw [abs_of_nonneg (by linarith)]; exact h2
+    rw [abs_of_nonpos (by linarith), neg_le]; exact h1
+  intro hx
+  constructor
+  · apply le_trans _ (neg_abs_le x); apply neg_le_neg hx
+  apply le_trans (le_abs_self x) hx
 
 /-- Proposition 4.3.3(c) / Exercise 4.3.1 -/
 theorem le_abs (x:ℚ) : -|x| ≤ x ∧ x ≤ |x| := by sorry
