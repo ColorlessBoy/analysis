@@ -69,10 +69,26 @@ abbrev dist (x y : ℚ) := |x - y|
 theorem dist_eq (x y: ℚ) : dist x y = |x-y| := rfl
 
 /-- Proposition 4.3.3(a) / Exercise 4.3.1 -/
-theorem abs_nonneg (x: ℚ) : |x| ≥ 0 := by sorry
+theorem abs_nonneg (x: ℚ) : |x| ≥ 0 := by
+  by_cases hx : 0 < x
+  · rw [abs_of_nonneg (by linarith)]; linarith
+  · by_cases hx' : x < 0
+    · rw [abs_of_nonpos (by linarith)]; linarith
+    · have hx0 : x = 0 := by linarith
+      rw [hx0, abs_zero]
 
 /-- Proposition 4.3.3(a) / Exercise 4.3.1 -/
-theorem abs_eq_zero_iff (x: ℚ) : |x| = 0 ↔ x = 0 := by sorry
+theorem abs_eq_zero_iff (x: ℚ) : |x| = 0 ↔ x = 0 := by
+  by_cases hx : 0 < x
+  · constructor
+    · intro h; exfalso; rw [abs_of_nonneg (by linarith)] at h; linarith
+    · intro h; exfalso; linarith
+  by_cases hx' : x < 0
+  · constructor
+    · intro h; rw [abs_of_nonpos (by linarith)] at h; linarith
+    · intro h; exfalso; linarith
+  have hx0 : x = 0 := by linarith
+  rw [hx0]; simp
 
 /-- Proposition 4.3.3(b) / Exercise 4.3.1 -/
 theorem abs_add (x y:ℚ) : |x + y| ≤ |x| + |y| := by sorry
