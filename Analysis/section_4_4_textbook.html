@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分析学 I, 第4.4节：有理数的间隙 - Terence Tao</title>
+    <title>分析学 I, 第4.4节：<span class="t" data-zh="有理数" data-en="rational numbers"></span>的<span class="t" data-zh="间隙" data-en="gaps"></span> - Terence Tao</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
 
@@ -245,8 +245,95 @@
             border-top: 1px solid #eee;
             margin: 2em 0;
         }
+        .lang-toggle {
+            text-align: center;
+            margin: 0 0 20px 0;
+        }
+        .lang-toggle button {
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.85em;
+            padding: 6px 18px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-toggle button:hover {
+            border-color: #4a90d9;
+            color: #4a90d9;
+        }
+        .lang-toggle button.on {
+            background: #4a90d9;
+            color: #fff;
+            border-color: #4a90d9;
+        }
+        .t {
+            border-bottom: 1px dotted #c0c0c0;
+            cursor: help;
+            position: relative;
+        }
+        .t::before {
+            content: attr(data-zh);
+        }
+        .t::after {
+            content: attr(data-en);
+            position: absolute;
+            bottom: 1.6em;
+            left: 0;
+            font-size: 0.8em;
+            color: #fff;
+            background: #555;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 10;
+            font-style: normal;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transition-delay: 0s;
+        }
+        .t:hover::after {
+            opacity: 1;
+            transition-delay: 0.4s;
+        }
+        .lang-en .t::after {
+            font-size: 0.85em;
+            color: #888;
+            margin-left: 0.4em;
+            font-style: italic;
+            opacity: 1;
+            position: static;
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            white-space: normal;
+            pointer-events: auto;
+        }
     </style>
     <script>
+        var currentLang = localStorage.getItem('section44_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section44_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
         MathJax = {
           tex: {
             inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -264,11 +351,16 @@
     DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_4">10.1007/978-981-19-7261-4_4</a>
 </div>
 
-<h1>4 整数与有理数</h1>
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+
+</div>
+
+<h1>4 <span class="t" data-zh="整数" data-en="integers"></span>与<span class="t" data-zh="有理数" data-en="rational numbers"></span></h1>
 
 <h2 class="section-title">
     <span class="section-number">第4.4节</span>
-    有理数的间隙
+    <span class="t" data-zh="有理数的间隙" data-en="Gaps in the Rational Numbers"></span>
     <span class="page-ref">第76–79页</span>
 </h2>
 
@@ -276,15 +368,15 @@
 <div class="toc">
     <div class="toc-title">本节内容导航</div>
     <ol>
-        <li><a href="#s44-intro">引言：有理数在直线上的排列</a></li>
-        <li><a href="#s44-prop41">命题 4.4.1：整数的穿插</a></li>
-        <li><a href="#s44-rem42">注 4.4.2：整数部分（取整函数）</a></li>
-        <li><a href="#s44-prop43">命题 4.4.3：有理数的稠密性</a></li>
-        <li><a href="#s44-gaps">从稠密到不完备：有理数的 "间隙"</a></li>
-        <li><a href="#s44-prop44">命题 4.4.4：\(\sqrt{2}\) 不是有理数</a></li>
-        <li><a href="#s44-prop45">命题 4.4.5：任意接近 \(\sqrt{2}\) 的有理数</a></li>
+        <li><a href="#s44-intro">引言：<span class="t" data-zh="有理数" data-en="rational numbers"></span>在直线上的排列</a></li>
+        <li><a href="#s44-prop41">命题 4.4.1：<span class="t" data-zh="整数" data-en="integers"></span>的穿插</a></li>
+        <li><a href="#s44-rem42">注 4.4.2：<span class="t" data-zh="整数部分" data-en="integer part"></span>（取整函数）</a></li>
+        <li><a href="#s44-prop43">命题 4.4.3：<span class="t" data-zh="有理数" data-en="rational numbers"></span>的<span class="t" data-zh="稠密性" data-en="denseness"></span></a></li>
+        <li><a href="#s44-gaps">从稠密到<span class="t" data-zh="不完备" data-en="incomplete"></span>：<span class="t" data-zh="有理数" data-en="rational numbers"></span>的 "<span class="t" data-zh="间隙" data-en="gaps"></span>"</a></li>
+        <li><a href="#s44-prop44">命题 4.4.4：\(\sqrt{2}\) 不是<span class="t" data-zh="有理数" data-en="rational numbers"></span></a></li>
+        <li><a href="#s44-prop45">命题 4.4.5：任意接近 \(\sqrt{2}\) 的<span class="t" data-zh="有理数" data-en="rational numbers"></span></a></li>
         <li><a href="#s44-ex46">例 4.4.6：数值示例</a></li>
-        <li><a href="#s44-limits">走向实数：极限的思想</a></li>
+        <li><a href="#s44-limits">走向<span class="t" data-zh="实数" data-en="real numbers"></span>：<span class="t" data-zh="极限" data-en="limit"></span>的思想</a></li>
         <li><a href="#s44-supp">补充说明</a></li>
         <li><a href="#s44-exercises">习题</a></li>
     </ol>
@@ -294,48 +386,48 @@
 <div class="chapter-marker" id="s44-intro">— 引言 —</div>
 
 <p>
-设想我们将有理数排列在一条直线上，若 \(x > y\) 则将 \(x\) 放在 \(y\) 的右侧。
+设想我们将<span class="t" data-zh="有理数" data-en="rational numbers"></span>排列在一条直线上，若 \(x > y\) 则将 \(x\) 放在 \(y\) 的右侧。
 （这种排列方式并不严格，因为我们尚未定义"直线"的概念，
-但以下讨论仅用于引出后面的严格命题。）在有理数内部有整数，
-因此整数也以同样的方式排列在这条直线上。现在我们来考察有理数相对于整数的排列方式。
+但以下讨论仅用于引出后面的严格命题。）在<span class="t" data-zh="有理数" data-en="rational numbers"></span>内部有<span class="t" data-zh="整数" data-en="integers"></span>，
+因此<span class="t" data-zh="整数" data-en="integers"></span>也以同样的方式排列在这条直线上。现在我们来考察<span class="t" data-zh="有理数" data-en="rational numbers"></span>相对于<span class="t" data-zh="整数" data-en="integers"></span>的排列方式。
 </p>
 
 <p>
-在此前的构造中，我们从皮亚诺公理出发得到自然数 \(\mathbb{N}\)，
-通过形式差得到整数 \(\mathbb{Z}\)，再通过形式商得到有理数 \(\mathbb{Q}\)。
+在此前的构造中，我们从皮亚诺公理出发得到<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(\mathbb{N}\)，
+通过<span class="t" data-zh="形式差" data-en="formal difference"></span>得到<span class="t" data-zh="整数" data-en="integers"></span> \(\mathbb{Z}\)，再通过<span class="t" data-zh="形式商" data-en="formal quotient"></span>得到<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\mathbb{Q}\)。
 每一步都验证了新系统继承了之前的代数运算和序关系。
-有理数 \(\mathbb{Q}\) 已在第 4.2–4.3 节中被证实为一个<strong>有序域</strong>，
-其中定义了加法、减法、乘法、除法、序关系、绝对值和整数指数幂运算。
+<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\mathbb{Q}\) 已在第 4.2–4.3 节中被证实为一个<strong><span class="t" data-zh="有序域" data-en="ordered field"></span></strong>，
+其中定义了加法、减法、乘法、除法、序关系、<span class="t" data-zh="绝对值" data-en="absolute value"></span>和<span class="t" data-zh="整数" data-en="integers"></span><span class="t" data-zh="指数幂" data-en="exponentiation"></span>运算。
 </p>
 
 <p>
-然而，虽然有理数在序下"稠密"（任意两个有理数之间还有有理数），
-有理数系在分析意义上却是"不完备"的——存在"间隙"或"漏洞"。
-本节将揭示这些间隙，特别是证明 \(\sqrt{2}\) 不是有理数，
-同时说明我们仍然可以用有理数任意逼近 \(\sqrt{2}\)。
-这将为下一章构造实数 \(\mathbb{R}\) 提供核心动机。
+然而，虽然<span class="t" data-zh="有理数" data-en="rational numbers"></span>在序下"稠密"（任意两个<span class="t" data-zh="有理数" data-en="rational numbers"></span>之间还有<span class="t" data-zh="有理数" data-en="rational numbers"></span>），
+<span class="t" data-zh="有理数" data-en="rational numbers"></span>系在分析意义上却是"<span class="t" data-zh="不完备" data-en="incomplete"></span>"的——存在"<span class="t" data-zh="间隙" data-en="gaps"></span>"或"<span class="t" data-zh="漏洞" data-en="holes"></span>"。
+本节将揭示这些<span class="t" data-zh="间隙" data-en="gaps"></span>，特别是证明 \(\sqrt{2}\) 不是<span class="t" data-zh="有理数" data-en="rational numbers"></span>，
+同时说明我们仍然可以用<span class="t" data-zh="有理数" data-en="rational numbers"></span>任意逼近 \(\sqrt{2}\)。
+这将为下一章构造<span class="t" data-zh="实数" data-en="real numbers"></span> \(\mathbb{R}\) 提供核心动机。
 </p>
 
 <hr>
 
 <!-- ========== 命题 4.4.1 ========== -->
 <div id="s44-prop41">
-<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.1：整数的穿插</h3>
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.1：<span class="t" data-zh="整数" data-en="integers"></span>的穿插</h3>
 </div>
 
 <div class="definition" style="font-style: normal;">
-    <span class="label">命题 4.4.1（有理数对整数的穿插）。</span>
-    设 \(x\) 是一个有理数。则存在一个整数 \(n\) 使得
+    <span class="label">命题 4.4.1（<span class="t" data-zh="有理数" data-en="rational numbers"></span>对<span class="t" data-zh="整数" data-en="integers"></span>的穿插）。</span>
+    设 \(x\) 是一个<span class="t" data-zh="有理数" data-en="rational numbers"></span>。则存在一个<span class="t" data-zh="整数" data-en="integers"></span> \(n\) 使得
     \(n \leq x < n + 1\)。事实上，这个整数是<strong>唯一</strong>的
     （即对于每个 \(x\)，恰好存在一个 \(n\) 满足 \(n \leq x < n + 1\)）。
     特别地，存在一个自然数 \(N\) 使得 \(N > x\)
-    （即不存在大于所有自然数的有理数）。
+    （即不存在大于所有<span class="t" data-zh="自然数" data-en="natural numbers"></span>的<span class="t" data-zh="有理数" data-en="rational numbers"></span>）。
 </div>
 
 <div class="remark">
-    <strong>注。</strong> 命题的前半部分有时被称为<strong>阿基米德性质</strong>（Archimedean property）的雏形：
-    对于任何有理数 \(x\)，都存在一个自然数大于它。
-    这个性质在实数构造中将扮演关键角色。
+    <strong>注。</strong> 命题的前半部分有时被称为<strong><span class="t" data-zh="阿基米德性质" data-en="Archimedean property"></span></strong>（Archimedean property）的雏形：
+    对于任何<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x\)，都存在一个<span class="t" data-zh="自然数" data-en="natural numbers"></span>大于它。
+    这个性质在<span class="t" data-zh="实数" data-en="real numbers"></span>构造中将扮演关键角色。
 </div>
 
 <div class="supplement">
@@ -344,9 +436,9 @@
     直觉上，命题 4.4.1 告诉我们以下事实：
     </p>
     <ul>
-        <li><strong>整数覆盖了数轴。</strong> 任何有理数都落在某个长度为 1 的整数区间 \([n, n+1)\) 中。</li>
-        <li><strong>整数的无界性。</strong> 不存在一个有理数能"超过"所有自然数；自然数本身是无界的。</li>
-        <li><strong>任意有理数 x 都存在整数部分。</strong> 这个唯一的 \(n\) 就是 \(x\) 的"向下取整" \(\lfloor x \rfloor\)。</li>
+        <li><strong><span class="t" data-zh="整数" data-en="integers"></span>覆盖了数轴。</strong> 任何<span class="t" data-zh="有理数" data-en="rational numbers"></span>都落在某个长度为 1 的<span class="t" data-zh="整数" data-en="integers"></span>区间 \([n, n+1)\) 中。</li>
+        <li><strong><span class="t" data-zh="整数" data-en="integers"></span>的无界性。</strong> 不存在一个<span class="t" data-zh="有理数" data-en="rational numbers"></span>能"超过"所有<span class="t" data-zh="自然数" data-en="natural numbers"></span>；<span class="t" data-zh="自然数" data-en="natural numbers"></span>本身是无界的。</li>
+        <li><strong>任意<span class="t" data-zh="有理数" data-en="rational numbers"></span> x 都存在<span class="t" data-zh="整数部分" data-en="integer part"></span>。</strong> 这个唯一的 \(n\) 就是 \(x\) 的"向下取整" \(\lfloor x \rfloor\)。</li>
     </ul>
 </div>
 
@@ -359,8 +451,8 @@
 <!-- ========== 注 4.4.2 ========== -->
 <div id="s44-rem42">
 <div class="remark">
-    <strong>注 4.4.2（整数部分）。</strong>
-    满足 \(n \leq x < n + 1\) 的整数 \(n\) 有时被称为 \(x\) 的<strong>整数部分</strong>（integer part），
+    <strong>注 4.4.2（<span class="t" data-zh="整数部分" data-en="integer part"></span>）。</strong>
+    满足 \(n \leq x < n + 1\) 的整数 \(n\) 有时被称为 \(x\) 的<strong><span class="t" data-zh="整数部分" data-en="integer part"></span></strong>（integer part），
     并记作 \(n = \lfloor x \rfloor\)。
 </div>
 </div>
@@ -369,26 +461,26 @@
 
 <!-- ========== 命题 4.4.3 ========== -->
 <div id="s44-prop43">
-<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.3：有理数的稠密性</h3>
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.3：<span class="t" data-zh="有理数" data-en="rational numbers"></span>的<span class="t" data-zh="稠密性" data-en="denseness"></span></h3>
 </div>
 
 <div class="definition" style="font-style: normal;">
-    <span class="label">命题 4.4.3（有理数对有理数的穿插）。</span>
-    若 \(x\) 和 \(y\) 是两个有理数且满足 \(x < y\)，
+    <span class="label">命题 4.4.3（<span class="t" data-zh="有理数" data-en="rational numbers"></span>对<span class="t" data-zh="有理数" data-en="rational numbers"></span>的穿插）。</span>
+    若 \(x\) 和 \(y\) 是两个<span class="t" data-zh="有理数" data-en="rational numbers"></span>且满足 \(x < y\)，
     则存在第三个有理数 \(z\) 使得 \(x < z < y\)。
 </div>
 
 <div class="supplement">
-    <span class="sup-title">&#x1F4D6; 补充说明：这个性质为什么叫"稠密性"？</span>
+    <span class="sup-title">&#x1F4D6; 补充说明：这个性质为什么叫"<span class="t" data-zh="稠密性" data-en="denseness"></span>"？</span>
     <p>
     如果一个集合 \(S\) 中任意两个不同元素之间都存在 \(S\) 中的另一个元素，
-    我们就说 \(S\) 是<strong>稠密的</strong>（在自身中稠密，或者说"序稠密"）。
+    我们就说 \(S\) 是<strong><span class="t" data-zh="稠密的" data-en="dense"></span></strong>（在自身中稠密，或者说"序稠密"）。
     命题 4.4.3 正说明了 \(\mathbb{Q}\) 在自身中稠密。对比来看，
-    \(\mathbb{Z}\) 就不是稠密的——在 3 和 4 之间没有其他整数。
+    \(\mathbb{Z}\) 就不是<span class="t" data-zh="稠密的" data-en="dense"></span>——在 3 和 4 之间没有其他<span class="t" data-zh="整数" data-en="integers"></span>。
     </p>
     <p>
-    但要注意，"稠密"不等于"完备"。有理数虽然有稠密性，
-    却仍然缺少 \(\sqrt{2}\) 这样的点——这就是所谓"间隙"的由来。
+    但要注意，"稠密"不等于"完备"。<span class="t" data-zh="有理数" data-en="rational numbers"></span>虽然有<span class="t" data-zh="稠密性" data-en="denseness"></span>，
+    却仍然缺少 \(\sqrt{2}\) 这样的点——这就是所谓"<span class="t" data-zh="间隙" data-en="gaps"></span>"的由来。
     </p>
 </div>
 
@@ -413,13 +505,13 @@
 
 <!-- ========== 间隙 ========== -->
 <div id="s44-gaps">
-<div class="chapter-marker">— 稠密但不完备 —</div>
+<div class="chapter-marker">— 稠密但<span class="t" data-zh="不完备" data-en="incomplete"></span> —</div>
 
 <p>
-尽管有理数具有上述稠密性质，它们仍然是不完备的；
-有理数之间存在无穷多个"间隙"或"漏洞"（gaps / holes）。
-不过，稠密性确保这些间隙在某种意义上是"无穷小的"。
-例如，我们现在将证明有理数中没有任何一个数的平方等于 2。
+尽管<span class="t" data-zh="有理数" data-en="rational numbers"></span>具有上述<span class="t" data-zh="稠密性" data-en="denseness"></span>质，它们仍然是<span class="t" data-zh="不完备" data-en="incomplete"></span>的；
+<span class="t" data-zh="有理数" data-en="rational numbers"></span>之间存在<span class="t" data-zh="无穷" data-en="infinite"></span>多个"<span class="t" data-zh="间隙" data-en="gaps"></span>"或"<span class="t" data-zh="漏洞" data-en="holes"></span>"（gaps / holes）。
+不过，<span class="t" data-zh="稠密性" data-en="denseness"></span>确保这些<span class="t" data-zh="间隙" data-en="gaps"></span>在某种意义上是"<span class="t" data-zh="无穷" data-en="infinite"></span>小的"。
+例如，我们现在将证明<span class="t" data-zh="有理数" data-en="rational numbers"></span>中没有任何一个数的平方等于 2。
 </p>
 </div>
 
@@ -427,12 +519,12 @@
 
 <!-- ========== 命题 4.4.4 ========== -->
 <div id="s44-prop44">
-<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.4：\(\sqrt{2}\) 不是有理数</h3>
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.4：\(\sqrt{2}\) 不是<span class="t" data-zh="有理数" data-en="rational numbers"></span></h3>
 </div>
 
 <div class="definition" style="font-style: normal;">
     <span class="label">命题 4.4.4。</span>
-    不存在有理数 \(x\) 使得 \(x^2 = 2\)。
+    不存在<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x\) 使得 \(x^2 = 2\)。
 </div>
 
 <div class="proof">
@@ -440,58 +532,58 @@
 </div>
 
 <p>
-<strong>证明梗概。</strong> 假设为了推出矛盾，存在一个有理数 \(x\) 使得 \(x^2 = 2\)。
+<strong>证明梗概。</strong> 假设为了推出矛盾，存在一个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x\) 使得 \(x^2 = 2\)。
 显然 \(x \neq 0\)。我们可以假定 \(x\) 是正的（若 \(x\) 为负，用 \(-x\) 替代，因为
-\(x^2 = (-x)^2\)）。于是 \(x = p/q\)，其中 \(p, q\) 是正整数。因此
+\(x^2 = (-x)^2\)）。于是 \(x = p/q\)，其中 \(p, q\) 是正<span class="t" data-zh="整数" data-en="integers"></span>。因此
 \((p/q)^2 = 2\)，整理得 \(p^2 = 2q^2\)。
 </p>
 
 <p>
-称自然数 \(p\) 为<strong>偶的</strong>（even），若 \(p = 2k\) 对某自然数 \(k\) 成立；
-称其为<strong>奇的</strong>（odd），若 \(p = 2k + 1\) 对某自然数 \(k\) 成立。
-每个自然数要么是偶的要么是奇的，但不可能同时是两者（为什么？）。
-若 \(p\) 是奇的，则 \(p^2\) 也是奇的（为什么？），
-这与 \(p^2 = 2q^2\) 矛盾（因为右侧是偶数）。因此 \(p\) 是偶的，
-即 \(p = 2k\) 对某自然数 \(k\) 成立。
+称<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(p\) 为<strong><span class="t" data-zh="偶的" data-en="even"></span></strong>（even），若 \(p = 2k\) 对某<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(k\) 成立；
+称其为<strong><span class="t" data-zh="奇的" data-en="odd"></span></strong>（odd），若 \(p = 2k + 1\) 对某<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(k\) 成立。
+每个<span class="t" data-zh="自然数" data-en="natural numbers"></span>要么是<span class="t" data-zh="偶的" data-en="even"></span>要么是<span class="t" data-zh="奇的" data-en="odd"></span>，但不可能同时是两者（为什么？）。
+若 \(p\) 是<span class="t" data-zh="奇的" data-en="odd"></span>，则 \(p^2\) 也是<span class="t" data-zh="奇的" data-en="odd"></span>（为什么？），
+这与 \(p^2 = 2q^2\) 矛盾（因为右侧是<span class="t" data-zh="偶数" data-en="even"></span>）。因此 \(p\) 是<span class="t" data-zh="偶的" data-en="even"></span>，
+即 \(p = 2k\) 对某<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(k\) 成立。
 由于 \(p\) 为正，\(k\) 也必为正。将 \(p = 2k\) 代入 \(p^2 = 2q^2\) 得
 \(4k^2 = 2q^2\)，即 \(q^2 = 2k^2\)。
 </p>
 
 <p>
-总结：我们从一组正整数对 \((p, q)\) 满足 \(p^2 = 2q^2\) 出发，
-得到了一组新的正整数对 \((q, k)\) 满足 \(q^2 = 2k^2\)。
+总结：我们从一组正<span class="t" data-zh="整数" data-en="integers"></span>对 \((p, q)\) 满足 \(p^2 = 2q^2\) 出发，
+得到了一组新的正<span class="t" data-zh="整数" data-en="integers"></span>对 \((q, k)\) 满足 \(q^2 = 2k^2\)。
 由于 \(p^2 = 2q^2\)，我们有 \(q < p\)（为什么？）。
 记 \(p' := q\)，\(q' := k\)，则我们从一个解 \((p, q)\) 出发，
 得到了方程 \(p^2 = 2q^2\) 的一个更小的解 \((p', q')\)（即 \(p' < p\)）。
 </p>
 
 <p>
-重复这一过程，我们得到解序列
+重复这一过程，我们得到解<span class="t" data-zh="序列" data-en="sequence"></span>
 \((p, q), (p', q'), (p'', q''), \dots\)，每个解中 \(p\) 的值都比前一个小，
-且所有分量都是正整数。但这与<strong>无穷递降原理</strong>
+且所有分量都是正<span class="t" data-zh="整数" data-en="integers"></span>。但这与<strong><span class="t" data-zh="无穷递降原理" data-en="principle of infinite descent"></span></strong>
 （principle of infinite descent，见习题 4.4.2）矛盾。
-这一矛盾表明不可能存在满足 \(x^2 = 2\) 的有理数 \(x\)。
+这一矛盾表明不可能存在满足 \(x^2 = 2\) 的<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x\)。
 </p>
 
 <div class="supplement">
-    <span class="sup-title">&#x1F4D6; 补充说明：无穷递降法</span>
+    <span class="sup-title">&#x1F4D6; 补充说明：<span class="t" data-zh="无穷递降法" data-en="infinite descent"></span></span>
     <p>
-    <strong>无穷递降法</strong>（infinite descent）是 Fermat 发明的一种证明技巧。
-    其核心想法是：从一组正整数解出发，构造出一组严格更小的正整数解，
-    重复下去得到无穷递减的正整数序列——这在自然数中是不可能的
-    （因为自然数有最小元 1，不能无限下降）。这个方法常用于证明某些丢番图方程无解。
+    <strong><span class="t" data-zh="无穷递降法" data-en="infinite descent"></span></strong>（infinite descent）是 Fermat 发明的一种证明技巧。
+    其核心想法是：从一组正<span class="t" data-zh="整数" data-en="integers"></span>解出发，构造出一组严格更小的正<span class="t" data-zh="整数" data-en="integers"></span>解，
+    重复下去得到<span class="t" data-zh="无穷" data-en="infinite"></span>递减的正<span class="t" data-zh="整数" data-en="integers"></span><span class="t" data-zh="序列" data-en="sequence"></span>——这在<span class="t" data-zh="自然数" data-en="natural numbers"></span>中是不可能的
+    （因为<span class="t" data-zh="自然数" data-en="natural numbers"></span>有最小元 1，不能无限下降）。这个方法常用于证明某些丢番图方程无解。
     </p>
     <p>
-    在命题 4.4.4 的证明中，我们构造了递减的正整数序列：
+    在命题 4.4.4 的证明中，我们构造了递减的正<span class="t" data-zh="整数" data-en="integers"></span><span class="t" data-zh="序列" data-en="sequence"></span>：
     \[
     p > p' > p'' > p''' > \dots \geq 1
     \]
-    这是不可能的。因此原假设（存在有理数 \(x\) 使得 \(x^2 = 2\)）为假。
+    这是不可能的。因此原假设（存在<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x\) 使得 \(x^2 = 2\)）为假。
     </p>
     <p>
     在 Lean 的 <code>Section_4_4.lean</code> 中，这一证明已实现为
     <code>Rat.not_exist_sqrt_two</code>（定理 4.4.4）。该证明巧妙利用了
-    自然数的奇偶性和无穷递降原理。
+    <span class="t" data-zh="自然数" data-en="natural numbers"></span>的奇偶性和<span class="t" data-zh="无穷递降原理" data-en="principle of infinite descent"></span>。
     </p>
 </div>
 
@@ -501,9 +593,9 @@
     证明中需要用到的几个事实：
     </p>
     <ul>
-        <li><strong>偶数的平方是偶数：</strong> 若 \(p = 2k\)，则 \(p^2 = 4k^2 = 2(2k^2)\)。</li>
-        <li><strong>奇数的平方是奇数：</strong> 若 \(p = 2k+1\)，则 \(p^2 = 4k^2 + 4k + 1 = 2(2k^2 + 2k) + 1\)。</li>
-        <li><strong>奇偶排中律：</strong> 每个自然数要么是偶数要么是奇数，但不能同时是两者。</li>
+        <li><strong><span class="t" data-zh="偶数" data-en="even"></span>的平方是<span class="t" data-zh="偶数" data-en="even"></span>：</strong> 若 \(p = 2k\)，则 \(p^2 = 4k^2 = 2(2k^2)\)。</li>
+        <li><strong><span class="t" data-zh="奇数" data-en="odd"></span>的平方是<span class="t" data-zh="奇数" data-en="odd"></span>：</strong> 若 \(p = 2k+1\)，则 \(p^2 = 4k^2 + 4k + 1 = 2(2k^2 + 2k) + 1\)。</li>
+        <li><strong>奇偶排中律：</strong> 每个<span class="t" data-zh="自然数" data-en="natural numbers"></span>要么是<span class="t" data-zh="偶数" data-en="even"></span>要么是<span class="t" data-zh="奇数" data-en="odd"></span>，但不能同时是两者。</li>
         <li><strong>从 \(p^2 = 2q^2\) 推出 \(q < p\)：</strong> 因为 \(p^2 = 2q^2 > q^2\)（对 \(p, q > 0\)），而正数的平方保持序。</li>
     </ul>
     <p>
@@ -515,17 +607,17 @@
 
 <!-- ========== 命题 4.4.5 ========== -->
 <div id="s44-prop45">
-<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.5：任意接近 \(\sqrt{2}\) 的有理数</h3>
+<h3 style="margin: 1.5em 0 0.8em 0;">命题 4.4.5：任意接近 \(\sqrt{2}\) 的<span class="t" data-zh="有理数" data-en="rational numbers"></span></h3>
 </div>
 
 <div class="definition" style="font-style: normal;">
     <span class="label">命题 4.4.5。</span>
-    对每个有理数 \(\varepsilon > 0\)，存在一个非负有理解 \(x\) 使得
+    对每个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\varepsilon > 0\)，存在一个非负有理解 \(x\) 使得
     \(x^2 < 2 < (x + \varepsilon)^2\)。
 </div>
 
 <div class="proof">
-    设 \(\varepsilon > 0\) 是有理数。假设为了推出矛盾，不存在非负有理解 \(x\)
+    设 \(\varepsilon > 0\) 是<span class="t" data-zh="有理数" data-en="rational numbers"></span>。假设为了推出矛盾，不存在非负有理解 \(x\)
     使得 \(x^2 < 2 < (x + \varepsilon)^2\)。这意味着每当 \(x\) 非负且 \(x^2 < 2\) 时，
     必有 \((x + \varepsilon)^2 < 2\)（注意 \((x + \varepsilon)^2\) 不可能等于 2，
     由命题 4.4.4）。由于 \(0^2 < 2\)，我们有 \(\varepsilon^2 < 2\)，
@@ -539,11 +631,11 @@
 <div class="supplement">
     <span class="sup-title">&#x1F4D6; 补充说明：命题 4.4.5 的证明策略</span>
     <p>
-    该证明使用了一种常见的分析学论证模式：<strong>反证法 + 阿基米德性质</strong>。
+    该证明使用了一种常见的分析学论证模式：<strong><span class="t" data-zh="反证法" data-en="proof by contradiction"></span> + <span class="t" data-zh="阿基米德性质" data-en="Archimedean property"></span></strong>。
     关键在于，命题 4.4.1 保证了可以取到足够大的 \(n\) 使得 \(n\varepsilon > 2\)，
-    从而构造出矛盾。本质上，该命题说明有理数虽然不包含 \(\sqrt{2}\)，
-    但在有理数中可以找到任意接近 \(\sqrt{2}\) 的点——\(\sqrt{2}\) 是
-    有理数集的<strong>极限点</strong>（limit point）。
+    从而构造出矛盾。本质上，该命题说明<span class="t" data-zh="有理数" data-en="rational numbers"></span>虽然不包含 \(\sqrt{2}\)，
+    但在<span class="t" data-zh="有理数" data-en="rational numbers"></span>中可以找到任意接近 \(\sqrt{2}\) 的点——\(\sqrt{2}\) 是
+    <span class="t" data-zh="有理数" data-en="rational numbers"></span>集的<strong><span class="t" data-zh="极限点" data-en="limit point"></span></strong>（limit point）。
     </p>
     <p>
     在 Lean 中，该命题已实现为 <code>Rat.exist_approx_sqrt_two</code>。
@@ -566,7 +658,7 @@
 <div class="supplement">
     <span class="sup-title">&#x1F4D6; 补充说明：小数记法</span>
     <p>
-    此处我们使用十进制记法表示有限小数，例如 \(1.414\) 定义为有理数 \(1414/1000\)。
+    此处我们使用十进制记法表示有限小数，例如 \(1.414\) 定义为<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(1414/1000\)。
     关于十进制系统的正式讨论，见附录 B。
     </p>
 </div>
@@ -575,11 +667,11 @@
 
 <!-- ========== 走向实数 ========== -->
 <div id="s44-limits">
-<div class="chapter-marker">— 走向实数：极限的思想 —</div>
+<div class="chapter-marker">— 走向<span class="t" data-zh="实数" data-en="real numbers"></span>：<span class="t" data-zh="极限" data-en="limit"></span>的思想 —</div>
 
 <p>
-命题 4.4.5 表明，虽然有理数集 \(\mathbb{Q}\) 中确实没有 \(\sqrt{2}\) 这个元素，
-但我们可以任意接近 \(\sqrt{2}\)。例如，序列
+命题 4.4.5 表明，虽然<span class="t" data-zh="有理数" data-en="rational numbers"></span>集 \(\mathbb{Q}\) 中确实没有 \(\sqrt{2}\) 这个元素，
+但我们可以任意接近 \(\sqrt{2}\)。例如，<span class="t" data-zh="序列" data-en="sequence"></span>
 </p>
 
 <div class="formula">
@@ -599,12 +691,12 @@
 </div>
 
 <p>
-因此，我们可以通过对有理数序列取"极限"来"创造" \(\sqrt{2}\)。
-这正是下一章构造实数的方法。</p>
+因此，我们可以通过对<span class="t" data-zh="有理数" data-en="rational numbers"></span><span class="t" data-zh="序列" data-en="sequence"></span>取"<span class="t" data-zh="极限" data-en="limit"></span>"来"创造" \(\sqrt{2}\)。
+这正是下一章构造<span class="t" data-zh="实数" data-en="real numbers"></span>的方法。</p>
 
 <p>
-（另一种方法是使用所谓的"戴德金分割"（Dedekind cuts），
-但本书不采用此路径。还可以使用无穷十进制展开，但这会带来一些棘手的问题，
+（另一种方法是使用所谓的"<span class="t" data-zh="戴德金分割" data-en="Dedekind cuts"></span>"（Dedekind cuts），
+但本书不采用此路径。还可以使用<span class="t" data-zh="无穷" data-en="infinite"></span>十进制展开，但这会带来一些棘手的问题，
 例如必须处理 \(0.999\dots = 1.000\dots\) 的情况。
 虽然这种方法最为人所熟知，但实际上比其他方法更复杂；见附录 B。）
 </p>
@@ -612,31 +704,31 @@
 <div class="supplement">
     <span class="sup-title">&#x1F4D6; 补充说明：第 4.4 节在整个分析学中的地位</span>
     <p>
-    第 4.4 节是<strong>第 4 章（整数与有理数）</strong>的最后一节，
-    也是通向<strong>第 5 章（实数）</strong>的桥梁。它的核心信息可以用一句话概括：
+    第 4.4 节是<strong>第 4 章（<span class="t" data-zh="整数" data-en="integers"></span>与<span class="t" data-zh="有理数" data-en="rational numbers"></span>）</strong>的最后一节，
+    也是通向<strong>第 5 章（<span class="t" data-zh="实数" data-en="real numbers"></span>）</strong>的桥梁。它的核心信息可以用一句话概括：
     </p>
     <p style="text-align:center; font-size:1.1em; font-weight:600;">
-    "有理数稠密但不完备，实数的构造正是为了填补这些间隙。"
+    "<span class="t" data-zh="有理数" data-en="rational numbers"></span>稠密但<span class="t" data-zh="不完备" data-en="incomplete"></span>，<span class="t" data-zh="实数" data-en="real numbers"></span>的构造正是为了填补这些<span class="t" data-zh="间隙" data-en="gaps"></span>。"
     </p>
     <p>
     具体来说：
     </p>
     <ul>
-        <li><strong>稠密性</strong>（命题 4.4.3）：任意两个有理数之间还有有理数。这使 \(\mathbb{Q}\) 看起来"很满"。</li>
-        <li><strong>不完备性</strong>（命题 4.4.4）：虽然稠密，但 \(\mathbb{Q}\) 中缺少 \(\sqrt{2}\) 这样的数。</li>
-        <li><strong>逼近可能性</strong>（命题 4.4.5）：虽然 \(\sqrt{2} \notin \mathbb{Q}\)，但我们可以用有理数任意逼近它。</li>
+        <li><strong><span class="t" data-zh="稠密性" data-en="denseness"></span></strong>（命题 4.4.3）：任意两个<span class="t" data-zh="有理数" data-en="rational numbers"></span>之间还有<span class="t" data-zh="有理数" data-en="rational numbers"></span>。这使 \(\mathbb{Q}\) 看起来"很满"。</li>
+        <li><strong><span class="t" data-zh="不完备" data-en="incomplete"></span>性</strong>（命题 4.4.4）：虽然稠密，但 \(\mathbb{Q}\) 中缺少 \(\sqrt{2}\) 这样的数。</li>
+        <li><strong>逼近可能性</strong>（命题 4.4.5）：虽然 \(\sqrt{2} \notin \mathbb{Q}\)，但我们可以用<span class="t" data-zh="有理数" data-en="rational numbers"></span>任意逼近它。</li>
     </ul>
     <p>
-    这三个事实合起来指向了第 5 章的基本思路：将实数定义为有理数 Cauchy 序列的极限。
+    这三个事实合起来指向了第 5 章的基本思路：将<span class="t" data-zh="实数" data-en="real numbers"></span>定义为<span class="t" data-zh="有理数" data-en="rational numbers"></span> Cauchy <span class="t" data-zh="序列" data-en="sequence"></span>的<span class="t" data-zh="极限" data-en="limit"></span>。
     </p>
 
     <table>
         <tr><th>节</th><th>构造对象</th><th>代数结构</th><th>关键性质</th></tr>
-        <tr><td>4.1</td><td>整数 \(\mathbb{Z}\)</td><td>交换环</td><td>减法</td></tr>
-        <tr><td>4.2</td><td>有理数 \(\mathbb{Q}\)</td><td>有序域</td><td>除法</td></tr>
-        <tr><td>4.3</td><td>绝对值与指数</td><td>有序域（延续）</td><td>绝对值、指数幂</td></tr>
-        <tr><td>4.4</td><td>有理数的间隙</td><td>—</td><td>稠密但不完备，\(\sqrt{2} \notin \mathbb{Q}\)</td></tr>
-        <tr><td>5</td><td>实数 \(\mathbb{R}\)</td><td>完备有序域</td><td>极限、上确界</td></tr>
+        <tr><td>4.1</td><td><span class="t" data-zh="整数" data-en="integers"></span> \(\mathbb{Z}\)</td><td><span class="t" data-zh="交换环" data-en="commutative ring"></span></td><td>减法</td></tr>
+        <tr><td>4.2</td><td><span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\mathbb{Q}\)</td><td><span class="t" data-zh="有序域" data-en="ordered field"></span></td><td>除法</td></tr>
+        <tr><td>4.3</td><td><span class="t" data-zh="绝对值" data-en="absolute value"></span>与指数</td><td><span class="t" data-zh="有序域" data-en="ordered field"></span>（延续）</td><td><span class="t" data-zh="绝对值" data-en="absolute value"></span>、<span class="t" data-zh="指数幂" data-en="exponentiation"></span></td></tr>
+        <tr><td>4.4</td><td><span class="t" data-zh="有理数" data-en="rational numbers"></span>的<span class="t" data-zh="间隙" data-en="gaps"></span></td><td>—</td><td>稠密但<span class="t" data-zh="不完备" data-en="incomplete"></span>，\(\sqrt{2} \notin \mathbb{Q}\)</td></tr>
+        <tr><td>5</td><td><span class="t" data-zh="实数" data-en="real numbers"></span> \(\mathbb{R}\)</td><td>完备<span class="t" data-zh="有序域" data-en="ordered field"></span></td><td><span class="t" data-zh="极限" data-en="limit"></span>、上确界</td></tr>
     </table>
 </div>
 
@@ -650,7 +742,7 @@
     <p>
     \(\sqrt{2}\) 的无理性（即命题 4.4.4）是数学史上最重要的发现之一。
     传说古希腊毕达哥拉斯学派的 Hippasus 证明了这一事实，
-    而该学派认为"一切皆数"（即一切皆有理数），
+    而该学派认为"一切皆数"（即一切皆<span class="t" data-zh="有理数" data-en="rational numbers"></span>），
     据说 Hippasus 因此被抛入海中。
     </p>
 
@@ -658,23 +750,23 @@
     从现代数学的视角看，\(\sqrt{2}\) 的无理性说明：
     </p>
     <ul>
-        <li>有理数系在几何上不够用（边长为 1 的正方形的对角线长为 \(\sqrt{2}\)）。</li>
-        <li>有理数系不"完备"——在分析意义上，我们需要实数。</li>
-        <li>"无穷递降法"是一个强大的证明技术，可用于许多数论问题。</li>
+        <li><span class="t" data-zh="有理数" data-en="rational numbers"></span>系在几何上不够用（边长为 1 的正方形的对角线长为 \(\sqrt{2}\)）。</li>
+        <li><span class="t" data-zh="有理数" data-en="rational numbers"></span>系不"完备"——在分析意义上，我们需要<span class="t" data-zh="实数" data-en="real numbers"></span>。</li>
+        <li>"<span class="t" data-zh="无穷递降法" data-en="infinite descent"></span>"是一个强大的证明技术，可用于许多数论问题。</li>
     </ul>
 </div>
 
 <div class="supplement">
     <span class="sup-title">&#x1F4D6; 补充说明：第 4 章整体结构回顾</span>
     <p>
-    第 4 章是全书中最具"构造性"风格的一章。我们从自然数 \(\mathbb{N}\)（第 2 章）出发，
+    第 4 章是全书中最具"构造性"风格的一章。我们从<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(\mathbb{N}\)（第 2 章）出发，
     逐步构造了：
     </p>
     <ul>
-        <li><strong>整数 \(\mathbb{Z}\)（第 4.1 节）：</strong> 自然数的形式差 \(a - b\)。</li>
-        <li><strong>有理数 \(\mathbb{Q}\)（第 4.2 节）：</strong> 整数的形式商 \(a // b\)（\(b \neq 0\)）。</li>
-        <li><strong>绝对值与指数（第 4.3 节）：</strong> 在 \(\mathbb{Q}\) 上定义绝对值和整数指数幂。</li>
-        <li><strong>有理数的间隙（第 4.4 节）：</strong> 揭示 \(\mathbb{Q}\) 的局限，motivate 第 5 章。</li>
+        <li><strong><span class="t" data-zh="整数" data-en="integers"></span> \(\mathbb{Z}\)（第 4.1 节）：</strong> <span class="t" data-zh="自然数" data-en="natural numbers"></span>的<span class="t" data-zh="形式差" data-en="formal difference"></span> \(a - b\)。</li>
+        <li><strong><span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\mathbb{Q}\)（第 4.2 节）：</strong> <span class="t" data-zh="整数" data-en="integers"></span>的<span class="t" data-zh="形式商" data-en="formal quotient"></span> \(a // b\)（\(b \neq 0\)）。</li>
+        <li><strong><span class="t" data-zh="绝对值" data-en="absolute value"></span>与指数（第 4.3 节）：</strong> 在 \(\mathbb{Q}\) 上定义<span class="t" data-zh="绝对值" data-en="absolute value"></span>和<span class="t" data-zh="整数" data-en="integers"></span><span class="t" data-zh="指数幂" data-en="exponentiation"></span>。</li>
+        <li><strong><span class="t" data-zh="有理数" data-en="rational numbers"></span>的<span class="t" data-zh="间隙" data-en="gaps"></span>（第 4.4 节）：</strong> 揭示 \(\mathbb{Q}\) 的局限，motivate 第 5 章。</li>
     </ul>
     <p>
     这种"从简单到复杂"的构造路径，既展示了数学基础的严谨性，
@@ -696,29 +788,29 @@
 
 <div class="exercise" id="ex-4.4.2">
     <span class="label">习题 4.4.2.</span>
-    <strong>定义：</strong>一个序列 \(a_0, a_1, a_2, \dots\) 称为<strong>无穷递降</strong>
-    （infinite descent），如果对每个自然数 \(n\) 都有 \(a_n > a_{n+1}\)
+    <strong>定义：</strong>一个<span class="t" data-zh="序列" data-en="sequence"></span> \(a_0, a_1, a_2, \dots\) 称为<strong><span class="t" data-zh="无穷递降" data-en="infinite descent"></span></strong>
+    （infinite descent），如果对每个<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(n\) 都有 \(a_n > a_{n+1}\)
     （即 \(a_0 > a_1 > a_2 > \dots\)）。
 
-    <p><strong>(a)</strong> 证明<strong>无穷递降原理</strong>：不可能存在一个自然数序列处于无穷递降中。
-    （提示：假设为了推出矛盾，存在一个处于无穷递降的自然数序列。
-    由于所有 \(a_n\) 都是自然数，故 \(a_n \geq 0\) 对所有 \(n\) 成立。
-    然后用归纳法证明实际上 \(a_n \geq k\) 对所有 \(k \in \mathbb{N}\) 和所有 \(n \in \mathbb{N}\) 成立，
+    <p><strong>(a)</strong> 证明<strong><span class="t" data-zh="无穷递降原理" data-en="principle of infinite descent"></span></strong>：不可能存在一个<span class="t" data-zh="自然数" data-en="natural numbers"></span><span class="t" data-zh="序列" data-en="sequence"></span>处于<span class="t" data-zh="无穷递降" data-en="infinite descent"></span>中。
+    （提示：假设为了推出矛盾，存在一个处于<span class="t" data-zh="无穷递降" data-en="infinite descent"></span>的<span class="t" data-zh="自然数" data-en="natural numbers"></span><span class="t" data-zh="序列" data-en="sequence"></span>。
+    由于所有 \(a_n\) 都是<span class="t" data-zh="自然数" data-en="natural numbers"></span>，故 \(a_n \geq 0\) 对所有 \(n\) 成立。
+    然后用<span class="t" data-zh="归纳法" data-en="induction"></span>证明实际上 \(a_n \geq k\) 对所有 \(k \in \mathbb{N}\) 和所有 \(n \in \mathbb{N}\) 成立，
     从而导出矛盾。）</p>
 
-    <p><strong>(b)</strong> 如果允许序列 \(a_1, a_2, a_3, \dots\) 取<strong>整数</strong>值而不是自然数值，
-    无穷递降原理仍然成立吗？如果允许取<strong>正有理数</strong>值呢？请解释。</p>
+    <p><strong>(b)</strong> 如果允许<span class="t" data-zh="序列" data-en="sequence"></span> \(a_1, a_2, a_3, \dots\) 取<strong><span class="t" data-zh="整数" data-en="integers"></span></strong>值而不是<span class="t" data-zh="自然数" data-en="natural numbers"></span>值，
+    <span class="t" data-zh="无穷递降原理" data-en="principle of infinite descent"></span>仍然成立吗？如果允许取<strong>正<span class="t" data-zh="有理数" data-en="rational numbers"></span></strong>值呢？请解释。</p>
 </div>
 
 <div class="exercise" id="ex-4.4.3">
     <span class="label">习题 4.4.3.</span>
     填补命题 4.4.4 证明中标有（为什么？）的那些细节。
-    证明该命题是否依赖选择公理（axiom of choice）？
+    证明该命题是否依赖<span class="t" data-zh="选择公理" data-en="axiom of choice"></span>（axiom of choice）？
 </div>
 </div>
 
 <div class="footer">
-    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.4 节的正文，以及关于稠密性、不完备性、\(\sqrt{2}\) 的无理性等概念的补充说明。</p>
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.4 节的正文，以及关于<span class="t" data-zh="稠密性" data-en="denseness"></span>、<span class="t" data-zh="不完备" data-en="incomplete"></span>性、\(\sqrt{2}\) 的无理性等概念的补充说明。</p>
     <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_4_4.lean</code>。</p>
 </div>
 
