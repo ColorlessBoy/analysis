@@ -458,40 +458,44 @@ theorem zpow_ge_zpow_ofneg {x y:ℚ} {n:ℤ} (hxy: x ≥ y) (hy: y > 0) (hn: n <
 theorem zpow_inj {x y:ℚ} {n:ℤ} (hx: x > 0) (hy : y > 0) (hn: n ≠ 0) (hxy: x^n = y^n) : x = y := by
   rcases lt_or_gt_of_ne hn with (hn_neg | hn_pos)
   · -- n < 0, reduce to positive case by taking inverses
-    have hm_pos : 0 < -n := by linarith
     have hm_nonneg : 0 ≤ -n := by linarith
-    have h_inv_eq : (x ^ (-n))⁻¹ = (y ^ (-n))⁻¹ := by
+    have h_pow_eq : x ^ (-n) = y ^ (-n) := by
       calc
-        (x ^ (-n))⁻¹ = x ^ (-(-n)) := by rw [_root_.zpow_neg]
-        _ = x ^ n := by simp
-        _ = y ^ n := hxy
-        _ = y ^ (-(-n)) := by simp
-        _ = (y ^ (-n))⁻¹ := by rw [_root_.zpow_neg]
-    have h_pow_eq : x ^ (-n) = y ^ (-n) := (inv_inj.mp h_inv_eq)
-    lift -n to ℕ using hm_nonneg with k
+        x ^ (-n) = (x ^ n)⁻¹ := by rw [_root_.zpow_neg x n]
+        _ = (y ^ n)⁻¹ := by rw [hxy]
+        _ = y ^ (-n) := by rw [← _root_.zpow_neg y n]
+    lift -n to ℕ using hm_nonneg with k hk
     have hk_ne_zero : k ≠ 0 := by
       intro hzero
-      have : -n = 0 := by exact_mod_cast hzero
+      have : (k : ℤ) = 0 := by exact_mod_cast hzero
+      have hn0 : n = 0 := by linarith
       linarith
+    have hk_pos : 0 < k := Nat.pos_of_ne_zero hk_ne_zero
     rw [pow_eq_zpow x k, pow_eq_zpow y k] at h_pow_eq
     by_contra hne
-    wlog hlt : y < x
-    · apply this hy hx hne.symm h_pow_eq.symm; linarith
-    have hlt' : y ^ k < x ^ k := pow_gt_pow x y k hlt hy hk_ne_zero
-    linarith
+    have hlt_or : x < y ∨ y < x := lt_or_gt_of_ne hne
+    rcases hlt_or with (hlt | hlt)
+    · have hlt' : x ^ k < y ^ k := pow_gt_pow y x k hlt (by linarith) hk_pos
+      linarith
+    · have hlt' : y ^ k < x ^ k := pow_gt_pow x y k hlt (by linarith) hk_pos
+      linarith
   · -- n > 0
     have hn_nonneg : 0 ≤ n := by linarith
-    lift n to ℕ using hn_nonneg with k
+    lift n to ℕ using hn_nonneg with k hk
     have hk_ne_zero : k ≠ 0 := by
       intro hzero
-      have : n = 0 := by exact_mod_cast hzero
+      have : (k : ℤ) = 0 := by exact_mod_cast hzero
+      have hn0 : n = 0 := by linarith
       linarith
+    have hk_pos : 0 < k := Nat.pos_of_ne_zero hk_ne_zero
     rw [pow_eq_zpow x k, pow_eq_zpow y k] at hxy
     by_contra hne
-    wlog hlt : y < x
-    · apply this hy hx hne.symm hxy.symm; linarith
-    have hlt' : y ^ k < x ^ k := pow_gt_pow x y k hlt hy hk_ne_zero
-    linarith
+    have hlt_or : x < y ∨ y < x := lt_or_gt_of_ne hne
+    rcases hlt_or with (hlt | hlt)
+    · have hlt' : x ^ k < y ^ k := pow_gt_pow y x k hlt (by linarith) hk_pos
+      linarith
+    · have hlt' : y ^ k < x ^ k := pow_gt_pow x y k hlt (by linarith) hk_pos
+      linarith
 
 /-- Proposition 4.3.12(d) (Properties of exponentiation, II) / Exercise 4.3.4 -/
 theorem zpow_abs (x:ℚ) (n:ℤ) : abs (x)^n = abs (x^n) := by
@@ -505,22 +509,27 @@ theorem zpow_abs (x:ℚ) (n:ℤ) : abs (x)^n = abs (x^n) := by
       _ = abs (x ^ ((k : ℤ))) := by rw [← pow_eq_zpow]
   · have hn_nonpos : n ≤ 0 := by linarith
     have hpos : 0 ≤ -n := by linarith
-    lift -n to ℕ using hpos with k
+    lift -n to ℕ using hpos with k hk
     have hn_eq : n = -((k : ℤ)) := by
-      -- After lift, we know ((-n) : ℤ) = (k : ℤ)
-      -- So n = -((k : ℤ))
-      omega
-    rw [hn_eq, _root_.zpow_neg (abs x) k, pow_eq_zpow (abs x) k]
-    rw [abs_eq_abs x, _root_.abs_pow x k]
-    -- Goal: 1 / (_root_.abs (x ^ k)) = abs (x ^ (-((k : ℤ))))
-    -- RHS: abs (x ^ (-((k : ℤ)))) = abs (1 / (x ^ k)) = |1| / |x^k| = 1 / |x^k|
-    rw [_root_.zpow_neg x k, ← pow_eq_zpow x k]
-    rw [abs_div, abs_one]
+      linarith
+    rw [hn_eq]
+    calc
+      abs (x) ^ (-(k : ℤ)) = ((abs x) ^ (k : ℤ))⁻¹ := by rw [_root_.zpow_neg]
+      _ = ((abs x) ^ k)⁻¹ := by rw [pow_eq_zpow]
+      _ = 1 / ((abs x) ^ k) := by rw [one_div]
+      _ = 1 / ((_root_.abs x) ^ k) := by rw [abs_eq_abs]
+      _ = 1 / _root_.abs (x ^ k) := by rw [_root_.abs_pow]
+      _ = _root_.abs (1) / _root_.abs (x ^ k) := by rw [_root_.abs_one]
+      _ = _root_.abs (1 / (x ^ k)) := by rw [_root_.abs_div]
+      _ = abs (1 / (x ^ k)) := by rw [← abs_eq_abs]
+      _ = abs ((x ^ k)⁻¹) := by rw [one_div]
+      _ = abs (x ^ (-(k : ℤ))) := by
+        rw [← pow_eq_zpow x k, ← _root_.zpow_neg x k]
 
 /-- Exercise 4.3.5 -/
 theorem two_pow_geq (N:ℕ) : 2^N ≥ N := by
   induction' N with k ih
   · simp
   · rw [Nat.pow_succ, mul_comm, Nat.two_mul]
-    have hpos : 0 < 2 ^ k := Nat.pow_pos (by norm_num) k
+    have hpos : 0 < 2 ^ k := Nat.pow_pos (a := 2) (by norm_num : 0 < 2) (n := k)
     omega
