@@ -606,6 +606,55 @@
     就证明出来。例如可以利用前面部分来证明后面的部分。）
 </div>
 
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：命题 4.3.3 各部分的证明依赖关系</span>
+    <p>
+    提示中说的"利用前面部分来证明后面的部分"暗示了以下证明策略。
+    命题 4.3.3 的各部分并不是孤立的——它们之间存在自然依赖关系：
+    </p>
+
+    <p><strong>推荐的证明顺序：</strong></p>
+    <ol>
+        <li><strong>(a) 非退化性</strong>（\(|x| \geq 0\)，\(|x| = 0 \iff x = 0\)）<br>
+        直接用分情况讨论（\(x > 0\)，\(x < 0\)，\(x = 0\)），使用绝对值的分段定义。</li>
+
+        <li><strong>(c) 主体部分</strong>（\(-y \leq x \wedge x \leq y \iff |x| \leq y\)）<br>
+        同样用分情况讨论：正向方向将 \(x \geq 0\) 和 \(x < 0\) 分开讨论；
+        反向方向也类似。这是整个命题的<strong>核心纽带</strong>。</li>
+
+        <li><strong>(c) 特例</strong>（\(-|x| \leq x \leq |x|\)）<br>
+        不需要再分情况！将 (c) 中的 \(y\) 取为 \(|x|\)，则
+        \(|x| \leq |x|\) 显然成立，由 (c) 反向方向即得结论。这一步同时需要用到 (a)
+        中 \(|x| \geq 0\) 来确保 \(y = |x|\) 在 (c) 的语境中有效。即：
+        \[
+        \frac{|x| \leq |x|}{\text{由 (c) 反向}} \Longrightarrow -|x| \leq x \leq |x|
+        \]</li>
+
+        <li><strong>(b) 三角不等式</strong>（\(|x+y| \leq |x| + |y|\)）<br>
+        借助 (c) 的特例，无需任何分情况：
+        \[
+        \begin{aligned}
+        -|x| \leq x \leq |x| &\quad\text{且}\quad -|y| \leq y \leq |y| \\
+        \Longrightarrow\; -( |x| + |y| ) &\leq x + y \leq |x| + |y| \\
+        \overset{\text{由 (c)}}{ \Longrightarrow } |x + y| &\leq |x| + |y|.
+        \end{aligned}
+        \]</li>
+    </ol>
+
+    <p>
+    这个策略的核心洞察是：<strong>(c) 是整个命题的枢纽</strong>。
+    (c) 把绝对值不等式转化为普通双向不等式，使得 (b) 和 (c) 的特例都可以
+    通过普通的不等式运算（加法、传递性）来证明，避免了重复使用分情况讨论。
+    在 Lean 中，定理的排列顺序也应遵循这一依赖关系：<code>abs_le_iff</code> 先于
+    <code>le_abs</code>，<code>le_abs</code> 先于 <code>abs_add</code>。
+    </p>
+
+    <p>
+    在习题 4.3.2（命题 4.3.7，\(\varepsilon\)-接近的性质）中，你将再次看到类似模式：
+    核心等价关系的证明靠直接展开定义，而后续性质通过复用已证结论来简化。
+    </p>
+</div>
+
 <hr>
 
 <!-- ========== 4.3.4 eps-接近 ========== -->
