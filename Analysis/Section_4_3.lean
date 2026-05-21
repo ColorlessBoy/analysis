@@ -264,7 +264,11 @@ theorem close_between {ε x y z w:ℚ} (hxy: ε.Close x y) (hxz: ε.Close x z)
     rcases (abs_le_iff (x - z) ε).mpr hxz with ⟨hxz1, hxz2⟩
     apply (abs_le_iff (x - w) ε).mp
     constructor <;> linarith
-  sorry
+  rw [close_iff] at hxy hxz ⊢
+  rcases (abs_le_iff (x - y) ε).mpr hxy with ⟨hxy1, hxy2⟩
+  rcases (abs_le_iff (x - z) ε).mpr hxz with ⟨hxz1, hxz2⟩
+  apply (abs_le_iff (x - w) ε).mp
+  constructor <;> linarith
 
 /-- Proposition 4.3.7(g) / Exercise 4.3.2 -/
 theorem close_mul_right {ε x y z:ℚ} (hxy: ε.Close x y) :
@@ -429,10 +433,7 @@ theorem zpow_pos {x:ℚ} (n:ℤ) (hx: x > 0) : x^n > 0 := by
 
 /-- Proposition 4.3.12(b) (Properties of exponentiation, II) / Exercise 4.3.4 -/
 theorem zpow_ge_zpow {x y:ℚ} {n:ℤ} (hxy: x ≥ y) (hy: y > 0) (hn: n > 0): x^n ≥ y^n := by
-  have hn_nonneg : 0 ≤ n := by linarith
-  lift n to ℕ using hn_nonneg with k
-  rw [pow_eq_zpow x k, pow_eq_zpow y k]
-  sorry
+  apply _root_.zpow_le_zpow_left₀ <;> linarith
 
 theorem zpow_ge_zpow_ofneg {x y:ℚ} {n:ℤ} (hxy: x ≥ y) (hy: y > 0) (hn: n < 0) : x^n ≤ y^n := by
   have hx : x > 0 := by linarith
