@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.1节：<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .remark strong { color: #333; }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "证明.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+            margin-top: 0.5em;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long { font-size: 0.95em; }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "注: ";
+            font-weight: 600;
+        }
+
+        .supplement {
+            background: #f0f7ff;
+            border-left: 4px solid #e06090;
+            padding: 15px 20px;
+            margin: 2em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .supplement .sup-title {
+            font-weight: 700;
+            color: #b04060;
+            font-size: 1.05em;
+            margin-bottom: 0.5em;
+            display: block;
+        }
+
+        .supplement p {
+            text-indent: 0;
+            font-size: 0.95em;
+        }
+
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .toc {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 1.5em 0;
+        }
+
+        .toc .toc-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 0.8em;
+            color: #444;
+        }
+
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        .lang-toggle {
+            text-align: center;
+            margin: 0 0 20px 0;
+        }
+        .lang-toggle button {
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.85em;
+            padding: 6px 18px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-toggle button:hover {
+            border-color: #4a90d9;
+            color: #4a90d9;
+        }
+        .lang-toggle button.on {
+            background: #4a90d9;
+            color: #fff;
+            border-color: #4a90d9;
+        }
+        .t {
+            border-bottom: 1px dotted #c0c0c0;
+            cursor: help;
+            position: relative;
+        }
+        .t::before {
+            content: attr(data-zh);
+        }
+        .t::after {
+            content: attr(data-en);
+            position: absolute;
+            bottom: 1.6em;
+            left: 0;
+            font-size: 0.8em;
+            color: #fff;
+            background: #555;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 10;
+            font-style: normal;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transition-delay: 0s;
+        }
+        .t:hover::after {
+            opacity: 1;
+            transition-delay: 0.4s;
+        }
+        .lang-en .t::after {
+            font-size: 0.85em;
+            color: #888;
+            margin-left: 0.4em;
+            font-style: italic;
+            opacity: 1;
+            position: static;
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            white-space: normal;
+            pointer-events: auto;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 2em 0;
+        }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section51_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section51_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.1节</span>
+    <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    <span class="page-ref">第81–86页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s51-ch5intro">第 5 章引言：为什么需要<span class="t" data-zh="实数" data-en="real numbers"></span>？</a></li>
+        <li><a href="#s51-seq-def"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.1：<span class="t" data-zh="序列" data-en="sequence"></span></a></li>
+        <li><a href="#s51-eps-steady"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.3：\(\varepsilon\)-稳定性</a></li>
+        <li><a href="#s51-eventual"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.6：最终 \(\varepsilon\)-稳定性</a></li>
+        <li><a href="#s51-cauchy"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.8：<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></a></li>
+        <li><a href="#s51-prop111"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.1.11：\(1/n\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></a></li>
+        <li><a href="#s51-bounded"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.12：<span class="t" data-zh="有界序列" data-en="bounded sequence"></span></a></li>
+        <li><a href="#s51-lem114"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.14：<span class="t" data-zh="有限序列" data-en="finite sequence"></span>有界</a></li>
+        <li><a href="#s51-lem115"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.15：<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>有界</a></li>
+        <li><a href="#s51-supp">补充说明</a></li>
+        <li><a href="#s51-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 第 5 章引言 ========== -->
+<div class="chapter-marker" id="s51-ch5intro">— 第 5 章引言 —</div>
+
+<p>
+回顾迄今为止的进展，我们已经严格构造了三个基本数系：
+<span class="t" data-zh="自然数" data-en="natural numbers"></span>系 \(\mathbb{N}\)、<span class="t" data-zh="整数" data-en="integers"></span>系 \(\mathbb{Z}\) 和<span class="t" data-zh="有理数" data-en="rational numbers"></span>系 \(\mathbb{Q}\)。
+我们用五条皮亚诺公理<span class="t" data-zh="定义" data-en="Definition"></span>了<span class="t" data-zh="自然数" data-en="natural numbers"></span>，并假定这样的数系存在；
+然后通过取<span class="t" data-zh="自然数" data-en="natural numbers"></span>的<strong><span class="t" data-zh="形式差" data-en="formal difference"></span></strong>（formal differences）\(a — b\) 构造了<span class="t" data-zh="整数" data-en="integers"></span>，
+再通过取<span class="t" data-zh="整数" data-en="integers"></span>的<strong><span class="t" data-zh="形式商" data-en="formal quotient"></span></strong>（formal quotients）\(a // b\) 构造了<span class="t" data-zh="有理数" data-en="rational numbers"></span>。
+</p>
+
+<p>
+<span class="t" data-zh="有理数" data-en="rational numbers"></span>系已经足够进行大量的数学工作——例如，如果只了解<span class="t" data-zh="有理数" data-en="rational numbers"></span>，
+高中数学的大部分内容也能正常运作。
+然而，有一个数学的基本领域是<span class="t" data-zh="有理数" data-en="rational numbers"></span>系所不能满足的——那就是<strong>几何学</strong>
+（长度、面积等的研究）。例如，两直角边均为 1 的直角三角形的斜边长为 \(\sqrt{2}\)，
+这是一个<span class="t" data-zh="无理数" data-en="irrational number"></span>（即不是<span class="t" data-zh="有理数" data-en="rational numbers"></span>），见<span class="t" data-zh="命题" data-en="Proposition"></span> 4.4.4。
+</p>
+
+<p>
+当涉及其它几何领域（如三角学）时，情况甚至更糟：我们会遇到 \(\pi\) 或 \(\cos(1)\) 这样的数，
+它们在某种意义上比 \(\sqrt{2}\) "更加"无理。（这些数被称为<strong><span class="t" data-zh="超越数" data-en="transcendental numbers"></span></strong>
+（transcendental numbers），但进一步讨论远超本书的范围。）
+因此，要获得一个能充分描述几何——甚至像测量直线上长度这样简单的事情——
+的数系，我们需要用<strong><span class="t" data-zh="实数" data-en="real numbers"></span>系</strong>取代<span class="t" data-zh="有理数" data-en="rational numbers"></span>系。
+由于<span class="t" data-zh="微分" data-en="differential calculus"></span>和<span class="t" data-zh="积分" data-en="integral calculus"></span>也与几何紧密相关（想想切线的斜率、曲线下的面积），
+微<span class="t" data-zh="积分" data-en="integral calculus"></span>也需要<span class="t" data-zh="实数" data-en="real numbers"></span>系才能正常运作。
+</p>
+
+<p>
+然而，从<span class="t" data-zh="有理数" data-en="rational numbers"></span>构造<span class="t" data-zh="实数" data-en="real numbers"></span>的严格方法相当困难——所需的机制比从<span class="t" data-zh="自然数" data-en="natural numbers"></span>到<span class="t" data-zh="整数" data-en="integers"></span>、
+或从<span class="t" data-zh="整数" data-en="integers"></span>到<span class="t" data-zh="有理数" data-en="rational numbers"></span>的构造要更多。在之前两种构造中，任务是为数系引入一种新的代数运算
+（从<span class="t" data-zh="自然数" data-en="natural numbers"></span>到<span class="t" data-zh="整数" data-en="integers"></span>引入减法，从<span class="t" data-zh="整数" data-en="integers"></span>到<span class="t" data-zh="有理数" data-en="rational numbers"></span>引入除法）。
+但从<span class="t" data-zh="有理数" data-en="rational numbers"></span>到<span class="t" data-zh="实数" data-en="real numbers"></span>，是从"<span class="t" data-zh="离散" data-en="discrete"></span>"系统到"<span class="t" data-zh="连续" data-en="continuous"></span>"系统的跨越，
+需要引入一个截然不同的概念——<strong><span class="t" data-zh="极限" data-en="limit"></span></strong>（limit）。
+<span class="t" data-zh="极限" data-en="limit"></span>在直觉层面上相当直观，但要严格把握却极具挑战性。
+（即便是 Euler 和 Newton 这样的伟大数学家也在此概念上遇到困难。
+直到 19 世纪，Cauchy 和 Dedekind 等数学家才弄清楚了如何严格处理<span class="t" data-zh="极限" data-en="limit"></span>。）
+</p>
+
+<p>
+在第 4.4 节中，我们探索了<span class="t" data-zh="有理数" data-en="rational numbers"></span>中的"间隙"；现在我们将用<span class="t" data-zh="极限" data-en="limit"></span>来填补这些间隙，
+从而创造<span class="t" data-zh="实数" data-en="real numbers"></span>。<span class="t" data-zh="实数" data-en="real numbers"></span>系最终将与<span class="t" data-zh="有理数" data-en="rational numbers"></span>系非常相似，
+但会拥有一些新的运算——特别是<strong><span class="t" data-zh="上确界" data-en="supremum"></span></strong>（supremum），
+它随后可用于<span class="t" data-zh="定义" data-en="Definition"></span><span class="t" data-zh="极限" data-en="limit"></span>以及微<span class="t" data-zh="积分" data-en="integral calculus"></span>所需的一切。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：第 5 章的核心思想</span>
+    <p>
+    第 5 章是全书最关键的一章。它的核心思想是：
+    </p>
+    <ul>
+        <li><strong>用<span class="t" data-zh="有理数" data-en="rational numbers"></span>逼近<span class="t" data-zh="无理数" data-en="irrational number"></span>：</strong> 虽然 \(\sqrt{2}\) 不是<span class="t" data-zh="有理数" data-en="rational numbers"></span>，但我们可以用<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>任意逼近它。</li>
+        <li><strong><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>作为构造工具：</strong> 每个"收敛"的<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>（称为 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>）<span class="t" data-zh="定义" data-en="Definition"></span>一个<span class="t" data-zh="实数" data-en="real numbers"></span>。</li>
+        <li><strong><span class="t" data-zh="等价类" data-en="equivalence class"></span>：</strong> 两个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>如果"收敛到同一个<span class="t" data-zh="极限" data-en="limit"></span>"，则<span class="t" data-zh="定义" data-en="Definition"></span>同一个<span class="t" data-zh="实数" data-en="real numbers"></span>。</li>
+    </ul>
+    <p>
+    这种构造方法称为<strong><span class="t" data-zh="度量空间" data-en="metric space"></span>的<span class="t" data-zh="完备化" data-en="completion"></span></strong>（completion of a metric space）。
+    它不仅仅适用于从 \(\mathbb{Q}\) 构造 \(\mathbb{R}\)，也是泛函分析中的基本技巧。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 5.1.1 序列定义 ========== -->
+<div id="s51-seq-def">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.1：<span class="t" data-zh="序列" data-en="sequence"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.1（<span class="t" data-zh="序列" data-en="sequence"></span>）。</span>
+    设 \(m\) 是一个<span class="t" data-zh="整数" data-en="integers"></span>。一个<strong><span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span></strong>（sequence of rational numbers）
+    \((a_n)_{n=m}^\infty\) 是从集合 \(\{n \in \mathbb{Z} : n \geq m\}\) 到 \(\mathbb{Q}\) 的任意函数，
+    即将每个 \(\geq m\) 的<span class="t" data-zh="整数" data-en="integers"></span> \(n\) 映射到一个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(a_n\)。
+    更非正式地说，<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span> \((a_n)_{n=m}^\infty\) 是<span class="t" data-zh="有理数" data-en="rational numbers"></span>的集合
+    \(a_m, a_{m+1}, a_{m+2}, \dots\)。
+</div>
+
+<div class="remark">
+    <strong>例 5.1.2。</strong>
+    <span class="t" data-zh="序列" data-en="sequence"></span> \((n^2)_{n=0}^\infty\) 是<span class="t" data-zh="自然数" data-en="natural numbers"></span>的集合 \(0, 1, 4, 9, \dots\)；
+    <span class="t" data-zh="序列" data-en="sequence"></span> \((3)_{n=0}^\infty\) 是<span class="t" data-zh="自然数" data-en="natural numbers"></span>的集合 \(3, 3, 3, \dots\)。
+    这些<span class="t" data-zh="序列" data-en="sequence"></span>的索引从 0 开始，但当然我们也可以使<span class="t" data-zh="序列" data-en="sequence"></span>从 1 或任何其他数开始。
+    例如，<span class="t" data-zh="序列" data-en="sequence"></span> \((a_n)_{n=3}^\infty\) 表示<span class="t" data-zh="序列" data-en="sequence"></span> \(a_3, a_4, a_5, \dots\)，
+    因此 \((n^2)_{n=3}^\infty\) 是<span class="t" data-zh="自然数" data-en="natural numbers"></span>的集合 \(9, 16, 25, \dots\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：<span class="t" data-zh="序列" data-en="sequence"></span>的严格<span class="t" data-zh="定义" data-en="Definition"></span></span>
+    <p>
+    <span class="t" data-zh="定义" data-en="Definition"></span> 5.1.1 将<span class="t" data-zh="序列" data-en="sequence"></span>正式<span class="t" data-zh="定义" data-en="Definition"></span>为一个<strong>函数</strong>。这避免了"等等"（\(\dots\)）这类非正式语言。
+    在 Lean 中，<code>Sequence</code> 结构体封装了起始索引 \(n_0\)、从 \(\mathbb{Z}\) 到 \(\mathbb{Q}\) 的映射，
+    以及一个"在 \(n_0\) 之前全为零"的 vanish 条件以避免类型依赖的复杂性。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 5.1.3 ε-稳定性 ========== -->
+<div id="s51-eps-steady">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.3：\(\varepsilon\)-稳定性</h3>
+</div>
+
+<p>
+我们希望将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>的<span class="t" data-zh="极限" data-en="limit"></span>。为此，我们必须区分哪些<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>是收敛的、
+哪些不是。例如，<span class="t" data-zh="序列" data-en="sequence"></span>
+</p>
+<div class="formula">\(1.4, 1.41, 1.414, 1.4142, 1.41421, \dots\)</div>
+<p>
+看起来试图收敛到某个数，\(0.1, 0.01, 0.001, 0.0001, \dots\) 也是如此。
+而其他<span class="t" data-zh="序列" data-en="sequence"></span>如 \(1, 2, 4, 8, 16, \dots\) 或 \(1, 0, 1, 0, 1, \dots\) 则不是。
+为此，我们使用之前<span class="t" data-zh="定义" data-en="Definition"></span>的 \(\varepsilon\)-接近概念。
+回忆<span class="t" data-zh="定义" data-en="Definition"></span> 4.3.4：两个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x, y\) 是 <strong>\(\varepsilon\)-接近</strong> 的，
+如果 \(d(x, y) = |x - y| \leq \varepsilon\)。
+</p>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.3（\(\varepsilon\)-稳定性）。</span>
+    设 \(\varepsilon > 0\)。一个<span class="t" data-zh="序列" data-en="sequence"></span> \((a_n)_{n=0}^\infty\) 被称为 <strong>\(\varepsilon\)-稳定的</strong>
+    （\(\varepsilon\)-steady），如果<span class="t" data-zh="序列" data-en="sequence"></span>的每一对元素 \(a_j, a_k\) 都是 \(\varepsilon\)-接近的，
+    即对每个<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(j, k\) 都有 \(|a_j - a_k| \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.1.4。</strong>
+    这个<span class="t" data-zh="定义" data-en="Definition"></span>在文献中并非标准；本节之后我们将不再需要它；
+    下面<span class="t" data-zh="定义" data-en="Definition"></span>的"最终 \(\varepsilon\)-稳定性"也是如此。
+    我们为从 0 开始的<span class="t" data-zh="序列" data-en="sequence"></span><span class="t" data-zh="定义" data-en="Definition"></span>了 \(\varepsilon\)-稳定性，
+    但显然我们可以对从其他索引开始的<span class="t" data-zh="序列" data-en="sequence"></span>作类似的<span class="t" data-zh="定义" data-en="Definition"></span>：
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(a_N, a_{N+1}, \dots\) 是 \(\varepsilon\)-稳定的，如果对所有 \(j, k \geq N\) 有
+    \(|a_j - a_k| \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>例 5.1.5。</strong>
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(1, 0, 1, 0, 1, \dots\) 是 1-稳定的，但不是 1/2-稳定的。
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(0.1, 0.01, 0.001, 0.0001, \dots\) 是 0.1-稳定的，但不是 0.01-稳定的（为什么？）。
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(1, 2, 4, 8, 16, \dots\) 对任何 \(\varepsilon\) 都不是 \(\varepsilon\)-稳定的（为什么？）。
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(2, 2, 2, 2, \dots\) 对每个 \(\varepsilon > 0\) 都是 \(\varepsilon\)-稳定的。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：\(\varepsilon\)-稳定性为何太强？</span>
+    <p>
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(10, 0, 0, 0, 0, 0, \dots\) 是 10-稳定的，但对任何更小的 \(\varepsilon\) 都不是 \(\varepsilon\)-稳定的，
+    尽管该<span class="t" data-zh="序列" data-en="sequence"></span>几乎立即收敛到零。因此我们需要一个更稳健的稳定性概念，
+    不关心<span class="t" data-zh="序列" data-en="sequence"></span>的初始部分。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 5.1.6 最终 ε-稳定性 ========== -->
+<div id="s51-eventual">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.6：最终 \(\varepsilon\)-稳定性</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.6（最终 \(\varepsilon\)-稳定性）。</span>
+    设 \(\varepsilon > 0\)。一个<span class="t" data-zh="序列" data-en="sequence"></span> \((a_n)_{n=0}^\infty\) 被称为 <strong>最终 \(\varepsilon\)-稳定的</strong>
+    （eventually \(\varepsilon\)-steady），如果存在某个<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(N \geq 0\) 使得子<span class="t" data-zh="序列" data-en="sequence"></span>
+    \(a_N, a_{N+1}, a_{N+2}, \dots\) 是 \(\varepsilon\)-稳定的。
+    换言之，存在 \(N \geq 0\) 使得对所有 \(j, k \geq N\) 有 \(|a_j - a_k| \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>例 5.1.7。</strong>
+    由 \(a_n := 1/n\) <span class="t" data-zh="定义" data-en="Definition"></span>的<span class="t" data-zh="序列" data-en="sequence"></span> \(a_1, a_2, \dots\)
+    （即 \(1, 1/2, 1/3, 1/4, \dots\)）不是 0.1-稳定的，
+    但是最终 0.1-稳定的：子<span class="t" data-zh="序列" data-en="sequence"></span> \(a_{10}, a_{11}, a_{12}, \dots\)
+    （即 \(1/10, 1/11, 1/12, \dots\)）是 0.1-稳定的。
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(10, 0, 0, 0, 0, \dots\) 对任何小于 10 的 \(\varepsilon\) 都不是 \(\varepsilon\)-稳定的，
+    但对每个 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的（为什么？）。
+</div>
+
+<hr>
+
+<!-- ========== 5.1.8 Cauchy 序列 ========== -->
+<div id="s51-cauchy">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.8：<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.8（<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>）。</span>
+    一个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span> \((a_n)_{n=0}^\infty\) 被称为一个 <strong><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></strong>，
+    如果对每个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\varepsilon > 0\)，该<span class="t" data-zh="序列" data-en="sequence"></span> \((a_n)_{n=0}^\infty\) 都是最终 \(\varepsilon\)-稳定的。
+    换言之，对每个 \(\varepsilon > 0\)，存在 \(N \geq 0\) 使得对所有 \(j, k \geq N\) 有
+    \(d(a_j, a_k) \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.1.9。</strong>
+    目前，参数 \(\varepsilon\) 被限制为正<span class="t" data-zh="有理数" data-en="rational numbers"></span>；我们不能取 \(\varepsilon\) 为任意正的<span class="t" data-zh="实数" data-en="real numbers"></span>，
+    因为<span class="t" data-zh="实数" data-en="real numbers"></span>尚未构造出来。然而，一旦我们构造了<span class="t" data-zh="实数" data-en="real numbers"></span>，我们将看到
+    如果要求 \(\varepsilon\) 为<span class="t" data-zh="实数" data-en="real numbers"></span>而非<span class="t" data-zh="有理数" data-en="rational numbers"></span>，上述<span class="t" data-zh="定义" data-en="Definition"></span>不会改变。
+    换言之，我们最终将证明：一个<span class="t" data-zh="序列" data-en="sequence"></span>对每个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\varepsilon > 0\) 最终 \(\varepsilon\)-稳定，
+    当且仅当它对每个<span class="t" data-zh="实数" data-en="real numbers"></span> \(\varepsilon > 0\) 最终 \(\varepsilon\)-稳定；见<span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.4。
+    <span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\varepsilon\) 和<span class="t" data-zh="实数" data-en="real numbers"></span> \(\varepsilon\) 之间的这个微妙区别在长远来看并不重要，
+    读者不必过多关注 \(\varepsilon\) 应是哪种数。
+</div>
+
+<div class="remark">
+    <strong>例 5.1.10（非正式）。</strong>
+    考虑之前提到的<span class="t" data-zh="序列" data-en="sequence"></span> \(1.4, 1.41, 1.414, 1.4142, \dots\)。
+    该<span class="t" data-zh="序列" data-en="sequence"></span>已经是 0.1-稳定的。如果丢弃第一个元素 1.4，剩下的<span class="t" data-zh="序列" data-en="sequence"></span>
+    \(1.41, 1.414, 1.4142, \dots\) 是 0.01-稳定的，
+    这意味着原<span class="t" data-zh="序列" data-en="sequence"></span>是最终 0.01-稳定的。丢弃下一个元素得到 0.001-稳定的<span class="t" data-zh="序列" data-en="sequence"></span>
+    \(1.414, 1.4142, \dots\)；因此原<span class="t" data-zh="序列" data-en="sequence"></span>是最终 0.001-稳定的。
+    继续这样下去，似乎该<span class="t" data-zh="序列" data-en="sequence"></span>对每个 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的，
+    这暗示它是一个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。然而，这个讨论并不严格——例如，
+    我们并未精确<span class="t" data-zh="定义" data-en="Definition"></span><span class="t" data-zh="序列" data-en="sequence"></span> \(1.4, 1.41, 1.414, \dots\) 到底是什么。
+    一个严格的例子如下。
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.1.11 ========== -->
+<div id="s51-prop111">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.1.11：\(1/n\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.1.11。</span>
+    由 \(a_n := 1/n\) <span class="t" data-zh="定义" data-en="Definition"></span>的<span class="t" data-zh="序列" data-en="sequence"></span> \(a_1, a_2, a_3, \dots\)
+    （即 \(1, 1/2, 1/3, \dots\)）是一个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+</div>
+
+<div class="proof">
+    我们需要证明对每个 \(\varepsilon > 0\)，<span class="t" data-zh="序列" data-en="sequence"></span> \(a_1, a_2, \dots\) 是最终 \(\varepsilon\)-稳定的。
+    设 \(\varepsilon > 0\) 是任意的。我们需要找到 \(N \geq 1\) 使得子<span class="t" data-zh="序列" data-en="sequence"></span>
+    \(a_N, a_{N+1}, \dots\) 是 \(\varepsilon\)-稳定的。这意味着：
+    \[
+    d(a_j, a_k) \leq \varepsilon \quad\text{对所有 } j, k \geq N,
+    \]
+    即
+    \[
+    |1/j - 1/k| \leq \varepsilon \quad\text{对所有 } j, k \geq N.
+    \]
+    由于 \(j, k \geq N\)，我们有 \(0 < 1/j, 1/k \leq 1/N\)，因此
+    \(|1/j - 1/k| \leq 1/N\)。因此，要使 \(|1/j - 1/k| \leq \varepsilon\)，
+    只需 \(1/N < \varepsilon\)，即 \(N > 1/\varepsilon\)。
+    而根据<span class="t" data-zh="命题" data-en="Proposition"></span> 4.4.1，这样的 \(N\) 总是存在的。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：从第一原理验证 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></span>
+    <p>
+    正如所见，从第一原理（即不使用任何<span class="t" data-zh="极限" data-en="limit"></span>的机制等）验证一个<span class="t" data-zh="序列" data-en="sequence"></span>是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    需要不少功夫——即使对像 \(1/n\) 这样简单的<span class="t" data-zh="序列" data-en="sequence"></span>也是如此。
+    选择 \(N\) 的部分对初学者来说尤其困难——需要反向思考：
+    先弄清楚什么样的 \(N\) 条件能迫使子<span class="t" data-zh="序列" data-en="sequence"></span> \(a_N, a_{N+1}, \dots\) 成为 \(\varepsilon\)-稳定的，
+    然后再找一个满足这些条件的 \(N\)。之后我们将发展一些<span class="t" data-zh="极限" data-en="limit"></span>定律，
+    使我们能更容易地判定一个<span class="t" data-zh="序列" data-en="sequence"></span>何时是 Cauchy 的。
+    </p>
+    <p>
+    在 Lean 中，该<span class="t" data-zh="命题" data-en="Proposition"></span>的证明（<code>Sequence.one_div_isCauchy</code>）遵循了完全相同的思路。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 5.1.12 有界序列 ========== -->
+<div id="s51-bounded">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.12：<span class="t" data-zh="有界序列" data-en="bounded sequence"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.1.12（<span class="t" data-zh="有界序列" data-en="bounded sequence"></span>）。</span>
+    设 \(M \geq 0\) 是<span class="t" data-zh="有理数" data-en="rational numbers"></span>。
+    <ul>
+        <li><strong><span class="t" data-zh="有限序列" data-en="finite sequence"></span></strong> \(a_1, a_2, \dots, a_n\) <strong>以 \(M\) 为界</strong>，
+        如果对所有 \(1 \leq i \leq n\) 有 \(|a_i| \leq M\)。</li>
+        <li><strong><span class="t" data-zh="无穷序列" data-en="infinite sequence"></span></strong> \((a_n)_{n=1}^\infty\) <strong>以 \(M\) 为界</strong>，
+        如果对所有 \(i \geq 1\) 有 \(|a_i| \leq M\)。</li>
+        <li>一个<span class="t" data-zh="序列" data-en="sequence"></span>被称为<strong><span class="t" data-zh="有界的" data-en="bounded"></span></strong>（bounded），
+        如果存在某个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(M \geq 0\) 以之为界。</li>
+    </ul>
+</div>
+
+<div class="remark">
+    <strong>例 5.1.13。</strong>
+    <span class="t" data-zh="有限序列" data-en="finite sequence"></span> \(1, -2, 3, -4\) 是<span class="t" data-zh="有界的" data-en="bounded"></span>（以 4 为界，或以任何 \(\geq 4\) 的 \(M\) 为界）。
+    但<span class="t" data-zh="无穷序列" data-en="infinite sequence"></span> \(1, -2, 3, -4, 5, -6, \dots\) 是<span class="t" data-zh="无界的" data-en="unbounded"></span>。（你能证明吗？使用<span class="t" data-zh="命题" data-en="Proposition"></span> 4.4.1。）
+    <span class="t" data-zh="序列" data-en="sequence"></span> \(1, -1, 1, -1, \dots\) 是<span class="t" data-zh="有界的" data-en="bounded"></span>（例如以 1 为界），但不是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.1.14 ========== -->
+<div id="s51-lem114">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.14：<span class="t" data-zh="有限序列" data-en="finite sequence"></span>有界</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.14（<span class="t" data-zh="有限序列" data-en="finite sequence"></span>是<span class="t" data-zh="有界的" data-en="bounded"></span>）。</span>
+    每个<span class="t" data-zh="有限序列" data-en="finite sequence"></span> \(a_1, a_2, \dots, a_n\) 都是<span class="t" data-zh="有界的" data-en="bounded"></span>。
+</div>
+
+<div class="proof">
+    我们对 \(n\) 进行<span class="t" data-zh="归纳" data-en="induction"></span>。当 \(n = 1\) 时，<span class="t" data-zh="序列" data-en="sequence"></span> \(a_1\) 显然有界：
+    取 \(M := |a_1|\)，则对所有 \(1 \leq i \leq n\) 有 \(|a_i| \leq M\)。
+    
+    假设已对某个 \(n \geq 1\) 证明了<span class="t" data-zh="引理" data-en="Lemma"></span>；现在证明对 \(n+1\) 也成立。
+    由<span class="t" data-zh="归纳" data-en="induction"></span>假设，\(a_1, a_2, \dots, a_n\) 以某个 \(M \geq 0\) 为界；
+    特别地，它以 \(M + |a_{n+1}|\) 为界。另一方面，\(a_{n+1}\) 也以 \(M + |a_{n+1}|\) 为界。
+    因此 \(a_1, a_2, \dots, a_n, a_{n+1}\) 以 \(M + |a_{n+1}|\) 为界，从而有界。
+    <span class="t" data-zh="归纳" data-en="induction"></span>完成。
+</div>
+
+<div class="note">
+    注意，虽然这个论证表明<em>每个</em><span class="t" data-zh="有限序列" data-en="finite sequence"></span>都有界（无论有多长），
+    但它并没有说明<span class="t" data-zh="无穷序列" data-en="infinite sequence"></span>是否有界——无穷不是<span class="t" data-zh="自然数" data-en="natural numbers"></span>。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.1.15 ========== -->
+<div id="s51-lem115">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.15：<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>有界</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.15（<span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>是<span class="t" data-zh="有界的" data-en="bounded"></span>）。</span>
+    每个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span> \((a_n)_{n=1}^\infty\) 都是<span class="t" data-zh="有界的" data-en="bounded"></span>。
+</div>
+
+<div class="proof">
+    见解习题 5.1.1。（提示：利用该<span class="t" data-zh="序列" data-en="sequence"></span>是最终 1-稳定的这一事实，
+    从而可以将其分为一个<span class="t" data-zh="有限序列" data-en="finite sequence"></span>和一个 1-稳定的<span class="t" data-zh="序列" data-en="sequence"></span>，然后对有限部分使用<span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.14。
+    注意这里使用数字 1 并非本质；任何其他正数都可以。）
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s51-supp">
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：为什么选择 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>？</span>
+    <p>
+    在构造<span class="t" data-zh="实数" data-en="real numbers"></span>时，可以有多种等价的方法：
+    </p>
+    <ul>
+        <li><strong><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>（本书采用）：</strong> 将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为<span class="t" data-zh="有理数" data-en="rational numbers"></span> <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的<span class="t" data-zh="等价类" data-en="equivalence class"></span>。
+        这种方法的优点是适用于一般的<span class="t" data-zh="度量空间" data-en="metric space"></span>。</li>
+        <li><strong>戴德金分割（Dedekind cuts）：</strong> 将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为<span class="t" data-zh="有理数" data-en="rational numbers"></span>的"分割"。
+        这种方法在序理论中更自然，但不太容易推广到<span class="t" data-zh="度量空间" data-en="metric space"></span>。</li>
+        <li><strong>无穷十进制展开：</strong> 将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为无穷小数。
+        这种方法最直观，但在处理 \(0.999\dots = 1.000\dots\) 之类的等价关系时很繁琐。</li>
+    </ul>
+    <p>
+    Tao 选择 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>方法，因为它自然地从第 4.3-4.4 节的 \(\varepsilon\)-接近概念发展而来，
+    并且与后续章节中<span class="t" data-zh="极限" data-en="limit"></span>的<span class="t" data-zh="定义" data-en="Definition"></span>紧密衔接。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：第 5.1 节的概念层次</span>
+    <p>
+    本节引入了四个递进的概念，它们共同构成了构造<span class="t" data-zh="实数" data-en="real numbers"></span>的理论基础：
+    </p>
+    <ol>
+        <li><strong>\(\varepsilon\)-接近</strong>（两个数之间的距离）——已在第 4.3 节<span class="t" data-zh="定义" data-en="Definition"></span>；</li>
+        <li><strong>\(\varepsilon\)-稳定性</strong>（<span class="t" data-zh="序列" data-en="sequence"></span>中所有元素两两 \(\varepsilon\)-接近）——对<span class="t" data-zh="序列" data-en="sequence"></span>整体的强约束；</li>
+        <li><strong>最终 \(\varepsilon\)-稳定性</strong>（去掉有限项后 \(\varepsilon\)-稳定）——丢弃初始段，关注尾部；</li>
+        <li><strong><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></strong>（对每个 \(\varepsilon\) 最终 \(\varepsilon\)-稳定）——"想要收敛"的<span class="t" data-zh="序列" data-en="sequence"></span>。</li>
+    </ol>
+    <p>
+    从稳定性到最终稳定性是<strong>从全局到尾部</strong>的转变，而从最终稳定性到 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>是
+    <strong>从固定精度到任意精度</strong>的转变。Cauchy 条件的核心思想是：
+    <span class="t" data-zh="序列" data-en="sequence"></span>的项最终变得任意接近——它们自己"凝聚"到一个点，即使这个点（<span class="t" data-zh="极限" data-en="limit"></span>）
+    可能不在原始空间 \(\mathbb{Q}\) 中。
+    </p>
+
+    <table>
+        <tr><th>概念</th><th>条件</th><th>量化</th></tr>
+        <tr><td>\(\varepsilon\)-接近</td><td>两个数的距离 \(\leq \varepsilon\)</td><td>\(|x-y| \leq \varepsilon\)</td></tr>
+        <tr><td>\(\varepsilon\)-稳定</td><td>所有项两两 \(\varepsilon\)-接近</td><td>\(\forall j,k.\; |a_j-a_k| \leq \varepsilon\)</td></tr>
+        <tr><td>最终 \(\varepsilon\)-稳定</td><td>去掉有限项后 \(\varepsilon\)-稳定</td><td>\(\exists N.\; \forall j,k \geq N.\; |a_j-a_k| \leq \varepsilon\)</td></tr>
+        <tr><td><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></td><td>对<em>每个</em> \(\varepsilon\) 最终稳定</td><td>\(\forall \varepsilon>0.\; \exists N.\; \forall j,k \geq N.\; |a_j-a_k| \leq \varepsilon\)</td></tr>
+    </table>
+</div>
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s51-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.1.1">
+    <span class="label">习题 5.1.1.</span>
+    证明<span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.15。（提示：利用该<span class="t" data-zh="序列" data-en="sequence"></span>是最终 1-稳定的这一事实，
+    从而可以将其分为一个<span class="t" data-zh="有限序列" data-en="finite sequence"></span>和一个 1-稳定的<span class="t" data-zh="序列" data-en="sequence"></span>，然后对有限部分使用<span class="t" data-zh="引理" data-en="Lemma"></span> 5.1.14。
+    注意这里使用数字 1 并非本质；任何其他正数都可以。）
+</div>
+
+<div class="exercise" id="ex-5.1.2">
+    <span class="label">习题 5.1.2.</span>
+    若 \((a_n)_{n=1}^\infty\) 和 \((b_n)_{n=1}^\infty\) 是<span class="t" data-zh="有界序列" data-en="bounded sequence"></span>，
+    证明 \((a_n + b_n)_{n=1}^\infty\)、\((a_n - b_n)_{n=1}^\infty\) 和 \((a_n b_n)_{n=1}^\infty\) 也是<span class="t" data-zh="有界的" data-en="bounded"></span>。
+</div>
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.1 节的正文，以及关于 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>、\(\varepsilon\)-稳定性、<span class="t" data-zh="有界序列" data-en="bounded sequence"></span>等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_1.lean</code>。</p>
+</div>
+
+</body>
+</html>
