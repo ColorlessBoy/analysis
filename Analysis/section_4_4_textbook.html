@@ -809,6 +809,147 @@
 </div>
 </div>
 
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Mathlib4 中的 \(\mathbb{Q}\) API 速查</span>
+
+    <p>本节习题需要用 \(\mathbb{Q}\)（<code>ℚ</code>）进行推理。这是许多 Lean 初学者最头疼的地方——不是因为数学难，而是不知道 Mathlib 里有什么、怎么查。下面是一个快速指南。</p>
+
+    <p><strong>1. \(\mathbb{Q}\) 是什么？</strong></p>
+    <p>在 Mathlib4 中，<code>ℚ</code> 定义为 <code>Int × ℕ+</code> 的一个商（即分子分母约分后的等价类），
+    但它对用户完全透明——你只需要知道它是一个 <strong><code>StrictOrderedField</code></strong>（严格有序域），
+    支持所有四则运算和序关系。</p>
+
+    <p><strong>2. 常用引理一览</strong></p>
+
+    <table>
+        <tr><th>类别</th><th>引理/策略</th><th>作用</th></tr>
+        <tr><td rowspan="4">阿基米德性质</td>
+            <td><code>exists_nat_gt x</code></td><td>\(\exists n:\mathbb{N},\; x < n\)（任意有理数都有更大的自然数）</td></tr>
+        <tr><td><code>exists_nat_ge x</code></td><td>\(\exists n:\mathbb{N},\; x \le n\)</td></tr>
+        <tr><td><code>exists_int_gt x</code></td><td>\(\exists n:\mathbb{Z},\; x < n\)</td></tr>
+        <tr><td><code>exists_int_lt x</code></td><td>\(\exists n:\mathbb{Z},\; n < x\)</td></tr>
+        <tr><td rowspan="2">取整函数</td>
+            <td><code>Int.floor x</code></td><td>\(\lfloor x \rfloor : \mathbb{Z}\)，满足 \(\lfloor x \rfloor \le x < \lfloor x \rfloor + 1\)</td></tr>
+        <tr><td><code>Int.ceil x</code></td><td>\(\lceil x \rceil : \mathbb{Z}\)，满足 \(\lceil x \rceil - 1 < x \le \lceil x \rceil\)</td></tr>
+        <tr><td rowspan="3">分子分母</td>
+            <td><code>x.num</code></td><td>分子（<code>ℤ</code>），已约分，分母为正时符号在此</td></tr>
+        <tr><td><code>x.den</code></td><td>分母（<code>ℕ</code>），保证为正</td></tr>
+        <tr><td><code>x.num_div_den x</code></td><td>\(x = \texttt{x.num} / \texttt{x.den}\)</td></tr>
+        <tr><td rowspan="2">类型转换</td>
+            <td><code>(n : ℚ)</code> / <code>Nat.cast n</code></td><td>\(\mathbb{N} \hookrightarrow \mathbb{Q}\)（当写 <code>n > x</code> 时自动发生）</td></tr>
+        <tr><td><code>(z : ℚ)</code> / <code>Int.cast z</code></td><td>\(\mathbb{Z} \hookrightarrow \mathbb{Q}\)（当写 <code>z ≤ x</code> 时自动发生）</td></tr>
+    </table>
+
+    <p><strong>3. 推荐的自动化策略（按尝试顺序）</strong></p>
+    <ul>
+        <li><code>linarith</code> — 线性算术（加减乘常数），极强</li>
+        <li><code>nlinarith</code> — 非线性算术（乘方、乘积），比 linarith 慢但更强</li>
+        <li><code>ring</code> — 多项式等式化简</li>
+        <li><code>field_simp</code> — 分母清理（\(\mathbb{Q}\) 中除法运算）</li>
+        <li><code>positivity</code> — 证明表达式为正</li>
+        <li><code>norm_num</code> — 数值计算（比如 \(1414/1000\) 的平方）</li>
+        <li><code>omega</code> — 自然数/整数线性算术</li>
+        <li><code>grind</code> / <code>aesop</code> — 通用的穷举搜索（必要时用）</li>
+    </ul>
+
+    <p><strong>4. 怎么自己发现这些引理？</strong></p>
+    <ul>
+        <li><strong>Loogle</strong>（<code>loogle.lean-lang.org</code>）：按类型签名搜索。例如搜 <code>∃ n, x < n</code> 就能找到 <code>exists_nat_gt</code>。</li>
+        <li><strong>LeanSearch</strong>（<code>leansearch.net</code>）：用自然语言搜 "every rational number is less than some natural number"。</li>
+        <li><strong>#check</strong>：在 Lean 文件里写 <code>#check (x : ℚ).num</code> 就能看到类型。</li>
+        <li><strong>#print</strong>：<code>#print Rat</code> 可以看到 ℚ 的定义。</li>
+        <li><strong>open doc</strong>：在 VS Code 中光标放在 <code>ℚ</code> 上按 <code>Ctrl+Shift+F1</code>（或右键"Go to Definition"）。</li>
+    </ul>
+
+    <p><strong>5. 本节习题 4.4.1 的完整证明（自然语言）</strong></p>
+
+    <p>习题 4.4.1（命题 4.4.1）在 Lean 中分为两个定理：<code>Rat.between_int</code>（存在唯一整数
+    \(n\) 满足 \(n \leq x < n+1\)）和 <code>Nat.exists_gt</code>（存在自然数 \(N > x\)）。
+    以下证明严格按照陶哲轩的意图，使用命题 2.3.9（带余除法）。</p>
+
+    <p><strong>核心构造：对有理数 \(x\) 做带余除法。</strong></p>
+
+    <p>在 Mathlib 中，任意 \(x \in \mathbb{Q}\) 具有既约表示
+    \(\displaystyle x = \frac{\texttt{x.num}}{\texttt{x.den}}\)，其中
+    \(\texttt{x.num} \in \mathbb{Z}\)，\(\texttt{x.den} \in \mathbb{N}\) 且 \(\texttt{x.den} > 0\)。</p>
+
+    <p>在 \(\mathbb{Z}\) 上对分子分母做带余除法：
+    \[
+    \texttt{x.num} = \texttt{x.den} \cdot q + r, \qquad 0 \leq r < \texttt{x.den}
+    \]
+    其中 \(q = \texttt{x.num} / \texttt{x.den}\)（\(\mathbb{Z}\) 上的整除商），
+    \(r = \texttt{x.num} \% \texttt{x.den}\)（余数）。<br>
+    在 Lean 中，这一步由 <code>Int.mul_ediv_add_emod</code> 完成。</p>
+
+    <p>将上式从 \(\mathbb{Z}\) 转移到 \(\mathbb{Q}\)：
+    \[
+    \texttt{x.num} = \texttt{x.den} \cdot q + r
+    \quad\Longrightarrow\quad
+    (\texttt{x.num} : \mathbb{Q}) = (\texttt{x.den} : \mathbb{Q}) \cdot (q : \mathbb{Q}) + (r : \mathbb{Q})
+    \]
+    这一步用 <code>exact_mod_cast</code> 完成类型转换。</p>
+
+    <p>结合 \(\texttt{x.num} / \texttt{x.den} = x\)（引理 <code>x.num_div_den</code>），
+    两边除以 \(x.den\) 得到：
+    \[
+    x = q + \frac{r}{\texttt{x.den}}
+    \]
+    由于 \(0 \leq r < \texttt{x.den}\)，在 \(\mathbb{Q}\) 中就有
+    \[
+    0 \leq \frac{r}{\texttt{x.den}} < 1
+    \]
+    因此
+    \[
+    q \leq x < q + 1
+    \]</p>
+
+    <p><strong>定理 1：<code>Rat.between_int x</code></strong></p>
+    <ul>
+        <li><strong>存在性：</strong>取 \(n = q\)（\(\mathbb{Z}\) 上带余除法的商），上面的推导直接给出
+            \(q \leq x < q + 1\)。</li>
+        <li><strong>唯一性：</strong>假设另有整数 \(n\) 也满足 \(n \leq x < n + 1\)。
+            若 \(n < q\)，则 \(n + 1 \leq q\)（\(\mathbb{Z}\) 的离散性），
+            于是 \(x < n + 1 \leq q \leq x\)，矛盾。
+            若 \(q < n\)，则 \(q + 1 \leq n\)，于是 \(x < q + 1 \leq n \leq x\)，矛盾。
+            故 \(n = q\)。
+            这一步用 <code>omega</code> 处理 \(\mathbb{Z}\) 上的离散序推理。</li>
+    </ul>
+
+    <p><strong>定理 2：<code>Nat.exists_gt x</code></strong></p>
+    <p>直接复用 <code>Rat.between_int</code> 的结论，无需重做带余除法：</p>
+    <ul>
+        <li>由 <code>Rat.between_int x</code> 得到唯一的整数 \(n\)，满足 \(x < n + 1\)。
+            令 \(m = n + 1\)，则 \(x < m\)。</li>
+        <li><strong>若 \(m > 0\)：</strong>将 \(m\) 转为自然数 \(m.\texttt{toNat}\)，
+            其在 \(\mathbb{Q}\) 中的像等于 \(m\)（因 \(m \geq 0\)，<code>Int.toNat_of_nonneg</code>）。
+            取 \(N = m.\texttt{toNat}\)，则 \((N : \mathbb{Q}) = m > x\)。</li>
+        <li><strong>若 \(m \leq 0\)：</strong>则 \(x < m \leq 0\)，故 \(x \leq 0\)。取 \(N = 1\)，
+            则 \(1 > 0 \geq x\)。</li>
+    </ul>
+
+    <p><strong>关键引理索引</strong></p>
+    <table>
+        <tr><th>步骤</th><th>Lean 引理</th><th>作用</th></tr>
+        <tr><td>带余除法</td><td><code>Int.mul_ediv_add_emod a b</code></td><td>\(b \cdot (a / b) + a \% b = a\)</td></tr>
+        <tr><td>余数非负</td><td><code>Int.emod_nonneg a hb</code></td><td>\(0 \leq a \% b\)（需 \(b \neq 0\)）</td></tr>
+        <tr><td>余数有界</td><td><code>Int.emod_lt_of_pos a hb</code></td><td>\(a \% b < b\)（需 \(b > 0\)）</td></tr>
+        <tr><td>类型提升</td><td><code>exact_mod_cast</code></td><td>\(\mathbb{Z}\) 上的等式/不等式转移到 \(\mathbb{Q}\)</td></tr>
+        <tr><td>分子分母</td><td><code>x.num_div_den</code></td><td>\(x = \texttt{x.num} / \texttt{x.den}\)</td></tr>
+        <tr><td>分母为正</td><td><code>x.den_pos</code></td><td>\(\texttt{x.den} > 0\)</td></tr>
+        <tr><td>离散序</td><td><code>omega</code></td><td>\(\mathbb{Z}\) 上 \(n < q \Rightarrow n+1 \leq q\)</td></tr>
+        <tr><td>\(\mathbb{Z}\) 商非负</td><td><code>Int.ediv_nonneg ha hb</code></td><td>\(a \geq 0,\; b \geq 0 \Rightarrow a/b \geq 0\)</td></tr>
+        <tr><td>转 \(\mathbb{N}\)</td><td><code>Int.toNat_of_nonneg h</code></td><td>\(q.\texttt{toNat} = q\) 当 \(q \geq 0\)</td></tr>
+    </table>
+
+    <p><strong>为什么不用 <code>Int.floor</code> 和 <code>exists_nat_gt</code>？</strong></p>
+    <p><code>Int.floor</code> 本质上就是命题 4.4.1 的结论本身（"存在唯一的整数 \(n\) 使得
+    \(n \leq x < n+1\)"），用 Mathlib 已经证明好的版本来做这道习题，在形式上是正确的
+    （因为 Mathlib 的 <code>FloorRing</code> 实例是用 \(\mathbb{Q}\) 的构造独立证明的），
+    但在教学上跳过了出题人想考察的推理过程。同样，<code>exists_nat_gt</code>
+    直接就是命题 4.4.1(b) 的结论。因此这里我们用带余除法从第一原理出发完成了证明，
+    正如陶哲轩在书中提示的那样。</p>
+</div>
+
 <div class="footer">
     <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 4.4 节的正文，以及关于<span class="t" data-zh="稠密性" data-en="denseness"></span>、<span class="t" data-zh="不完备" data-en="incomplete"></span>性、\(\sqrt{2}\) 的无理性等概念的补充说明。</p>
     <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_4_4.lean</code>。</p>
