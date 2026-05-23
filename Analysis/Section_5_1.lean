@@ -174,11 +174,37 @@ example : (0.1:ℚ).Steady ((fun n:ℕ ↦ (10:ℚ) ^ (-(n:ℤ)-1) ):Sequence) :
 /--
 Example 5.1.5: The sequence 0.1, 0.01, 0.001, ... is not 0.01-steady. Left as an exercise.
 -/
-example : ¬(0.01:ℚ).Steady ((fun n:ℕ ↦ (10:ℚ) ^ (-(n:ℤ)-1) ):Sequence) := by sorry
+example : ¬(0.01:ℚ).Steady ((fun n:ℕ ↦ (10:ℚ) ^ (-(n:ℤ)-1) ):Sequence) := by
+  rw [Rat.Steady.coe]
+  by_contra h; specialize h 0 1; simp [Rat.Close] at h
+  norm_num at h
 
 /-- Example 5.1.5: The sequence 1, 2, 4, 8, ... is not ε-steady for any ε. Left as an exercise.
--/
-example (ε:ℚ) : ¬ ε.Steady ((fun n:ℕ ↦ (2 ^ (n+1):ℚ) ):Sequence) := by sorry
+ -/
+example (ε:ℚ) : ¬ ε.Steady ((fun n:ℕ ↦ (2 ^ (n+1):ℚ) ):Sequence) := by
+  rw [Rat.Steady.coe]
+  intro h
+  have h_bound : ∀ m : ℕ, (2 : ℚ) ^ (m+1 : ℕ) ≤ ε + 2 := by
+    intro m
+    have hm := h 0 m
+    have h_abs := abs_le.mp hm
+    have h_one : (2 : ℚ) ^ (0+1 : ℕ) = (2 : ℚ) := by norm_num
+    have h_abs_left : -ε ≤ (2 : ℚ) - (2 : ℚ) ^ (m+1 : ℕ) := by
+      simpa [h_one] using h_abs.left
+    linarith
+  rcases exists_nat_gt (ε + 2) with ⟨N, hN⟩
+  have hN_bound := h_bound N
+  have h_lt : (N : ℚ) < (2 : ℚ) ^ (N+1 : ℕ) := by
+    have h_nat : N < 2 ^ (N+1 : ℕ) :=
+      calc
+        N < 2 ^ N := N.lt_two_pow_self
+        _ ≤ 2 ^ (N+1 : ℕ) := by
+          calc
+            2 ^ N = 2 ^ N * 1 := by simp
+            _ ≤ 2 ^ N * 2 := Nat.mul_le_mul_left _ (by norm_num)
+            _ = 2 ^ (N+1 : ℕ) := by rw [Nat.pow_succ]
+    simpa using (by exact_mod_cast h_nat : (N : ℚ) < ((2 ^ (N+1 : ℕ) : ℕ) : ℚ))
+  linarith
 
 /-- Example 5.1.5:The sequence 2, 2, 2, ... is ε-steady for any ε > 0.
 -/

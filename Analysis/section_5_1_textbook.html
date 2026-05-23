@@ -751,6 +751,154 @@
         <tr><td><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span></td><td>对<em>每个</em> \(\varepsilon\) 最终稳定</td><td>\(\forall \varepsilon>0.\; \exists N.\; \forall j,k \geq N.\; |a_j-a_k| \leq \varepsilon\)</td></tr>
     </table>
 </div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：<code>Rat.Steady</code> / <code>Rat.steady_def</code> / <code>Rat.Steady.coe</code> 为何要拆成三层</span>
+    <p>
+    翻开 <code>Section_5_1.lean</code> 第 107–125 行，你会看到三个几乎一模一样的定义——同样写着
+    <code>∀ n ≥ a.n₀, ∀ m ≥ a.n₀, ε.Close (a n) (a m)</code>，
+    却分成了 <code>Rat.Steady</code>、<code>Rat.steady_def</code>、<code>Rat.Steady.coe</code> 三个名字。
+    这不是冗余，而是一个层层递进的设计。
+    </p>
+    <p>
+    最底层的 <code>Rat.Steady</code> 是通用定义。它面向一般的 <code>Sequence</code>——一个可以从任意整数下标 <code>n₀</code>
+    开始的序列。所以量词必须写成 <code>∀ n ≥ a.n₀</code>，而不能简单地对所有 <code>ℕ</code> 量化。
+    <code>Rat.steady_def</code> 则只是把同一个公式包装成 lemma，方便后续 <code>rw</code> 引用，没有增加任何新内容。
+    </p>
+    <p>
+    真正的 key 是 <code>Rat.Steady.coe</code>。我们绝大多数例子用的都是 ℕ → ℚ 的序列，它们通过
+    <code>Coe (ℕ → ℚ) Sequence</code> 自动提升成 <code>Sequence</code>。但这样一来，<code>ε.Steady a</code>
+    实际展开后变成了：
+    </p>
+    <blockquote style="font-style:italic;">
+    ∀ n ≥ (a↑:Sequence).n₀, ∀ m ≥ (a↑:Sequence).n₀, ε.Close ((a↑:Sequence) n) ((a↑:Sequence) m)
+    </blockquote>
+    <p>
+    这里藏着三处琐碎但不得不处理的细节：
+    <code>(a:Sequence).n₀ = 0</code>、<code>(a:Sequence) n</code> 在 ℤ 上从 <code>if n ≥ 0 then … else 0</code>
+    得来、以及 <code>n</code> 本身是 ℤ 而非 ℕ。<code>Rat.Steady.coe</code> 将这些统统消化掉，
+    给出一个清爽的等价形式 <code>∀ n m : ℕ, ε.Close (a n) (a m)</code>。
+    </p>
+    <p>
+    它的证明是非平凡的，而且两个方向的策略完全不同。从 ℕ 版推出原始版时，输入是 <code>n : ℤ</code> 且
+    <code>hn : n ≥ 0</code>，必须 <code>lift n to ℕ</code> 降回自然数再套用条件；反过来则只需 <code>simp</code>
+    利用 <code>Sequence.n0_coe</code> 和 <code>Sequence.eval_coe</code> 即可消去上标。
+    </p>
+    <p>
+    搞懂了这一层，前面那些看似 trivial 的例题就有了解释。它们不是在凑数，而是在反复训练同一个动作：
+    见到 <code>ε.Steady (…:Sequence)</code>，第一步就 <code>rw [Rat.Steady.coe]</code> 去掉 coercion 的包袱。
+    常数序列、交替序列的练习把这一肌肉记忆建立起来之后，后面处理 <code>1/n</code>、<code>10^k</code>
+    等真正有数学内容的例子时，学生就不需要再为类型层面的琐碎分心。而第 139 行的"raw"版本则是反面教材
+    ——展示不借助 <code>Rat.Steady.coe</code> 的时候要忍受多少 <code>n ≥ 0</code> 和 <code>lift</code> 的杂音，
+    让学生意识到这个引理的必要性。
+    </p>
+    <p>
+    同样的模式在 <code>Sequence.IsCauchy.coe</code>（第 267 行）再次出现，风格完全一致。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：例 5.1.5 中 <code>wlog</code> 的执行逻辑</span>
+    <p>
+    翻开第 166 行的 <code>wlog h : m ≤ n</code>，证明看起来有三个分支并列，实际上只是<strong>两层嵌套</strong>：
+    </p>
+    <pre style="background:#f5f5f5;padding:12px;border-radius:6px;font-size:0.9em;line-height:1.6;">
+wlog h : m ≤ n                 ← wlog 开两个分支
+· ...rwa [abs_sub_comm]         ← ══ 分支 1：侧条件（¬ m ≤ n 时的对称归约）
+  rw [abs_sub_comm, abs_of_nonneg]  ← ══ 分支 2：主分支（h : m ≤ n）
+  . ...positivity               ←   ├─ rw 拆出的子目标 A（主不等式）
+  linarith [...]                ←   └─ rw 拆出的子目标 B（非负性条件）</pre>
+    <p>
+    从光标处查看 <code>wlog</code> 生成的两个目标：
+    </p>
+    <pre style="background:#f5f5f5;padding:12px;border-radius:6px;font-size:0.9em;line-height:1.6;">
+目标 1（主分支）：
+n m : ℕ
+h : m ≤ n
+⊢ |10 ^ (-↑n - 1) - 10 ^ (-↑m - 1)| ≤ 0.1
+
+目标 2（侧分支）：
+this : ∀ (n m : ℕ), m ≤ n → |10 ^ (-↑n - 1) - 10 ^ (-↑m - 1)| ≤ 0.1
+h : ¬m ≤ n    ← 即 n < m
+⊢ |10 ^ (-↑n - 1) - 10 ^ (-↑m - 1)| ≤ 0.1</pre>
+    <p>
+    <strong>分支 1 的逻辑</strong>：主分支已经证明了 "当 <code>m ≤ n</code> 时不等式成立"，
+    <code>wlog</code> 将其泛化为 <code>this : ∀ n m, m ≤ n → |a_n - a_m| ≤ 0.1</code>。
+    侧分支里 <code>h : ¬ m ≤ n</code>（即 <code>n < m</code>），所以 <code>n ≤ m</code>。
+    把参数对调传入：<code>specialize this m n (by linarith)</code> 得到
+    <code>|a_m - a_n| ≤ 0.1</code>，再用 <code>abs_sub_comm</code>（<code>|a-b| = |b-a|</code>）换回
+    <code>|a_n - a_m| ≤ 0.1</code>，<code>rwa</code> 关门。
+    </p>
+    <p>
+    <strong>分支 2（主分支）</strong>：在 <code>h : m ≤ n</code> 下，
+    <code>rw [abs_sub_comm, abs_of_nonneg]</code> 把 <code>|a_m - a_n|</code> 的绝对值拆掉，
+    同时抛出一个非负性侧条件 <code>0 ≤ a_m - a_n</code>。
+    <code>.</code> 块处理主不等式，<code>linarith</code> 行处理侧条件。
+    </p>
+    <p>
+    所以不是三个平级分支，而是 <strong>wlog 分两支 → 主分支的 rw 再分两支</strong>。
+    </p>
+
+    <table>
+        <tr><th>行</th><th>手法</th><th>作用</th></tr>
+        <tr><td>166</td><td><code>wlog</code></td><td>「不妨设 \(m \leq n\)」，反方向通过对称性归约</td></tr>
+        <tr><td>167</td><td><code>specialize</code></td><td>对泛化结论传入对调后的参数</td></tr>
+        <tr><td>167</td><td><code>rwa</code></td><td><code>rw</code> 后 <code>assumption</code></td></tr>
+        <tr><td>168</td><td><code>abs_sub_comm</code></td><td>\(|a-b| = |b-a|\)，配合 wlog 的方向约定</td></tr>
+        <tr><td>168</td><td><code>abs_of_nonneg</code></td><td>去掉绝对值，抛出非负性侧条件</td></tr>
+        <tr><td>169</td><td><code>show … by norm_num</code></td><td>局部算术化简（\(0.1 = 10^{-1} - 0\)）</td></tr>
+        <tr><td>170</td><td><code>gcongr</code></td><td>利用函数单调性拆解不等式</td></tr>
+        <tr><td>170</td><td><code>grind</code></td><td>自动求解琐碎算术子目标</td></tr>
+        <tr><td>171</td><td><code>positivity</code></td><td>证明表达式恒正（加、乘、逆、幂、绝对值等）</td></tr>
+        <tr><td>172</td><td><code>linarith</code></td><td>线性算术推理，连接假设到结论</td></tr>
+    </table>
+
+    <p style="margin-top:1em;"><strong>补充：<code>gcongr</code> 在这段证明里的具体行为</strong></p>
+    <p>
+    <code>gcongr</code> 开始时的目标：
+    </p>
+    <pre style="background:#f5f5f5;padding:12px;border-radius:6px;font-size:0.9em;line-height:1.6;">
+10^(-(m:ℤ)-1) - 10^(-(n:ℤ)-1) ≤ 10⁻¹ - 0</pre>
+    <p>
+    <code>gcongr</code> 查表发现 \(A - B \leq C - D\) 可由 <strong>\(A \leq C\) 且 \(D \leq B\)</strong> 推出
+    （被减数更小，减数更大，则差更小），于是拆成两个子目标：
+    </p>
+    <div style="margin-left:2em;">
+    <p style="margin:0.3em 0;"><strong>子目标 1</strong>：\(10^{-(m:ℤ)-1} \leq 10^{-1}\)</p>
+    <p style="margin:0.3em 0;font-size:0.9em;color:#666;">
+    再对 \(a^x \leq a^y\) 查表：因 \(10 > 1\)，\(x \mapsto 10^x\) 单调递增，只需 \(-(m:ℤ)-1 \leq -1\)，即 \(m \geq 0\)。
+    <code>grind</code> 自动关闭。
+    </p>
+    <p style="margin:0.3em 0;"><strong>子目标 2</strong>：\(0 \leq 10^{-(n:ℤ)-1}\)</p>
+    <p style="margin:0.3em 0;font-size:0.9em;color:#666;">
+    正数的任意实数幂恒正。<code>positivity</code> 自动关闭。
+    </p>
+    </div>
+    </div>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">&#x1F4AC; 个人感悟：这些补充说明本身就是问题</span>
+    <p>
+    花一整页篇幅来解释 \( \varepsilon \)-稳定性的定义为什么被拆成三层、为什么 <code>wlog</code> 生成了两个目标、
+    <code>gcongr</code> 查了哪张表——这些补充说明本身就在证明一个尴尬的事实：
+    Lean 形式的版本在「忠实于原文」和「被类型系统接受」之间塞进了太多不属于数学本身的机械细节。
+    </p>
+    <p>
+    定义从教科书到 Lean 经历了两次翻译：第一次从数学语言翻译成 <code>Sequence</code> + <code>Rat.Steady</code>，
+    第二次从通用形式翻译成 ℕ 版本的 <code>Rat.Steady.coe</code>。每一次翻译都引入了一层需要理解但不增加数学内容的
+    概念包袱。coercion、<code>lift</code>、<code>gcongr</code> 的单调性查表……这些对理解「什么是 Cauchy 序列」
+    没有贡献，但对让 Lean 接受这个证明必不可少。
+    </p>
+    <p>
+    这大概是形式化目前最大的门槛：它在用数学之外的复杂性换取数学之内的确定性。
+    </p>
+    <p>
+    归根结底是没有履约。口号是「重头构建数学基础」，拿到手的东西却处处是「我已经实现好了，但它很复杂，
+    你要这样用才绕得过去」——coercion 链、<code>lift</code> 降维、<code>gcongr</code> 查表、<code>wlog</code> 的
+    自动泛化……每一层都在把「机器需要什么」的债转嫁给写证明的人。声称的「地基」实则是层层增补的补丁，
+    每一块补丁都要求用户再学一套新规则。
+    </p>
+</div>
 </div>
 
 <hr>
