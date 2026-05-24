@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.2节：<span class="t" data-zh="等价 Cauchy 序列" data-en="Equivalent Cauchy sequences"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .remark strong { color: #333; }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "证明.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+            margin-top: 0.5em;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .proposition-box {
+            background: #f0f7f0;
+            border-left: 4px solid #5a9a5a;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .proposition-box .label {
+            font-weight: 600;
+            color: #2d5a2d;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long { font-size: 0.95em; }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "注: ";
+            font-weight: 600;
+        }
+
+        .supplement {
+            background: #f0f7ff;
+            border-left: 4px solid #e06090;
+            padding: 15px 20px;
+            margin: 2em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .supplement .sup-title {
+            font-weight: 700;
+            color: #b04060;
+            font-size: 1.05em;
+            margin-bottom: 0.5em;
+            display: block;
+        }
+
+        .supplement p {
+            text-indent: 0;
+            font-size: 0.95em;
+        }
+
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .toc {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 1.5em 0;
+        }
+
+        .toc .toc-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 0.8em;
+            color: #444;
+        }
+
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        .lang-toggle {
+            text-align: center;
+            margin: 0 0 20px 0;
+        }
+        .lang-toggle button {
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.85em;
+            padding: 6px 18px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-toggle button:hover {
+            border-color: #4a90d9;
+            color: #4a90d9;
+        }
+        .lang-toggle button.on {
+            background: #4a90d9;
+            color: #fff;
+            border-color: #4a90d9;
+        }
+        .t {
+            border-bottom: 1px dotted #c0c0c0;
+            cursor: help;
+            position: relative;
+        }
+        .t::before {
+            content: attr(data-zh);
+        }
+        .t::after {
+            content: attr(data-en);
+            position: absolute;
+            bottom: 1.6em;
+            left: 0;
+            font-size: 0.8em;
+            color: #fff;
+            background: #555;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 10;
+            font-style: normal;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transition-delay: 0s;
+        }
+        .t:hover::after {
+            opacity: 1;
+            transition-delay: 0.4s;
+        }
+        .lang-en .t::after {
+            font-size: 0.85em;
+            color: #888;
+            margin-left: 0.4em;
+            font-style: italic;
+            opacity: 1;
+            position: static;
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            white-space: normal;
+            pointer-events: auto;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 2em 0;
+        }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section52_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section52_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.2节</span>
+    <span class="t" data-zh="等价 Cauchy 序列" data-en="Equivalent Cauchy sequences"></span>
+    <span class="page-ref">第86–89页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s52-intro">引言：为什么需要等价概念？</a></li>
+        <li><a href="#s52-def521"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.1：\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span></a></li>
+        <li><a href="#s52-ex522">例 5.2.2</a></li>
+        <li><a href="#s52-def523"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.3：最终 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span></a></li>
+        <li><a href="#s52-ex525">例 5.2.5</a></li>
+        <li><a href="#s52-def526"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.6：<span class="t" data-zh="等价序列" data-en="equivalent sequences"></span></a></li>
+        <li><a href="#s52-prop528"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.2.8：等价序列的例子</a></li>
+        <li><a href="#s52-supp">补充说明</a></li>
+        <li><a href="#s52-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s52-intro">— 引言 —</div>
+
+<p>
+在上一节中，我们定义了 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+的概念——这是一个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>，
+其项最终变得任意接近。然而，不同的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+可能"收敛"到同一个"极限"——例如，逼近 \(\sqrt{2}\) 的两个不同序列
+应被视作定义了同一个<span class="t" data-zh="实数" data-en="real numbers"></span>。
+</p>
+
+<p>
+本节将引入两个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+之间的<strong><span class="t" data-zh="等价关系" data-en="equivalence relation"></span></strong>概念：
+当两个序列最终以任意精度互相接近时，我们称它们是<strong><span class="t" data-zh="等价的" data-en="equivalent"></span></strong>的。
+这为我们下一节正式构造<span class="t" data-zh="实数" data-en="real numbers"></span>提供了基础
+——<span class="t" data-zh="实数" data-en="real numbers"></span>将被定义为 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的
+<span class="t" data-zh="等价类" data-en="equivalence class"></span>。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：从序列到实数</span>
+    <p>
+    构造<span class="t" data-zh="实数" data-en="real numbers"></span>的整体思路可以概括为：
+    </p>
+    <ol>
+        <li><strong>第 5.1 节：</strong> 定义了什么是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>（"想要收敛"的序列）；</li>
+        <li><strong>第 5.2 节（本节）：</strong> 定义了两个序列何时"收敛到同一个东西"（等价性）；</li>
+        <li><strong>第 5.3 节：</strong> 将<span class="t" data-zh="实数" data-en="real numbers"></span>正式定义为 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的<span class="t" data-zh="等价类" data-en="equivalence class"></span>。</li>
+    </ol>
+    <p>
+    这个过程类比于从<span class="t" data-zh="自然数" data-en="natural numbers"></span>构造<span class="t" data-zh="整数" data-en="integers"></span>
+    （形式差 \(a - b\) 的等价类）和从<span class="t" data-zh="整数" data-en="integers"></span>构造<span class="t" data-zh="有理数" data-en="rational numbers"></span>
+    （形式商 \(a // b\) 的等价类）。每次我们都在更大的系统中"封闭"某种运算。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.2.1 ========== -->
+<div id="s52-def521">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.1：\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span></h3>
+</div>
+
+<p>
+回忆<span class="t" data-zh="定义" data-en="Definition"></span> 4.3.4（\(\varepsilon\)-接近）：两个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(x, y\) 是
+\(\varepsilon\)-接近的，如果 \(|x - y| \leq \varepsilon\)。
+我们现在将此概念从<strong><span class="t" data-zh="有理数" data-en="rational numbers"></span></strong>推广到
+<strong><span class="t" data-zh="序列" data-en="sequence"></span></strong>。
+</p>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.1（\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>）。</span>
+    设 \(\varepsilon > 0\) 是一个<span class="t" data-zh="有理数" data-en="rational numbers"></span>。
+    两个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>
+    \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 被称为
+    <strong>\(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span></strong>（\(\varepsilon\)-close），
+    如果对每个 \(n \geq m\)，\(a_n\) 和 \(b_n\) 都是 \(\varepsilon\)-接近的。
+    换言之，\(|a_n - b_n| \leq \varepsilon\) 对所有 \(n \geq m\) 成立。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个定义仅要求两个序列在<strong>相同下标</strong>处的项相比较。
+    这与 \(\varepsilon\)-稳定性（定义 5.1.3）不同，后者要求<strong>同一序列内</strong>
+    所有项两两比较。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span> vs \(\varepsilon\)-<span class="t" data-zh="稳定性" data-en="steadiness"></span></span>
+    <p>
+    这两个概念的对比非常重要：
+    </p>
+    <ul>
+        <li><strong>\(\varepsilon\)-<span class="t" data-zh="稳定性" data-en="steadiness"></span>（定义 5.1.3）：</strong> 序列内部的<span class="t" data-zh="一致性" data-en="consistency"></span>。
+        单个序列的所有项两两接近。这描述的是序列本身的"收敛潜力"。</li>
+        <li><strong>\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>（定义 5.2.1）：</strong> 两个序列之间的<span class="t" data-zh="相似性" data-en="similarity"></span>。
+        两个序列在对应位置上的项互相接近。这描述的是两个序列的"同步性"。</li>
+    </ul>
+    <p>
+    在 Lean 形式化中，<code>Rat.CloseSeq</code>（定义 5.2.1）和 <code>Rat.Steady</code>（定义 5.1.3）
+    的代码结构几乎平行——两者都用 <code>∀ n ≥ a.n₀, ...</code> 量化，区别仅在于
+    <code>Steady</code> 比较同一序列的两个下标，而 <code>CloseSeq</code> 比较两个序列的同一下标。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 例 5.2.2 ========== -->
+<div id="s52-ex522">
+<h3 style="margin: 1.5em 0 0.8em 0;">例 5.2.2</h3>
+</div>
+
+<div class="remark">
+    <strong>例 5.2.2。</strong>
+    序列 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 由以下公式定义：
+    \[
+    a_n := (-1)^n, \qquad b_n := 1.1 \cdot (-1)^n
+    \]
+    则 \(a\) 和 \(b\) 是 \(0.1\)-<span class="t" data-zh="接近的" data-en="close"></span>，
+    因为 \(|a_n - b_n| = |(-1)^n - 1.1 \cdot (-1)^n| = |(-1)^n| \cdot |1 - 1.1| = 0.1\)。
+    （注意，这两个序列中没有一个是 \(\varepsilon\)-稳定的，即使对任何较小的 \(\varepsilon\)。）
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：例 5.2.2 中的常数序列差距</span>
+    <p>
+    在这个例子中，两个序列的项始终保持固定的差距 \(0.1\)。虽然它们不是 \(\varepsilon\)-稳定的
+    （因为 \(a\) 和 \(b\) 自身都在 \(1\) 和 \(-1\) 之间来回跳跃），
+    但它们在每个下标上的差异始终被控制住。这说明"序列间接近"和"序列内稳定"是完全不同的概念。
+    </p>
+    <p>
+    在 Lean 中，该例的证明需要验证两点：
+    </p>
+    <ul>
+        <li><code>(0.1:ℚ).CloseSeq a b</code> —— 直接计算 \(a_n - b_n\) 的绝对值等于 \(0.1\)；</li>
+        <li><code>¬ (0.1:ℚ).Steady a</code> 和 <code>¬ (0.1:ℚ).Steady b</code>
+        —— 这是因为 \(a_0 = 1, a_1 = -1\)，其距离为 \(2 > 0.1\)。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.2.3 ========== -->
+<div id="s52-def523">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.3：最终 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span></h3>
+</div>
+
+<p>
+与第 5.1 节中从 \(\varepsilon\)-稳定性到最终 \(\varepsilon\)-稳定性的推广类似，
+我们现在将 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>推广到
+<strong>最终 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span></strong>。
+序列的初始部分（可能不接近）被丢弃，我们只关心尾部。
+</p>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.3（最终 \(\varepsilon\)-<span class="t" data-zh="接近" data-en="close"></span>）。</span>
+    设 \(\varepsilon > 0\)。两个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>
+    \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 被称为
+    <strong>最终 \(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span></strong>
+    （eventually \(\varepsilon\)-close），如果存在某个 \(N \geq 0\) 使得
+    \((a_n)_{n=N}^\infty\) 和 \((b_n)_{n=N}^\infty\) 是 \(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span>的。
+    换言之，存在 \(N \geq 0\) 使得对所有 \(n \geq N\) 有 \(|a_n - b_n| \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.2.4。</strong>
+    同样地，这个定义在文献中是非标准的，我们将在本节之后弃用。
+    我们的最终目标是<span class="t" data-zh="定义" data-en="Definition"></span> 5.2.6（等价序列），
+    而"最终 \(\varepsilon\)-<span class="t" data-zh="接近" data-en="close"></span>"只是一个辅助概念。
+</div>
+
+<hr>
+
+<!-- ========== 例 5.2.5 ========== -->
+<div id="s52-ex525">
+<h3 style="margin: 1.5em 0 0.8em 0;">例 5.2.5</h3>
+</div>
+
+<div class="remark">
+    <strong>例 5.2.5。</strong>
+    考虑序列
+    \[
+    a_n := 1 + 10^{-n}, \qquad b_n := 1 - 10^{-n}
+    \]
+    对于 \(n = 0\)，我们有 \(|a_0 - b_0| = 2\)，因此这两个序列不是 \(0.1\)-<span class="t" data-zh="接近的" data-en="close"></span>。
+    然而，对于任意 \(n \geq 1\)，我们有
+    \[
+    |a_n - b_n| = 2 \times 10^{-n}
+    \]
+    当 \(n = 1\) 时，\(2 \times 10^{-1} = 0.2 > 0.1\)，所以它们也不是最终 \(0.1\)-<span class="t" data-zh="接近的" data-en="close"></span>——发
+    （事实上，\(|a_1 - b_1| = 0.2\)，而 \(0.2 > 0.1\)）。
+    但它们是最终 \(0.2\)-<span class="t" data-zh="接近的" data-en="close"></span>（取 \(N = 1\)），以及最终 \(0.01\)-<span class="t" data-zh="接近的" data-en="close"></span>（取 \(N = 3\)）。
+    事实上，对于任意 \(\varepsilon > 0\)，只要选择足够大的 \(N\) 使得
+    \(2 \times 10^{-N} \leq \varepsilon\)，这两个序列就是最终 \(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span>的。
+    换句话说，它们"最终变得任意接近"。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：例 5.2.5 的直觉</span>
+    <p>
+    这两个序列分别从上方和下方逼近同一个"极限" \(1\)：
+    \[
+    a = 2, 1.1, 1.01, 1.001, 1.0001, \dots
+    \]
+    \[
+    b = 0, 0.9, 0.99, 0.999, 0.9999, \dots
+    \]
+    虽然第一个项相差甚远（\(a_0 - b_0 = 2\)），但随着 \(n\) 增大，
+    它们之间的距离呈指数级缩小。这正是"最终接近"概念所要捕捉的现象。
+    </p>
+    <p>
+    注意这两个序列各自都是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    （你能验证吗？），这表明不同的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    可以"收敛到同一个点"。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.2.6 ========== -->
+<div id="s52-def526">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.6：<span class="t" data-zh="等价序列" data-en="equivalent sequences"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.2.6（<span class="t" data-zh="等价序列" data-en="equivalent sequences"></span>）。</span>
+    两个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>
+    \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 被称为
+    <strong><span class="t" data-zh="等价的" data-en="equivalent"></span></strong>（equivalent），
+    如果对每个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\varepsilon > 0\)，
+    这两个序列都是最终 \(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span>的。
+    换言之，对每个 \(\varepsilon > 0\)，存在 \(N \geq 0\) 使得对所有 \(n \geq N\) 有
+    \(|a_n - b_n| \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.2.7。</strong>
+    等价序列的概念与后续通常的<span class="t" data-zh="极限" data-en="limit"></span>定义密切相关。
+    一旦我们有了<span class="t" data-zh="实数" data-en="real numbers"></span>中的<span class="t" data-zh="极限" data-en="limit"></span>概念，
+    两个序列等价当且仅当它们收敛到同一个<span class="t" data-zh="极限" data-en="limit"></span>。
+    但在目前这个阶段——我们还没有<span class="t" data-zh="实数" data-en="real numbers"></span>——只能直接用 \(\varepsilon\)-<span class="t" data-zh="接近" data-en="close"></span>来表述。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：等价关系三性质</span>
+    <p>
+    定义 5.2.6 定义了一个<strong><span class="t" data-zh="等价关系" data-en="equivalence relation"></span></strong>。
+    具体来说，对于<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>的集合，
+    关系"等价"满足以下三条性质（证明留作习题）：
+    </p>
+    <ul>
+        <li><strong><span class="t" data-zh="自反性" data-en="reflexivity"></span>：</strong> 每个序列与自身等价。</li>
+        <li><strong><span class="t" data-zh="对称性" data-en="symmetry"></span>：</strong> 若 \(a\) 等价于 \(b\)，则 \(b\) 等价于 \(a\)。</li>
+        <li><strong><span class="t" data-zh="传递性" data-en="transitivity"></span>：</strong> 若 \(a\) 等价于 \(b\) 且 \(b\) 等价于 \(c\)，则 \(a\) 等价于 \(c\)。</li>
+    </ul>
+    <p>
+    这三条性质使得我们可以将所有的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    划分为<strong><span class="t" data-zh="等价类" data-en="equivalence class"></span></strong>。
+    每个等价类对应于一个<span class="t" data-zh="实数" data-en="real numbers"></span>——这就是下一节的核心构造。
+    </p>
+    <p>
+    注意等价定义中的量词顺序：<strong>\(\forall \varepsilon > 0, \exists N, \forall n \geq N\)</strong>。
+    这里的 \(\varepsilon\) 是<span class="t" data-zh="有理数" data-en="rational numbers"></span>而非<span class="t" data-zh="实数" data-en="real numbers"></span>，
+    理由与 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>定义相同（见注 5.1.9）。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.2.8 ========== -->
+<div id="s52-prop528">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.2.8：等价序列的例子</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.2.8。</span>
+    设 \(a_n := 1 + 10^{-n}\)，\(b_n := 1 - 10^{-n}\)。
+    则 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是等价的。
+</div>
+
+<div class="proof">
+    设 \(\varepsilon > 0\) 是任意的。我们需要找到一个 \(N\) 使得对所有 \(n \geq N\) 有
+    \(|a_n - b_n| \leq \varepsilon\)。计算得：
+    \[
+    |a_n - b_n| = |(1 + 10^{-n}) - (1 - 10^{-n})| = |2 \times 10^{-n}| = 2 \times 10^{-n}.
+    \]
+    因此，我们只需找到 \(N\) 使得 \(2 \times 10^{-N} \leq \varepsilon\)，
+    即 \(10^{-N} \leq \varepsilon/2\)，亦即 \(10^N \geq 2/\varepsilon\)。
+    由于实数 \(10^N\) 可以任意大（命题 4.4.1 的推论），
+    这样的 \(N\) 总是存在的。取定该 \(N\)，则对所有 \(n \geq N\) 有
+    \(2 \times 10^{-n} \leq 2 \times 10^{-N} \leq \varepsilon\)，
+    从而 \(|a_n - b_n| \leq \varepsilon\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：命题 5.2.8 的 Lean 证明</span>
+    <p>
+    在 <code>Section_5_2.lean</code> 中，该命题的证明记为
+    <code>Sequence.equiv_example</code>。
+    其证明策略与上述自然语言证明一致：
+    </p>
+    <ol>
+        <li>展开等价定义 <code>equiv_iff</code> 得到 \(\forall \varepsilon > 0, \exists N, \forall n \geq N, |a_n - b_n| \leq \varepsilon\)；</li>
+        <li>计算 \(|a_n - b_n| = 2 \times 10^{-n}\) 并注意到它对 \(n\) 递减；</li>
+        <li>利用 <code>exists_nat_gt</code>（阿基米德性质）找到 \(N\) 使得 \(2/(N+1) \leq \varepsilon\)；</li>
+        <li>通过放缩 \(2 \times 10^{-n} \leq 2/(n+1)\) 完成证明。</li>
+    </ol>
+    <p>
+    其中步骤 3–4 的放缩链是证明中最微妙的部分：
+    \[
+    2 \times 10^{-n} = \frac{2}{10^n} \leq \frac{2}{2^n} \leq \frac{2}{n+1}
+    \]
+    第一个不等号来自 \(10^n \geq 2^n\)（对 \(n \geq 0\)），
+    第二个不等号来自 \(2^n \geq n+1\)（归纳可证）。
+    Lean 中通过 <code>gcongr</code>、<code>positivity</code>、<code>linarith</code> 等策略处理这些不等关系。
+    </p>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 从等价序列到实数 —</div>
+
+<p>
+第 5.2 节的核心思想可以总结为：并非每个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+都对应一个独特的"新数"；有些序列本质上是"同一个"<span class="t" data-zh="实数" data-en="real numbers"></span>的不同表示。
+因此，我们需要将彼此等价的序列<strong>视作相等</strong>。
+</p>
+
+<p>
+这种"通过等价关系识别对象"的方法我们已经见过两次：
+</p>
+<ul>
+    <li>从<span class="t" data-zh="自然数" data-en="natural numbers"></span> \(\mathbb{N}\) 构造<span class="t" data-zh="整数" data-en="integers"></span> \(\mathbb{Z}\) 时，
+    我们定义了 \((a,b) \sim (c,d) \iff a + d = b + c\)；</li>
+    <li>从<span class="t" data-zh="整数" data-en="integers"></span> \(\mathbb{Z}\) 构造<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(\mathbb{Q}\) 时，
+    我们定义了 \((a,b) \sim (c,d) \iff a \cdot d = b \cdot c\)（其中 \(b,d \neq 0\)）。</li>
+</ul>
+
+<p>
+现在在构造<span class="t" data-zh="实数" data-en="real numbers"></span>时，我们用两个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+之间的"最终 \(\varepsilon\)-接近"来定义等价关系。这是前两种构造的自然延续，
+但有一个关键区别：这里的等价关系涉及<strong>极限</strong>概念，
+而不是纯粹的代数等式。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：三种构造的类比</span>
+    <table>
+        <tr><th>数系扩张</th><th>对象</th><th>等价条件</th><th>运算封闭</th></tr>
+        <tr><td>\(\mathbb{N} \to \mathbb{Z}\)</td><td>形式差 \(a - b\)</td><td>\(a + d = b + c\)</td><td>减法</td></tr>
+        <tr><td>\(\mathbb{Z} \to \mathbb{Q}\)</td><td>形式商 \(a // b\)</td><td>\(a \cdot d = b \cdot c\)</td><td>除法</td></tr>
+        <tr><td>\(\mathbb{Q} \to \mathbb{R}\)</td><td>Cauchy 序列</td><td>最终任意接近</td><td>极限</td></tr>
+    </table>
+    <p>
+    前两种构造是纯代数的，而第三种构造涉及<strong>分析</strong>（极限）——这正是分析学
+    与代数的重要分野。从 \(\mathbb{Q}\) 到 \(\mathbb{R}\) 的跨越，是数学中从"离散"到"连续"的关键一步。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：为什么必须限制在 Cauchy 序列上？</span>
+    <p>
+    定义 5.2.6 中的等价关系实际上对<em>任意</em>有理数序列（不一定 Cauchy）都有定义。
+    但如果我们对任意序列取等价类，会得到一些不理想的东西。
+    只有在 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>上，
+    等价关系才具有良好的性质——例如，等价的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    保持<span class="t" data-zh="有界性" data-en="boundedness"></span>（习题 5.2.2），
+    而非 Cauchy 的序列则可能失去这个性质。
+    </p>
+    <p>
+    更根本的是，等价的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    的<span class="t" data-zh="极限" data-en="limit"></span>（在直觉上）是相同的。
+    如果序列不是 Cauchy 的，谈论"极限"就没有意义——它们根本不收敛。
+    因此，在下一节构造<span class="t" data-zh="实数" data-en="real numbers"></span>时，
+    我们只考虑 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的等价类，
+    而非所有序列的等价类。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：<code>Section_5_2.lean</code> 中的定义体系</span>
+    <p>
+    Lean 的形式化定义与教科书保持紧密对应：
+    </p>
+    <ul>
+        <li><strong><code>Rat.CloseSeq</code></strong>（定义 5.2.1）：<code>∀ n, n ≥ a.n₀ → n ≥ b.n₀ → ε.Close (a n) (b n)</code>。
+        这里 <code>a.n₀</code> 和 <code>b.n₀</code> 是序列的起始下标（由于序列可能从不同下标开始）。</li>
+        <li><strong><code>Rat.EventuallyClose</code></strong>（定义 5.2.3）：<code>∃ N, ε.CloseSeq (a.from N) (b.from N)</code>。
+        通过 <code>a.from N</code> 截断序列的前 \(N\) 项，然后检查截断后的序列是否 <code>ε.CloseSeq</code>。</li>
+        <li><strong><code>Sequence.Equiv</code></strong>（定义 5.2.6）：<code>∀ ε > (0:ℚ), ε.EventuallyClose (a:Sequence) (b:Sequence)</code>。
+        对所有正有理数 \(\varepsilon\) 都成立。</li>
+    </ul>
+    <p>
+    将序列从 \(\mathbb{N} \to \mathbb{Q}\) 提升到 <code>Sequence</code> 类型，
+    需要通过类型类的自动提升机制。为了在 \(\mathbb{N}\) 版本上更方便地推理，
+    提供了 <code>eventuallyClose_iff</code> 和 <code>equiv_iff</code> 两个引理，
+    将定义改写为更易操作的 \(\mathbb{N}\) 版本。
+    </p>
+    <p>
+    <code>equiv_example</code>（命题 5.2.8）的证明展示了这一套定义如何协同工作：
+    先用 <code>equiv_iff</code> 展开，然后进行指数计算和不等式放缩，
+    最后调用存在性引理找到合适的 \(N\)。
+    </p>
+</div>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">&#x1F4AC; 个人感悟：等价关系的形式化代价</span>
+    <p>
+    第 5.2 节的定义在数学上很简单——\(\varepsilon\)-接近序列、最终接近、等价——
+    每个概念都只是第 5.1 节对应概念的"两个序列"版本。但形式化揭示了新的复杂性。
+    </p>
+    <p>
+    两个 <code>Sequence</code> 可能有不同的起始下标 <code>n₀</code>，这意味着
+    <code>CloseSeq</code> 的量词必须同时顾及 <code>a.n₀</code> 和 <code>b.n₀</code>。
+    在转换为 \(\mathbb{N}\) 版本时，这个双下标问题需要额外的处理。
+    而"从 \(N\) 处截断"的 <code>from</code> 操作——在数学上微不足道——
+    在类型层面却涉及 <code>ℕ</code> 到 <code>ℤ</code> 的转换。
+    </p>
+    <p>
+    等价关系的自反性、对称性和传递性——在数学上几乎是显然的——
+    在 Lean 中也需要明确的证明（留作习题），因为这些性质在定义中并没有自动保证。
+    </p>
+    <p>
+    这印证了第 5.1 节补充说明中的观察：形式化以"非数学的复杂性"
+    换取"数学的确定性"。每当我们认为"这太显然了吧"，
+    形式化系统就会提醒我们：正是这些"显然"的步骤，
+    在传统数学教育中被悄悄地掩盖了。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明汇总 ========== -->
+<div id="s52-supp">
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：第 5.2 节的概念层次</span>
+    <p>
+    本节的概念层次与第 5.1 节平行：
+    </p>
+    <table>
+        <tr><th>第 5.1 节（单个序列）</th><th>第 5.2 节（两个序列）</th></tr>
+        <tr><td>\(\varepsilon\)-稳定性</td><td>\(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>（定义 5.2.1）</td></tr>
+        <tr><td>最终 \(\varepsilon\)-稳定性</td><td>最终 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>（定义 5.2.3）</td></tr>
+        <tr><td><span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>（定义 5.1.8）</td><td><span class="t" data-zh="等价序列" data-en="equivalent sequences"></span>（定义 5.2.6）</td></tr>
+    </table>
+    <p>
+    每行左侧是"序列<em>自身</em>的性质"，右侧是"两个序列<em>之间</em>的关系"。
+    <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>描述了单个序列的"内部收敛性"，
+    而<span class="t" data-zh="等价序列" data-en="equivalent sequences"></span>描述了两个序列的"极限相同性"。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s52-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.2.1">
+    <span class="label">习题 5.2.1.</span>
+    证明：如果两个有理数序列 \((a_n)_{n=1}^\infty\) 和 \((b_n)_{n=1}^\infty\) 是等价的，
+    那么 \((a_n)_{n=1}^\infty\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    当且仅当 \((b_n)_{n=1}^\infty\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    （提示：利用等价性和 Cauchy 性的定义，以及三角不等式。）
+</div>
+
+<div class="exercise" id="ex-5.2.2">
+    <span class="label">习题 5.2.2.</span>
+    证明：如果两个有理数序列是最终 \(\varepsilon\)-<span class="t" data-zh="接近的" data-en="close"></span>的，
+    那么其中一个有界当且仅当另一个有界。
+</div>
+
+<div class="exercise" id="ex-5.2.3">
+    <span class="label">习题 5.2.3.</span>
+    证明等价关系的三条性质（自反性、对称性、传递性）。
+    其中传递性的证明需要用到三角不等式。
+</div>
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.2 节的正文，以及关于 \(\varepsilon\)-<span class="t" data-zh="接近序列" data-en="close sequences"></span>、<span class="t" data-zh="等价序列" data-en="equivalent sequences"></span>等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_2.lean</code>。</p>
+</div>
+
+</body>
+</html>
