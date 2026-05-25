@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.3节：<span class="t" data-zh="实数的构造" data-en="The construction of the real numbers"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+
+        h1 {
+            font-family: 'STIX Two Text', serif;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5em;
+            color: #1a1a1a;
+        }
+
+        .book-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            font-weight: 600;
+            margin: 1.5em 0 0.5em 0;
+            color: #2c2c2c;
+        }
+
+        .section-number {
+            font-size: 0.75em;
+            color: #888;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        p {
+            text-align: justify;
+            margin: 1em 0;
+            text-indent: 1.5em;
+        }
+
+        .definition {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90d9;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .definition .label {
+            font-weight: 600;
+            font-style: normal;
+            color: #2c5a8a;
+        }
+
+        .remark {
+            color: #555;
+            padding-left: 1.5em;
+            border-left: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .remark strong { color: #333; }
+
+        .proof {
+            background: #fff;
+            padding: 15px 20px 15px 40px;
+            margin: 1em 0;
+            font-size: 0.95em;
+        }
+
+        .proof::before {
+            content: "证明.";
+            font-style: italic;
+            color: #666;
+        }
+
+        .proof::after {
+            content: "∎";
+            display: block;
+            text-align: right;
+            color: #999;
+            margin-top: 0.5em;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 1px solid #d0d8e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .exercise .label {
+            font-weight: 600;
+            color: #3a6a9a;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+
+        .proposition-box {
+            background: #f0f7f0;
+            border-left: 4px solid #5a9a5a;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .proposition-box .label {
+            font-weight: 600;
+            color: #2d5a2d;
+        }
+
+        .lemma-box {
+            background: #f5f0f7;
+            border-left: 4px solid #8a5a9a;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+        }
+
+        .lemma-box .label {
+            font-weight: 600;
+            color: #5a2d6a;
+        }
+
+        .formula {
+            font-family: 'STIX Two Text', 'Times New Roman', serif;
+            font-size: 1.1em;
+            padding: 10px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .formula-long { font-size: 0.95em; }
+
+        .chapter-marker {
+            color: #888;
+            font-size: 0.85em;
+            margin: 2em 0 1em 0;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+
+        .page-ref {
+            color: #999;
+            font-size: 0.8em;
+            text-align: right;
+            display: block;
+            margin-top: 0.3em;
+        }
+
+        .note {
+            background: #fff8e7;
+            border: 1px solid #e0d8c0;
+            padding: 10px 15px;
+            margin: 1em 0;
+            font-size: 0.9em;
+            color: #665;
+        }
+
+        .note::before {
+            content: "注: ";
+            font-weight: 600;
+        }
+
+        .supplement {
+            background: #f0f7ff;
+            border-left: 4px solid #e06090;
+            padding: 15px 20px;
+            margin: 2em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .supplement .sup-title {
+            font-weight: 700;
+            color: #b04060;
+            font-size: 1.05em;
+            margin-bottom: 0.5em;
+            display: block;
+        }
+
+        .supplement p {
+            text-indent: 0;
+            font-size: 0.95em;
+        }
+
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+
+        .code-block {
+            background: #f5f5f5;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.82em;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .toc {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 1.5em 0;
+        }
+
+        .toc .toc-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 0.8em;
+            color: #444;
+        }
+
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        .lang-toggle {
+            text-align: center;
+            margin: 0 0 20px 0;
+        }
+        .lang-toggle button {
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.85em;
+            padding: 6px 18px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-toggle button:hover {
+            border-color: #4a90d9;
+            color: #4a90d9;
+        }
+        .lang-toggle button.on {
+            background: #4a90d9;
+            color: #fff;
+            border-color: #4a90d9;
+        }
+        .t {
+            border-bottom: 1px dotted #c0c0c0;
+            cursor: help;
+            position: relative;
+        }
+        .t::before {
+            content: attr(data-zh);
+        }
+        .t::after {
+            content: attr(data-en);
+            position: absolute;
+            bottom: 1.6em;
+            left: 0;
+            font-size: 0.8em;
+            color: #fff;
+            background: #555;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 10;
+            font-style: normal;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transition-delay: 0s;
+        }
+        .t:hover::after {
+            opacity: 1;
+            transition-delay: 0.4s;
+        }
+        .lang-en .t::after {
+            font-size: 0.85em;
+            color: #888;
+            margin-left: 0.4em;
+            font-style: italic;
+            opacity: 1;
+            position: static;
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            white-space: normal;
+            pointer-events: auto;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 2em 0;
+        }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section53_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section53_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.3节</span>
+    <span class="t" data-zh="实数的构造" data-en="The construction of the real numbers"></span>
+    <span class="page-ref">第89–101页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s53-intro">引言：从等价关系到实数</a></li>
+        <li><a href="#s53-def531"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.1：<span class="t" data-zh="实数" data-en="real numbers"></span></a></li>
+        <li><a href="#s53-prop533"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.3：等价关系的性质</a></li>
+        <li><a href="#s53-def534"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.4：实数的加法</a></li>
+        <li><a href="#s53-lem536"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.6：Cauchy 序列的和是 Cauchy 的</a></li>
+        <li><a href="#s53-lem537"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.7：等价序列的和是等价的</a></li>
+        <li><a href="#s53-def539"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.9：实数的乘法</a></li>
+        <li><a href="#s53-prop5310"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.10：Cauchy 序列的积</a></li>
+        <li><a href="#s53-prop5311"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.11：代数定律</a></li>
+        <li><a href="#s53-def5312"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.12：远离零的序列</a></li>
+        <li><a href="#s53-ex5313">例 5.3.13</a></li>
+        <li><a href="#s53-lem5314"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.14</a></li>
+        <li><a href="#s53-lem5315"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.15</a></li>
+        <li><a href="#s53-def5316"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.16：实数的倒数</a></li>
+        <li><a href="#s53-lem5317"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.17：倒数的良定性</a></li>
+        <li><a href="#s53-supp">补充说明</a></li>
+        <li><a href="#s53-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s53-intro">— 引言 —</div>
+
+<p>
+在上一节中，我们<span class="t" data-zh="定义" data-en="Definition"></span>了两个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+的<span class="t" data-zh="等价关系" data-en="equivalence relation"></span>。现在，我们终于准备好构造<span class="t" data-zh="实数" data-en="real numbers"></span>了：
+<span class="t" data-zh="实数" data-en="real numbers"></span>将被<span class="t" data-zh="定义" data-en="Definition"></span>为
+<span class="t" data-zh="有理数" data-en="rational numbers"></span>的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+的<span class="t" data-zh="等价类" data-en="equivalence class"></span>。
+</p>
+
+<p>
+这是我们在本书中的第三个数系构造，也是最重要的一次：
+</p>
+<ul>
+    <li><strong>从 \(\mathbb{N}\) 到 \(\mathbb{Z}\)：</strong> 形式差 \(a - b\) 的等价类——封闭减法；</li>
+    <li><strong>从 \(\mathbb{Z}\) 到 \(\mathbb{Q}\)：</strong> 形式商 \(a // b\) 的等价类——封闭除法；</li>
+    <li><strong>从 \(\mathbb{Q}\) 到 \(\mathbb{R}\)：</strong> <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的等价类——封闭极限。</li>
+</ul>
+
+<p>
+前两个构造是纯代数的，而第三个构造引入了<strong><span class="t" data-zh="极限" data-en="limit"></span></strong>概念，
+这使我们可以填补<span class="t" data-zh="有理数" data-en="rational numbers"></span>中的"间隙"——如 \(\sqrt{2}\)、\(\pi\) 等
+<span class="t" data-zh="无理数" data-en="irrational number"></span>。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：从序列到实数的整体路线</span>
+    <p>
+    第 5 章的构造路线可以概括为：
+    </p>
+    <ol>
+        <li><strong>第 5.1 节：</strong> <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>——"想要收敛"的序列；</li>
+        <li><strong>第 5.2 节：</strong> 序列的等价关系——"收敛到同一个东西"；</li>
+        <li><strong>第 5.3 节（本节）：</strong> 将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的等价类，并定义加法、乘法、倒数；</li>
+        <li><strong>第 5.4–5.6 节：</strong> 建立序关系、上确界等进一步性质。</li>
+    </ol>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.3.1 ========== -->
+<div id="s53-def531">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.1：<span class="t" data-zh="实数" data-en="real numbers"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.1（<span class="t" data-zh="实数" data-en="real numbers"></span>）。</span>
+    设 \((a_n)_{n=0}^\infty\) 是一个 <span class="t" data-zh="有理数" data-en="rational numbers"></span>的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    那么，<strong><span class="t" data-zh="实数" data-en="real numbers"></span></strong>（real number）被<span class="t" data-zh="定义" data-en="Definition"></span>为形如
+    \[
+    \operatorname{LIM}_{n\to\infty} a_n
+    \]
+    的对象。两个<span class="t" data-zh="实数" data-en="real numbers"></span>
+    \(\operatorname{LIM}_{n\to\infty} a_n\) 和 \(\operatorname{LIM}_{n\to\infty} b_n\) 被称为<strong>相等</strong>的，
+    当且仅当 \((a_n)\) 和 \((b_n)\) 是<span class="t" data-zh="等价的" data-en="equivalent"></span>的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    所有<span class="t" data-zh="实数" data-en="real numbers"></span>的集合记作 \(\mathbb{R}\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.3.2。</strong>
+    记号 \(\operatorname{LIM}\) 只是"潜在的极限"的占位符——此时我们还没有<span class="t" data-zh="极限" data-en="limit"></span>的严格定义。
+    一旦在第 6 章中建立了<span class="t" data-zh="极限" data-en="limit"></span>概念，我们将证明
+    \(\operatorname{LIM}_{n\to\infty} a_n = \lim_{n\to\infty} a_n\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的 <code>Real</code> 定义</span>
+    <p>
+    在 <code>Section_5_3.lean</code> 中，<span class="t" data-zh="实数" data-en="real numbers"></span>的类型定义如下：
+    </p>
+    <div class="code-block">
+@[ext]
+class CauchySequence extends Sequence where
+  zero : n₀ = 0
+  cauchy : toSequence.IsCauchy
+
+abbrev Real := Quotient CauchySequence.instSetoid
+    </div>
+    <p>
+    <code>CauchySequence</code> 封装了从 0 开始的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    <code>Real</code> 则是这些 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>在等价关系下的商。
+    </p>
+    <p>
+    <code>LIM</code> 算子被<span class="t" data-zh="定义" data-en="Definition"></span>为将一个 <span class="t" data-zh="序列" data-en="sequence"></span>（不一定 Cauchy）
+    映射到 <code>Real</code> 的函数；当序列不是 Cauchy 时，它返回一个默认值 \(0\)（这需要经典逻辑，
+    因为 Cauchy 性不可判定）：
+    </p>
+    <div class="code-block">
+noncomputable abbrev LIM (a:ℕ → ℚ) : Real :=
+  Quotient.mk _ (if h : (a:Sequence).IsCauchy
+    then CauchySequence.mk' h else (0:CauchySequence))
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.3.3 ========== -->
+<div id="s53-prop533">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.3：等价关系的性质（习题 5.3.1）</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.3。</span>
+    在 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的集合上，
+    <span class="t" data-zh="等价序列" data-en="equivalent sequences"></span>关系是<span class="t" data-zh="自反" data-en="reflexive"></span>、
+    <span class="t" data-zh="对称" data-en="symmetric"></span>和<span class="t" data-zh="传递" data-en="transitive"></span>的。
+    换言之，它是一个<span class="t" data-zh="等价关系" data-en="equivalence relation"></span>。
+</div>
+
+<div class="proof">
+    证明留作习题。自反性和对称性由定义直接可得；传递性需要利用三角不等式，
+    类似于习题 5.2.3 的证明。
+    <span class="page-ref">（习题 5.3.1）</span>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的 Setoid 实例</span>
+    <p>
+    在 Lean 中，将等价关系注册为 <code>Setoid</code> 实例是为了使用 <code>Quotient</code> 机制：
+    </p>
+    <div class="code-block">
+instance CauchySequence.instSetoid : Setoid CauchySequence where
+  r := fun a b ↦ Sequence.Equiv a b
+  iseqv := {
+    refl := sorry
+    symm := sorry
+    trans := sorry
+  }
+    </div>
+    <p>
+    这三个证明就是命题 5.3.3 的内容。一旦完成，<code>Quotient CauchySequence.instSetoid</code>
+    就自动获得正确的相等性判定。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.3.4 ========== -->
+<div id="s53-def534">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.4：实数的加法</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.4（实数的加法）。</span>
+    两个<span class="t" data-zh="实数" data-en="real numbers"></span>的和<span class="t" data-zh="定义" data-en="Definition"></span>为：
+    \[
+    \operatorname{LIM}_{n\to\infty} a_n + \operatorname{LIM}_{n\to\infty} b_n
+    := \operatorname{LIM}_{n\to\infty} (a_n + b_n).
+    \]
+    为了使这个<span class="t" data-zh="定义" data-en="Definition"></span>有意义，我们需要验证两件事：
+    <ol>
+        <li>如果 \((a_n)\) 和 \((b_n)\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，那么 \((a_n + b_n)\) 也是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>（引理 5.3.6）；</li>
+        <li>如果 \((a_n)\) 等价于 \((a'_n)\) 且 \((b_n)\) 等价于 \((b'_n)\)，那么 \(\operatorname{LIM}(a_n + b_n) = \operatorname{LIM}(a'_n + b'_n)\)，即加法在等价类上良定（引理 5.3.7）。</li>
+    </ol>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的加法实现</span>
+    <p>
+    在 Lean 中，加法的<span class="t" data-zh="定义" data-en="Definition"></span>使用了 <code>Quotient.liftOn₂</code>
+    以处理商类型上的运算：
+    </p>
+    <div class="code-block">
+noncomputable instance Real.add_inst : Add Real where
+  add := fun x y ↦
+    Quotient.liftOn₂ x y (fun a b ↦ LIM (a + b)) (by
+      intro a b a' b' _ _
+      rw [LIM_eq_LIM]
+      · exact Sequence.add_equiv ‹_› ‹_›
+      all_goals apply Sequence.IsCauchy.add
+        <;> rw [CauchySequence.coe_to_sequence]
+        <;> convert @CauchySequence.cauchy ?_)
+    </div>
+    <p>
+    第二个参数（以 <code>by</code> 开头的块）是良定性证明：它使用 <code>LIM_eq_LIM</code>
+    将问题转化为序列的等价性，再调用 <code>Sequence.add_equiv</code>。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.3.6 ========== -->
+<div id="s53-lem536">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.6：Cauchy 序列的和是 Cauchy 的</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.6。</span>
+    如果 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，
+    那么它们的和 \((a_n + b_n)_{n=0}^\infty\) 也是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+</div>
+
+<div class="proof">
+    设 \(\varepsilon > 0\)。由于 \(a\) 和 \(b\) 是 Cauchy 的，存在 \(N_1, N_2\) 使得
+    \[
+    \forall j,k \geq N_1,\; |a_j - a_k| \leq \varepsilon/2,
+    \qquad
+    \forall j,k \geq N_2,\; |b_j - b_k| \leq \varepsilon/2.
+    \]
+    令 \(N = \max(N_1, N_2)\)。则对任意 \(j,k \geq N\)，由三角不等式：
+    \[
+    |(a_j + b_j) - (a_k + b_k)| \leq |a_j - a_k| + |b_j - b_k|
+    \leq \varepsilon/2 + \varepsilon/2 = \varepsilon.
+    \]
+    因此 \((a_n + b_n)\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：引理 5.3.6 的 Lean 证明</span>
+    <p>
+    Lean 中的证明（<code>Sequence.IsCauchy.add</code>）与上述自然语言证明完全对应：
+    </p>
+    <div class="code-block">
+theorem Sequence.IsCauchy.add {a b:ℕ → ℚ}
+    (ha: (a:Sequence).IsCauchy) (hb: (b:Sequence).IsCauchy) :
+    (a + b:Sequence).IsCauchy := by
+  rw [coe] at *
+  intro ε hε
+  choose N1 ha using ha _ (half_pos hε)
+  choose N2 hb using hb _ (half_pos hε)
+  use max N1 N2
+  intro j hj k hk
+  have h1 := ha j ?_ k ?_ <;> try omega
+  have h2 := hb j ?_ k ?_ <;> try omega
+  convert Section_4_3.add_close h1 h2
+  linarith
+    </div>
+    <p>
+    关键技巧是使用 <code>half_pos hε</code> 将 \(\varepsilon\) 分为两半，
+    分别用于 \(a\) 和 \(b\) 的估计，然后通过 <code>add_close</code> 合并。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.3.7 ========== -->
+<div id="s53-lem537">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.7：等价序列的和等价</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.7。</span>
+    如果 \((a_n)\) 等价于 \((a'_n)\)，那么对任意序列 \((b_n)\)，
+    \((a_n + b_n)\) 等价于 \((a'_n + b_n)\)。
+    类似地，如果 \((b_n)\) 等价于 \((b'_n)\)，那么 \((a_n + b_n)\) 等价于 \((a_n + b'_n)\)。
+    因此，如果 \(a\) 等价于 \(a'\) 且 \(b\) 等价于 \(b'\)，
+    那么 \((a_n + b_n)\) 等价于 \((a'_n + b'_n)\)。
+</div>
+
+<div class="proof">
+    设 \(\varepsilon > 0\)。由于 \(a\) 等价于 \(a'\)，存在 \(N\) 使得对所有 \(n \geq N\) 有
+    \(|a_n - a'_n| \leq \varepsilon\)。那么对同样的 \(N\) 和所有 \(n \geq N\)：
+    \[
+    |(a_n + b_n) - (a'_n + b_n)| = |a_n - a'_n| \leq \varepsilon.
+    \]
+    因此 \((a_n + b_n)\) 等价于 \((a'_n + b_n)\)。另一侧由加法交换律可得。
+    组合两部分即得最后结论。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的 <code>add_equiv</code></span>
+    <p>
+    在 Lean 中，引理 5.3.7 被拆分为三个定理：
+    <code>Sequence.add_equiv_left</code>、<code>Sequence.add_equiv_right</code>
+    和 <code>Sequence.add_equiv</code>（组合版本）。其中左侧版本的核心是：
+    </p>
+    <div class="code-block">
+theorem Sequence.add_equiv_left {a a':ℕ → ℚ} (b:ℕ → ℚ)
+    (haa': Equiv a a') : Equiv (a + b) (a' + b) := by
+  rw [equiv_def] at *
+  peel 2 haa' with ε hε haa'
+  rw [Rat.eventuallyClose_def] at *
+  choose N haa' using haa'; use N
+  simp [Rat.closeSeq_def] at *
+  peel 5 haa' with n hn hN _ _ haa'
+  simp [hn, hN] at *
+  convert Section_4_3.add_close haa' (Section_4_3.close_refl (b n.toNat))
+  simp
+    </div>
+    <p>
+    这里 <code>peel</code> 策略被用来逐层剥离量词，<code>add_close</code> 用于合并估计，
+    而 <code>close_refl</code> 处理与自身的 \(\varepsilon\)-接近（总是成立）。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.3.9 ========== -->
+<div id="s53-def539">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.9：实数的乘法</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.9（实数的乘法）。</span>
+    两个<span class="t" data-zh="实数" data-en="real numbers"></span>的积<span class="t" data-zh="定义" data-en="Definition"></span>为：
+    \[
+    \operatorname{LIM}_{n\to\infty} a_n \times \operatorname{LIM}_{n\to\infty} b_n
+    := \operatorname{LIM}_{n\to\infty} (a_n \times b_n).
+    \]
+    与加法类似，良定性依赖于两个关键事实：
+    <ol>
+        <li>Cauchy 序列的积是 Cauchy 的（命题 5.3.10）；</li>
+        <li>等价序列的积是等价的（命题 5.3.10）。</li>
+    </ol>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.3.10 ========== -->
+<div id="s53-prop5310">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.10：Cauchy 序列的积（习题 5.3.2）</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.10。</span>
+    设 \((a_n)\) 和 \((b_n)\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    则：
+    <ol>
+        <li>它们的积 \((a_n b_n)\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>；</li>
+        <li>如果 \(a\) 等价于 \(a'\)，则 \((a_n b_n)\) 等价于 \((a'_n b_n)\)（类似地对于 \(b\)）。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    证明留作习题（习题 5.3.2）。提示：利用 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的<span class="t" data-zh="有界性" data-en="boundedness"></span>（引理 5.1.15），
+    以及分解式：
+    \[
+    |a_n b_n - a_m b_m| \leq |a_n|\cdot|b_n - b_m| + |b_m|\cdot|a_n - a_m|.
+    \]
+    第二部分（等价性）的证明需要将乘积的差分解为：
+    \[
+    |a_n b_n - a'_n b_n| = |b_n|\cdot|a_n - a'_n|.
+    \]
+    然后利用 Cauchy 序列的<span class="t" data-zh="有界性" data-en="boundedness"></span>控制 \(|b_n|\)。
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.3.11 ========== -->
+<div id="s53-prop5311">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.11：代数定律</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.3.11（代数定律）。</span>
+    在<span class="t" data-zh="实数" data-en="real numbers"></span> \(\mathbb{R}\) 中
+    （由定义 5.3.1、5.3.4、5.3.9 以及以下将<span class="t" data-zh="定义" data-en="Definition"></span>的加法逆元和乘法逆元），下列性质成立：
+    <ol>
+        <li><strong>交换律：</strong> \(x + y = y + x\)，\(x \times y = y \times x\)；</li>
+        <li><strong>结合律：</strong> \((x + y) + z = x + (y + z)\)，\((x \times y) \times z = x \times (y \times z)\)；</li>
+        <li><strong>分配律：</strong> \(x \times (y + z) = x \times y + x \times z\)；</li>
+        <li><strong>单位律：</strong> \(x + 0 = x\)，\(x \times 1 = x\)；</li>
+        <li><strong>加法逆元：</strong> 存在唯一的 \((-x)\) 使得 \(x + (-x) = 0\)；</li>
+        <li><strong>乘法逆元：</strong> 如果 \(x \neq 0\)，存在唯一的 \(x^{-1}\) 使得 \(x \times x^{-1} = 1\)；</li>
+        <li><strong>零乘律：</strong> \(0 \times x = 0\)。</li>
+    </ol>
+    换言之，\(\mathbb{R}\) 构成一个<span class="t" data-zh="域" data-en="field"></span>。
+</div>
+
+<div class="proof">
+    证明需要逐条验证每个定律，其中大部分由序列的逐点运算和等价类的商结构直接继承。
+    细节见 <code>Section_5_3.lean</code> 中 <code>Real.addGroup_inst</code>、
+    <code>Real.instAddCommGroup</code>、<code>Real.instCommMonoid</code>、
+    <code>Real.instCommRing</code> 和 <code>Real.instField</code> 的构造。
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.3.12 ========== -->
+<div id="s53-def5312">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.12：远离零的序列</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.12（远离零的序列）。</span>
+    一个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span> \((a_n)_{n=0}^\infty\) 被称为
+    <strong>远离零的</strong>（bounded away from zero），如果存在一个<span class="t" data-zh="有理数" data-en="rational numbers"></span>
+    \(c > 0\) 使得对所有 \(n\) 都有 \(|a_n| \geq c\)。
+</div>
+
+<div class="remark">
+    <strong>例 5.3.13。</strong>
+    <ul>
+        <li>序列 \(a_n = (-1)^n\) 是远离零的（可取 \(c = 1\)）；</li>
+        <li>序列 \(a_n = 10^{-n}\) 不是远离零的（因为项趋于 0）；</li>
+        <li>序列 \(a_n = 1 - 10^{-n}\) 不是远离零的（因为项趋于 1，但接近 1 并不意味远离零——实际上 \(1 - 10^{-n} \to 1\) 且最终远离零，但定义 5.3.12 要求<strong>所有</strong> \(n\) 都满足 \(|a_n| \geq c\)，而 \(a_0 = 0\) 破坏了这一点）；</li>
+        <li>序列 \(a_n = 10^{n+1}\) 是远离零的（可取 \(c = 10\)）但不是<span class="t" data-zh="有界的" data-en="bounded"></span>。</li>
+    </ul>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的定义和例子</span>
+    <div class="code-block">
+abbrev BoundedAwayZero (a:ℕ → ℚ) : Prop :=
+  ∃ (c:ℚ), c > 0 ∧ ∀ n, |a n| ≥ c
+    </div>
+    <p>例子验证：</p>
+    <div class="code-block">
+example : BoundedAwayZero (fun n ↦ (-1)^n) := by
+  use 1; simp
+
+example : ¬ BoundedAwayZero (fun n ↦ 10^(-(n:ℤ)-1)) := by
+  sorry
+
+example : BoundedAwayZero (fun n ↦ 10^(n+1)) := by
+  use 1, by norm_num; intro n; dsimp
+  rw [abs_of_nonneg (by positivity), show (1:ℚ) = 10^0 by norm_num]
+  gcongr <;> grind
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.3.14 ========== -->
+<div id="s53-lem5314">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.14</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.14。</span>
+    设 \(x\) 是一个非零的<span class="t" data-zh="实数" data-en="real numbers"></span>。
+    那么存在一个远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span> \((a_n)\)
+    使得 \(x = \operatorname{LIM} a_n\)。
+</div>
+
+<div class="proof">
+    由于 \(x \neq 0\)，任取一个 Cauchy 序列 \((b_n)\) 使得 \(x = \operatorname{LIM} b_n\)。
+    由 <span class="t" data-zh="实数" data-en="real numbers"></span>相等的条件，
+    \(b\) 不等价于零序列，因此存在 \(\varepsilon > 0\) 使得对任意 \(N\) 都存在
+    \(n \geq N\) 满足 \(|b_n| > \varepsilon\)。
+
+    由于 \(b\) 是 Cauchy 的，存在 \(M\) 使得对所有 \(j,k \geq M\) 有 \(|b_j - b_k| \leq \varepsilon/2\)。
+    选择某个 \(n_0 \geq M\) 使得 \(|b_{n_0}| > \varepsilon\)，则对所有 \(k \geq M\) 有
+    \(|b_k| \geq |b_{n_0}| - |b_{n_0} - b_k| > \varepsilon - \varepsilon/2 = \varepsilon/2\)。
+
+    定义新的序列：
+    \[
+    a_n := \begin{cases}
+    \varepsilon/2 & \text{如果 } n < n_0,\\
+    b_n & \text{如果 } n \geq n_0.
+    \end{cases}
+    \]
+    则 \(a\) 是 Cauchy 的、与 \(b\) 等价的、且对所有 \(n\) 有 \(|a_n| \geq \varepsilon/2\)，
+    因此远离零。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.3.15 ========== -->
+<div id="s53-lem5315">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.15</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.15。</span>
+    如果 \((a_n)\) 是远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，
+    那么 \((a_n^{-1})\) 也是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+</div>
+
+<div class="proof">
+    设 \(c > 0\) 使得对所有 \(n\) 有 \(|a_n| \geq c\)。特别地，每个 \(a_n \neq 0\)，
+    所以 \(a_n^{-1}\) 有定义。
+
+    设 \(\varepsilon > 0\)。由于 \(a\) 是 Cauchy 的，存在 \(N\) 使得对所有 \(j,k \geq N\) 有
+    \(|a_j - a_k| \leq c^2 \varepsilon\)。那么对任意 \(j,k \geq N\)：
+    \[
+    \begin{aligned}
+    |a_j^{-1} - a_k^{-1}|
+    &= \left|\frac{a_k - a_j}{a_j a_k}\right| \\
+    &= \frac{|a_j - a_k|}{|a_j|\cdot|a_k|} \\
+    &\leq \frac{|a_j - a_k|}{c^2} \\
+    &\leq \frac{c^2 \varepsilon}{c^2} = \varepsilon.
+    \end{aligned}
+    \]
+    因此 \((a_n^{-1})\) 是 Cauchy 的。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的倒数 Cauchy 性证明</span>
+    <p>
+    <code>Real.inv_isCauchy_of_boundedAwayZero</code> 的证明直接对应于上述推导：
+    </p>
+    <div class="code-block">
+theorem Real.inv_isCauchy_of_boundedAwayZero {a:ℕ → ℚ}
+    (ha: BoundedAwayZero a) (ha_cauchy: (a:Sequence).IsCauchy) :
+    ((a⁻¹:ℕ → ℚ):Sequence).IsCauchy := by
+  have ha' (n:ℕ) : a n ≠ 0 := nonzero_of_boundedAwayZero ha n
+  rw [bounded_away_zero_def] at ha; choose c hc ha using ha
+  simp_rw [Sequence.IsCauchy.coe, Section_4_3.dist_eq] at ha_cauchy ⊢
+  intro ε hε; specialize ha_cauchy (c^2 * ε) (by positivity)
+  choose N ha_cauchy using ha_cauchy; use N;
+  peel 4 ha_cauchy with n hn m hm ha_cauchy
+  calc
+    _ = |(a m - a n) / (a m * a n)| := by
+        congr; simp only [Pi.inv_apply]; field_simp [ha' m, ha' n]
+    _ ≤ |a m - a n| / c^2 := by ...
+    _ = |a n - a m| / c^2 := by rw [abs_sub_comm]
+    _ ≤ (c^2 * ε) / c^2 := by gcongr
+    _ = ε := by field_simp [hc]
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.3.16 ========== -->
+<div id="s53-def5316">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.16：实数的倒数</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.3.16（实数的倒数）。</span>
+    设 \(x\) 是一个<span class="t" data-zh="实数" data-en="real numbers"></span>。
+    如果 \(x \neq 0\)，我们选择任意一个远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    \((a_n)\) 使得 \(x = \operatorname{LIM} a_n\)（由引理 5.3.14 知这样的序列存在），
+    然后定义 \(x^{-1} := \operatorname{LIM} (a_n^{-1})\)。
+    如果 \(x = 0\)，我们定义 \(0^{-1} := 0\)（约定俗成的"垃圾"值）。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 定义 5.3.16 需要经典逻辑（选择公理）来选择序列 \((a_n)\)，
+    因为"\(x \neq 0\)"是一个无法计算判定的命题。在 Lean 中，
+    这通过 <code>Classical.choice</code> 和 <code>if h: x ≠ 0 then ... else 0</code> 实现。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的倒数实现</span>
+    <div class="code-block">
+open Classical in
+noncomputable instance Real.instInv : Inv Real where
+  inv x := if h: x ≠ 0
+    then LIM (boundedAwayZero_of_nonzero h).choose⁻¹
+    else 0
+    </div>
+    <p>
+    <code>boundedAwayZero_of_nonzero</code> 是引理 5.3.14 的具体形式，
+    它返回一个存在性证明 <code>∃ a, ...</code>，通过 <code>choose</code> 提取其中的序列。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.3.17 ========== -->
+<div id="s53-lem5317">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.17：倒数的良定性</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.3.17。</span>
+    如果 \(\operatorname{LIM} a_n = \operatorname{LIM} b_n\)，
+    且 \((a_n)\) 和 \((b_n)\) 都是远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，
+    那么 \(\operatorname{LIM} (a_n^{-1}) = \operatorname{LIM} (b_n^{-1})\)。
+    换言之，倒数的<span class="t" data-zh="定义" data-en="Definition"></span>与序列的选取无关。
+</div>
+
+<div class="proof">
+    令 \(x = \operatorname{LIM} a_n = \operatorname{LIM} b_n\)。
+    考虑表达式：
+    \[
+    P := (\operatorname{LIM} a_n^{-1}) \times (\operatorname{LIM} a_n) \times (\operatorname{LIM} b_n^{-1}).
+    \]
+    一方面，
+    \[
+    P = \operatorname{LIM} (a_n^{-1} a_n b_n^{-1}) = \operatorname{LIM} (b_n^{-1}) = \operatorname{LIM} b_n^{-1}.
+    \]
+    另一方面，
+    \[
+    P = \operatorname{LIM} (a_n^{-1}) \times (\operatorname{LIM} b_n) \times (\operatorname{LIM} b_n^{-1})
+    = \operatorname{LIM} (a_n^{-1}) \times \operatorname{LIM} (b_n b_n^{-1})
+    = \operatorname{LIM} (a_n^{-1}) \times 1 = \operatorname{LIM} a_n^{-1}.
+    \]
+    因此两边相等。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的良定性证明</span>
+    <p>
+    <code>Real.inv_of_equiv</code> 实现了上述论证。它巧妙地将证明组织为两个 claim：
+    </p>
+    <div class="code-block">
+theorem Real.inv_of_equiv {a b:ℕ → ℚ}
+    (ha: BoundedAwayZero a) (ha_cauchy: (a:Sequence).IsCauchy)
+    (hb: BoundedAwayZero b) (hb_cauchy: (b:Sequence).IsCauchy)
+    (hlim: LIM a = LIM b) : LIM a⁻¹ = LIM b⁻¹ := by
+  set P := LIM a⁻¹ * LIM a * LIM b⁻¹
+  have hainv_cauchy := Real.inv_isCauchy_of_boundedAwayZero ha ha_cauchy
+  have hbinv_cauchy := Real.inv_isCauchy_of_boundedAwayZero hb hb_cauchy
+  have haainv_cauchy := hainv_cauchy.mul ha_cauchy
+  have habinv_cauchy := hainv_cauchy.mul hb_cauchy
+  have claim1 : P = LIM b⁻¹ := by
+    simp only [P, LIM_mul hainv_cauchy ha_cauchy,
+      LIM_mul haainv_cauchy hbinv_cauchy]
+    rcongr n; simp [nonzero_of_boundedAwayZero ha n]
+  have claim2 : P = LIM a⁻¹ := by
+    simp only [P, hlim, LIM_mul hainv_cauchy hb_cauchy,
+      LIM_mul habinv_cauchy hbinv_cauchy]
+    rcongr n; simp [nonzero_of_boundedAwayZero hb n]
+  grind
+    </div>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 第 5.3 节总结 —</div>
+
+<p>
+第 5.3 节是全书的核心。我们完成了从 <span class="t" data-zh="有理数" data-en="rational numbers"></span>到
+<span class="t" data-zh="实数" data-en="real numbers"></span>的严格构造。这个构造的关键步骤是：
+</p>
+
+<ol>
+    <li>将<span class="t" data-zh="实数" data-en="real numbers"></span><span class="t" data-zh="定义" data-en="Definition"></span>为 <span class="t" data-zh="有理数" data-en="rational numbers"></span>的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的等价类（定义 5.3.1）；</li>
+    <li><span class="t" data-zh="定义" data-en="Definition"></span>加法和乘法，并验证它们与等价关系相容（定义 5.3.4、5.3.9）；</li>
+    <li>通过一系列引理证明 <span class="t" data-zh="实数" data-en="real numbers"></span>构成一个<span class="t" data-zh="域" data-en="field"></span>（命题 5.3.11）；</li>
+    <li>引入"远离零"概念，构造非零实数的倒数（定义 5.3.12–5.3.16）。</li>
+</ol>
+
+<p>
+这个构造在数学上完成了从 \(\mathbb{Q}\) 到 \(\mathbb{R}\) 的"完备化"——所有 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+现在都有了极限（虽然极限本身就是一个<span class="t" data-zh="实数" data-en="real numbers"></span>）。
+在接下来的几节中，我们将在此基础上建立序结构、上确界等进一步的重要性质。
+</p>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">&#x1F4AC; 个人感悟：为什么选择 Cauchy 序列？</span>
+    <p>
+    实数的构造有多种等价的方法：Dedekind 分割、十进制展开、Cauchy 序列。
+    Tao 选择 Cauchy 序列方法，因为它自然地从前几节的 \(\varepsilon\)-接近概念发展而来，
+    并且与后续章节中<span class="t" data-zh="极限" data-en="limit"></span>的<span class="t" data-zh="定义" data-en="Definition"></span>紧密衔接。
+    </p>
+    <p>
+    在形式化方面，Cauchy 序列方法也有优势：它直接利用了已<span class="t" data-zh="定义" data-en="Definition"></span>的序列概念，
+    将实数构造归结为在等价关系下取商——这与从 \(\mathbb{N}\) 到 \(\mathbb{Z}\)、
+    从 \(\mathbb{Z}\) 到 \(\mathbb{Q}\) 的构造在<strong>模式上完全一致</strong>。
+    每次都是取某种"形式对象"的等价类，然后在商集上定义运算。
+    </p>
+    <p>
+    然而，这次有一个根本性区别：前两次构造只需验证代数运算与等价关系相容，
+    而这一次还需要验证分析性质（Cauchy 性的保持）。这体现了分析学与代数的分野：
+    <span class="t" data-zh="极限" data-en="limit"></span>——即使只是<span class="t" data-zh="定义" data-en="Definition"></span>中的"潜在极限"——
+    也带来了全新的复杂性。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明汇总 ========== -->
+<div id="s53-supp">
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：实数的代数结构体系</span>
+    <p>
+    在 <code>Section_5_3.lean</code> 中，代数结构是通过逐层继承构建的：
+    </p>
+    <table>
+        <tr><th>实例</th><th>提供</th><th>状态</th></tr>
+        <tr><td><code>Real.add_inst</code></td><td>加法运算</td><td>已定义</td></tr>
+        <tr><td><code>Real.mul_inst</code></td><td>乘法运算</td><td>已定义</td></tr>
+        <tr><td><code>Real.instNeg</code></td><td>加法逆元（通过 \((-1) \times x\)）</td><td>已定义</td></tr>
+        <tr><td><code>Real.instInv</code></td><td>乘法逆元（需要经典逻辑）</td><td>已定义</td></tr>
+        <tr><td><code>Real.addGroup_inst</code></td><td>加法群公理</td><td>待完成（习题）</td></tr>
+        <tr><td><code>Real.instAddCommGroup</code></td><td>加法交换群</td><td>待完成（习题）</td></tr>
+        <tr><td><code>Real.instCommMonoid</code></td><td>乘法交换幺半群</td><td>待完成（习题）</td></tr>
+        <tr><td><code>Real.instCommRing</code></td><td>交换环</td><td>待完成（习题）</td></tr>
+        <tr><td><code>Real.instField</code></td><td>域</td><td>待完成（习题）</td></tr>
+    </table>
+    <p>
+    这展示了 Lean 代数层次结构的典型用法：从最具体的运算<span class="t" data-zh="定义" data-en="Definition"></span>开始，
+    然后逐步建立更高级的代数结构，每个层次依赖并扩展前一个层次。
+    这种设计使得每个定理只需在适当的抽象层次上证明一次。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：序列的起始索引问题</span>
+    <p>
+    Lean 形式化中的一个技术细节：定义 5.1.1 允许序列从任意整数索引开始，
+    但在第 5.3 节中为了简化商构造，我们要求所有 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>
+    从 0 开始。这就是 <code>CauchySequence</code> 中 <code>zero : n₀ = 0</code> 字段的作用。
+    </p>
+    <p>
+    这个约束没有损失一般性：任何从 \(m\) 开始的 Cauchy 序列都可以通过移位
+    转化为从 0 开始的 Cauchy 序列，且保持等价关系。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s53-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.3.1">
+    <span class="label">习题 5.3.1（命题 5.3.3）。</span>
+    证明等价关系 \(\sim\) 是<span class="t" data-zh="自反" data-en="reflexive"></span>、
+    <span class="t" data-zh="对称" data-en="symmetric"></span>和<span class="t" data-zh="传递" data-en="transitive"></span>的。
+    即对任意 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span> \((a_n), (b_n), (c_n)\)：
+    <ol>
+        <li>\((a_n) \sim (a_n)\)；</li>
+        <li>如果 \((a_n) \sim (b_n)\)，则 \((b_n) \sim (a_n)\)；</li>
+        <li>如果 \((a_n) \sim (b_n)\) 且 \((b_n) \sim (c_n)\)，则 \((a_n) \sim (c_n)\)。</li>
+    </ol>
+    （提示：传递性需要用到三角不等式。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>CauchySequence.instSetoid</code> 中的 <code>refl</code>、<code>symm</code>、<code>trans</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.3.2">
+    <span class="label">习题 5.3.2（命题 5.3.10）。</span>
+    证明：
+    <ol>
+        <li>两个 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的积是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>；</li>
+        <li>如果 \((a_n) \sim (a'_n)\)，那么 \((a_n b_n) \sim (a'_n b_n)\)（对任意 Cauchy 序列 \((b_n)\)）。</li>
+    </ol>
+    （提示：利用 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的<span class="t" data-zh="有界性" data-en="boundedness"></span>引理 5.1.15。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.IsCauchy.mul</code>、<code>Sequence.mul_equiv_left</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.3.3">
+    <span class="label">习题 5.3.3。</span>
+    证明：对于任意有理数 \(q, r \in \mathbb{Q}\)，
+    \[
+    q = r \quad\text{当且仅当}\quad \operatorname{LIM}(q) = \operatorname{LIM}(r),
+    \]
+    其中 \(\operatorname{LIM}(q)\) 表示常数序列 \(\operatorname{LIM}_{n\to\infty} q\)。
+    换言之，有理数到实数的嵌入是单射。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.ratCast_inj</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.3.4">
+    <span class="label">习题 5.3.4。</span>
+    证明：如果 \((a_n)\) 是<span class="t" data-zh="有界" data-en="bounded"></span>的 <span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>，
+    且 \((a_n) \sim (b_n)\)，那么 \((b_n)\) 也是<span class="t" data-zh="有界" data-en="bounded"></span>的。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.IsBounded.equiv</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.3.5">
+    <span class="label">习题 5.3.5。</span>
+    证明：\(\operatorname{LIM}_{n\to\infty} \frac{1}{n+1} = 0\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.LIM.harmonic</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.3 节的正文，以及关于<span class="t" data-zh="实数的构造" data-en="the construction of real numbers"></span>、加法与乘法、倒数等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_3.lean</code>。</p>
+</div>
+
+</body>
+</html>
