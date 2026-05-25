@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.5节：<span class="t" data-zh="上确界性质" data-en="The least upper bound property"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+        h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: #1a1a1a; }
+        .book-info { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: #2c2c2c; }
+        .section-number { font-size: 0.75em; color: #888; display: block; margin-bottom: 0.3em; }
+        p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+        .definition { background: #f8f9fa; border-left: 4px solid #4a90d9; padding: 15px 20px; margin: 1.5em 0; }
+        .definition .label { font-weight: 600; font-style: normal; color: #2c5a8a; }
+        .remark { color: #555; padding-left: 1.5em; border-left: 2px solid #ddd; margin: 1.5em 0; }
+        .remark strong { color: #333; }
+        .proof { background: #fff; padding: 15px 20px 15px 40px; margin: 1em 0; font-size: 0.95em; }
+        .proof::before { content: "证明."; font-style: italic; color: #666; }
+        .proof::after { content: "∎"; display: block; text-align: right; color: #999; margin-top: 0.5em; }
+        .exercise { background: #f0f4f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 15px 20px; margin: 1.5em 0; }
+        .exercise .label { font-weight: 600; color: #3a6a9a; display: block; margin-bottom: 0.5em; }
+        .proposition-box { background: #f0f7f0; border-left: 4px solid #5a9a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .proposition-box .label { font-weight: 600; color: #2d5a2d; }
+        .lemma-box { background: #f5f0f7; border-left: 4px solid #8a5a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .lemma-box .label { font-weight: 600; color: #5a2d6a; }
+        .formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+        .chapter-marker { color: #888; font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+        .page-ref { color: #999; font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+        .note { background: #fff8e7; border: 1px solid #e0d8c0; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: #665; }
+        .note::before { content: "注: "; font-weight: 600; }
+        .supplement { background: #f0f7ff; border-left: 4px solid #e06090; padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+        .supplement .sup-title { font-weight: 700; color: #b04060; font-size: 1.05em; margin-bottom: 0.5em; display: block; }
+        .supplement p { text-indent: 0; font-size: 0.95em; }
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+        .code-block { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; margin: 1em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #eee; color: #888; font-size: 0.85em; }
+        .toc { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; }
+        .toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: #444; }
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .lang-toggle { text-align: center; margin: 0 0 20px 0; }
+        .lang-toggle button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid #ccc; border-radius: 20px; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+        .lang-toggle button:hover { border-color: #4a90d9; color: #4a90d9; }
+        .lang-toggle button.on { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .t { border-bottom: 1px dotted #c0c0c0; cursor: help; position: relative; }
+        .t::before { content: attr(data-zh); }
+        .t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: #fff; background: #555; padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s; }
+        .t:hover::after { opacity: 1; transition-delay: 0.4s; }
+        .lang-en .t::after { font-size: 0.85em; color: #888; margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+        .theorem-box { background: #faf5ff; border-left: 4px solid #7a3a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .theorem-box .label { font-weight: 600; color: #5a1a7a; }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section55_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section55_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.5节</span>
+    <span class="t" data-zh="上确界性质" data-en="The least upper bound property"></span>
+    <span class="page-ref">第101–104页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s55-intro">引言：实数相对于有理数的核心优势</a></li>
+        <li><a href="#s55-def551"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.1：上界</a></li>
+        <li><a href="#s55-ex552">例 5.5.2–5.5.4</a></li>
+        <li><a href="#s55-def555"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.5：<span class="t" data-zh="上确界" data-en="least upper bound"></span></a></li>
+        <li><a href="#s55-prop558"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.8：唯一性</a></li>
+        <li><a href="#s55-theorem559"><span class="t" data-zh="定理" data-en="Theorem"></span> 5.5.9：上确界的存在性</a></li>
+        <li><a href="#s55-def5510"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.10：<span class="t" data-zh="上确界" data-en="supremum"></span></a></li>
+        <li><a href="#s55-prop5512"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.12：\(\sqrt{2}\) 的存在性</a></li>
+        <li><a href="#s55-supp">补充说明</a></li>
+        <li><a href="#s55-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s55-intro">— 引言 —</div>
+
+<p>
+第 5.4 节表明实数具有与有理数完全相同的序结构：都是阿基米德有序域，
+有理数在其中稠密。那么实数的"优越性"究竟体现在哪里？
+</p>
+
+<p>
+答案是<strong>上确界性质</strong>（least upper bound property），也叫<strong>完备性</strong>（completeness）：
+实数 \(\mathbb{R}\) 的每个非空有上界的子集都有一个<strong>最小上界</strong>（即上确界）。
+有理数 \(\mathbb{Q}\) 不具有这一性质——例如集合 \(\{q \in \mathbb{Q} : q^2 < 2\}\)
+在 \(\mathbb{Q}\) 中没有上确界，因为 \(\sqrt{2} \notin \mathbb{Q}\)。
+正是这个性质使得实数可以"填补"有理数中的所有"间隙"。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：完备性的不同表述</span>
+    <p>
+    实数的完备性可以有多种等价的表述方式：
+    </p>
+    <ul>
+        <li><strong>上确界性质：</strong> 每个非空有上界的子集都有上确界（本节采用）；</li>
+        <li><strong>Cauchy 完备性：</strong> 每个实数 Cauchy 序列都收敛（第 6 章）；</li>
+        <li><strong>区间套定理：</strong> 闭区间套的交集非空；</li>
+        <li><strong>Bolzano-Weierstrass 性质：</strong> 有界序列有收敛子列。</li>
+    </ul>
+    <p>
+    这些表述在实数中是等价的，但在更一般的度量空间中可能不等价。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.5.1 ========== -->
+<div id="s55-def551">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.1：上界</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.1（上界）。</span>
+    设 \(E \subseteq \mathbb{R}\)，\(M \in \mathbb{R}\)。称 \(M\) 为 \(E\) 的一个<strong>上界</strong>（upper bound），
+    如果对每个 \(x \in E\) 都有 \(x \leq M\)。
+</div>
+
+<div class="remark">
+    <strong>例 5.5.2–5.5.4。</strong>
+    <ul>
+        <li>令 \(E = \{x \in \mathbb{R} : 0 \leq x \leq 1\}\)，则 1 是 \(E\) 的一个上界（事实上每个 \(\geq 1\) 的数都是上界）；</li>
+        <li>\(\mathbb{R}^+ = \{x > 0\}\) 没有上界；</li>
+        <li>空集 \(\emptyset\) 的每个实数都是上界（空真成立）。</li>
+    </ul>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的上界</span>
+    <p>
+    Lean 使用 Mathlib 中标准的 <code>upperBounds</code> 定义：
+    </p>
+    <div class="code-block">
+theorem Real.upperBound_def (E: Set Real) (M: Real) :
+    M ∈ upperBounds E ↔ ∀ x ∈ E, x ≤ M := mem_upperBounds
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.5.5 ========== -->
+<div id="s55-def555">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.5：<span class="t" data-zh="上确界" data-en="Least upper bound"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.5（<span class="t" data-zh="上确界" data-en="least upper bound"></span>）。</span>
+    设 \(E \subseteq \mathbb{R}\)，\(M \in \mathbb{R}\)。称 \(M\) 为 \(E\) 的<strong>最小上界</strong>或<strong>上确界</strong>
+    （least upper bound / supremum），如果：
+    <ol>
+        <li>\(M\) 是 \(E\) 的一个上界；</li>
+        <li>对 \(E\) 的任何上界 \(M'\)，有 \(M' \geq M\)。</li>
+    </ol>
+</div>
+
+<div class="remark">
+    <strong>例 5.5.6–5.5.7。</strong>
+    <ul>
+        <li>\(E = [0, 1]\) 的上确界是 1（所有其他上界都大于 1）；</li>
+        <li>空集没有上确界（因为任何实数都是上界，但没有最小的上界）。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.5.8 ========== -->
+<div id="s55-prop558">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.8：上确界的唯一性</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.8（上确界的唯一性）。</span>
+    设 \(E \subseteq \mathbb{R}\)。则 \(E\) 至多有一个最小上界。
+</div>
+
+<div class="proof">
+    设 \(M_1\) 和 \(M_2\) 都是最小上界。由于 \(M_1\) 是最小上界而 \(M_2\) 是上界，
+    由定义得 \(M_2 \geq M_1\)。同理，\(M_1 \geq M_2\)。故 \(M_1 = M_2\)。
+</div>
+
+<hr>
+
+<!-- ========== 定理 5.5.9 ========== -->
+<div id="s55-theorem559">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 5.5.9：上确界的存在性</h3>
+</div>
+
+<div class="theorem-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 5.5.9（最小上界的存在性）。</span>
+    设 \(E\) 是 \(\mathbb{R}\) 的非空子集。如果 \(E\) 有上界，则 \(E\) 恰好有一个最小上界。
+</div>
+
+<div class="proof">
+    由命题 5.5.8，至多有一个最小上界。我们需要证明至少存在一个。
+    由于 \(E\) 非空，取 \(x_0 \in E\)。
+    设 \(n \geq 1\)。已知 \(E\) 有上界 \(M\)。由阿基米德性质（推论 5.4.13），
+    存在整数 \(K\) 使得 \(K/n \geq M\)（从而 \(K/n\) 也是上界）。
+    同样地，存在整数 \(L\) 使得 \(L/n < x_0\)（从而 \(L/n\) 不是上界）。
+
+    由于 \(K/n\) 是上界而 \(L/n\) 不是，存在整数 \(L < m_n \leq K\) 使得
+    \(m_n/n\) 是上界但 \((m_n - 1)/n\) 不是（见习题 5.5.2）。
+    这定义了整数序列 \(m_1, m_2, m_3, \dots\)。
+
+    设 \(N \geq 1\)。对任意 \(n, n' \geq N\)，由于 \(m_n/n\) 是上界而 \((m_{n'} - 1)/n'\) 不是，
+    我们有 \(m_n/n > (m_{n'} - 1)/n'\)，经代数变形得：
+    \[
+    \frac{m_n}{n} - \frac{m_{n'}}{n'} > -\frac{1}{n'} \geq -\frac{1}{N}.
+    \]
+    同理，\(m_{n'}/n' > (m_n - 1)/n\) 给出：
+    \[
+    \frac{m_n}{n} - \frac{m_{n'}}{n'} \leq \frac{1}{n} \leq \frac{1}{N}.
+    \]
+    因此对任意 \(n, n' \geq N\)：
+    \[
+    \left|\frac{m_n}{n} - \frac{m_{n'}}{n'}\right| \leq \frac{1}{N}.
+    \]
+    故 \(m_n/n\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>（习题 5.5.4）。
+    定义实数：
+    \[
+    S := \operatorname{LIM}_{n\to\infty} \frac{m_n}{n}.
+    \]
+    由习题 5.3.5，也有 \(S = \operatorname{LIM}_{n\to\infty} \frac{m_n - 1}{n}\)。
+
+    现在证明 \(S\) 是最小上界。
+    <ol>
+        <li><strong>\(S\) 是上界：</strong> 对任意 \(x \in E\)，由于 \(m_n/n\) 是上界，
+        有 \(x \leq m_n/n\) 对所有 \(n\) 成立。由习题 5.4.8，\(x \leq S\)。</li>
+        <li><strong>\(S\) 是最小的：</strong> 设 \(y\) 是任意上界。由于 \((m_n - 1)/n\) 不是上界，
+        有 \(y \geq (m_n - 1)/n\) 对所有 \(n\) 成立。由习题 5.4.8，\(y \geq S\)。</li>
+    </ol>
+    因此 \(S\) 即为所求的最小上界。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：定理 5.5.9 的证明策略</span>
+    <p>
+    该证明是全书最复杂的证明之一。其核心思想是：
+    </p>
+    <ul>
+        <li><strong>用有理数逼近上确界：</strong> 对每个精度 \(1/n\)，找到"最佳"的有理数估计 \(m_n/n\)；
+        该有理数是上界，但减去 \(1/n\) 后就不再是上界；</li>
+        <li><strong>证明这些有理数构成 Cauchy 序列：</strong> 利用上界/非上界的夹逼得到差值估计；</li>
+        <li><strong>取形式极限：</strong> \(S = \operatorname{LIM} m_n/n\) 就是上确界。</li>
+    </ul>
+    <p>
+    在 <code>Section_5_5.lean</code> 中，该证明被拆分为多个引理：
+    <code>Real.LUB_claim1</code>（存在唯一的 \(m\)）、<code>Real.LUB_claim2</code>（Cauchy 性估计）、
+    <code>Real.LIM_of_Cauchy</code>（辅助引理），最后在 <code>Real.LUB_exist</code> 中组装。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.5.10 ========== -->
+<div id="s55-def5510">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.10：<span class="t" data-zh="上确界" data-en="Supremum"></span></h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.5.10（<span class="t" data-zh="上确界" data-en="supremum"></span>）。</span>
+    设 \(E \subseteq \mathbb{R}\)。
+    <ul>
+        <li>如果 \(E\) 非空且有上界，定义 \(\sup(E)\) 为 \(E\) 的最小上界（由定理 5.5.9 保证存在唯一）；</li>
+        <li>如果 \(E\) 非空且无上界，定义 \(\sup(E) := +\infty\)；</li>
+        <li>如果 \(E\) 为空，定义 \(\sup(E) := -\infty\)。</li>
+    </ul>
+    \(\sup(E)\) 称为 \(E\) 的<strong>上确界</strong>（supremum），也记作 \(\sup E\)。
+</div>
+
+<div class="remark">
+    <strong>注 5.5.11。</strong>
+    目前 \(+\infty\) 和 \(-\infty\) 只是无意义的符号；它们不是实数，
+    不能参与实数运算。在第 6.2 节中我们将把它们加入实数系统构成<strong>扩展实数系</strong>
+    （extended real number system），但许多代数定律在此系统中会失效。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的扩展实数</span>
+    <p>
+    <code>Section_5_5.lean</code> 定义了一个简单的扩展实数类型：
+    </p>
+    <div class="code-block">
+inductive ExtendedReal where
+| neg_infty : ExtendedReal
+| real (x:Real) : ExtendedReal
+| infty : ExtendedReal
+    </div>
+    <p>
+    通过这个类型，<code>sup</code> 可以返回一个 <code>ExtendedReal</code>，
+    从而统一处理有界、无界和空集三种情况。
+    </p>
+    <div class="code-block">
+noncomputable abbrev ExtendedReal.sup (E: Set Real) : ExtendedReal :=
+  if h1:E.Nonempty then
+    (if h2:BddAbove E then ((Real.LUB_exist h1 h2).choose:Real) else ⊤)
+  else ⊥
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.5.12 ========== -->
+<div id="s55-prop5512">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.12：\(\sqrt{2}\) 的存在性</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.5.12。</span>
+    存在正实数 \(x\) 使得 \(x^2 = 2\)。
+</div>
+
+<div class="proof">
+    令 \(E := \{y \in \mathbb{R} : y \geq 0 \text{ 且 } y^2 < 2\}\)。
+    \(E\) 非空（\(1 \in E\)）且有上界（例如 2 是上界，因为若 \(y > 2\) 则 \(y^2 > 4 > 2\)）。
+    由上确界性质，设 \(x := \sup(E)\)。则 \(x \geq 1\) 且 \(x \leq 2\)，故 \(x > 0\)。
+    我们用反证法证明 \(x^2 = 2\)。
+
+    <p><strong>情况 1：</strong> 假设 \(x^2 < 2\)。取 \(0 < \varepsilon < 1\)，则
+    \[
+    (x + \varepsilon)^2 = x^2 + 2\varepsilon x + \varepsilon^2 \leq x^2 + 4\varepsilon + \varepsilon = x^2 + 5\varepsilon.
+    \]
+    由于 \(x^2 < 2\)，可选择足够小的 \(\varepsilon\) 使得 \(x^2 + 5\varepsilon < 2\)，
+    从而 \((x + \varepsilon)^2 < 2\)，故 \(x + \varepsilon \in E\)，与 \(x\) 是上界矛盾。</p>
+
+    <p><strong>情况 2：</strong> 假设 \(x^2 > 2\)。取 \(0 < \varepsilon < 1\)，则
+    \[
+    (x - \varepsilon)^2 = x^2 - 2\varepsilon x + \varepsilon^2 \geq x^2 - 4\varepsilon.
+    \]
+    选择足够小的 \(\varepsilon\) 使得 \(x^2 - 4\varepsilon > 2\)，则 \((x - \varepsilon)^2 > 2\)，
+    从而 \(x - \varepsilon \geq y\) 对所有 \(y \in E\) 成立（否则若 \(x - \varepsilon < y\)，
+    则 \((x - \varepsilon)^2 < y^2 \leq 2\) 矛盾）。故 \(x - \varepsilon\) 是 \(E\) 的上界，
+    与 \(x\) 是最小上界矛盾。</p>
+
+    因此 \(x^2 = 2\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：\(\sqrt{2}\) 的存在性与上确界</span>
+    <p>
+    命题 5.5.12 与命题 4.4.4 形成鲜明对比：有理数中没有 \(\sqrt{2}\)，
+    但实数中有。正是上确界性质保证了实数中"应该有"的数都存在。
+    证明中使用的"反证法 + \(\varepsilon\) 调整"是分析学中最基本的技巧之一。
+    </p>
+    <p>
+    在 Lean 中，该证明需要巧妙地选择 \(\varepsilon\) 并处理多个不等式的放缩。
+    <code>Real.exist_sqrt_two</code> 的证明使用了 <code>E</code> 作为辅助集合，
+    通过上确界构造出 \(\sqrt{2}\)，然后对 \(x^2 < 2\) 和 \(x^2 > 2\) 两种情况分别导出矛盾。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：注 5.5.13–5.5.15</span>
+    <p>
+    命题 5.5.12 也说明有理数 \(\mathbb{Q}\) 不具有上确界性质——
+    否则我们就能用同样的方法在 \(\mathbb{Q}\) 中构造出 \(\sqrt{2}\)，
+    而命题 4.4.4 告诉我们这是不可能的。
+    </p>
+    <p>
+    下界和最大下界（下确界 \(\inf\)）的概念完全对称。
+    \(\inf(E)\) 可以通过 \(\sup(-E)\) 来定义（见习题 5.5.1）。
+    </p>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 第 5.5 节总结 —</div>
+
+<p>
+上确界性质是实数区别于有理数的核心特征。有以下几点值得注意：
+</p>
+<ol>
+    <li>它保证了"填补间隙"：\(\sqrt{2}\)、\(\pi\)、\(e\) 等所有无理数的存在性都可由此推出；</li>
+    <li>它是后续分析学所有重要定理的基础（介值定理、极值定理、Bolzano-Weierstrass 定理等）；</li>
+    <li>它的证明依赖于阿基米德性质（推论 5.4.13）和 Cauchy 序列的构造技巧。</li>
+</ol>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：上确界与 Mathlib 的 ConditionallyCompleteLattice</span>
+    <p>
+    在 Lean 中，通过证明 <code>Real.LUB_exist</code>（定理 5.5.9），
+    我们可以将实数注册为 <code>ConditionallyCompleteLattice</code>：
+    </p>
+    <div class="code-block">
+noncomputable instance Real.inst_conditionallyCompleteLattice :
+    ConditionallyCompleteLattice Real :=
+  conditionallyCompleteLatticeOfLatticeOfsSup Real
+  (by intros; solve_by_elim [ExtendedReal.sup_of_bounded])
+    </div>
+    <p>
+    一旦注册了这个实例，就可直接使用 Mathlib 丰富的 <code>sSup</code>、<code>sInf</code> API，
+    无需再手动调用 <code>LUB_exist</code>。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s55-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.5.1">
+    <span class="label">习题 5.5.1。</span>
+    设 \(E \subseteq \mathbb{R}\) 有最小上界 \(M = \sup(E)\)。
+    令 \(-E := \{-x : x \in E\}\)。证明 \(-M\) 是 \(-E\) 的最大下界，即 \(-M = \inf(-E)\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.inf_neg</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.5.2">
+    <span class="label">习题 5.5.2。</span>
+    设 \(E \subseteq \mathbb{R}\) 非空，\(n \geq 1\)，\(L < K\) 为整数。
+    假设 \(K/n\) 是 \(E\) 的上界而 \(L/n\) 不是。不使用定理 5.5.9，
+    证明存在整数 \(L < m \leq K\) 使得 \(m/n\) 是上界但 \((m-1)/n\) 不是。
+    （提示：用反证法和归纳法。画图可能有助于理解。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.upperBound_between</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.5.3">
+    <span class="label">习题 5.5.3。</span>
+    设 \(E \subseteq \mathbb{R}\) 非空，\(n \geq 1\)，\(m, m'\) 为整数。
+    如果 \(m/n\) 和 \(m'/n\) 都是 \(E\) 的上界，但 \((m-1)/n\) 和 \((m'-1)/n\) 都不是，
+    证明 \(m = m'\)。（因此习题 5.5.2 中的 \(m\) 是唯一的。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.upperBound_discrete_unique</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.5.4">
+    <span class="label">习题 5.5.4。</span>
+    设 \(q_1, q_2, q_3, \dots\) 是一个<span class="t" data-zh="有理数" data-en="rational numbers"></span>序列，
+    满足对任意整数 \(M \geq 1\) 及任意 \(n, n' \geq M\) 有 \(|q_n - q_{n'}| \leq 1/M\)。
+    证明该序列是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    此外，若 \(S := \operatorname{LIM} q_n\)，证明对每个 \(M \geq 1\) 有 \(|q_M - S| \leq 1/M\)。
+    （提示：使用推论 5.4.10 或习题 5.4.8。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.LIM_of_Cauchy</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.5.5">
+    <span class="label">习题 5.5.5。</span>
+    建立命题 5.4.14 的类比版本，将其中"有理数"替换为"无理数"。
+    即证明：对任意两个实数 \(x < y\)，存在无理数 \(z\) 使得 \(x < z < y\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.irrat_between</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.5 节的正文，以及关于上确界性质、实数完备性、\(\sqrt{2}\) 的构造等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_5.lean</code>。</p>
+</div>
+
+</body>
+</html>

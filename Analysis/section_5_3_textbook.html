@@ -505,6 +505,117 @@ noncomputable abbrev LIM (a:ℕ → ℚ) : Real :=
     </div>
 </div>
 
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：<code>CauchySequence</code> 的内部构造（第31–64行详解）</span>
+    <p>
+    在 <code>Real</code> 被定义为商类型之前，首先需要定义<strong>被商的对象</strong>——<code>CauchySequence</code>。
+    第 31–64 行围绕这个类型建立了<strong>三层转换</strong>的桥梁：
+    </p>
+
+    <table>
+        <tr><th>层</th><th>类型</th><th>特点</th></tr>
+        <tr><td>最上层</td><td><code>ℕ → ℚ</code></td><td>用户最自然的写法，如 <code>fun n ↦ 1/(n+1)</code></td></tr>
+        <tr><td>中间层</td><td><code>CauchySequence</code></td><td>保证 <code>n₀ = 0</code> + Cauchy 性，统一进入商构造</td></tr>
+        <tr><td>底层</td><td><code>Sequence</code></td><td>底层存储为 <code>ℤ → ℚ</code>，携带 <code>n₀</code> 和 <code>vanish</code></td></tr>
+    </table>
+
+    <p>下面是各声明的逐条解释：</p>
+
+    <div class="code-block">
+@[ext]
+class CauchySequence extends Sequence where
+  zero : n₀ = 0
+  cauchy : toSequence.IsCauchy
+    </div>
+    <p>
+    <code>CauchySequence</code> 在 <code>Sequence</code> 的基础上附加两个约束：
+    <code>zero</code> 要求起始下标 <code>n₀ = 0</code>（否则无法统一放入商类型）；
+    <code>cauchy</code> 要求该序列是 Cauchy 序列。<code>@[ext]</code> 自动生成一个扩展性引理：
+    如果两个 <code>CauchySequence</code> 的 <code>seq</code> 字段相等则它们相等
+    （因为 <code>zero</code> 只能是 <code>rfl</code>，<code>cauchy</code> 是 <code>Prop</code> 不参与定义性相等）。
+    </p>
+
+    <div class="code-block">
+theorem CauchySequence.ext' {a b: CauchySequence} (h: a.seq = b.seq) : a = b := by
+  apply CauchySequence.ext _ h
+  rw [a.zero, b.zero]
+    </div>
+    <p>
+    手动编写的扩展性引理。<code>CauchySequence.ext</code> 是由 <code>@[ext]</code> 自动生成的，
+    它有两个参数（<code>seq</code> 相等的证明 + <code>zero</code> 相等的证明）。
+    <code>ext'</code> 为用户省去第二个参数：由于 <code>a.zero</code> 和 <code>b.zero</code> 都是 <code>n₀ = 0</code>，
+    将它们 <code>rw</code> 掉就自动相等了。
+    </p>
+
+    <div class="code-block">
+abbrev CauchySequence.mk' {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) : CauchySequence where
+  n₀ := 0
+  seq := (a:Sequence).seq
+  vanish := by aesop
+  zero := rfl
+  cauchy := ha
+    </div>
+    <p>
+    便捷构造器：给定一个 <code>ℕ → ℚ</code> 的函数 <code>a</code> 和它 Cauchy 的证明 <code>ha</code>，
+    <code>mk'</code> 自动填好所有字段。其中 <code>vanish := by aesop</code> 由自动化策略自动证明
+    "序列在 <code>n₀</code> 之前全为零"这个技术性条件。
+    </p>
+
+    <div class="code-block">
+@[simp]
+theorem CauchySequence.coe_eq {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) :
+    (mk' ha).toSequence = (a:Sequence) := rfl
+    </div>
+    <p>
+    说 <code>mk' ha</code> 转回 <code>Sequence</code> 就等于原始的 <code>(a:Sequence)</code>。
+    注意它是 <code>rfl</code>——类型层面的定义性相等，这是因为 <code>mk'</code> 直接将 <code>a</code> 的序列数据原样存入。
+    </p>
+
+    <div class="code-block">
+instance CauchySequence.instCoeFun : CoeFun CauchySequence (fun _ ↦ ℕ → ℚ) where
+  coe a n := a.toSequence (n:ℤ)
+    </div>
+    <p>
+    注册 <strong><code>CoeFun</code></strong> 实例，使得 <code>CauchySequence</code> 可以像函数一样使用。
+    当你写 <code>a n</code>（其中 <code>a : CauchySequence</code>）时，Lean 自动将其解释为
+    <code>a.toSequence (n:ℤ)</code>。注意 <code>n</code> 被提升为 <code>ℤ</code>——因为
+    <code>Sequence</code> 底层将数据存为 <code>ℤ → ℚ</code> 的函数。
+    </p>
+
+    <div class="code-block">
+@[simp]
+theorem CauchySequence.coe_to_sequence (a: CauchySequence) :
+    ((a:ℕ → ℚ):Sequence) = a.toSequence := by
+  apply Sequence.ext (by simp [Sequence.n0_coe, a.zero])
+  ext n; by_cases h:n ≥ 0 <;> simp_all
+  rw [a.vanish]; rwa [a.zero]
+    </div>
+    <p>
+    一致性引理：把 <code>CauchySequence</code> 转成 <code>ℕ → ℚ</code> <strong>再</strong>转回
+    <code>Sequence</code>，等价于直接取 <code>a.toSequence</code>。
+    证明需要处理三处杂音：<code>n₀</code> 在 <code>Sequence.n0_coe</code> 中变为 0、
+    <code>eval</code> 在 ℤ 上的 <code>if n ≥ 0 ... else 0</code>、
+    以及 <code>vanish</code> 条件。
+    </p>
+
+    <div class="code-block">
+@[simp]
+theorem CauchySequence.coe_coe {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) : mk' ha = a := by rfl
+    </div>
+    <p>
+    最后一块拼图：<code>mk' ha</code> 作为 <code>ℕ → ℚ</code> 定义上等于 <code>a</code>。
+    所以用户在写 <code>LIM (mk' ha)</code> 和 <code>LIM a</code> 时，Lean 知道它们是一样的。
+    </p>
+
+    <p>
+    搞懂这一层，就能理解为什么 <code>LIM</code>、<code>Real.add_inst</code>、<code>Real.mul_inst</code>
+    等定义中反复出现 <code>rw [CauchySequence.coe_to_sequence]</code> 和 <code>convert</code>：
+    这些调用都是在手动协调三层类型之间的转换。没有这些设施，
+    每个涉及 <code>CauchySequence</code> 的证明都要处理 <code>n₀</code>、ℤ vs ℕ、
+    <code>vanish</code> 等与技术内容无关的琐碎细节。
+    </p>
+</div>
+
 <hr>
 
 <!-- ========== 命题 5.3.3 ========== -->

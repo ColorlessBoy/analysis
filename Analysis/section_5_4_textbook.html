@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.4节：<span class="t" data-zh="实数的序" data-en="Ordering the reals"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+        h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: #1a1a1a; }
+        .book-info { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: #2c2c2c; }
+        .section-number { font-size: 0.75em; color: #888; display: block; margin-bottom: 0.3em; }
+        p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+        .definition { background: #f8f9fa; border-left: 4px solid #4a90d9; padding: 15px 20px; margin: 1.5em 0; }
+        .definition .label { font-weight: 600; font-style: normal; color: #2c5a8a; }
+        .remark { color: #555; padding-left: 1.5em; border-left: 2px solid #ddd; margin: 1.5em 0; }
+        .remark strong { color: #333; }
+        .proof { background: #fff; padding: 15px 20px 15px 40px; margin: 1em 0; font-size: 0.95em; }
+        .proof::before { content: "证明."; font-style: italic; color: #666; }
+        .proof::after { content: "∎"; display: block; text-align: right; color: #999; margin-top: 0.5em; }
+        .exercise { background: #f0f4f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 15px 20px; margin: 1.5em 0; }
+        .exercise .label { font-weight: 600; color: #3a6a9a; display: block; margin-bottom: 0.5em; }
+        .proposition-box { background: #f0f7f0; border-left: 4px solid #5a9a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .proposition-box .label { font-weight: 600; color: #2d5a2d; }
+        .lemma-box { background: #f5f0f7; border-left: 4px solid #8a5a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .lemma-box .label { font-weight: 600; color: #5a2d6a; }
+        .formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+        .chapter-marker { color: #888; font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+        .page-ref { color: #999; font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+        .note { background: #fff8e7; border: 1px solid #e0d8c0; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: #665; }
+        .note::before { content: "注: "; font-weight: 600; }
+        .supplement { background: #f0f7ff; border-left: 4px solid #e06090; padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+        .supplement .sup-title { font-weight: 700; color: #b04060; font-size: 1.05em; margin-bottom: 0.5em; display: block; }
+        .supplement p { text-indent: 0; font-size: 0.95em; }
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+        .code-block { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; margin: 1em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #eee; color: #888; font-size: 0.85em; }
+        .toc { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; }
+        .toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: #444; }
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .lang-toggle { text-align: center; margin: 0 0 20px 0; }
+        .lang-toggle button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid #ccc; border-radius: 20px; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+        .lang-toggle button:hover { border-color: #4a90d9; color: #4a90d9; }
+        .lang-toggle button.on { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .t { border-bottom: 1px dotted #c0c0c0; cursor: help; position: relative; }
+        .t::before { content: attr(data-zh); }
+        .t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: #fff; background: #555; padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s; }
+        .t:hover::after { opacity: 1; transition-delay: 0.4s; }
+        .lang-en .t::after { font-size: 0.85em; color: #888; margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section54_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section54_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.4节</span>
+    <span class="t" data-zh="实数的序" data-en="Ordering the reals"></span>
+    <span class="page-ref">第95–100页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s54-intro">引言：从域到序</a></li>
+        <li><a href="#s54-def541"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.1：正向/负向远离零的序列</a></li>
+        <li><a href="#s54-ex542">例 5.4.2</a></li>
+        <li><a href="#s54-def543"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.3：正实数与负实数</a></li>
+        <li><a href="#s54-prop544"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.4：正实数的基本性质</a></li>
+        <li><a href="#s54-def545"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.5：绝对值</a></li>
+        <li><a href="#s54-def546"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.6：实数的序</a></li>
+        <li><a href="#s54-prop547"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.7：序的性质</a></li>
+        <li><a href="#s54-prop548"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.8：正实数的倒数</a></li>
+        <li><a href="#s54-prop549"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.9：非负序列的形式极限非负</a></li>
+        <li><a href="#s54-cor5410"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.10</a></li>
+        <li><a href="#s54-rem5411">注 5.4.11</a></li>
+        <li><a href="#s54-prop5412"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.12：有理数界</a></li>
+        <li><a href="#s54-cor5413"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.13：阿基米德性质</a></li>
+        <li><a href="#s54-prop5414"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.14：有理数的稠密性</a></li>
+        <li><a href="#s54-supp">补充说明</a></li>
+        <li><a href="#s54-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s54-intro">— 引言 —</div>
+
+<p>
+第 5.3 节完成了<span class="t" data-zh="实数" data-en="real numbers"></span>作为 <span class="t" data-zh="域" data-en="field"></span>的构造——我们有了加法、减法、乘法、除法和所有代数定律。
+现在我们来研究<span class="t" data-zh="实数" data-en="real numbers"></span>上的<strong>序结构</strong>（order structure）。
+</p>
+
+<p>
+我们知道每个<span class="t" data-zh="有理数" data-en="rational numbers"></span>是正数、负数或零。我们希望<span class="t" data-zh="实数" data-en="real numbers"></span>也是如此。
+但由于<span class="t" data-zh="实数" data-en="real numbers"></span>是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>的形式极限，
+如果简单地定义"所有项都为正的序列的极限为正"，会遇到问题——
+例如序列 \(0.1, 0.01, 0.001, \dots\) 的所有项都为正，但其极限为 \(0\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：从序回到序列</span>
+    <p>
+    为了给<span class="t" data-zh="实数" data-en="real numbers"></span>定义序，我们需要一种更精细的方法，
+    不能仅仅要求序列的所有项为正。关键在于使用"远离零"的概念——
+    如果一个序列的项一致地、永久地保持在一个正的下界之上，则其形式极限为正。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.4.1 ========== -->
+<div id="s54-def541">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.1：正向/负向远离零的序列</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.1（正向/负向远离零的序列）。</span>
+    设 \((a_n)_{n=1}^\infty\) 是一个<span class="t" data-zh="有理数序列" data-en="sequence of rational numbers"></span>。
+    <ul>
+        <li>我们说该序列<strong>正向远离零</strong>（positively bounded away from zero），
+        如果存在正有理数 \(c > 0\) 使得对所有 \(n \geq 1\) 有 \(a_n \geq c\)（特别地，序列完全为正）；</li>
+        <li>我们说该序列<strong>负向远离零</strong>（negatively bounded away from zero），
+        如果存在负有理数 \(-c < 0\) 使得对所有 \(n \geq 1\) 有 \(a_n \leq -c\)（特别地，序列完全为负）。</li>
+    </ul>
+</div>
+
+<div class="remark">
+    <strong>例 5.4.2。</strong>
+    <ul>
+        <li>序列 \(1.1, 1.01, 1.001, 1.0001, \dots\) 正向远离零（所有项 \(\geq 1\)）；</li>
+        <li>序列 \(-1.1, -1.01, -1.001, -1.0001, \dots\) 负向远离零；</li>
+        <li>序列 \(1, -1, 1, -1, \dots\) 远离零但既非正向也非负向远离零。</li>
+    </ul>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的定义</span>
+    <p>
+    在 <code>Section_5_4.lean</code> 中：
+    </p>
+    <div class="code-block">
+abbrev BoundedAwayPos (a:ℕ → ℚ) : Prop :=
+  ∃ (c:ℚ), c > 0 ∧ ∀ n, a n ≥ c
+
+abbrev BoundedAwayNeg (a:ℕ → ℚ) : Prop :=
+  ∃ (c:ℚ), c > 0 ∧ ∀ n, a n ≤ -c
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.4.3 ========== -->
+<div id="s54-def543">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.3：正实数与负实数</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.3（正实数与负实数）。</span>
+    <ul>
+        <li>一个<span class="t" data-zh="实数" data-en="real numbers"></span> \(x\) 被称为<strong>正的</strong>（positive），
+        如果它可以写成 \(x = \operatorname{LIM}_{n\to\infty} a_n\)，其中 \((a_n)\) 是正向远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>；</li>
+        <li>\(x\) 被称为<strong>负的</strong>（negative），
+        如果它可以写成 \(x = \operatorname{LIM}_{n\to\infty} a_n\)，其中 \((a_n)\) 是负向远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。</li>
+    </ul>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的 <code>IsPos</code> / <code>IsNeg</code></span>
+    <div class="code-block">
+abbrev Real.IsPos (x:Real) : Prop :=
+  ∃ a:ℕ → ℚ, BoundedAwayPos a ∧ (a:Sequence).IsCauchy ∧ x = LIM a
+
+abbrev Real.IsNeg (x:Real) : Prop :=
+  ∃ a:ℕ → ℚ, BoundedAwayNeg a ∧ (a:Sequence).IsCauchy ∧ x = LIM a
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.4 ========== -->
+<div id="s54-prop544">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.4：正实数的基本性质</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.4（正实数的基本性质）。</span>
+    对每个实数 \(x\)，以下三个陈述恰好有一个为真：
+    <ol>
+        <li>\(x = 0\)；</li>
+        <li>\(x\) 是正的；</li>
+        <li>\(x\) 是负的。</li>
+    </ol>
+    此外：
+    <ul>
+        <li>\(x\) 为负当且仅当 \(-x\) 为正；</li>
+        <li>如果 \(x\) 和 \(y\) 为正，则 \(x + y\) 和 \(xy\) 也为正。</li>
+    </ul>
+</div>
+
+<div class="proof">
+    证明见习题 5.4.1。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：三分法与 Lean 形式化</span>
+    <p>
+    命题 5.4.4 建立了实数的<strong>三分法</strong>（trichotomy）：
+    每个实数要么为零、要么为正、要么为负，且三者互斥。
+    这是后续所有序性质的基础。
+    </p>
+    <p>
+    Lean 中 <code>Real.trichotomous</code> 定理的证明（习题 5.4.1）是本节形式化的核心：
+    </p>
+    <div class="code-block">
+theorem Real.trichotomous (x:Real) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by
+  sorry
+    </div>
+    <p>
+    该证明的关键洞见是：如果 \(x \neq 0\)，那么选定的 Cauchy 序列最终必须
+    与零序列保持一个固定的距离，从而可以被调整为正向或负向远离零。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.4.5 ========== -->
+<div id="s54-def545">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.5：绝对值</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.5（绝对值）。</span>
+    设 \(x\) 是一个<span class="t" data-zh="实数" data-en="real numbers"></span>。
+    <ul>
+        <li>如果 \(x\) 是正的，则 \(|x| = x\)；</li>
+        <li>如果 \(x\) 是负的，则 \(|x| = -x\)；</li>
+        <li>如果 \(x = 0\)，则 \(|x| = 0\)。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.4.6 ========== -->
+<div id="s54-def546">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.6：实数的序</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.4.6（实数的序）。</span>
+    设 \(x\) 和 \(y\) 是<span class="t" data-zh="实数" data-en="real numbers"></span>。
+    <ul>
+        <li>\(x > y\) 当且仅当 \(x - y\) 是正实数；</li>
+        <li>\(x < y\) 当且仅当 \(x - y\) 是负实数；</li>
+        <li>\(x \geq y\) 当且仅当 \(x > y\) 或 \(x = y\)；</li>
+        <li>\(x \leq y\) 当且仅当 \(x < y\) 或 \(x = y\)。</li>
+    </ul>
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 该定义与<span class="t" data-zh="有理数" data-en="rational numbers"></span>上的序定义（定义 4.2.8）一致。
+    即，如果两个<span class="t" data-zh="有理数" data-en="rational numbers"></span> \(q, q'\) 在<span class="t" data-zh="有理数" data-en="rational numbers"></span>中满足 \(q < q'\)，
+    那么它们在<span class="t" data-zh="实数" data-en="real numbers"></span>中也满足 \(q < q'\)。绝对值的定义也同样一致。
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.7 ========== -->
+<div id="s54-prop547">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.7：序的性质</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.7。</span>
+    命题 4.2.9 中所有对<span class="t" data-zh="有理数" data-en="rational numbers"></span>成立的序性质对<span class="t" data-zh="实数" data-en="real numbers"></span>也成立。
+    特别地：
+    <ol type="a">
+        <li>（三分法）对任意 \(x, y\)，\(x > y\)、\(x < y\)、\(x = y\) 恰好一个成立；</li>
+        <li>（反对称性）\(x < y\) 当且仅当 \(y > x\)；</li>
+        <li>（传递性）如果 \(x < y\) 且 \(y < z\)，则 \(x < z\)；</li>
+        <li>（加法保序）如果 \(x < y\)，则 \(x + z < y + z\)；</li>
+        <li>（正数乘法保序）如果 \(x < y\) 且 \(z\) 为正，则 \(xz < yz\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    我们只证明 (e) 并留其余给习题 5.4.2。由于 \(x < y\)，\(y - x\) 为正。
+    由命题 5.4.4，\((y - x)z = yz - xz\) 为正，因此 \(xz < yz\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的序结构</span>
+    <p>
+    在 Lean 中，序关系的定义直接对应于教科书：
+    </p>
+    <div class="code-block">
+instance Real.instLT : LT Real where
+  lt x y := (x-y).IsNeg
+
+instance Real.instLE : LE Real where
+  le x y := (x < y) ∨ (x = y)
+    </div>
+    <p>
+    最终通过 <code>Real.instLinearOrder</code> 将实数注册为一个<strong>线性序</strong>。
+    虽然非可计算的（需要经典逻辑），但它提供了所有我们所期待的序推理工具。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.8 ========== -->
+<div id="s54-prop548">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.8：正实数的倒数</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.8。</span>
+    设 \(x\) 为正实数。则 \(x^{-1}\) 也为正。此外，如果 \(y\) 也是正数且 \(x > y\)，
+    则 \(x^{-1} < y^{-1}\)。
+</div>
+
+<div class="proof">
+    由于 \(xx^{-1} = 1\)，\(x^{-1}\) 不能为零（因为 \(x \cdot 0 = 0 \neq 1\)）。
+    由命题 5.4.4，正数乘以负数得负数；因此 \(x^{-1}\) 不能为负（那样会导致
+    \(xx^{-1} = 1\) 为负，矛盾）。由三分法，\(x^{-1}\) 必为正。
+
+    现设 \(y\) 也为正，则 \(x^{-1}\) 和 \(y^{-1}\) 都为正。假设 \(x > y\)。
+    如果 \(x^{-1} \geq y^{-1}\)，则由命题 5.4.7 得 \(xx^{-1} > yx^{-1} \geq yy^{-1}\)，
+    即 \(1 > 1\)，矛盾。因此必有 \(x^{-1} < y^{-1}\)。
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.9 ========== -->
+<div id="s54-prop549">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.9：非负序列的形式极限非负</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.9。</span>
+    设 \(a_1, a_2, a_3, \dots\) 是<span class="t" data-zh="有理数" data-en="rational numbers"></span>的非负 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>。
+    则 \(\operatorname{LIM}_{n\to\infty} a_n\) 是一个非负实数。
+</div>
+
+<div class="proof">
+    用反证法。假设 \(x := \operatorname{LIM} a_n\) 为负。
+    则存在负向远离零的序列 \(b_n\) 使得 \(x = \operatorname{LIM} b_n\)，
+    即存在负有理数 \(-c < 0\) 使得对所有 \(n\) 有 \(b_n \leq -c\)。
+    而由假设 \(a_n \geq 0\)。因此 \(a_n\) 和 \(b_n\) 永远不可能是 \(c/2\)-接近的
+    （因为 \(|a_n - b_n| \geq c > c/2\)），故它们不是最终 \(c/2\)-接近的，
+    从而不等价。但这与两者都以 \(x\) 为形式极限矛盾。
+</div>
+
+<hr>
+
+<!-- ========== 推论 5.4.10 ========== -->
+<div id="s54-cor5410">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.10</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.10。</span>
+    设 \((a_n)\) 和 \((b_n)\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，
+    且对所有 \(n\) 有 \(a_n \geq b_n\)。则 \(\operatorname{LIM} a_n \geq \operatorname{LIM} b_n\)。
+</div>
+
+<div class="proof">
+    将命题 5.4.9 应用于序列 \(a_n - b_n\)。
+</div>
+
+<hr>
+
+<!-- ========== 注 5.4.11 ========== -->
+<div id="s54-rem5411">
+<h3 style="margin: 1.5em 0 0.8em 0;">注 5.4.11</h3>
+</div>
+
+<div class="remark">
+    <strong>注 5.4.11。</strong>
+    推论 5.4.10 中的 \(\geq\) 不能替换为 \(>\)：
+    若 \(a_n := 1 + 1/n\)，\(b_n := 1 - 1/n\)，则对所有 \(n\) 有 \(a_n > b_n\)，
+    但 \(\operatorname{LIM} a_n = \operatorname{LIM} b_n = 1\)，并非严格大于。
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.12 ========== -->
+<div id="s54-prop5412">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.12：有理数界</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.12（用有理数界定实数）。</span>
+    设 \(x\) 为正实数。则存在正有理数 \(q\) 使得 \(q \leq x\)，且存在正整数 \(N\) 使得 \(x \leq N\)。
+</div>
+
+<div class="proof">
+    由于 \(x\) 为正，它是某个正向远离零的 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span> \((a_n)\) 的形式极限。
+    由引理 5.1.15，该序列有界。故存在有理数 \(q > 0\) 和 \(r\) 使得
+    \(q \leq a_n \leq r\) 对所有 \(n\) 成立。
+    由命题 4.4.1，存在整数 \(N\) 使得 \(r \leq N\)。
+    由推论 5.4.10 得 \(q \leq x \leq N\)。
+</div>
+
+<hr>
+
+<!-- ========== 推论 5.4.13 ========== -->
+<div id="s54-cor5413">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.13：阿基米德性质</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 5.4.13（阿基米德性质）。</span>
+    设 \(x\) 为实数，\(\varepsilon\) 为正实数。则存在正整数 \(M\) 使得 \(M\varepsilon > x\)。
+</div>
+
+<div class="proof">
+    若 \(x \leq 0\)，取 \(M = 1\) 即可。若 \(x > 0\)，则 \(x/\varepsilon\) 为正，
+    由命题 5.4.12 存在正整数 \(N\) 使得 \(x/\varepsilon \leq N\)。
+    令 \(M := N + 1\)，则 \(x/\varepsilon < M\)，乘以 \(\varepsilon\) 即得。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：阿基米德性质的意义</span>
+    <p>
+    阿基米德性质说：不管 \(x\) 有多大、\(\varepsilon\) 有多小，
+    只要把 \(\varepsilon\) 重复加给自己足够多次，最终一定会超过 \(x\)。
+    这看似显然，但并非所有有序域都满足此性质（例如超实数就不满足）。
+    它是实数系区别于其他有序域的关键特征之一。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.4.14 ========== -->
+<div id="s54-prop5414">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.14：有理数在实数中稠密</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.4.14。</span>
+    对任意两个实数 \(x < y\)，存在有理数 \(q\) 使得 \(x < q < y\)。
+</div>
+
+<div class="proof">
+    证明见习题 5.4.5。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：有理数的稠密性</span>
+    <p>
+    命题 5.4.14 说有理数在实数中是<strong>稠密</strong>（dense）的：
+    任意两个不同的实数之间都存在一个有理数。
+    这是分析学中一个极其重要的事实——它意味着任何实数都可以用有理数任意逼近。
+    </p>
+    <p>
+    在 Lean 中，该命题对应 <code>Real.rat_between</code>，其证明依赖于
+    阿基米德性质（推论 5.4.13）和一些巧妙的估计。
+    </p>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 第 5.4 节总结 —</div>
+
+<p>
+第 5.4 节为实数建立了完整的序结构。关键步骤是：
+</p>
+<ol>
+    <li>引入"正向/负向远离零"的概念来定义正实数和负实数（定义 5.4.1–5.4.3）；</li>
+    <li>证明三分法及相关性质（命题 5.4.4，习题 5.4.1）；</li>
+    <li>定义绝对值和序关系（定义 5.4.5–5.4.6）；</li>
+    <li>验证序的代数性质（命题 5.4.7，习题 5.4.2）；</li>
+    <li>证明阿基米德性质和有理数的稠密性（推论 5.4.13，命题 5.4.14）。</li>
+</ol>
+
+<p>
+至此，实数已具有完整的域结构和序结构——它们构成一个<strong>有序域</strong>（ordered field）。
+在下一节中，我们将探索实数相对于有理数的核心优势：<strong>上确界性质</strong>（least upper bound property）。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的线性序实例</span>
+    <p>
+    尽管 <code>IsPos</code> 和 <code>IsNeg</code> 不可判定（需要经典逻辑），
+    Lean 仍然可以通过 <code>Real.instLinearOrder</code> 将实数注册为线性序：
+    </p>
+    <div class="code-block">
+noncomputable instance Real.instLinearOrder : LinearOrder Real where
+  le_refl := ...
+  le_trans := ...
+  lt_iff_le_not_ge := ...
+  le_antisymm := ...
+  le_total := ...
+  toDecidableLE := Classical.decRel _
+    </div>
+    <p>
+    注意 <code>toDecidableLE := Classical.decRel _</code> 这行：
+    它使用经典逻辑的排中律来"假装"序关系是可判定的。
+    这就是为什么实数上的 <code>≤</code> 不可计算——但我们可以照常推理。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s54-supp">
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：实数 vs 有理数的序结构</span>
+    <table>
+        <tr><th>性质</th><th>有理数 \(\mathbb{Q}\)</th><th>实数 \(\mathbb{R}\)</th></tr>
+        <tr><td>有序域</td><td>✓</td><td>✓</td></tr>
+        <tr><td>阿基米德性质</td><td>✓</td><td>✓</td></tr>
+        <tr><td>稠密性</td><td>✓</td><td>✓</td></tr>
+        <tr><td>上确界性质</td><td>✗</td><td>✓</td></tr>
+        <tr><td>代数封闭性</td><td>✗</td><td>✗</td></tr>
+    </table>
+    <p>
+    有理数和实数都是阿基米德有序域，都满足稠密性。
+    两者的根本区别在于上确界性质——这将是第 5.5 节的主题。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s54-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.4.1">
+    <span class="label">习题 5.4.1（命题 5.4.4）。</span>
+    证明命题 5.4.4。（提示：如果 \(x\) 不为零且 \(x\) 是某个序列 \((a_n)\) 的形式极限，
+    那么该序列不能对每个 \(\varepsilon > 0\) 都最终 \(\varepsilon\)-接近零序列。
+    利用这一点证明该序列最终要么正向远离零，要么负向远离零。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：
+        <code>Real.trichotomous</code>、<code>Real.not_zero_pos</code>、<code>Real.not_zero_neg</code>、
+        <code>Real.not_pos_neg</code>、<code>Real.neg_iff_pos_of_neg</code>、
+        <code>Real.pos_add</code>、<code>Real.pos_mul</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.2">
+    <span class="label">习题 5.4.2（命题 5.4.7）。</span>
+    证明命题 5.4.7 中的其余断言。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：
+        <code>Real.trichotomous'</code>、<code>Real.antisymm</code>、
+        <code>Real.lt_trans</code>、<code>Real.add_lt_add_right</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.3">
+    <span class="label">习题 5.4.3。</span>
+    证明对每个实数 \(x\)，存在唯一的整数 \(N\) 使得 \(N \leq x < N + 1\)。
+    （此整数 \(N\) 称为 \(x\) 的<strong>整数部分</strong>，记作 \(\lfloor x \rfloor\)。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.floor_exist</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.4">
+    <span class="label">习题 5.4.4。</span>
+    证明对任意正实数 \(x > 0\)，存在正整数 \(N\) 使得 \(x > 1/N > 0\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.exist_inv_nat_le</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.5">
+    <span class="label">习题 5.4.5（命题 5.4.14）。</span>
+    证明命题 5.4.14。（提示：使用习题 5.4.4。可能还需要反证法。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.rat_between</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.6">
+    <span class="label">习题 5.4.6。</span>
+    设 \(x, y\) 为实数，\(\varepsilon > 0\) 为正实数。证明
+    \(|x - y| < \varepsilon\) 当且仅当 \(y - \varepsilon < x < y + \varepsilon\)，
+    且 \(|x - y| \leq \varepsilon\) 当且仅当 \(y - \varepsilon \leq x \leq y + \varepsilon\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.dist_lt_iff</code>、<code>Real.dist_le_iff</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.7">
+    <span class="label">习题 5.4.7。</span>
+    设 \(x, y\) 为实数。证明 \(x \leq y + \varepsilon\) 对所有 \(\varepsilon > 0\) 成立
+    当且仅当 \(x \leq y\)。证明 \(|x - y| \leq \varepsilon\) 对所有 \(\varepsilon > 0\) 成立
+    当且仅当 \(x = y\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.le_add_eps_iff</code>、<code>Real.dist_le_eps_iff</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.8">
+    <span class="label">习题 5.4.8。</span>
+    设 \((a_n)_{n=1}^\infty\) 是 <span class="t" data-zh="Cauchy 序列" data-en="Cauchy sequence"></span>，\(x\) 是实数。
+    证明如果对所有 \(n \geq 1\) 有 \(a_n \leq x\)，则 \(\operatorname{LIM} a_n \leq x\)。
+    类似地，如果对所有 \(n \geq 1\) 有 \(a_n \geq x\)，则 \(\operatorname{LIM} a_n \geq x\)。
+    （提示：用反证法；利用命题 5.4.14 在 \(\operatorname{LIM} a_n\) 和 \(x\) 之间找一个有理数，
+    然后用命题 5.4.9 或推论 5.4.10。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.LIM_of_le</code>、<code>Real.LIM_of_ge</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.4.9">
+    <span class="label">习题 5.4.9。</span>
+    定义 \(\max(x, y)\) 为：若 \(x \geq y\) 则等于 \(x\)，否则等于 \(y\)。
+    类似地定义 \(\min(x, y)\)。
+    <ol type="i">
+        <li>证明 \(\max(x, y) = -\min(-x, -y)\) 及 \(\min(x, y) = -\max(-x, -y)\)；</li>
+        <li>证明 \(\max(x, y) = \max(y, x)\)、\(\max(x, x) = x\)、\(\max(x + z, y + z) = \max(x, y) + z\)。
+        如果 \(z \geq 0\)，证明 \(\max(xz, yz) = z \cdot \max(x, y)\)。如果 \(z\) 为负呢？</li>
+        <li>证明 (ii) 中所有结论在将 \(\max\) 替换为 \(\min\) 后也成立；</li>
+        <li>如果 \(x, y\) 为正，证明 \(\max(x, y)^{-1} = \min(x^{-1}, y^{-1})\) 及 \(\min(x, y)^{-1} = \max(x^{-1}, y^{-1})\)。</li>
+    </ol>
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.neg_max</code>、<code>Real.neg_min</code> 等。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.4 节的正文，以及关于实数的序结构、阿基米德性质、有理数的稠密性等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_4.lean</code>。</p>
+</div>
+
+</body>
+</html>

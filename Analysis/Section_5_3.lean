@@ -48,7 +48,7 @@ abbrev CauchySequence.mk' {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) : CauchySe
 
 @[simp]
 theorem CauchySequence.coe_eq {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) :
-    (mk' ha).toSequence = (a:Sequence) := rfl
+  (mk' ha).toSequence = (a:Sequence) := rfl
 
 instance CauchySequence.instCoeFun : CoeFun CauchySequence (fun _ ↦ ℕ → ℚ) where
   coe a n := a.toSequence (n:ℤ)
@@ -65,7 +65,23 @@ theorem CauchySequence.coe_coe {a:ℕ → ℚ} (ha: (a:Sequence).IsCauchy) : mk'
 
 /-- Proposition 5.3.3 / Exercise 5.3.1 -/
 theorem Sequence.equiv_trans {a b c:ℕ → ℚ} (hab: Equiv a b) (hbc: Equiv b c) :
-  Equiv a c := by sorry
+  Equiv a c := by
+  rw [equiv_iff]
+  intro ε hε
+  have hε2 : ε/2 > 0 := by linarith
+  rcases (equiv_iff a b).mp hab (ε/2) hε2 with ⟨N₁, hN₁⟩
+  rcases (equiv_iff b c).mp hbc (ε/2) hε2 with ⟨N₂, hN₂⟩
+  use max N₁ N₂
+  intro n hn
+  have hn₁ : n ≥ N₁ := le_of_max_le_left hn
+  have hn₂ : n ≥ N₂ := le_of_max_le_right hn
+  calc
+    |a n - c n| = |(a n - b n) + (b n - c n)| := by
+      simp [sub_add_sub_cancel]
+    _ ≤ |a n - b n| + |b n - c n| := abs_add_le _ _
+    _ ≤ ε/2 + ε/2 := by
+      nlinarith [hN₁ n hn₁, hN₂ n hn₂]
+    _ = ε := by ring
 
 /-- Proposition 5.3.3 / Exercise 5.3.1 -/
 instance CauchySequence.instSetoid : Setoid CauchySequence where
