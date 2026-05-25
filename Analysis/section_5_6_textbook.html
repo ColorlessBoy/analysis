@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第5.6节：<span class="t" data-zh="实指数运算（上）" data-en="Real exponentiation, Part I"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+        h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: #1a1a1a; }
+        .book-info { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: #2c2c2c; }
+        .section-number { font-size: 0.75em; color: #888; display: block; margin-bottom: 0.3em; }
+        p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+        .definition { background: #f8f9fa; border-left: 4px solid #4a90d9; padding: 15px 20px; margin: 1.5em 0; }
+        .definition .label { font-weight: 600; font-style: normal; color: #2c5a8a; }
+        .remark { color: #555; padding-left: 1.5em; border-left: 2px solid #ddd; margin: 1.5em 0; }
+        .remark strong { color: #333; }
+        .proof { background: #fff; padding: 15px 20px 15px 40px; margin: 1em 0; font-size: 0.95em; }
+        .proof::before { content: "证明."; font-style: italic; color: #666; }
+        .proof::after { content: "∎"; display: block; text-align: right; color: #999; margin-top: 0.5em; }
+        .exercise { background: #f0f4f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 15px 20px; margin: 1.5em 0; }
+        .exercise .label { font-weight: 600; color: #3a6a9a; display: block; margin-bottom: 0.5em; }
+        .proposition-box { background: #f0f7f0; border-left: 4px solid #5a9a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .proposition-box .label { font-weight: 600; color: #2d5a2d; }
+        .lemma-box { background: #f5f0f7; border-left: 4px solid #8a5a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .lemma-box .label { font-weight: 600; color: #5a2d6a; }
+        .formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+        .chapter-marker { color: #888; font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+        .page-ref { color: #999; font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+        .note { background: #fff8e7; border: 1px solid #e0d8c0; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: #665; }
+        .note::before { content: "注: "; font-weight: 600; }
+        .supplement { background: #f0f7ff; border-left: 4px solid #e06090; padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+        .supplement .sup-title { font-weight: 700; color: #b04060; font-size: 1.05em; margin-bottom: 0.5em; display: block; }
+        .supplement p { text-indent: 0; font-size: 0.95em; }
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+        .code-block { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; margin: 1em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #eee; color: #888; font-size: 0.85em; }
+        .toc { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; }
+        .toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: #444; }
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .lang-toggle { text-align: center; margin: 0 0 20px 0; }
+        .lang-toggle button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid #ccc; border-radius: 20px; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+        .lang-toggle button:hover { border-color: #4a90d9; color: #4a90d9; }
+        .lang-toggle button.on { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .t { border-bottom: 1px dotted #c0c0c0; cursor: help; position: relative; }
+        .t::before { content: attr(data-zh); }
+        .t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: #fff; background: #555; padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s; }
+        .t:hover::after { opacity: 1; transition-delay: 0.4s; }
+        .lang-en .t::after { font-size: 0.85em; color: #888; margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section56_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section56_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_5">10.1007/978-981-19-7261-4_5</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第5.6节</span>
+    <span class="t" data-zh="实指数运算（上）" data-en="Real exponentiation, Part I"></span>
+    <span class="page-ref">第105–109页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s56-intro">引言：从有理指数到实指数</a></li>
+        <li><a href="#s56-def561"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.1：自然数指数</a></li>
+        <li><a href="#s56-def562"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.2：整数指数</a></li>
+        <li><a href="#s56-prop563"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.6.3：指数定律对实数仍然成立</a></li>
+        <li><a href="#s56-def564"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.4：\(n\) 次方根</a></li>
+        <li><a href="#s56-lem565"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.5：方根的存在性</a></li>
+        <li><a href="#s56-lem566"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.6：方根的性质</a></li>
+        <li><a href="#s56-def567"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.7：有理指数</a></li>
+        <li><a href="#s56-lem568"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.8：良定性</a></li>
+        <li><a href="#s56-lem569"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.9：有理指数的基本性质</a></li>
+        <li><a href="#s56-supp">补充说明</a></li>
+        <li><a href="#s56-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s56-intro">— 引言 —</div>
+
+<p>
+第 4.3 节定义了当 \(x\) 为<span class="t" data-zh="有理数" data-en="rational numbers"></span>、\(n\) 为自然数或整数时的指数运算 \(x^n\)。
+现在我们已经构造了实数并建立了上确界性质，我们可以将这些指数运算推广到实数上，
+并进一步定义 \(n\) 次方根和有理指数。
+</p>
+
+<p>
+本节称为"实指数运算（上）"，因为我们只处理有理指数。
+真正的<strong>实指数</strong>（即 \(x^y\) 其中 \(y\) 为任意实数）需要等到第 6.7 节，
+在建立了极限理论之后才能定义。
+</p>
+
+<hr>
+
+<!-- ========== 定义 5.6.1 ========== -->
+<div id="s56-def561">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.1：自然数指数</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.1（实数的自然数指数）。</span>
+    设 \(x\) 为实数。
+    <ul>
+        <li>定义 \(x^0 := 1\)；</li>
+        <li>递归地，若 \(x^n\) 已定义，则 \(x^{n+1} := x^n \times x\)。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.6.2 ========== -->
+<div id="s56-def562">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.2：整数指数</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.2（实数的整数指数）。</span>
+    设 \(x\) 为非零实数。对负整数 \(-n\)（\(n > 0\)），定义
+    \[
+    x^{-n} := \frac{1}{x^n}.
+    \]
+</div>
+
+<hr>
+
+<!-- ========== 命题 5.6.3 ========== -->
+<div id="s56-prop563">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.6.3：指数定律对实数仍然成立</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 5.6.3。</span>
+    命题 4.3.10 和 4.3.12 中的所有指数性质，当 \(x\) 和 \(y\) 为实数而非有理数时仍然成立。
+</div>
+
+<div class="proof">
+    <strong>元证明：</strong> 命题 4.3.10 和 4.3.12 的证明仅依赖于有理数的代数定律和序定律
+    （命题 4.2.4 和 4.2.9）。而由命题 5.3.11、5.4.7 以及恒等式 \(xx^{-1} = x^{-1}x = 1\)，
+    这些定律对实数也成立。因此，我们可以直接修改原证明使其适用于实数。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明："元证明"的含义</span>
+    <p>
+    这不是一个严格意义上的数学证明，而是一个关于<strong>证明本身</strong>的论证
+    （因此称为"元证明"——meta-proof）。它依赖于这样一个事实：
+    有理指数定律的证明只使用了对域和序都成立的公理，而这些公理对实数同样成立。
+    因此整个证明可以"原样照搬"。
+    </p>
+    <p>
+    在 Lean 中，这并不是直接复制粘贴——需要额外的工作来将有理数的指数定律
+    通过 <code>Real.ratCast</code> 提升到实数上（见 <code>Section_5_6.lean</code> 中
+    <code>Real.pow_of_coe</code> 等引理）。但从数学概念上讲，确实没有任何新的困难。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.6.4 ========== -->
+<div id="s56-def564">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.4：\(n\) 次方根</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.4（\(n\) 次方根）。</span>
+    设 \(x \geq 0\) 为非负实数，\(n \geq 1\) 为正整数。定义 \(x\) 的 <strong>\(n\) 次方根</strong>为
+    \[
+    x^{1/n} := \sup\{y \in \mathbb{R} : y \geq 0 \text{ 且 } y^n \leq x\}.
+    \]
+    当 \(n = 2\) 时，也记 \(\sqrt{x} := x^{1/2}\)。
+    负数的 \(n\) 次方根在本节中不予定义（留待复数理论中处理）。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个定义与命题 5.5.12 中 \(\sqrt{2}\) 的构造一致：
+    \(\sqrt{2}\) 就是集合 \(\{y \geq 0 : y^2 \leq 2\}\) 的上确界。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.6.5 ========== -->
+<div id="s56-lem565">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.5：方根的存在性</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.5（\(n\) 次方根的存在性）。</span>
+    设 \(x \geq 0\)，\(n \geq 1\)。则集合 \(E := \{y \in \mathbb{R} : y \geq 0 \text{ 且 } y^n \leq x\}\)
+    非空且有上界。特别地，\(x^{1/n}\) 是一个实数。
+</div>
+
+<div class="proof">
+    \(E\) 显然非空（\(0 \in E\)）。下设上界：
+    <ul>
+        <li>若 \(x \leq 1\)，则 1 是上界（若 \(y > 1\)，则 \(y^n > 1 \geq x\)，矛盾）；</li>
+        <li>若 \(x > 1\)，则 \(x\) 本身是上界（若 \(y > x > 1\)，则 \(y^n > x\)，矛盾）。</li>
+    </ul>
+    因此由定理 5.5.9，\(E\) 有最小上界，即 \(x^{1/n}\)。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.6.6 ========== -->
+<div id="s56-lem566">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.6：方根的性质</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.6。</span>
+    设 \(x, y \geq 0\)，\(n, m \geq 1\)。则：
+    <ol type="a">
+        <li>若 \(y = x^{1/n}\)，则 \(y^n = x\)；</li>
+        <li>反之，若 \(y^n = x\)，则 \(y = x^{1/n}\)；</li>
+        <li>\(x^{1/n} \geq 0\)，且 \(x^{1/n} > 0\) 当且仅当 \(x > 0\)；</li>
+        <li>\(x > y\) 当且仅当 \(x^{1/n} > y^{1/n}\)；</li>
+        <li>若 \(x > 1\)，则 \(x^{1/k}\) 关于 \(k\) 递减；若 \(0 < x < 1\)，则递增；若 \(x = 1\)，则 \(x^{1/k} = 1\)；</li>
+        <li>\((xy)^{1/n} = x^{1/n} y^{1/n}\)；</li>
+        <li>\((x^{1/n})^{1/m} = x^{1/(nm)}\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    见习题 5.6.1。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：(a) 和 (b) 的证明思路</span>
+    <p>
+    部分 (a) 和 (b) 说明 \(x^{1/n}\) 确实是 \(y^n = x\) 的<strong>唯一</strong>非负解。
+    </p>
+    <p>
+    <strong>(a) 的证明思路：</strong> 假设 \(y = x^{1/n}\) 但 \(y^n < x\)。
+    则可以找到 \(\varepsilon > 0\) 使得 \((y + \varepsilon)^n < x\)（利用类似命题 5.5.12 的放缩），
+    从而 \(y + \varepsilon \in E\)，与 \(y\) 是上确界矛盾。同理可证 \(y^n > x\) 也导致矛盾。
+    </p>
+    <p>
+    <strong>(b) 的证明思路：</strong> 若 \(y^n = x\)，则 \(y\) 显然在 \(E\) 中且是 \(E\) 的上界
+    （因为若 \(z > y\)，则 \(z^n > y^n = x\)，故 \(z \notin E\)）。因此 \(y = \sup(E) = x^{1/n}\)。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 5.6.7 ========== -->
+<div id="s56-def567">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.7：有理指数</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 5.6.7（有理指数）。</span>
+    设 \(x > 0\) 为正实数，\(q\) 为有理数。将 \(q\) 写为 \(q = a/b\)（其中 \(a \in \mathbb{Z}\)，\(b \in \mathbb{N}^+\)），
+    定义
+    \[
+    x^q := (x^{1/b})^a.
+    \]
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 由于 \(q\) 可以写成不同的分数形式（如 \(1/2 = 2/4 = 3/6\)），
+    我们需要验证这个定义不依赖于表示方式——这就是引理 5.6.8 的内容。
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.6.8 ========== -->
+<div id="s56-lem568">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.8：良定性</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.8。</span>
+    设 \(a, a'\) 为整数，\(b, b'\) 为正整数，且 \(a/b = a'/b'\)。
+    设 \(x > 0\)。则 \((x^{1/b'})^{a'} = (x^{1/b})^a\)。
+    因此 \(x^q\) 的定义与 \(q\) 的表示无关。
+</div>
+
+<div class="proof">
+    分三种情况：\(a = 0\)、\(a > 0\)、\(a < 0\)。
+    <ul>
+        <li>若 \(a = 0\)，则 \(a' = 0\)，两边均为 1；</li>
+        <li>若 \(a > 0\)，则 \(a' > 0\)，且 \(ab' = ba'\)。
+        令 \(y := x^{1/(ab')}\)。由引理 5.6.6(g)，\(y = (x^{1/b'})^{1/a} = (x^{1/b})^{1/a'}\)。
+        由引理 5.6.6(a)，\(y^a = x^{1/b'}\)，\(y^{a'} = x^{1/b}\)。
+        因此 \((x^{1/b'})^{a'} = (y^a)^{a'} = y^{aa'} = (y^{a'})^a = (x^{1/b})^a\)；</li>
+        <li>若 \(a < 0\)，则 \((-a)/b = (-a')/b'\)，由 \(a > 0\) 的情况得 \((x^{1/b'})^{-a'} = (x^{1/b})^{-a}\)，取倒数即得。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 引理 5.6.9 ========== -->
+<div id="s56-lem569">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.9：有理指数的基本性质</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 5.6.9。</span>
+    设 \(x, y > 0\)，\(q, r\) 为有理数。则：
+    <ol type="a">
+        <li>\(x^q > 0\)；</li>
+        <li>\(x^{q+r} = x^q x^r\)，且 \((x^q)^r = x^{qr}\)；</li>
+        <li>\(x^{-q} = 1 / x^q\)；</li>
+        <li>若 \(q > 0\)，则 \(x > y\) 当且仅当 \(x^q > y^q\)；</li>
+        <li>若 \(x > 1\)，则 \(x^q > x^r\) 当且仅当 \(q > r\)；若 \(x < 1\)，则 \(x^q > x^r\) 当且仅当 \(q < r\)；</li>
+        <li>\((xy)^q = x^q y^q\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    见习题 5.6.2。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：指向实指数的桥梁</span>
+    <p>
+    引理 5.6.9 完成了有理指数的全部性质。但要定义<strong>实指数</strong> \(x^y\)
+    （其中 \(y\) 为任意实数），我们需要极限理论：
+    对任意实数 \(y\)，取一列有理数 \(q_n \to y\)，定义
+    \[
+    x^y := \lim_{n\to\infty} x^{q_n}.
+    \]
+    这个极限的存在性需要证明（利用引理 5.6.9 的性质），这正是第 6.7 节的内容。
+    </p>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 第 5.6 节总结 —</div>
+
+<p>
+第 5.6 节将指数运算从有理数推广到了实数，涵盖三个层次：
+</p>
+<ol>
+    <li><strong>自然数/整数指数：</strong> 通过递归定义和取倒数直接推广（定义 5.6.1–5.6.2）；</li>
+    <li><strong>\(n\) 次方根：</strong> 利用上确界性质构造（定义 5.6.4），证明其基本性质（引理 5.6.5–5.6.6）；</li>
+    <li><strong>有理指数：</strong> 通过方根和整数指数的组合定义（定义 5.6.7），验证良定性（引理 5.6.8）和代数性质（引理 5.6.9）。</li>
+</ol>
+
+<p>
+至此，第 5 章（实数的构造）的主要内容全部完成。
+在后续章节中，我们将把实数视为理所当然的数系，并发展极限、连续性、微分和积分的理论。
+</p>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">&#x1F4AC; 个人感悟：实数构造的完成</span>
+    <p>
+    从第 5.1 节的 Cauchy 序列定义开始，到第 5.6 节的有理指数运算为止，
+    我们完成了从有理数到实数的完整构造。这是分析学中最基本的一步——
+    从此之后，我们可以"忘记"实数是用 Cauchy 序列构造的，
+    而把它们当作具有完备性的有序域来使用。
+    </p>
+    <p>
+    回看整个第 5 章，核心的技术贡献只有两个：
+    <strong>Cauchy 序列</strong>（用于构造）和<strong>上确界性质</strong>（用于完备性）。
+    其余的一切——加法、乘法、序、倒数、方根——都只是在这两个概念上的自然展开。
+    正如 Tao 所说，数学的进步往往不是靠引入全新的概念，
+    而是靠把已有的概念用到极致。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s56-supp">
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：Lean 中的方根定义</span>
+    <p>
+    <code>Real.root</code> 通过上确界定义：
+    </p>
+    <div class="code-block">
+noncomputable abbrev Real.root (x:Real) (n:ℕ) : Real :=
+  sSup { y:Real | y ≥ 0 ∧ y^n ≤ x }
+
+noncomputable abbrev Real.sqrt (x:Real) := x.root 2
+    </div>
+    <p>
+    由于 <code>Real</code> 已注册为 <code>ConditionallyCompleteLattice</code>，
+    可以直接使用 <code>sSup</code> 而无需手动调用 <code>LUB_exist</code>。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：有理指数在 Lean 中的实现</span>
+    <p>
+    <code>Real.ratPow</code> 的定义：
+    </p>
+    <div class="code-block">
+noncomputable abbrev Real.ratPow (x:Real) (q:ℚ) : Real :=
+  (x.root q.den)^(q.num)
+
+noncomputable instance Real.instRatPow : Pow Real ℚ where
+  pow x q := x.ratPow q
+    </div>
+    <p>
+    <code>q.den</code> 是有理数的分母，<code>q.num</code> 是分子。
+    良定性（引理 5.6.8）由 <code>Real.pow_root_eq_pow_root</code> 保证。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 补充说明：第 5 章概念全景</span>
+    <table>
+        <tr><th>小节</th><th>核心概念</th><th>关键技术</th></tr>
+        <tr><td>5.1</td><td>Cauchy 序列</td><td>\(\varepsilon\)-稳定性 → 最终稳定性 → Cauchy 性</td></tr>
+        <tr><td>5.2</td><td>等价序列</td><td>\(\varepsilon\)-接近序列 → 最终接近 → 等价关系</td></tr>
+        <tr><td>5.3</td><td>实数的构造</td><td>Cauchy 序列的商 → 域结构</td></tr>
+        <tr><td>5.4</td><td>实数的序</td><td>正向/负向远离零 → 序关系 → 阿基米德性质</td></tr>
+        <tr><td>5.5</td><td>上确界性质</td><td>上确界的存在性与唯一性 → \(\sqrt{2}\) 的存在性</td></tr>
+        <tr><td>5.6</td><td>指数运算（上）</td><td>整数指数 → 方根 → 有理指数</td></tr>
+    </table>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s56-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-5.6.1">
+    <span class="label">习题 5.6.1（引理 5.6.6）。</span>
+    证明引理 5.6.6。（提示：复习命题 5.5.12 的证明。
+    反证法和三分法是有用的工具。前面的部分可用于证明后面的部分。
+    对于 (e)，先证明如果 \(x > 1\) 则 \(x^{1/n} > 1\)，如果 \(x < 1\) 则 \(x^{1/n} < 1\)。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：
+        <code>Real.eq_root_iff_pow_eq</code>、<code>Real.root_nonneg</code>、
+        <code>Real.root_pos</code>、<code>Real.root_mono</code>、
+        <code>Real.root_mono_of_gt_one</code>、<code>Real.root_mono_of_lt_one</code>、
+        <code>Real.root_of_one</code>、<code>Real.root_mul</code>、<code>Real.root_root</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.6.2">
+    <span class="label">习题 5.6.2（引理 5.6.9）。</span>
+    证明引理 5.6.9。（提示：主要基于引理 5.6.6 和代数运算。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：
+        <code>Real.ratPow_pos</code>、<code>Real.ratPow_add</code>、
+        <code>Real.ratPow_ratPow</code>、<code>Real.ratPow_neg</code>、
+        <code>Real.ratPow_mono</code>、<code>Real.ratPow_mono_of_gt_one</code>、
+        <code>Real.ratPow_mono_of_lt_one</code>、<code>Real.ratPow_mul</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.6.3">
+    <span class="label">习题 5.6.3。</span>
+    如果 \(x\) 是实数且 \(n\) 是偶数（即 \(n = 2m\)），证明 \(x^n \geq 0\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.pow_even</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-5.6.4">
+    <span class="label">习题 5.6.4。</span>
+    证明 \(|x| = (x^2)^{1/2}\)。
+</div>
+
+<div class="exercise" id="ex-5.6.5">
+    <span class="label">习题 5.6.5。</span>
+    如果 \(x, y\) 为正实数，\(q\) 为满足 \(q \geq 1\) 的正有理数，证明
+    \[
+    \max(x^q, y^q) = \max(x, y)^q,\quad
+    \min(x^q, y^q) = \min(x, y)^q.
+    \]
+    如果 \(q < 1\) 而不是 \(q \geq 1\) 会怎样？
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Real.max_ratPow</code>、<code>Real.min_ratPow</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 5.6 节的正文，以及关于实指数运算、\(n\) 次方根、有理指数等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_5_6.lean</code>。</p>
+</div>
+
+</body>
+</html>
