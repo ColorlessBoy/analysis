@@ -87,15 +87,30 @@ theorem Sequence.equiv_trans {a b c:ℕ → ℚ} (hab: Equiv a b) (hbc: Equiv b 
 instance CauchySequence.instSetoid : Setoid CauchySequence where
   r := fun a b ↦ Sequence.Equiv a b
   iseqv := {
-     refl := sorry
-     symm := sorry
-     trans := sorry
+     refl := by intro x e he; use 0; intro n hn hn'; simp [Rat.Close]; linarith
+     symm := by
+      intro x y h e he
+      have ⟨N, hN⟩ := h e he
+      use N
+      intro n hn hn'
+      have := hN n hn hn'
+      unfold Rat.Close at this ⊢
+      simp_all
+      rwa [abs_sub_comm]
+     trans := by intro x y z h1 h2; apply Sequence.equiv_trans h1 h2
   }
 
 theorem CauchySequence.equiv_iff (a b: CauchySequence) : a ≈ b ↔ Sequence.Equiv a b := by rfl
 
 /-- Every constant sequence is Cauchy. -/
-theorem Sequence.IsCauchy.const (a:ℚ) : ((fun _:ℕ ↦ a):Sequence).IsCauchy := by sorry
+theorem Sequence.IsCauchy.const (a:ℚ) : ((fun _:ℕ ↦ a):Sequence).IsCauchy := by
+  intro e he
+  use 0
+  rw [Rat.Steady]
+  simp
+  intro n hn m hm
+  rw [Rat.Close, if_pos hn, if_pos hn, if_pos hm, if_pos hm, sub_self, abs_zero]
+  linarith
 
 instance CauchySequence.instZero : Zero CauchySequence where
   zero := CauchySequence.mk' (a := fun _: ℕ ↦ 0) (Sequence.IsCauchy.const (0:ℚ))
