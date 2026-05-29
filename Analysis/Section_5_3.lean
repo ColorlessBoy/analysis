@@ -159,9 +159,13 @@ theorem Sequence.IsCauchy.add {a b:ℕ → ℚ}  (ha: (a:Sequence).IsCauchy) (hb
   intro j hj k hk
   have h1 := ha j ?_ k ?_ <;> try omega
   have h2 := hb j ?_ k ?_ <;> try omega
-  simp [Section_4_3.dist] at *; rw [←Rat.Close] at *
-  convert Section_4_3.add_close h1 h2
-  linarith
+  simp [Section_4_3.dist] at *
+  calc
+    Section_4_3.abs (a j + b j - (a k + b k)) = Section_4_3.abs ((a j - a k) + (b j - b k)) := by ring_nf
+    _ ≤ Section_4_3.abs (a j - a k) + Section_4_3.abs (b j - b k) := Section_4_3.abs_add _ _
+    _ ≤ ε / 2 + ε / 2 := by nlinarith
+    _ = ε := by ring
+
 
 /--Lemma 5.3.7 (Sum of equivalent sequences is equivalent)-/
 theorem Sequence.add_equiv_left {a a':ℕ → ℚ} (b:ℕ → ℚ) (haa': Equiv a a') :
