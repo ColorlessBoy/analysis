@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotient API 详解 — Section 5.3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --text: #1a1a1e;
+    --text-secondary: #5a5a66;
+    --border: #e4e2dd;
+    --accent: #6c5ce7;
+    --accent2: #00b894;
+    --accent3: #fdcb6e;
+    --accent-light: #a29bfe;
+    --code-bg: #f4f3f0;
+    --code-border: #e4e2dd;
+    --callout-bg: #f0eeeb;
+    --callout-border: #d4d0ca;
+    --keyword: #d63384;
+    --type: #0c8599;
+    --comment: #868e96;
+    --fn: #7048e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    padding: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  .cover {
+    margin-bottom: 56px;
+    padding-bottom: 40px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .cover .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent-light);
+    padding: 2px 10px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+
+  .cover h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .cover .subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+  }
+
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-top: 48px;
+    margin-bottom: 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 8px;
+  }
+
+  p, li { margin-bottom: 12px; }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin: 16px 0 20px;
+    tab-size: 2;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  pre code { background: none; padding: 0; font-size: 0.82rem; }
+
+  .callout {
+    background: var(--callout-bg);
+    border-left: 4px solid var(--callout-border);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+
+  .callout.important {
+    border-left-color: var(--accent);
+    background: rgba(108,92,231,0.06);
+  }
+
+  .callout.warn {
+    border-left-color: #f59f00;
+    background: rgba(245,159,0,0.06);
+  }
+
+  .callout .label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .callout.important .label { color: var(--accent); }
+  .callout.warn .label { color: #e67700; }
+
+  .kw { color: var(--keyword); font-weight: 600; }
+  .ty { color: var(--type); }
+  .fn { color: var(--fn); }
+  .cm { color: var(--comment); font-style: italic; }
+  .dv { color: #d63384; }
+
+  ul, ol { padding-left: 24px; }
+  li { margin-bottom: 6px; }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  .signature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    margin: 8px 0 16px;
+  }
+
+  /* ===== SVG diagrams ===== */
+  .diagram-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin: 24px 0;
+  }
+
+  .diagram-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    flex: 1;
+    min-width: 280px;
+    max-width: 420px;
+  }
+
+  .diagram-card .caption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+
+  .diagram-card svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* ===== Interactive code walkthrough ===== */
+  .code-step {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+
+  .code-step pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+
+  .code-step pre .hl-step {
+    background: rgba(108,92,231,0.12);
+    border-left: 3px solid var(--accent);
+    display: block;
+    padding: 0 0 0 8px;
+    margin: 0 -20px 0 -20px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .code-step pre .hl-step:hover {
+    background: rgba(108,92,231,0.22);
+  }
+
+  .code-step .explanations {
+    border-top: 1px solid var(--border);
+  }
+
+  .code-step .explanations .explanation {
+    display: none;
+    padding: 16px 20px;
+    background: rgba(108,92,231,0.03);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+
+  .code-step .explanations .explanation:last-child {
+    border-bottom: none;
+  }
+
+  .code-step .explanations .explanation.open {
+    display: block;
+  }
+
+  .code-step .explanations .explanation .step-num {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+
+  /* ===== Tabs ===== */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .tab-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+
+  .tab-btn:hover { color: var(--text); background: rgba(0,0,0,0.02); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .tab-content { display: none; padding: 20px 0; }
+  .tab-content.active { display: block; }
+
+  /* ===== Interactive Venn ===== */
+  .venn-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .venn-container svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .venn-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .venn-legend .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .venn-legend .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ===== Animation on scroll / hover ===== */
+  .anim-pulse {
+    transition: transform 0.3s;
+  }
+
+  .anim-pulse:hover {
+    transform: scale(1.03);
+  }
+
+  /* ===== Highlight box ===== */
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(108,92,231,0.05), rgba(0,184,148,0.05));
+    border: 1px solid rgba(108,92,231,0.15);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+
+  .highlight-box h4 {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  /* ===== Interactive flash cards ===== */
+  .flash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .flash-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .flash-card:hover {
+    border-color: var(--accent-light);
+    box-shadow: 0 2px 8px rgba(108,92,231,0.10);
+  }
+
+  .flash-card .card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .flash-card .card-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .flash-card .card-example {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    text-align: left;
+    color: var(--text);
+  }
+
+  .flash-card .card-example.show { display: block; }
+
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px 64px; }
+    .cover h1 { font-size: 1.5rem; }
+    .venn-container { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="cover">
+  <span class="tag">Lean 4 · Quotient</span>
+  <h1>Quotient API 详解</h1>
+  <p class="subtitle">配合 <code>Section_5_3.lean</code> 中 <code>Real.eq_lim</code> 和 <code>Real.LIM_eq_LIM</code> 的理解</p>
+</div>
+
+<!-- ===================================================== -->
+<h2>1. 为什么需要 Quotient？—— 从集合到商空间</h2>
+
+<p>
+Tao 的实数构造：<strong>实数 = 有理柯西序列的等价类</strong>。
+两个序列等价（<code>Equiv</code>）当且仅当它们的差趋于 0 —— 这是 CauchySequence 集合上的等价关系。
+</p>
+
+<div class="highlight-box">
+  <h4>核心定义</h4>
+  <code style="font-size:1.1rem;background:none;padding:0;">
+    <span class="kw">abbrev</span> <span class="ty">Real</span> := <span class="ty">Quotient</span> CauchySequence.instSetoid
+  </code>
+  <p style="margin-top:12px;margin-bottom:0;">
+    <code>instSetoid</code> 把两个柯西序列定义为等价 ⇔ <code>Sequence.Equiv a b</code>
+  </p>
+</div>
+
+<!-- SVG Venn: 柯西序列集合 → 等价类 → 实数 -->
+<div class="diagram-row">
+  <div class="diagram-card anim-pulse">
+    <svg width="340" height="260" viewBox="0 0 340 260">
+      <!-- 大圆：全体柯西序列 -->
+      <ellipse cx="170" cy="130" rx="150" ry="110" fill="rgba(108,92,231,0.06)" stroke="var(--accent-light)" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="170" y="24" text-anchor="middle" font-size="12" fill="var(--text-secondary)" font-family="Inter,sans-serif">全体柯西序列</text>
+
+      <!-- 三个等价类 (小圈) -->
+      <ellipse cx="110" cy="110" rx="52" ry="40" fill="rgba(253,203,110,0.15)" stroke="var(--accent3)" stroke-width="2"/>
+      <text x="110" y="115" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="#b8860b">[π]</text>
+
+      <ellipse cx="220" cy="90" rx="48" ry="36" fill="rgba(0,184,148,0.12)" stroke="var(--accent2)" stroke-width="2"/>
+      <text x="220" y="95" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="#00856a">[e]</text>
+
+      <ellipse cx="180" cy="180" rx="55" ry="38" fill="rgba(108,92,231,0.08)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="180" y="185" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--accent)">[√2]</text>
+
+      <!-- 小点: 等价类内部元素 -->
+      <circle cx="92" cy="100" r="3" fill="#b8860b" opacity="0.5"/>
+      <circle cx="120" cy="95" r="3" fill="#b8860b" opacity="0.5"/>
+      <circle cx="105" cy="130" r="3" fill="#b8860b" opacity="0.5"/>
+
+      <circle cx="205" cy="80" r="3" fill="#00856a" opacity="0.5"/>
+      <circle cx="232" cy="78" r="3" fill="#00856a" opacity="0.5"/>
+      <circle cx="215" cy="110" r="3" fill="#00856a" opacity="0.5"/>
+
+      <circle cx="165" cy="170" r="3" fill="var(--accent)" opacity="0.5"/>
+      <circle cx="195" cy="190" r="3" fill="var(--accent)" opacity="0.5"/>
+
+      <!-- 大箭头：把每个等价类整体映射为一个实数 -->
+      <path d="M 270,130 L 310,130" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrowhead)"/>
+      <path d="M 270,90 L 310,90" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrowhead)"/>
+      <path d="M 270,180 L 310,180" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrowhead)"/>
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- 每个等价类各一条弧线箭头到右侧实数 -->
+      <path d="M 158,110 Q 240,40 330,115" fill="none" stroke="var(--accent3)" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowhead2)"/>
+      <path d="M 158,75 Q 240,20 330,90" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowhead2)"/>
+      <path d="M 158,175 Q 240,210 330,185" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowhead2)"/>
+
+      <defs>
+        <marker id="arrowhead2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <text x="248" y="50" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="Inter,sans-serif">把等价类 <strong>整体</strong> 映射为一个实数</text>
+      <text x="248" y="215" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="Inter,sans-serif">用 Quotient.mk 把整个类压成一个点</text>
+
+      <!-- 右边：实数轴 -->
+      <line x1="335" y1="25" x2="335" y2="235" stroke="var(--text)" stroke-width="1.5"/>
+      <!-- 左侧 tick -->
+      <line x1="325" y1="90" x2="345" y2="90" stroke="var(--text)" stroke-width="1"/>
+      <line x1="325" y1="115" x2="345" y2="115" stroke="var(--text)" stroke-width="1"/>
+      <line x1="325" y1="185" x2="345" y2="185" stroke="var(--text)" stroke-width="1"/>
+      <!-- 标签 + 轴上的粗点 -->
+      <circle cx="335" cy="90" r="6" fill="var(--accent2)" stroke="white" stroke-width="2"/>
+      <circle cx="335" cy="115" r="6" fill="var(--accent3)" stroke="white" stroke-width="2"/>
+      <circle cx="335" cy="185" r="6" fill="var(--accent)" stroke="white" stroke-width="2"/>
+      <text x="352" y="93" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--text-secondary)">e</text>
+      <text x="352" y="118" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--text-secondary)">π</text>
+      <text x="352" y="188" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--text-secondary)">√2</text>
+      <text x="335" y="260" text-anchor="middle" font-size="11" fill="var(--text-secondary)" font-family="Inter,sans-serif">ℝ</text>
+    </svg>
+    <div class="caption">柯西序列 → 等价类 → 实数轴上的点</div>
+  </div>
+</div>
+
+<!-- ===================================================== -->
+<h2>2. 三个核心定理</h2>
+
+<div class="flash-grid">
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">Quotient.ind</div>
+    <div class="card-desc">归纳原理：降维到代表元</div>
+    <div class="card-example">
+      <code>apply Quotient.ind _ x</code><br>
+      把目标从「对所有实数 P」变成「对所有柯西序列 P」。
+    </div>
+  </div>
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">Quotient.exact</div>
+    <div class="card-desc">从等式得到等价关系</div>
+    <div class="card-example">
+      <code>Quotient.exact h</code><br>
+      把 <code>⟦a⟧ = ⟦b⟧</code> 转换为 <code>a ≈ b</code>（柯西意义上的等价）。
+    </div>
+  </div>
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">Quotient.sound</div>
+    <div class="card-desc">从等价关系得到等式</div>
+    <div class="card-example">
+      <code>apply Quotient.sound</code><br>
+      把 <code>a ≈ b</code> 提升为 <code>⟦a⟧ = ⟦b⟧</code>。
+    </div>
+  </div>
+</div>
+
+<!-- Venn diagram: exact ↔ sound 互逆 -->
+<div class="diagram-row">
+  <div class="diagram-card">
+    <svg width="360" height="200" viewBox="0 0 360 200">
+      <!-- 左侧框: 原集合 α -->
+      <rect x="20" y="40" width="130" height="120" rx="8" fill="rgba(108,92,231,0.04)" stroke="var(--accent-light)" stroke-width="1.5"/>
+      <text x="85" y="28" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent)" font-family="Inter,sans-serif">α (CauchySequence)</text>
+      <!-- a, b 点 -->
+      <circle cx="65" cy="85" r="6" fill="var(--accent)"/>
+      <text x="52" y="78" font-size="12" font-family="JetBrains Mono,monospace" fill="var(--accent)" font-weight="600">a</text>
+      <circle cx="100" cy="120" r="6" fill="var(--accent2)"/>
+      <text x="87" y="114" font-size="12" font-family="JetBrains Mono,monospace" fill="var(--accent2)" font-weight="600">b</text>
+
+      <!-- 右侧框: 商类型 -->
+      <rect x="230" y="40" width="110" height="120" rx="8" fill="rgba(0,184,148,0.04)" stroke="var(--accent2)" stroke-width="1.5"/>
+      <text x="285" y="28" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent2)" font-family="Inter,sans-serif">Quotient s</text>
+      <!-- 一个点（a和b映射到同一个） -->
+      <circle cx="285" cy="100" r="8" fill="var(--accent3)" stroke="var(--accent3)" stroke-width="2"/>
+      <text x="285" y="104" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="white" font-weight="600">⟦a⟧</text>
+
+      <!-- 箭头 -->
+      <!-- top arrow: sound -->
+      <path d="M 125,75 Q 175,50 230,75" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="6,3" marker-end="url(#arrow-accent)"/>
+      <text x="178" y="43" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="Inter,sans-serif" font-weight="600">sound</text>
+      <text x="178" y="56" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="Inter,sans-serif">a ≈ b  →  ⟦a⟧ = ⟦b⟧</text>
+
+      <!-- bottom arrow: exact -->
+      <path d="M 230,110 Q 175,145 125,110" fill="none" stroke="var(--accent2)" stroke-width="2.5" marker-end="url(#arrow-accent2)"/>
+      <text x="178" y="165" text-anchor="middle" font-size="11" fill="var(--accent2)" font-family="Inter,sans-serif" font-weight="600">exact</text>
+      <text x="178" y="178" text-anchor="middle" font-size="10" fill="var(--accent2)" font-family="Inter,sans-serif">⟦a⟧ = ⟦b⟧  →  a ≈ b</text>
+
+      <defs>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+        </marker>
+        <marker id="arrow-accent2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="var(--accent2)"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="caption"><code>sound</code> 和 <code>exact</code> 构成商类型与原始集合之间的 <strong>互逆</strong></div>
+  </div>
+</div>
+
+<!-- ===================================================== -->
+<h2>3. 交互式代码走读</h2>
+<p><strong>点击每一行高亮代码</strong>，查看对应的解释：</p>
+
+<div class="tabs-headers" style="margin-top:16px;">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(event, 'tab-eq_lim')">Real.eq_lim</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-LIM_eq_LIM')">Real.LIM_eq_LIM</button>
+  </div>
+</div>
+
+<!-- ===== Tab: Real.eq_lim ===== -->
+<div id="tab-eq_lim" class="tab-content active">
+
+<div class="callout important">
+  <div class="label">⚠️ 为什么这看起来像循环论证？</div>
+  <p><strong>「用了 Quotient.ind 之后直接用 a 本身当 witness，感觉像在证明自己。」</strong>
+  这个直觉很敏锐，但这恰恰说明 Quotient 构造的本质：</p>
+  <ol>
+    <li><strong>实数在 Lean 里就是被定义为「柯西序列的商」</strong>（<code>Real := Quotient CauchySequence.instSetoid</code>）。<br>
+    「每个实数都是某个柯西序列的形式极限」在这个定义下不是一个深刻的定理，而是一个 <strong>定义一致性检查</strong>。</li>
+    <li>证明做的事是：拿到 <code>a : CauchySequence</code>，用 <code>a</code> 本身作为 witness，证明 <code>Quotient.mk a = LIM (a:ℕ→ℚ)</code>。<br>
+    展开 <code>LIM</code> 的定义，这本质上就是 <code>⟦a⟧ = ⟦mk' a.cauchy⟧</code>，而 <code>mk' a.cauchy</code> 就是 <code>a</code> 的另一个写法（<code>mk'</code> 只是重新打包了相同的数据）。</li>
+    <li><strong>类比理解：</strong> 设 <code>StudentID := Quotient (λ s₁ s₂ ↦ s₁ 和 s₂ 同班)</code>，那么「每个学号都对应一个学生」听起来也是废话 —— 因为学号本身就是从学生构造出来的。这里的 <code>Real.eq_lim</code> 同理。</li>
+    <li>在 Tao 的教材中实数构造需要这个定理，是因为那里实数有独立定义（Dedekind 切割或形式极限）。但在 Lean 的形式化中，<strong>「实数就是等价类」<code>=</code>「每个实数都是 LIM」</strong>，所以证明只是把定义展开而已。</li>
+  </ol>
+</div>
+
+<div class="code-step">
+<pre><code><span class="kw">theorem</span> <span class="fn">Real.eq_lim</span> (x : <span class="ty">Real</span>) : <span class="kw">∃</span> (a : ℕ → ℚ), (a : <span class="ty">Sequence</span>).IsCauchy ∧ x = <span class="fn">LIM</span> a := <span class="kw">by</span>
+  <span class="hl-step" data-step="1" onclick="toggleStep(this)">  <span class="fn">apply</span> <span class="ty">Quotient</span>.ind _ x</span>
+  <span class="fn">intro</span> a
+  <span class="hl-step" data-step="2" onclick="toggleStep(this)">  <span class="fn">use</span> (a : ℕ → ℚ)</span>
+  <span class="fn">observe</span> : ((a : ℕ → ℚ) : <span class="ty">Sequence</span>) = a.toSequence
+  <span class="hl-step" data-step="3" onclick="toggleStep(this)">  <span class="fn">rw</span> [this, <span class="fn">LIM_def</span> (<span class="kw">by</span> <span class="fn">convert</span> a.cauchy)]</span>
+  <span class="fn">refine</span> ⟨ a.cauchy, <span class="hl-step" data-step="4" onclick="toggleStep(this)"> ?_ </span> ⟩
+  <span class="hl-step" data-step="5" onclick="toggleStep(this)">  <span class="fn">congr</span>; <span class="fn">ext</span> n; <span class="fn">simp</span>; <span class="fn">replace</span> := congr($this n); <span class="fn">simp_all</span></span></code></pre>
+<div class="explanations">
+<div class="explanation" data-step="1">
+  <span class="step-num">1</span>
+  <strong>Quotient.ind</strong>：要证明 <code>∀ x : ℝ, P(x)</code>（即存在 a 使得 x = LIM a），
+  只需对任意 <code>a' : CauchySequence</code> 证明 <code>P(⟦a'⟧)</code>。
+  目标变成 <code>∀ a' : CauchySequence, ∃ a, ... ∧ (Quotient.mk a') = LIM a</code>。
+</div>
+<div class="explanation" data-step="2">
+  <span class="step-num">2</span>
+  引入 <code>a : CauchySequence</code>。用 a 本身（cast 为 ℕ → ℚ）作为 witness。
+  目标变成：<code>(a : ℕ → ℚ).IsCauchy ∧ (Quotient.mk a) = LIM (a : ℕ → ℚ)</code>。
+</div>
+<div class="explanation" data-step="3">
+  <span class="step-num">3</span>
+  <code>LIM_def ha</code> 说：若 a 是柯西的，则 <code>LIM a = Quotient.mk _ (mk' ha)</code>。
+  这里 <code>a.cauchy</code> 提供了证据。重写后目标变为：
+  <code>(a : ℕ → ℚ).IsCauchy ∧ (Quotient.mk a) = Quotient.mk (mk' a.cauchy)</code>。
+</div>
+<div class="explanation" data-step="4">
+  <span class="step-num">4</span>
+  剩下要证 <code>Quotient.mk a = Quotient.mk (mk' a.cauchy)</code>。<br>
+  <code>refine</code> 把前半目标 <code>(a:ℕ→ℚ).IsCauchy</code> 用 <code>a.cauchy</code> 填掉，
+  <code>?_</code> 留下后半目标。
+</div>
+<div class="explanation" data-step="5">
+  <span class="step-num">5</span>
+  由 Quotient 的泛性质，只需证明两个 CauchySequence 作为序列相等：
+  <code>congr</code> 将目标变成 <code>a = mk' a.cauchy</code>，<code>ext n</code> 变成逐点相等，
+  用 <code>simp</code> 根据定义展开即可。<br><br>
+  <strong>为什么能 congr？</strong> 因为 <code>Quotient.mk</code> 是函数，代入相等参数得相等结果。
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===== Tab: Real.LIM_eq_LIM ===== -->
+<div id="tab-LIM_eq_LIM" class="tab-content">
+
+<div class="code-step">
+<pre><code><span class="kw">theorem</span> <span class="fn">Real.LIM_eq_LIM</span> {a b : ℕ → ℚ} (ha : (a : <span class="ty">Sequence</span>).IsCauchy)
+    (hb : (b : <span class="ty">Sequence</span>).IsCauchy) : <span class="fn">LIM</span> a = <span class="fn">LIM</span> b ↔ <span class="ty">Sequence</span>.<span class="fn">Equiv</span> a b := <span class="kw">by</span>
+  <span class="fn">constructor</span>
+  <span class="kw">·</span> <span class="cm">--- (→) 方向 ---</span>
+    <span class="kw">intro</span> h
+    <span class="hl-step" data-step="f1" onclick="toggleStep(this)">    <span class="kw">replace</span> h := <span class="ty">Quotient</span>.exact h</span>
+    <span class="hl-step" data-step="f2" onclick="toggleStep(this)">    rwa [dif_pos ha, dif_pos hb, CauchySequence.equiv_iff] at h</span>
+  <span class="kw">·</span> <span class="cm">--- (←) 方向 ---</span>
+    <span class="kw">intro</span> h
+    <span class="hl-step" data-step="b1" onclick="toggleStep(this)">    <span class="fn">apply</span> <span class="ty">Quotient</span>.sound</span>
+    <span class="hl-step" data-step="b2" onclick="toggleStep(this)">    rwa [dif_pos ha, dif_pos hb, CauchySequence.equiv_iff]</span></code></pre>
+<div class="explanations">
+<div class="explanation" data-step="f1">
+  <span class="step-num">→1</span>
+  <code>h : LIM a = LIM b</code>。<br>
+  但 <code>ha</code> 和 <code>hb</code> 已给出，所以 <code>LIM a = ⟦mk' ha⟧</code>，<code>LIM b = ⟦mk' hb⟧</code>。
+  应用 <strong>Quotient.exact</strong>：把 <code>⟦mk' ha⟧ = ⟦mk' hb⟧</code> 转化为
+  <code>(mk' ha) ≈ (mk' hb)</code>（即 Sequence.Equiv）。
+</div>
+<div class="explanation" data-step="f2">
+  <span class="step-num">→2</span>
+  <code>dif_pos ha</code> 和 <code>dif_pos hb</code> 展开 <code>LIM a</code> / <code>LIM b</code> 中的 <code>if</code> 分支，
+  暴露出 <code>mk' ha</code> 和 <code>mk' hb</code>。<br>
+  <code>CauchySequence.equiv_iff</code> 把 setoid 关系翻译为 <code>Sequence.Equiv</code>。<br>
+  重写后目标就是 <code>Sequence.Equiv a b</code>（← 方向的假设）。
+</div>
+<div class="explanation" data-step="b1">
+  <span class="step-num">←1</span>
+  <code>h : Sequence.Equiv a b</code>（柯西序列的等价关系）。<br>
+  目标是 <code>LIM a = LIM b</code>。<br>
+  应用 <strong>Quotient.sound</strong> 把目标变成 setoid 关系
+  <code>(mk' ha) ≈ (mk' hb)</code>。<br>
+  sound 说 <code>⟦x⟧ = ⟦y⟧</code>，正好匹配我们的目标。
+</div>
+<div class="explanation" data-step="b2">
+  <span class="step-num">←2</span>
+  展开 <code>LIM a</code> / <code>LIM b</code> 为 <code>mk' ha</code> / <code>mk' hb</code>。
+  用 <code>CauchySequence.equiv_iff</code> 把 setoid 的 <code>≈</code>
+  转化为 <code>Sequence.Equiv a b</code>，正是 <code>h</code>。
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===================================================== -->
+<h2 style="margin-top:60px;">4. 类比：用「学生证号码」理解商类型</h2>
+
+<div class="diagram-row">
+  <div class="diagram-card">
+    <svg width="380" height="260" viewBox="0 0 380 260">
+      <!-- 左侧: 全班同学 -->
+      <rect x="10" y="20" width="160" height="220" rx="8" fill="rgba(108,92,231,0.04)" stroke="var(--accent-light)" stroke-width="1.5"/>
+      <text x="90" y="14" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)" font-family="Inter,sans-serif">全班同学 (α)</text>
+
+      <!-- 人物简笔画 -->
+      <g font-family="sans-serif" font-size="10" text-anchor="middle">
+        <circle cx="50" cy="55" r="10" fill="rgba(108,92,231,0.15)" stroke="var(--accent)" stroke-width="1"/>
+        <text x="50" y="58" font-size="9" fill="var(--text)">👤</text>
+        <text x="50" y="80" fill="var(--text-secondary)">小明</text>
+
+        <circle cx="120" cy="55" r="10" fill="rgba(0,184,148,0.15)" stroke="var(--accent2)" stroke-width="1"/>
+        <text x="120" y="58" font-size="9" fill="var(--text)">👤</text>
+        <text x="120" y="80" fill="var(--text-secondary)">小红</text>
+
+        <circle cx="50" cy="125" r="10" fill="rgba(253,203,110,0.15)" stroke="var(--accent3)" stroke-width="1"/>
+        <text x="50" y="128" font-size="9" fill="var(--text)">👤</text>
+        <text x="50" y="150" fill="var(--text-secondary)">小刚</text>
+
+        <circle cx="120" cy="125" r="10" fill="rgba(253,203,110,0.15)" stroke="var(--accent3)" stroke-width="1"/>
+        <text x="120" y="128" font-size="9" fill="var(--text)">👤</text>
+        <text x="120" y="150" fill="var(--text-secondary)">小强</text>
+
+        <circle cx="50" cy="190" r="10" fill="rgba(230,90,90,0.12)" stroke="#e65a5a" stroke-width="1"/>
+        <text x="50" y="193" font-size="9" fill="var(--text)">👤</text>
+        <text x="50" y="215" fill="var(--text-secondary)">小丽</text>
+
+        <circle cx="120" cy="190" r="10" fill="rgba(230,90,90,0.12)" stroke="#e65a5a" stroke-width="1"/>
+        <text x="120" y="193" font-size="9" fill="var(--text)">👤</text>
+        <text x="120" y="215" fill="var(--text-secondary)">小芳</text>
+      </g>
+
+      <!-- 等价关系标注 -->
+      <rect x="18" y="165" width="35" height="18" rx="4" fill="var(--accent3)" opacity="0.3"/>
+      <rect x="18" y="237" width="35" height="18" rx="4" fill="#e65a5a" opacity="0.3"/>
+      <text x="10" y="248" font-size="9" fill="var(--text-secondary)" font-family="Inter,sans-serif">≈ 同组</text>
+
+      <!-- 箭头 -->
+      <line x1="175" y1="100" x2="205" y2="100" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrowhead2)"/>
+      <text x="180" y="88" font-size="10" fill="var(--accent)" font-family="Inter,sans-serif">学号</text>
+
+      <defs>
+        <marker id="arrowhead2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- 右侧: 学号表 -->
+      <rect x="210" y="20" width="155" height="220" rx="8" fill="rgba(0,184,148,0.04)" stroke="var(--accent2)" stroke-width="1.5"/>
+      <text x="288" y="14" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent2)" font-family="Inter,sans-serif">学号 (Real)</text>
+
+      <!-- 卡片样式学号 -->
+      <rect x="225" y="40" width="125" height="32" rx="6" fill="white" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="260" y="60" text-anchor="middle" font-size="13" font-family="JetBrains Mono,monospace" fill="var(--accent)" font-weight="600">A001</text>
+      <text x="362" y="60" font-size="10" fill="var(--text-secondary)" font-family="Inter,sans-serif">← 小明</text>
+
+      <rect x="225" y="82" width="125" height="32" rx="6" fill="white" stroke="var(--accent2)" stroke-width="1.5"/>
+      <text x="260" y="102" text-anchor="middle" font-size="13" font-family="JetBrains Mono,monospace" fill="var(--accent2)" font-weight="600">A002</text>
+      <text x="362" y="102" font-size="10" fill="var(--text-secondary)" font-family="Inter,sans-serif">← 小红</text>
+
+      <rect x="225" y="124" width="125" height="32" rx="6" fill="white" stroke="var(--accent3)" stroke-width="1.5"/>
+      <text x="260" y="144" text-anchor="middle" font-size="13" font-family="JetBrains Mono,monospace" fill="#b8860b" font-weight="600">B001</text>
+      <text x="362" y="144" font-size="10" fill="var(--text-secondary)" font-family="Inter,sans-serif">← 小刚、小强</text>
+
+      <rect x="225" y="166" width="125" height="32" rx="6" fill="white" stroke="#e65a5a" stroke-width="1.5"/>
+      <text x="260" y="186" text-anchor="middle" font-size="13" font-family="JetBrains Mono,monospace" fill="#e65a5a" font-weight="600">C001</text>
+      <text x="362" y="186" font-size="10" fill="var(--text-secondary)" font-family="Inter,sans-serif">← 小丽、小芳</text>
+
+      <text x="225" y="225" font-size="9" fill="var(--text-secondary)" font-family="Inter,sans-serif">⚠️ 同组同学共享同一学号</text>
+    </svg>
+    <div class="caption">学生 ↔ 学号 = 柯西序列 ↔ 实数<br>同组（等价）→ 同学号（同一个实数）</div>
+  </div>
+</div>
+
+<!-- ===================================================== -->
+<h2>5. 交互式测试卡</h2>
+<p>点击卡片翻转，测试你是否掌握了 Quotient API：</p>
+
+<div class="flash-grid">
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">❓ 什么时候用 ind？</div>
+    <div class="card-desc">点击查看答案</div>
+    <div class="card-example">
+      当你需要 <strong>证明所有实数</strong> 的某个性质时。<br>
+      例如 <code>Real.eq_lim</code> 要证每个实数 x 都 ∃ a 使得 x = LIM a。<br>
+      用 ind 降到 CauchySequence 上操作。
+    </div>
+  </div>
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">❓ exact vs sound？</div>
+    <div class="card-desc">点击查看答案</div>
+    <div class="card-example">
+      <strong>exact</strong>: 从商中的等式 ⟦a⟧=⟦b⟧ 推到原始等价关系 a≈b。<br>
+      <strong>sound</strong>: 从 a≈b 推到商中的等式 ⟦a⟧=⟦b⟧。<br>
+      记住方向：sound 是「升」（关系到等式），exact 是「降」（等式到关系）。
+    </div>
+  </div>
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">❓ LIM 为什么 noncomputable？</div>
+    <div class="card-desc">点击查看答案</div>
+    <div class="card-example">
+      因为 <code>LIM a</code> 需要判断 <code>a</code> 是否柯西（if h: IsCauchy ...）。
+      判断一个序列是否柯西在 ℕ 上不是可判定的，需要 Classical.choice。
+      所以标记为 <code>noncomputable</code>。
+    </div>
+  </div>
+  <div class="flash-card" onclick="toggleCard(this)">
+    <div class="card-label">❓ dif_pos 有什么用？</div>
+    <div class="card-desc">点击查看答案</div>
+    <div class="card-example">
+      展开 <code>LIM a</code> 定义中的 <code>if h : IsCauchy a then ... else 0</code>。
+      已知 <code>ha</code> 时，<code>dif_pos ha</code> 把 <code>LIM a</code> 化简为 <code>Quotient.mk _ (mk' ha)</code>，
+      暴露出内部代表元，使 exact / sound 能作用。
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================== -->
+<h2>6. 完整证明流程图</h2>
+
+<p>点击每一步展开详细说明：</p>
+
+<div class="code-step">
+<pre><code><span class="kw">theorem</span> <span class="fn">Real.eq_lim</span> (x : <span class="ty">Real</span>) : <span class="kw">∃</span> (a : ℕ → ℚ), (a : <span class="ty">Sequence</span>).IsCauchy ∧ x = <span class="fn">LIM</span> a := <span class="kw">by</span>
+  <span class="fn">apply</span> <span class="ty">Quotient</span>.ind _ x
+  <span class="fn">intro</span> a
+  <span class="fn">use</span> (a : ℕ → ℚ)
+  <span class="fn">observe</span> : ((a : ℕ → ℚ) : <span class="ty">Sequence</span>) = a.toSequence
+  <span class="fn">rw</span> [this, <span class="fn">LIM_def</span> (<span class="kw">by</span> <span class="fn">convert</span> a.cauchy)]
+  <span class="fn">refine</span> ⟨ a.cauchy, ?_ ⟩
+  <span class="fn">congr</span>; <span class="fn">ext</span> n; <span class="fn">simp</span>; <span class="fn">replace</span> := congr($this n); <span class="fn">simp_all</span></code></pre>
+<div class="explanations">
+<div class="explanation open">
+  <strong>完整流程：</strong>
+  <ol style="margin-top:8px;">
+    <li><code>Quotient.ind _ x</code> — 把目标降级为「∀ a:CauchySequence, P(⟦a⟧)」</li>
+    <li><code>intro a</code> — 引入代表元 a</li>
+    <li><code>use (a : ℕ → ℚ)</code> — 用 a 本身作为存在量词的 witness</li>
+    <li>左目标 <code>(a:ℕ→ℚ).IsCauchy</code> 由 <code>a.cauchy</code> 提供</li>
+    <li>右目标 <code>Quotient.mk a = LIM (a:ℕ→ℚ)</code>：展开 <code>LIM</code> 后用 <code>congr</code> 变成 <code>a = mk' a.cauchy</code></li>
+    <li><code>ext n</code> 逐点相等，simp 搞定</li>
+  </ol>
+</div>
+</div>
+</div>
+
+<div class="code-step">
+<pre><code><span class="kw">theorem</span> <span class="fn">Real.LIM_eq_LIM</span> {a b : ℕ → ℚ} (ha : (a : <span class="ty">Sequence</span>).IsCauchy)
+    (hb : (b : <span class="ty">Sequence</span>).IsCauchy) : <span class="fn">LIM</span> a = <span class="fn">LIM</span> b ↔ <span class="ty">Sequence</span>.<span class="fn">Equiv</span> a b := <span class="kw">by</span>
+  <span class="fn">constructor</span>
+  <span class="kw">·</span> <span class="kw">intro</span> h
+    <span class="kw">replace</span> h := <span class="ty">Quotient</span>.exact h
+    rwa [dif_pos ha, dif_pos hb, CauchySequence.equiv_iff] at h
+  <span class="kw">·</span> <span class="kw">intro</span> h
+    <span class="fn">apply</span> <span class="ty">Quotient</span>.sound
+    rwa [dif_pos ha, dif_pos hb, CauchySequence.equiv_iff]</code></pre>
+<div class="explanations">
+<div class="explanation open">
+  <strong>↔ 方向总结：</strong><br>
+  <strong>→</strong> <code>LIM a = LIM b</code> → 展开 dif_pos → <code>⟦mk' ha⟧ = ⟦mk' hb⟧</code> → <code>Quotient.exact</code> → <code>(mk' ha) ≈ (mk' hb)</code> → <code>CauchySequence.equiv_iff</code> → <code>Sequence.Equiv a b</code><br><br>
+  <strong>←</strong> <code>Sequence.Equiv a b</code> → <code>CauchySequence.equiv_iff</code> → <code>(mk' ha) ≈ (mk' hb)</code> → <code>Quotient.sound</code> → <code>⟦mk' ha⟧ = ⟦mk' hb⟧</code> → 折叠 dif_pos → <code>LIM a = LIM b</code>
+</div>
+</div>
+</div>
+
+<!-- ===================================================== -->
+<h2>7. 附录：完整类型签名</h2>
+
+<div class="highlight-box">
+  <h4>Quotient.ind'</h4>
+  <pre style="margin:4px 0 0;border:none;background:transparent;padding:0;"><code>∀ {α} {s : Setoid α} {p : Quotient s → Prop},
+    (∀ (a : α), p (Quotient.mk'' a)) → ∀ (q : Quotient s), p q</code></pre>
+</div>
+
+<div class="highlight-box">
+  <h4>Quotient.exact'</h4>
+  <pre style="margin:4px 0 0;border:none;background:transparent;padding:0;"><code>∀ {α} {s : Setoid α} {a b : α},
+    Quotient.mk'' a = Quotient.mk'' b → s a b</code></pre>
+</div>
+
+<div class="highlight-box">
+  <h4>Quotient.sound'</h4>
+  <pre style="margin:4px 0 0;border:none;background:transparent;padding:0;"><code>∀ {α} {s : Setoid α} {a b : α},
+    s a b → Quotient.mk'' a = Quotient.mk'' b</code></pre>
+</div>
+
+<hr>
+<p style="color: var(--text-secondary); font-size: 0.85rem;">
+  生成于 Section_5_3.lean · 配合 Analysis I (Tao) 的 Chapter 5.3 使用<br>
+  点击任意高亮代码行可切换解释面板
+</p>
+
+</div>
+
+<script>
+  // --- Interactive code step ---
+  function toggleStep(el) {
+    var step = el.closest('.code-step');
+    if (!step) return;
+    var stepId = el.getAttribute('data-step');
+    if (!stepId) return;
+    var expl = step.querySelector('.explanation[data-step="' + stepId + '"]');
+    if (expl) {
+      expl.classList.toggle('open');
+    }
+  }
+
+  // --- Flash / quiz card ---
+  function toggleCard(el) {
+    var example = el.querySelector('.card-example');
+    if (example) {
+      example.classList.toggle('show');
+    }
+  }
+
+  // --- Tab switching ---
+  function switchTab(event, tabId) {
+    var tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+
+    var btns = document.querySelectorAll('.tab-btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // All explanations start hidden; clicks toggle them open.
+</script>
+</body>
+</html>
