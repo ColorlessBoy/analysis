@@ -938,10 +938,13 @@ private lemma ratCast_def_aux (q : ℚ) : (q : Real) = (q.num : Real) / (q.den :
   calc
     (q : Real) = ((q.num / q.den : ℚ) : Real) := by rw [Rat.num_div_den q]
     _ = (q.num : Real) / (q.den : Real) := by
-      norm_cast
+      rw [show (q.num : Real) = ((q.num : ℚ) : Real) from rfl,
+          show (q.den : Real) = ((q.den : ℚ) : Real) from rfl,
+          div_eq_mul_inv, div_eq_mul_inv, Real.inv_ratCast, Real.ratCast_mul]
 
-private lemma nnratCast_def_aux (q : ℚ≥0) : (q : Real) = (q.num : Real) / (q.den : Real) := by
-  simpa using ratCast_def_aux (q : ℚ)
+private lemma nnratCast_def_aux (q : ℚ≥0) :
+    ((q : ℚ) : Real) = ((q : ℚ).num : Real) / ((q : ℚ).den : Real) :=
+  ratCast_def_aux (q : ℚ)
 
 
 theorem Real.mul_right_cancel₀ {x y z:Real} (hz: z ≠ 0) (h: x * z = y * z) : x = y := by
@@ -961,7 +964,7 @@ theorem Real.mul_right_nocancel : ¬ ∀ (x y z:Real), (hz: z = 0) → (x * z = 
   intro h
   have h01 : (0 : Real) = (1 : Real) := h 0 1 0 rfl (by
     calc
-      (0 : Real) * (0 : Real) = (0 : Real) := by simpa using mul_zero (0 : Real)
+      (0 : Real) * (0 : Real) = (0 : Real) := by simp
       _ = ((1 : ℚ) : Real) * (0 : Real) := by
         simp)
   have : (0 : Real) ≠ (1 : Real) := by
