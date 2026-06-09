@@ -83,7 +83,81 @@ theorem Real.isNeg_def (x:Real) :
     IsNeg x ↔ ∃ a:ℕ → ℚ, BoundedAwayNeg a ∧ (a:Sequence).IsCauchy ∧ x = LIM a := by rfl
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
-theorem Real.trichotomous (x:Real) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by sorry
+theorem Real.trichotomous (x:Real) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by
+  by_cases hx : x = 0
+  · left; exact hx
+  · right
+    rcases boundedAwayZero_of_nonzero hx with ⟨a, ha_cauchy, ⟨c, hc_pos, ha_bound⟩, rfl⟩
+    have ha_cau : ∀ ε > (0 : ℚ), ∃ N, ∀ j ≥ N, ∀ k ≥ N, Section_4_3.dist (a j) (a k) ≤ ε :=
+      ((Sequence.IsCauchy.coe a).mp ha_cauchy)
+    have hN' := ha_cau (c/2) (half_pos hc_pos)
+    rcases hN' with ⟨N, hN⟩
+    have hN_dist : ∀ j ≥ N, ∀ k ≥ N, |a j - a k| ≤ c/2 := by
+      intro j hj k hk
+      have h := hN j hj k hk
+      rw [Section_4_3.dist, Section_4_3.abs_eq_abs] at h
+      exact h
+    by_cases hpos : a N ≥ c
+    · -- x is positive
+      set b : ℕ → ℚ := fun n ↦ if n < N then c/2 else a n
+      have hBoundedAwayPos : BoundedAwayPos b := by
+        refine ⟨c/2, half_pos hc_pos, ?_⟩
+        intro n
+        dsimp [b]
+        by_cases hn : n < N
+        · simp [hn]
+        · simp [hn]
+          have hnN : n ≥ N := by omega
+          have h_abs : |a N - a n| ≤ c/2 := hN_dist N (le_refl N) n hnN
+          have h_sq : a N - a n ≤ c/2 := (abs_le.mp h_abs).2
+          nlinarith
+      have h_equiv : Sequence.Equiv b a := by
+        rw [Sequence.equiv_iff]
+        intro ε hε
+        refine ⟨N, fun n hn => ?_⟩
+        have hn' : ¬ n < N := not_lt.mpr hn
+        simp [b, hn', sub_self, abs_zero]
+        exact hε.le
+      have hCauchy : (b : Sequence).IsCauchy :=
+        (Sequence.isCauchy_of_equiv h_equiv).mpr ha_cauchy
+      have hLIM : LIM b = LIM a :=
+        ((Real.LIM_eq_LIM hCauchy ha_cauchy).mpr h_equiv)
+      exact Or.inl ⟨b, hBoundedAwayPos, hCauchy, hLIM.symm⟩
+    · -- x is negative
+      have hneg : a N ≤ -c := by
+        have h_abs_ge : |a N| ≥ c := ha_bound N
+        by_cases h_nonneg : a N ≥ 0
+        · have : |a N| = a N := abs_of_nonneg h_nonneg
+          rw [this] at h_abs_ge
+          linarith
+        · have : a N < 0 := by linarith
+          have : |a N| = -a N := abs_of_neg this
+          rw [this] at h_abs_ge
+          linarith
+      set b : ℕ → ℚ := fun n ↦ if n < N then -c/2 else a n
+      have hBoundedAwayNeg : BoundedAwayNeg b := by
+        refine ⟨c/2, half_pos hc_pos, ?_⟩
+        intro n
+        dsimp [b]
+        by_cases hn : n < N
+        · rw [if_pos hn, neg_div]
+        · simp [hn]
+          have hnN : n ≥ N := by omega
+          have h_abs : |a N - a n| ≤ c/2 := hN_dist N (le_refl N) n hnN
+          have h_sq' : -(c/2) ≤ a N - a n := (abs_le.mp h_abs).1
+          nlinarith
+      have h_equiv : Sequence.Equiv b a := by
+        rw [Sequence.equiv_iff]
+        intro ε hε
+        refine ⟨N, fun n hn => ?_⟩
+        have hn' : ¬ n < N := not_lt.mpr hn
+        simp [b, hn', sub_self, abs_zero]
+        exact hε.le
+      have hCauchy : (b : Sequence).IsCauchy :=
+        (Sequence.isCauchy_of_equiv h_equiv).mpr ha_cauchy
+      have hLIM : LIM b = LIM a :=
+        ((Real.LIM_eq_LIM hCauchy ha_cauchy).mpr h_equiv)
+      exact Or.inr ⟨b, hBoundedAwayNeg, hCauchy, hLIM.symm⟩
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
 theorem Real.not_zero_pos (x:Real) : ¬(x = 0 ∧ x.IsPos) := by sorry
