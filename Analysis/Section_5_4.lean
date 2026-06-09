@@ -160,35 +160,175 @@ theorem Real.trichotomous (x:Real) : x = 0 ∨ x.IsPos ∨ x.IsNeg := by
       exact Or.inr ⟨b, hBoundedAwayNeg, hCauchy, hLIM.symm⟩
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
-theorem Real.not_zero_pos (x:Real) : ¬(x = 0 ∧ x.IsPos) := by sorry
+theorem Real.not_zero_pos (x:Real) : ¬(x = 0 ∧ x.IsPos) := by
+  rintro ⟨hzero, ⟨a, ha_pos, ha_cauchy, hx⟩⟩
+  have ha_zero : BoundedAwayZero a := BoundedAwayZero.boundedAwayPos ha_pos
+  have hzero_LIM : LIM a = 0 := by
+    calc
+      LIM a = x := hx.symm
+      _ = 0 := hzero
+  exact Real.lim_of_boundedAwayZero ha_zero ha_cauchy hzero_LIM
 
 theorem Real.nonzero_of_pos {x:Real} (hx: x.IsPos) : x ≠ 0 := by
   have := not_zero_pos x
   simpa [hx] using this
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
-theorem Real.not_zero_neg (x:Real) : ¬(x = 0 ∧ x.IsNeg) := by sorry
+theorem Real.not_zero_neg (x:Real) : ¬(x = 0 ∧ x.IsNeg) := by
+  rintro ⟨hzero, ⟨a, ha_neg, ha_cauchy, hx⟩⟩
+  have ha_zero : BoundedAwayZero a := BoundedAwayZero.boundedAwayNeg ha_neg
+  have hzero_LIM : LIM a = 0 := by
+    calc
+      LIM a = x := hx.symm
+      _ = 0 := hzero
+  exact Real.lim_of_boundedAwayZero ha_zero ha_cauchy hzero_LIM
 
 theorem Real.nonzero_of_neg {x:Real} (hx: x.IsNeg) : x ≠ 0 := by
   have := not_zero_neg x
   simpa [hx] using this
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
-theorem Real.not_pos_neg (x:Real) : ¬(x.IsPos ∧ x.IsNeg) := by sorry
+theorem Real.not_pos_neg (x:Real) : ¬(x.IsPos ∧ x.IsNeg) := by
+  rintro ⟨⟨a, ha_pos, ha_cauchy, hx⟩, ⟨b, hb_neg, hb_cauchy, hx'⟩⟩
+  have h_eq : LIM a = LIM b := by
+    calc
+      LIM a = x := hx.symm
+      _ = LIM b := hx'
+  have h_equiv : Sequence.Equiv a b := ((Real.LIM_eq_LIM ha_cauchy hb_cauchy).mp h_eq)
+  rcases ha_pos with ⟨c, hc_pos, ha_bound⟩
+  rcases hb_neg with ⟨d, hd_pos, hb_bound⟩
+  have h_sum_pos : 0 < c + d := by linarith
+  rcases (Sequence.equiv_iff a b).mp h_equiv ((c + d)/2) (by nlinarith) with ⟨N, hN⟩
+  have hN_bound : |a N - b N| ≤ (c + d)/2 := hN N (le_refl N)
+  have ha_N : a N ≥ c := ha_bound N
+  have hb_N : b N ≤ -d := hb_bound N
+  have h_diff_nonneg : 0 ≤ a N - b N := by nlinarith
+  have h_diff : a N - b N ≥ c + d := by nlinarith
+  have h_abs_ge : |a N - b N| ≥ c + d := by
+    rw [abs_of_nonneg h_diff_nonneg]
+    exact h_diff
+  nlinarith
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
 @[simp]
-theorem Real.neg_iff_pos_of_neg (x:Real) : x.IsNeg ↔ (-x).IsPos := by sorry
+theorem Real.neg_iff_pos_of_neg (x:Real) : x.IsNeg ↔ (-x).IsPos := by
+  constructor
+  · intro ⟨a, ha_neg, ha_cauchy, hx⟩
+    have hb_pos : BoundedAwayPos (-a) := by
+      rcases ha_neg with ⟨c, hc_pos, ha_bound⟩
+      refine ⟨c, hc_pos, ?_⟩
+      intro n
+      dsimp
+      have ha_n : a n ≤ -c := ha_bound n
+      linarith
+    have hb_cauchy : ((-a : ℕ → ℚ) : Sequence).IsCauchy :=
+      Sequence.IsCauchy.neg a ha_cauchy
+    have hneg_x : -x = LIM (-a) := by
+      calc
+        -x = -(LIM a) := by rw [hx]
+        _ = LIM (-a) := Real.neg_LIM a ha_cauchy
+    exact ⟨-a, hb_pos, hb_cauchy, hneg_x⟩
+  · intro ⟨a, ha_pos, ha_cauchy, hx⟩
+    have hb_neg : BoundedAwayNeg (-a) := by
+      rcases ha_pos with ⟨c, hc_pos, ha_bound⟩
+      refine ⟨c, hc_pos, ?_⟩
+      intro n
+      dsimp
+      have ha_n : a n ≥ c := ha_bound n
+      linarith
+    have hb_cauchy : ((-a : ℕ → ℚ) : Sequence).IsCauchy :=
+      Sequence.IsCauchy.neg a ha_cauchy
+    have hx' : x = LIM (-a) := by
+      calc
+        x = -(-x) := by simp
+        _ = -(LIM a) := by rw [hx]
+        _ = LIM (-a) := Real.neg_LIM a ha_cauchy
+    exact ⟨-a, hb_neg, hb_cauchy, hx'⟩
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1-/
-theorem Real.pos_add {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x+y).IsPos := by sorry
+theorem Real.pos_add {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x+y).IsPos := by
+  rcases hx with ⟨a, ha_pos, ha_cauchy, hx⟩
+  rcases hy with ⟨b, hb_pos, hb_cauchy, hy⟩
+  have hab_pos : BoundedAwayPos (a + b) := by
+    rcases ha_pos with ⟨c, hc_pos, ha_bound⟩
+    rcases hb_pos with ⟨d, hd_pos, hb_bound⟩
+    refine ⟨c, hc_pos, ?_⟩
+    intro n
+    dsimp
+    have ha_n : a n ≥ c := ha_bound n
+    have hb_n : b n ≥ d := hb_bound n
+    nlinarith
+  have hab_cauchy : ((a + b : ℕ → ℚ) : Sequence).IsCauchy :=
+    Sequence.IsCauchy.add ha_cauchy hb_cauchy
+  have hsum : x + y = LIM (a + b) := by
+    calc
+      x + y = LIM a + LIM b := by rw [hx, hy]
+      _ = LIM (a + b) := Real.LIM_add ha_cauchy hb_cauchy
+  exact ⟨a + b, hab_pos, hab_cauchy, hsum⟩
 
 /-- Proposition 5.4.4 (basic properties of positive reals) / Exercise 5.4.1 -/
-theorem Real.pos_mul {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x*y).IsPos := by sorry
+theorem Real.pos_mul {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x*y).IsPos := by
+  rcases hx with ⟨a, ha_pos, ha_cauchy, hx⟩
+  rcases hy with ⟨b, hb_pos, hb_cauchy, hy⟩
+  have hab_pos : BoundedAwayPos (a * b) := by
+    rcases ha_pos with ⟨c, hc_pos, ha_bound⟩
+    rcases hb_pos with ⟨d, hd_pos, hb_bound⟩
+    refine ⟨c * d, mul_pos hc_pos hd_pos, ?_⟩
+    intro n
+    dsimp
+    have ha_n : a n ≥ c := ha_bound n
+    have hb_n : b n ≥ d := hb_bound n
+    nlinarith
+  have hab_cauchy : ((a * b : ℕ → ℚ) : Sequence).IsCauchy :=
+    Sequence.IsCauchy.mul ha_cauchy hb_cauchy
+  have hprod : x * y = LIM (a * b) := by
+    calc
+      x * y = LIM a * LIM b := by rw [hx, hy]
+      _ = LIM (a * b) := Real.LIM_mul ha_cauchy hb_cauchy
+  exact ⟨a * b, hab_pos, hab_cauchy, hprod⟩
 
-theorem Real.pos_of_coe (q:ℚ) : (q:Real).IsPos ↔ q > 0 := by sorry
+theorem Real.pos_of_coe (q:ℚ) : (q:Real).IsPos ↔ q > 0 := by
+  constructor
+  · intro h
+    rcases h with ⟨a, ha_pos, ha_cauchy, hx⟩
+    have hq : LIM a = (q : Real) := hx.symm
+    have hq' : LIM a = LIM (fun _ : ℕ ↦ q) :=
+      calc
+        LIM a = (q : Real) := hq
+        _ = LIM (fun _ : ℕ ↦ q) := Real.ratCast_def q
+    have h_equiv : Sequence.Equiv a (fun _ : ℕ ↦ q) :=
+      ((Real.LIM_eq_LIM ha_cauchy (Sequence.IsCauchy.const q)).mp hq')
+    rcases ha_pos with ⟨c, hc_pos, ha_bound⟩
+    rcases (Sequence.equiv_iff a (fun _ : ℕ ↦ q)).mp h_equiv (c / 2) (by nlinarith) with ⟨N, hN⟩
+    have hN_bound : |a N - q| ≤ c / 2 := hN N (le_refl N)
+    have ha_N : a N ≥ c := ha_bound N
+    rcases abs_le.mp hN_bound with ⟨hle, hge⟩
+    nlinarith
+  · intro h
+    refine ⟨fun _ ↦ q, ⟨q, h, λ _ => le_rfl⟩, Sequence.IsCauchy.const q, ?_⟩
+    exact Real.ratCast_def q
 
-theorem Real.neg_of_coe (q:ℚ) : (q:Real).IsNeg ↔ q < 0 := by sorry
+theorem Real.neg_of_coe (q:ℚ) : (q:Real).IsNeg ↔ q < 0 := by
+  constructor
+  · intro h
+    rcases h with ⟨a, ha_neg, ha_cauchy, hx⟩
+    have hq : LIM a = (q : Real) := hx.symm
+    have hq' : LIM a = LIM (fun _ : ℕ ↦ q) :=
+      calc
+        LIM a = (q : Real) := hq
+        _ = LIM (fun _ : ℕ ↦ q) := Real.ratCast_def q
+    have h_equiv : Sequence.Equiv a (fun _ : ℕ ↦ q) :=
+      ((Real.LIM_eq_LIM ha_cauchy (Sequence.IsCauchy.const q)).mp hq')
+    rcases ha_neg with ⟨c, hc_pos, ha_bound⟩
+    rcases (Sequence.equiv_iff a (fun _ : ℕ ↦ q)).mp h_equiv (c / 2) (by nlinarith) with ⟨N, hN⟩
+    have hN_bound : |a N - q| ≤ c / 2 := hN N (le_refl N)
+    have ha_N : a N ≤ -c := ha_bound N
+    rcases abs_le.mp hN_bound with ⟨hle, hge⟩
+    nlinarith
+  · intro h
+    refine ⟨fun _ ↦ q, ⟨-q, by linarith, λ _ => ?_⟩, Sequence.IsCauchy.const q, ?_⟩
+    · dsimp; linarith
+    · exact Real.ratCast_def q
 
 open Classical in
 /-- Need to use classical logic here because {name}`IsPos` and {name}`IsNeg` are not decidable -/
