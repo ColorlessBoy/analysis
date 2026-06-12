@@ -363,46 +363,98 @@ instance Real.instLE : LE Real where
 theorem Real.lt_iff (x y:Real) : x < y ↔ (x-y).IsNeg := by rfl
 theorem Real.le_iff (x y:Real) : x ≤ y ↔ (x < y) ∨ (x = y) := by rfl
 
-theorem Real.gt_iff (x y:Real) : x > y ↔ (x-y).IsPos := by sorry
-theorem Real.ge_iff (x y:Real) : x ≥ y ↔ (x > y) ∨ (x = y) := by sorry
+theorem Real.gt_iff (x y:Real) : x > y ↔ (x-y).IsPos := by
+  simp
+  rw [lt_iff, Real.neg_iff_pos_of_neg, neg_sub]
 
-theorem Real.lt_of_coe (q q':ℚ): q < q' ↔ (q:Real) < (q':Real) := by sorry
+theorem Real.ge_iff (x y:Real) : x ≥ y ↔ (x > y) ∨ (x = y) := by
+  simp; rw [Eq.comm]; rfl
+
+theorem Real.lt_of_coe (q q':ℚ): q < q' ↔ (q:Real) < (q':Real) := by
+  rw [lt_iff, Real.ratCast_sub q q', neg_of_coe, sub_lt_zero]
 
 theorem Real.gt_of_coe (q q':ℚ): q > q' ↔ (q:Real) > (q':Real) := Real.lt_of_coe _ _
 
-theorem Real.isPos_iff (x:Real) : x.IsPos ↔ x > 0 := by sorry
-theorem Real.isNeg_iff (x:Real) : x.IsNeg ↔ x < 0 := by sorry
+theorem Real.isPos_iff (x:Real) : x.IsPos ↔ x > 0 := by
+  rw [gt_iff, sub_zero]
+theorem Real.isNeg_iff (x:Real) : x.IsNeg ↔ x < 0 := by
+  rw [lt_iff, sub_zero]
 
 /-- Proposition 5.4.7(a) (order trichotomy) / Exercise 5.4.2 -/
-theorem Real.trichotomous' (x y:Real) : x > y ∨ x < y ∨ x = y := by sorry
+theorem Real.trichotomous' (x y:Real) : x > y ∨ x < y ∨ x = y := by
+  have h := trichotomous (x - y)
+  rcases h with (hzero | hpos | hneg)
+  · right; right; exact sub_eq_zero.mp hzero
+  · left; rw [gt_iff]; exact hpos
+  · right; left; rw [lt_iff]; exact hneg
 
 /-- Proposition 5.4.7(a) (order trichotomy) / Exercise 5.4.2 -/
-theorem Real.not_gt_and_lt (x y:Real) : ¬ (x > y ∧ x < y):= by sorry
+theorem Real.not_gt_and_lt (x y:Real) : ¬ (x > y ∧ x < y) := by
+  rintro ⟨hgt, hlt⟩
+  rw [gt_iff] at hgt
+  rw [lt_iff] at hlt
+  exact not_pos_neg (x - y) ⟨hgt, hlt⟩
 
-/-- Proposition 5.4.7(a) (order trichotomy) / Exercise 5.4.2 -/
-theorem Real.not_gt_and_eq (x y:Real) : ¬ (x > y ∧ x = y):= by sorry
+theorem Real.not_gt_and_eq (x y:Real) : ¬ (x > y ∧ x = y) := by
+  rintro ⟨hgt, heq⟩
+  rw [gt_iff] at hgt
+  rw [heq] at hgt
+  have : ¬(y - y).IsPos := by
+    have := not_zero_pos (y - y)
+    simpa [sub_self] using this
+  exact this hgt
 
-/-- Proposition 5.4.7(a) (order trichotomy) / Exercise 5.4.2 -/
-theorem Real.not_lt_and_eq (x y:Real) : ¬ (x < y ∧ x = y):= by sorry
+theorem Real.not_lt_and_eq (x y:Real) : ¬ (x < y ∧ x = y) := by
+  rintro ⟨hlt, heq⟩
+  rw [lt_iff] at hlt
+  rw [heq] at hlt
+  have : ¬(y - y).IsNeg := by
+    have := not_zero_neg (y - y)
+    simpa [sub_self] using this
+  exact this hlt
 
 /-- Proposition 5.4.7(b) (order is anti-symmetric) / Exercise 5.4.2 -/
-theorem Real.antisymm (x y:Real) : x < y ↔ y > x := by sorry
+theorem Real.antisymm (x y:Real) : x < y ↔ y > x := by
+  rw [lt_iff, gt_iff, Real.neg_iff_pos_of_neg (x-y), neg_sub x y]
+
+theorem Real.neg_add {x y:Real} (hx: x.IsNeg) (hy: y.IsNeg) : (x + y).IsNeg := by
+  have hx' : (-x).IsPos := (Real.neg_iff_pos_of_neg x).mp hx
+  have hy' : (-y).IsPos := (Real.neg_iff_pos_of_neg y).mp hy
+  have hsum : ((-x) + (-y)).IsPos := Real.pos_add hx' hy'
+  have : (-x) + (-y) = -(x + y) := by ring
+  rw [this] at hsum
+  exact (Real.neg_iff_pos_of_neg (x + y)).mpr hsum
 
 /-- Proposition 5.4.7(c) (order is transitive) / Exercise 5.4.2 -/
-theorem Real.lt_trans {x y z:Real} (hxy: x < y) (hyz: y < z) : x < z := by sorry
+theorem Real.lt_trans {x y z:Real} (hxy: x < y) (hyz: y < z) : x < z := by
+  rw [lt_iff] at hxy hyz ⊢
+  have h : (x - z) = (x - y) + (y - z) := by ring
+  rw [h]; exact Real.neg_add hxy hyz
 
 /-- Proposition 5.4.7(d) (addition preserves order) / Exercise 5.4.2 -/
-theorem Real.add_lt_add_right {x y:Real} (z:Real) (hxy: x < y) : x + z < y + z := by sorry
+theorem Real.add_lt_add_right {x y:Real} (z:Real) (hxy: x < y) : x + z < y + z := by
+  rw [lt_iff] at hxy ⊢
+  have : (x + z) - (y + z) = x - y := by ring
+  rw [this]
+  exact hxy
 
 /-- Proposition 5.4.7(e) (positive multiplication preserves order) / Exercise 5.4.2 -/
 theorem Real.mul_lt_mul_right {x y z:Real} (hxy: x < y) (hz: z.IsPos) : x * z < y * z := by
   rw [antisymm, gt_iff] at hxy ⊢; convert pos_mul hxy hz using 1; ring
 
 /-- Proposition 5.4.7(e) (positive multiplication preserves order) / Exercise 5.4.2 -/
-theorem Real.mul_le_mul_left {x y z:Real} (hxy: x ≤ y) (hz: z.IsPos) : z * x ≤ z * y := by sorry
+theorem Real.mul_le_mul_left {x y z:Real} (hxy: x ≤ y) (hz: z.IsPos) : z * x ≤ z * y := by
+  rw [le_iff] at hxy ⊢
+  rcases hxy with (hlt | heq)
+  · left; rw [mul_comm z x, mul_comm z y]; exact mul_lt_mul_right hlt hz
+  · right; rw [heq]
 
 theorem Real.mul_pos_neg {x y:Real} (hx: x.IsPos) (hy: y.IsNeg) : (x * y).IsNeg := by
-  sorry
+  have hy' : (-y).IsPos := (Real.neg_iff_pos_of_neg y).mp hy
+  have hpos : (x * (-y)).IsPos := Real.pos_mul hx hy'
+  have : x * (-y) = -(x * y) := by ring
+  rw [this] at hpos
+  exact (Real.neg_iff_pos_of_neg (x * y)).mpr hpos
 
 open Classical in
 /--
@@ -410,34 +462,118 @@ open Classical in
   and so classical logic is required to impose decidability.
 -/
 noncomputable instance Real.instLinearOrder : LinearOrder Real where
-  le_refl := sorry
-  le_trans := sorry
-  lt_iff_le_not_ge := sorry
-  le_antisymm := sorry
-  le_total := sorry
+  le_refl := by
+    intro x; rw [le_iff]; exact Or.inr rfl
+  le_trans := by
+    intro x y z hxy hyz
+    rw [le_iff] at hxy hyz ⊢
+    rcases hxy with (hxy_lt | hxy_eq)
+    · rcases hyz with (hyz_lt | hyz_eq)
+      · exact Or.inl (lt_trans hxy_lt hyz_lt)
+      · exact Or.inl (by rwa [hyz_eq] at hxy_lt)
+    · rcases hyz with (hyz_lt | hyz_eq)
+      · exact Or.inl (by rwa [hxy_eq])
+      · exact Or.inr (hxy_eq.trans hyz_eq)
+  lt_iff_le_not_ge := by
+    intro x y
+    constructor
+    · intro hlt
+      constructor
+      · rw [le_iff]; exact Or.inl hlt
+      · intro hle
+        rw [le_iff] at hle
+        rcases hle with (hlt' | heq)
+        · exact not_gt_and_lt y x ⟨hlt, hlt'⟩
+        · exact not_lt_and_eq x y ⟨hlt, heq.symm⟩
+    · intro ⟨hle, hnge⟩
+      rw [le_iff] at hle
+      rcases hle with (hlt | heq)
+      · exact hlt
+      · exfalso; exact hnge (by rw [le_iff]; exact Or.inr heq.symm)
+  le_antisymm := by
+    intro x y hxy hyx
+    rw [le_iff] at hxy hyx
+    rcases hxy with (hxy_lt | hxy_eq)
+    · rcases hyx with (hyx_lt | hyx_eq)
+      · exfalso
+        rw [lt_iff] at hxy_lt hyx_lt
+        have hyx_lt' : (-(x-y)).IsNeg := by
+          rw [neg_sub]; exact hyx_lt
+        have hpos : (x-y).IsPos := by
+          have := (Real.neg_iff_pos_of_neg (-(x-y))).mp hyx_lt'
+          simpa using this
+        exact not_pos_neg (x-y) ⟨hpos, hxy_lt⟩
+      · exfalso; exact not_lt_and_eq x y ⟨hxy_lt, hyx_eq.symm⟩
+    · exact hxy_eq
+  le_total := by
+    intro x y
+    have h := trichotomous' x y
+    rcases h with (hgt | hlt | heq)
+    · right; rw [le_iff]; exact Or.inl hgt
+    · left; rw [le_iff]; exact Or.inl hlt
+    · left; rw [le_iff]; exact Or.inr heq
   toDecidableLE := Classical.decRel _
 
 /--
   (Not from textbook) {name}`LinearOrder`s come with a definition of absolute value {lean (type := "Real → Real")}`(|·|)`.
   Show that it agrees with our earlier definition.
 -/
-theorem Real.abs_eq_abs (x:Real) : |x| = abs x := by sorry
+theorem Real.abs_eq_abs (x:Real) : |x| = abs x := by
+  have h := trichotomous x
+  rcases h with (hzero | hpos | hneg)
+  · rw [hzero]
+    calc
+      |(0 : Real)| = max (0 : Real) (-(0 : Real)) := rfl
+      _ = max (0 : Real) (0 : Real) := by simp
+      _ = (0 : Real) := by simp
+      _ = abs (0 : Real) := by symm; exact Real.abs_of_zero
+  · have hpos' : 0 < x := (Real.isPos_iff x).mp hpos
+    have hnegx_lt_0 : -x < 0 := by
+      have : 0 + (-x) < x + (-x) := add_lt_add_right (-x) hpos'
+      simpa using this
+    have hnegx_lt_x : -x < x := lt_trans hnegx_lt_0 hpos'
+    have hnegx_le_x : -x ≤ x := le_of_lt hnegx_lt_x
+    calc
+      |x| = max x (-x) := rfl
+      _ = x := max_eq_left hnegx_le_x
+      _ = abs x := (Real.abs_of_pos x hpos).symm
+  · have hneg' : x < 0 := (Real.isNeg_iff x).mp hneg
+    have h_negx_gt_0 : 0 < -x := by
+      have : x + (-x) < 0 + (-x) := add_lt_add_right (-x) hneg'
+      simpa using this
+    have hx_lt_negx : x < -x := lt_trans hneg' h_negx_gt_0
+    have hx_le_negx : x ≤ -x := le_of_lt hx_lt_negx
+    calc
+      |x| = max x (-x) := rfl
+      _ = -x := max_eq_right hx_le_negx
+      _ = abs x := (Real.abs_of_neg x hneg).symm
 
 /-- Proposition 5.4.8 -/
 theorem Real.inv_of_pos {x:Real} (hx: x.IsPos) : x⁻¹.IsPos := by
   observe hnon: x ≠ 0
   observe hident : x⁻¹ * x = 1
-  have hinv_non: x⁻¹ ≠ 0 := by contrapose! hident; simp [hident]
+  have hinv_non: x⁻¹ ≠ 0 := by
+    intro hzero
+    have hcalc : x⁻¹ * x = 0 := by simp [hzero]
+    rw [hcalc] at hident
+    have h1pos : (1 : Real).IsPos := by
+      have := (pos_of_coe (1 : ℚ)).mpr (by norm_num)
+      simpa using this
+    have h10 : (1 : Real) ≠ 0 := nonzero_of_pos h1pos
+    exact h10 hident.symm
   have hnonneg : ¬x⁻¹.IsNeg := by
     intro h
-    observe : (x * x⁻¹).IsNeg
-    have id : -(1:Real) = (-1:ℚ) := by simp
-    simp only [neg_iff_pos_of_neg, id, pos_of_coe, self_mul_inv hnon] at this
+    have : (x * x⁻¹).IsNeg := mul_pos_neg hx h
+    rw [self_mul_inv hnon] at this
+    have : (1 : ℚ) < 0 := (neg_of_coe (1 : ℚ)).mp (by simpa using this)
     linarith
   have trich := trichotomous x⁻¹
   simpa [hinv_non, hnonneg] using trich
 
-theorem Real.div_of_pos {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x/y).IsPos := by sorry
+theorem Real.div_of_pos {x y:Real} (hx: x.IsPos) (hy: y.IsPos) : (x/y).IsPos := by
+  have hy_inv : y⁻¹.IsPos := Real.inv_of_pos hy
+  have : (x * y⁻¹).IsPos := Real.pos_mul hx hy_inv
+  simpa [div_eq_mul_inv] using this
 
 theorem Real.inv_of_gt {x y:Real} (hx: x.IsPos) (hy: y.IsPos) (hxy: x > y) : x⁻¹ < y⁻¹ := by
   observe hxnon: x ≠ 0
@@ -453,12 +589,48 @@ theorem Real.inv_of_gt {x y:Real} (hx: x.IsPos) (hy: y.IsPos) (hxy: x > y) : x�
 
 /-- (Not from textbook) {name}`Real` has the structure of a strict ordered ring. -/
 instance Real.instIsStrictOrderedRing : IsStrictOrderedRing Real where
-  add_le_add_left := by sorry
-  add_le_add_right := by sorry
-  mul_lt_mul_of_pos_left := by sorry
-  mul_lt_mul_of_pos_right := by sorry
-  le_of_add_le_add_left := by sorry
-  zero_le_one := by sorry
+  add_le_add_left := by
+    intro a b h c
+    rw [le_iff] at h ⊢
+    rcases h with (hlt | heq)
+    · refine Or.inl ?_
+      simpa [add_comm] using add_lt_add_right c hlt
+    · subst heq; exact Or.inr rfl
+  add_le_add_right := by
+    intro a b h c
+    rw [le_iff] at h ⊢
+    rcases h with (hlt | heq)
+    · refine Or.inl ?_
+      simpa [add_comm] using add_lt_add_right c hlt
+    · subst heq; exact Or.inr rfl
+  mul_lt_mul_of_pos_left := by
+    intro a ha b c hbc
+    have ha_pos : a.IsPos := (Real.isPos_iff a).mpr ha
+    simpa [mul_comm] using mul_lt_mul_right hbc ha_pos
+  mul_lt_mul_of_pos_right := by
+    intro c hc a b hab
+    have hc_pos : c.IsPos := (Real.isPos_iff c).mpr hc
+    exact mul_lt_mul_right hab hc_pos
+  le_of_add_le_add_left := by
+    intro a b c h
+    rw [le_iff] at h ⊢
+    rcases h with (hlt | heq)
+    · left; rw [lt_iff] at hlt ⊢
+      have : (a + b) - (a + c) = b - c := by ring
+      rw [this] at hlt; exact hlt
+    · right; exact add_left_cancel heq
+  zero_le_one := by
+    rw [le_iff]
+    left
+    have h1pos : (1 : Real).IsPos := by
+      have := (pos_of_coe (1 : ℚ)).mpr (by norm_num)
+      simpa using this
+    exact (Real.isPos_iff (1 : Real)).mp h1pos
+  exists_pair_ne := ⟨0, 1, by
+    have h1pos : (1 : Real).IsPos := by
+      have := (pos_of_coe (1 : ℚ)).mpr (by norm_num)
+      simpa using this
+    exact (nonzero_of_pos h1pos).symm⟩
 
 /-- Proposition 5.4.9 (The non-negative reals are closed)-/
 theorem Real.LIM_of_nonneg {a: ℕ → ℚ} (ha: ∀ n, a n ≥ 0) (hcauchy: (a:Sequence).IsCauchy) :
@@ -470,11 +642,14 @@ theorem Real.LIM_of_nonneg {a: ℕ → ℚ} (ha: ∀ n, a n ≥ 0) (hcauchy: (a:
   rw [boundedAwayNeg_def] at hb; choose c cpos hb using hb
   have claim1 : ∀ n, ¬ (c/2).Close (a n) (b n) := by
     intro n; specialize ha n; specialize hb n
-    simp [Section_4_3.close_iff]
-    calc
-      _ < c := by linarith
-      _ ≤ a n - b n := by linarith
-      _ ≤ _ := le_abs_self _
+    rw [Section_4_3.close_iff]
+    have hcalc : c/2 < Section_4_3.abs (a n - b n) := by
+      calc
+        c/2 < c := by linarith
+        _ ≤ a n - b n := by linarith
+        _ = Section_4_3.abs (a n - b n) := by
+          symm; apply Section_4_3.abs_of_pos; nlinarith
+    linarith
   have claim2 : ¬(c/2).EventuallyClose (a:Sequence) (b:Sequence) := by
     contrapose! claim1; rw [Rat.eventuallyClose_iff] at claim1; peel claim1 with N claim1; grind [Section_4_3.close_iff]
   have claim3 : ¬Sequence.Equiv a b := by contrapose! claim2; rw [Sequence.equiv_def] at claim2; solve_by_elim [half_pos]
