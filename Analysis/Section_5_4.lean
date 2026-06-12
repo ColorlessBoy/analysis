@@ -672,7 +672,40 @@ theorem Real.LIM_mono_fail :
     ∧ ¬LIM a > LIM b := by
   use (fun n ↦ 1 + 1/((n:ℚ) + 1))
   use (fun n ↦ 1 - 1/((n:ℚ) + 1))
-  sorry
+  have ha_cauchy : ((fun n : ℕ ↦ 1 + 1/((n:ℚ)+1) : ℕ → ℚ) : Sequence).IsCauchy :=
+    Sequence.IsCauchy.add (Sequence.IsCauchy.const 1) Sequence.IsCauchy.harmonic'
+  have hb_cauchy : ((fun n : ℕ ↦ 1 - 1/((n:ℚ)+1) : ℕ → ℚ) : Sequence).IsCauchy :=
+    Sequence.IsCauchy.sub (Sequence.IsCauchy.const 1) Sequence.IsCauchy.harmonic'
+  have h_lt : ∀ n, (fun n : ℕ ↦ 1 + 1/((n:ℚ)+1) : ℕ → ℚ) n > (fun n : ℕ ↦ 1 - 1/((n:ℚ)+1) : ℕ → ℚ) n := by
+    intro n; dsimp
+    have hpos_div : 0 < 1 / ((n : ℚ) + 1) := div_pos (by norm_num) (by positivity)
+    linarith
+  have h_lim_one : LIM (fun n : ℕ ↦ 1 + 1/((n:ℚ)+1)) = (1 : Real) := by
+    calc
+      LIM (fun n : ℕ ↦ 1 + 1/((n:ℚ)+1)) = LIM ((fun _ : ℕ ↦ (1 : ℚ)) + (fun n : ℕ ↦ 1/((n:ℚ)+1))) := by
+        apply congrArg LIM; ext n; simp
+      _ = LIM (fun _ : ℕ ↦ (1 : ℚ)) + LIM (fun n : ℕ ↦ 1/((n:ℚ)+1)) :=
+        (Real.LIM_add (Sequence.IsCauchy.const 1) Sequence.IsCauchy.harmonic').symm
+      _ = ((1 : ℚ) : Real) + 0 := by rw [←Real.ratCast_def (1 : ℚ), Real.LIM.harmonic]
+      _ = (1 : Real) := by
+        calc
+          ((1 : ℚ) : Real) + 0 = ((1 : ℚ) : Real) := by simp
+          _ = (1 : Real) := rfl
+  have h_lim_two : LIM (fun n : ℕ ↦ 1 - 1/((n:ℚ)+1)) = (1 : Real) := by
+    calc
+      LIM (fun n : ℕ ↦ 1 - 1/((n:ℚ)+1)) = LIM ((fun _ : ℕ ↦ (1 : ℚ)) - (fun n : ℕ ↦ 1/((n:ℚ)+1))) := by
+        apply congrArg LIM; ext n; simp
+      _ = LIM (fun _ : ℕ ↦ (1 : ℚ)) - LIM (fun n : ℕ ↦ 1/((n:ℚ)+1)) :=
+        (Real.LIM_sub (Sequence.IsCauchy.const 1) Sequence.IsCauchy.harmonic').symm
+      _ = ((1 : ℚ) : Real) - 0 := by rw [←Real.ratCast_def (1 : ℚ), Real.LIM.harmonic]
+      _ = (1 : Real) := by
+        calc
+          ((1 : ℚ) : Real) - 0 = ((1 : ℚ) : Real) := by simp
+          _ = (1 : Real) := rfl
+  refine ⟨ha_cauchy, hb_cauchy, h_lt, ?_⟩
+  rw [h_lim_one, h_lim_two]
+  intro hgt
+  linarith
 
 /-- Proposition 5.4.12 (Bounding reals by rationals) -/
 theorem Real.exists_rat_le_and_nat_gt {x:Real} (hx: x.IsPos) :
@@ -693,7 +726,7 @@ theorem Real.exists_rat_le_and_nat_gt {x:Real} (hx: x.IsPos) :
       convert LIM_mono hcauchy (Sequence.IsCauchy.const r) _
       intro n; specialize this n; simp at this
       exact (le_abs_self _).trans this
-    _ < ((N:ℚ):Real) := by simp [hN]
+    _ < ((N:ℚ):Real) := (Real.lt_of_coe r (N : ℚ)).mp hN
     _ = N := rfl
 
 /-- Corollary 5.4.13 (Archimedean property ) -/
@@ -704,13 +737,22 @@ theorem Real.le_mul {ε:Real} (hε: ε.IsPos) (x:Real) : ∃ M:ℕ, M > 0 ∧ M 
   . choose N hN using (exists_rat_le_and_nat_gt (div_of_pos hx hε)).2
     set M := N+1; refine ⟨ M, by positivity, ?_ ⟩
     replace hN : x/ε < M := hN.trans (by simp [M])
-    simp
-    convert mul_lt_mul_right hN hε
-    rw [isPos_iff] at hε; field_simp
+    have hpos_ε : ε > 0 := by rwa [isPos_iff] at hε
+    have hx_eq : x = (x / ε) * ε := by
+      calc
+        x = x * 1 := by simp
+        _ = x * (ε⁻¹ * ε) := by rw [Real.inv_mul_self (ne_of_gt hpos_ε)]
+        _ = (x * ε⁻¹) * ε := by ring
+        _ = (x / ε) * ε := by rw [Real.div_eq]
+    have hineq : x < M * ε := by
+      rw [hx_eq]
+      exact Real.mul_lt_mul_right hN (by rw [isPos_iff]; exact hpos_ε)
+    exact hineq
   use 1; simp_all [isPos_iff]; linarith
 
 /-- Proposition 5.4.14 / Exercise 5.4.5 -/
-theorem Real.rat_between {x y:Real} (hxy: x < y) : ∃ q:ℚ, x < (q:Real) ∧ (q:Real) < y := by sorry
+theorem Real.rat_between {x y:Real} (hxy: x < y) : ∃ q:ℚ, x < (q:Real) ∧ (q:Real) < y := by
+  sorry
 
 /-- Exercise 5.4.3 -/
 theorem Real.floor_exist (x:Real) : ∃! n:ℤ, (n:Real) ≤ x ∧ x < (n:Real)+1 := by sorry
