@@ -750,9 +750,117 @@ theorem Real.le_mul {ε:Real} (hε: ε.IsPos) (x:Real) : ∃ M:ℕ, M > 0 ∧ M 
     exact hineq
   use 1; simp_all [isPos_iff]; linarith
 
-/-- Proposition 5.4.14 / Exercise 5.4.5 -/
+private theorem rat_between_pos_y {x y : Real} (hxy : x < y) (hypos : y > 0) :
+    ∃ q : ℚ, x < (q : Real) ∧ (q : Real) < y := by
+  have hyx_pos : (y-x).IsPos := by
+    rw [Real.isPos_iff]; linarith
+  have h1pos : (1 : Real).IsPos := by
+    have := (Real.pos_of_coe (1 : ℚ)).mpr (by norm_num)
+    simpa using this
+  rcases Real.le_mul hyx_pos (1 : Real) with ⟨M, hMpos, hM⟩
+  have hMpos' : (M : ℚ) > 0 := by exact_mod_cast hMpos
+  have hM_pos_real : (M : Real).IsPos := by
+    have := (Real.pos_of_coe (M : ℚ)).mpr hMpos'
+    simpa using this
+  have hM_ne_zero : (M : Real) ≠ 0 := Real.nonzero_of_pos hM_pos_real
+  have hM_inv_pos : ((M : Real)⁻¹).IsPos := Real.inv_of_pos hM_pos_real
+  have h1_lt_M_diff : (1 : Real) < (M : Real) * (y - x) := hM
+  have hM_inv_pos' : 0 < (M : Real)⁻¹ := (Real.isPos_iff _).mp hM_inv_pos
+  have hyx_gt_invM : y - x > (M : Real)⁻¹ := by
+    have htemp := mul_lt_mul_of_pos_left h1_lt_M_diff hM_inv_pos'
+    calc
+      y - x = 1 * (y - x) := by simp
+      _ = ((M : Real)⁻¹ * (M : Real)) * (y - x) := by rw [Real.inv_mul_self hM_ne_zero]
+      _ = (M : Real)⁻¹ * ((M : Real) * (y - x)) := by ring
+      _ > (M : Real)⁻¹ * (1 : Real) := htemp
+      _ = (M : Real)⁻¹ := by simp [mul_one]
+  have hx_add_invM_lt_y : x + (M : Real)⁻¹ < y := by
+    linarith
+  rcases Real.le_mul h1pos ((M : Real) * x) with ⟨K, hKpos, hK⟩
+  have hKdivM_gt_x : (K : Real) / (M : Real) > x := by
+    have hMx_lt_K : (M : Real) * x < (K : Real) := by
+      simpa [mul_comm, one_mul] using hK
+    have htemp := Real.mul_lt_mul_right hMx_lt_K hM_inv_pos
+    calc
+      x = x * 1 := by simp
+      _ = x * ((M : Real) * (M : Real)⁻¹) := by rw [Real.self_mul_inv hM_ne_zero]
+      _ = (x * (M : Real)) * (M : Real)⁻¹ := by ring
+      _ = (M : Real) * x * (M : Real)⁻¹ := by ring
+      _ < (K : Real) * (M : Real)⁻¹ := htemp
+      _ = (K : Real) / (M : Real) := by simp [div_eq_mul_inv]
+  have h_exists_m : ∃ m : ℕ, (m : Real) / (M : Real) > x := ⟨K, hKdivM_gt_x⟩
+  let m := Nat.find h_exists_m
+  have hm : (m : Real) / (M : Real) > x := Nat.find_spec h_exists_m
+  by_cases hm_zero : m = 0
+  · have hx_lt_0 : x < 0 := by
+      have : (0 : Real) / (M : Real) = 0 := by simp [div_eq_mul_inv, zero_mul]
+      have hm0 : (0 : Real) / (M : Real) > x := by simpa [hm_zero] using hm
+      rw [this] at hm0
+      exact hm0
+    refine ⟨0, ?_, ?_⟩
+    · simpa using hx_lt_0
+    · simpa using hypos
+  · have hm_pos : m > 0 := Nat.pos_of_ne_zero hm_zero
+    have hm_pred_divM_le_x : (((m-1 : ℕ) : Real) / (M : Real)) ≤ x := by
+      by_cases h : ((m-1 : ℕ) : Real) / (M : Real) > x
+      · exfalso
+        have hlt : (m-1 : ℕ) < m := Nat.sub_lt hm_pos (by norm_num)
+        exact Nat.find_min h_exists_m hlt h
+      · exact le_of_not_gt h
+    have hm_nat_eq : (m : ℕ) = (m-1 : ℕ) + 1 := by omega
+    have hm_eq : (m : Real) = ((m-1 : ℕ) : Real) + 1 := by exact_mod_cast hm_nat_eq
+    have hm_divM_lt_y : (m : Real) / (M : Real) < y := by
+      have htemp : ((m-1 : ℕ) : Real) / (M : Real) + (1 : Real) / (M : Real) ≤
+                  x + (1 : Real) / (M : Real) := by
+        have := add_le_add_right hm_pred_divM_le_x ((1 : Real) / (M : Real))
+        simpa [add_comm, add_left_comm, add_assoc] using this
+      calc
+        (m : Real) / (M : Real) = (m : Real) * (M : Real)⁻¹ := by simp [div_eq_mul_inv]
+        _ = (((m-1 : ℕ) : Real) + 1) * (M : Real)⁻¹ := by rw [hm_eq]
+        _ = ((m-1 : ℕ) : Real) * (M : Real)⁻¹ + 1 * (M : Real)⁻¹ := by ring
+        _ = ((m-1 : ℕ) : Real) / (M : Real) + (1 : Real) / (M : Real) := by simp [div_eq_mul_inv]
+        _ ≤ x + (1 : Real) / (M : Real) := htemp
+        _ = x + (M : Real)⁻¹ := by simp
+        _ < y := hx_add_invM_lt_y
+    let q : ℚ := (m : ℚ) * (M : ℚ)⁻¹
+    have h_eq_q : (q : Real) = (m : Real) / (M : Real) := by
+      calc
+        (q : Real) = ((m : ℚ) : Real) * ((M : ℚ)⁻¹ : Real) := by
+          simpa [q, Real.inv_ratCast] using (Real.ratCast_mul (m : ℚ) ((M : ℚ)⁻¹)).symm
+        _ = ((m : ℚ) : Real) * (((M : ℚ) : Real)⁻¹) := by simp
+        _ = (m : Real) * ((M : Real)⁻¹) := by
+          calc
+            ((m : ℚ) : Real) * (((M : ℚ) : Real)⁻¹) = (m : Real) * (((M : ℚ) : Real)⁻¹) := by
+              rfl
+            _ = (m : Real) * ((M : Real)⁻¹) := by
+              rfl
+        _ = (m : Real) / (M : Real) := by simp [div_eq_mul_inv]
+    have hx_lt_q : x < (q : Real) := by
+      calc
+        x < (m : Real) / (M : Real) := hm
+        _ = (q : Real) := h_eq_q.symm
+    have hq_lt_y : (q : Real) < y := by
+      calc
+        (q : Real) = (m : Real) / (M : Real) := h_eq_q
+        _ < y := hm_divM_lt_y
+    exact ⟨q, hx_lt_q, hq_lt_y⟩
+
+open Classical in
 theorem Real.rat_between {x y:Real} (hxy: x < y) : ∃ q:ℚ, x < (q:Real) ∧ (q:Real) < y := by
-  sorry
+  by_cases hypos : y > 0
+  · exact rat_between_pos_y hxy hypos
+  · have hneg_ineq : -y < -x := by linarith
+    have hpos_negx : -x > 0 := by linarith
+    rcases rat_between_pos_y hneg_ineq hpos_negx with ⟨q', hq'⟩
+    refine ⟨-q', ?_, ?_⟩
+    · have : (q' : Real) < -x := hq'.2
+      have hx_lt_neg_q' : x < -(q' : Real) := by linarith
+      apply lt_of_lt_of_eq hx_lt_neg_q'
+      exact (map_neg (Real.ratCast_hom : ℚ →+* Real) q').symm
+    · have : -y < (q' : Real) := hq'.1
+      have hneg_q'_lt_y : -(q' : Real) < y := by linarith
+      apply lt_of_eq_of_lt (map_neg (Real.ratCast_hom : ℚ →+* Real) q')
+      exact hneg_q'_lt_y
 
 /-- Exercise 5.4.3 -/
 theorem Real.floor_exist (x:Real) : ∃! n:ℤ, (n:Real) ≤ x ∧ x < (n:Real)+1 := by sorry
