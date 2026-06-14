@@ -535,7 +535,185 @@ lemma Real.LUB_claim2 {E : Set Real} (N:ℕ) {a b: ℕ → ℚ}
 
 /-- Theorem 5.5.9 (Existence of least upper bound)-/
 theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): ∃ S, IsLUB E S := by
-  sorry
+  rcases hbound with ⟨M, hM⟩
+  rcases hE with ⟨x0, hx0⟩
+
+  have h_div_mul_self (a d : Real) (hd : d ≠ 0) : (a / d) * d = a := by
+    calc
+      (a / d) * d = (a * d⁻¹) * d := by rw [div_eq_mul_inv]
+      _ = a * (d⁻¹ * d) := by simp [mul_assoc]
+      _ = a * 1 := by rw [Real.inv_mul_self hd]
+      _ = a := by simp
+
+  have real_ratCast_div (a b : ℚ) : ((a / b : ℚ) : Real) = (a : Real) / (b : Real) := by
+    calc
+      ((a / b : ℚ) : Real) = ((a * b⁻¹ : ℚ) : Real) := by
+        push_cast; field_simp
+      _ = (a : Real) * ((b⁻¹ : ℚ) : Real) := by rw [Real.ratCast_mul]
+      _ = (a : Real) * (b : Real)⁻¹ := by rw [Real.inv_ratCast]
+      _ = (a : Real) / (b : Real) := rfl
+
+  have h_seq_exists : ∀ n : ℕ, ∃ (m : ℤ), (m : Real) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) ∈ upperBounds E ∧
+    ((m : Real) - 1) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) ∉ upperBounds E := by
+    intro n
+    set ε := ((1 / ((n : ℚ) + 1) : ℚ) : Real) with hε_def
+    have hε_pos : ε.IsPos := by
+      refine ⟨fun _ : ℕ => (1 : ℚ) / ((n : ℚ) + 1), ?_, Sequence.IsCauchy.const _, ?_⟩
+      · refine ⟨(1 : ℚ) / ((n : ℚ) + 1), by positivity, λ _ => le_refl _⟩
+      · simpa [ε] using (Real.ratCast_def ((1 : ℚ) / ((n : ℚ) + 1)))
+    obtain ⟨K_arch, hK_arch_pos, hK_arch⟩ := Real.le_mul hε_pos M
+    have hK_ub : ((K_arch : ℤ) * ε) ∈ upperBounds E := by
+      refine Real.upperBound_upper (le_of_lt hK_arch) hM
+    obtain ⟨L_arch, hL_arch_pos, hL_arch⟩ := Real.le_mul hε_pos (-x0)
+    have hL_not_ub : ((-(L_arch : ℤ) : ℤ) * ε) ∉ upperBounds E := by
+      rw [Real.upperBound_def]
+      push_neg
+      refine ⟨x0, hx0, ?_⟩
+      calc
+        ((-(L_arch : ℤ) : ℤ) : Real) * ε = -(L_arch : Real) * ε := by simp
+        _ < x0 := by nlinarith
+    have hLK : (-(L_arch : ℤ) : ℤ) < (K_arch : ℤ) := by
+      have hLpos_int : (0 : ℤ) < (L_arch : ℤ) := by exact_mod_cast hL_arch_pos
+      have hKpos_int : (0 : ℤ) < (K_arch : ℤ) := by exact_mod_cast hK_arch_pos
+      omega
+    have hK_ub' : ((K_arch : ℤ) * ((1 / ((n : ℚ) + 1) : ℚ) : Real)) ∈ upperBounds E := by
+      simpa [hε_def, one_div] using hK_ub
+    have hL_not_ub' : ((-(L_arch : ℤ) : ℤ) * ((1 / ((n : ℚ) + 1) : ℚ) : Real)) ∉ upperBounds E := by
+      simpa [hε_def, one_div] using hL_not_ub
+    rcases Real.upperBound_between (n := n) hLK hK_ub' hL_not_ub' with ⟨m, hm_gt, hm_le, hm_ub, hm_not_ub⟩
+    exact ⟨m, hm_ub, hm_not_ub⟩
+
+  choose m hm_ub hm_not_ub using h_seq_exists
+  let a : ℕ → ℚ := fun n => (m n : ℚ) * (1 / ((n : ℚ) + 1))
+  let b : ℕ → ℚ := fun n => 1 / ((n : ℚ) + 1)
+
+  have hb : ∀ n, b n = 1 / (↑n + 1) := by
+    intro n; simp [b]
+
+  have hm1_eq (n : ℕ) : (a n : Real) = (m n : Real) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
+    simpa [a] using (Real.ratCast_mul (m n : ℚ) ((1 : ℚ) / ((n : ℚ) + 1))).symm
+
+  have hm1 : ∀ (n : ℕ), (a n : Real) ∈ upperBounds E := by
+    intro n
+    rw [hm1_eq n]
+    exact hm_ub n
+
+  have hm2_eq (n : ℕ) : ((a - b) n : Real) = ((m n : Real) - 1) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
+    calc
+      ((a - b) n : Real) = (a n : Real) - (b n : Real) := by
+        simp [a, b, Real.ratCast_sub]
+      _ = ((m n : Real) * ((1 / ((n : ℚ) + 1) : ℚ) : Real)) - ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
+        rw [hm1_eq n, show (b n : Real) = ((1 / ((n : ℚ) + 1) : ℚ) : Real) from by simp [b]]
+      _ = ((m n : Real) - 1) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by ring
+
+  have hm2 : ∀ (n : ℕ), ((a - b) n : Real) ∉ upperBounds E := by
+    intro n
+    rw [hm2_eq n]
+    exact hm_not_ub n
+
+  have h_cauchy_rate : ∀ N : ℕ, ∀ n ≥ N, ∀ n' ≥ N, |a n - a n'| ≤ 1 / (N+1) :=
+    λ N => Real.LUB_claim2 N hb hm1 hm2
+
+  have ha_cauchy_rate := Real.LIM_of_Cauchy h_cauchy_rate
+  rcases ha_cauchy_rate with ⟨ha_cauchy, ha_rate⟩
+
+  set S := LIM a with hS
+  refine ⟨S, ?_⟩
+  rw [Real.isLUB_def]
+  constructor
+  · rw [Real.upperBound_def]
+    intro x hx
+    have hx_bound : ∀ n : ℕ, (a n : Real) ≥ x := by
+      intro n
+      have h_ub := hm1 n
+      rw [Real.upperBound_def] at h_ub
+      exact h_ub x hx
+    exact Real.LIM_of_ge ha_cauchy hx_bound
+  · intro M' hM'_ub
+    rw [Real.upperBound_def] at hM'_ub
+    by_contra! h_lt
+    have h_SM'_pos : S - M' > 0 := by linarith
+    have h2inv_IsPos : ((2 : Real)⁻¹).IsPos := by
+      refine ⟨fun _ : ℕ => (1 : ℚ) / 2, ⟨(1 : ℚ) / 2, by norm_num, λ _ => le_refl _⟩,
+        Sequence.IsCauchy.const _, ?_⟩
+      calc
+        ((2 : Real)⁻¹) = (1 : Real) * ((2 : Real)⁻¹) := by rw [one_mul]
+        _ = ((1 : Real) / (2 : Real)) := by rw [div_eq_mul_inv]
+        _ = (((1 : ℚ) / (2 : ℚ)) : Real) := by rw [real_ratCast_div 1 2]
+        _ = LIM (fun _ : ℕ => (1 : ℚ) / 2) :=
+          Real.ratCast_def ((1 : ℚ) / (2 : ℚ))
+    have h2inv_pos : (2 : Real)⁻¹ > 0 := (Real.isPos_iff _).mp h2inv_IsPos
+    have h_half_pos : ((S - M') / 2).IsPos := by
+      apply (Real.isPos_iff _).mpr
+      rw [div_eq_mul_inv]
+      exact mul_pos h_SM'_pos h2inv_pos
+    obtain ⟨N, hNpos, hN⟩ := Real.le_mul h_half_pos (1 : Real)
+    have h_denom_pos : (N : Real) + 1 > 0 := by
+      have hNpos_real : (N : Real) > 0 := by exact_mod_cast hNpos
+      nlinarith
+    have h_denom_ne_zero : (N : Real) + 1 ≠ 0 := by nlinarith
+    have hN_SM'_gt_2 : (N : Real) * (S - M') > 2 := by
+      have htemp : ((N : Real) * ((S - M') / 2)) * 2 = (N : Real) * (S - M') := by
+        calc
+          ((N : Real) * ((S - M') / 2)) * 2 = (N : Real) * (((S - M') / 2) * 2) := by simp [mul_assoc]
+          _ = (N : Real) * (S - M') := by
+            rw [h_div_mul_self (S - M') 2 (by norm_num : (2 : Real) ≠ 0)]
+      calc
+        (N : Real) * (S - M') = ((N : Real) * ((S - M') / 2)) * 2 := by symm; exact htemp
+        _ > 1 * 2 := mul_lt_mul_of_pos_right hN (by norm_num : (0 : Real) < 2)
+        _ = 2 := by norm_num
+    have h_Np1_SM'_gt_2 : ((N : Real) + 1) * (S - M') > 2 := by
+      nlinarith
+    have h_error_N : |a N - S| ≤ (1 : Real) / ((N : Real) + 1) := ha_rate N
+    have h_upper_dist : S - (1 : Real) / ((N : Real) + 1) ≤ (a N : Real) := by
+      rcases abs_le.mp h_error_N with ⟨h_low, h_high⟩
+      linarith
+    have h_not_ub : ((a N : Real) - ((1 : Real) / ((N : Real) + 1))) ∉ upperBounds E := by
+      have h := hm2 N
+      have hcast : ((1 / ((N : ℚ) + 1) : ℚ) : Real) = (1 : Real) / ((N : Real) + 1) := by
+        calc
+          ((1 / ((N : ℚ) + 1) : ℚ) : Real) = ((1 : ℚ) : Real) / (((N : ℚ) + 1) : Real) := by
+            rw [real_ratCast_div 1 ((N : ℚ) + 1)]
+          _ = (1 : Real) / ((N : Real) + 1) := by simp [Real.ratCast_add]
+      have hcalc : ((a - b) N : Real) = (a N : Real) - ((1 : Real) / ((N : Real) + 1)) := by
+        calc
+          ((a - b) N : Real) = ((m N : Real) - 1) * ((1 / ((N : ℚ) + 1) : ℚ) : Real) := hm2_eq N
+          _ = (m N : Real) * ((1 / ((N : ℚ) + 1) : ℚ) : Real) - ((1 / ((N : ℚ) + 1) : ℚ) : Real) := by ring
+          _ = (a N : Real) - ((1 / ((N : ℚ) + 1) : ℚ) : Real) := by rw [hm1_eq N]
+          _ = (a N : Real) - ((1 : Real) / ((N : Real) + 1)) := by rw [hcast]
+      rw [← hcalc]
+      exact h
+    rw [Real.upperBound_def] at h_not_ub
+    push_neg at h_not_ub
+    rcases h_not_ub with ⟨y, hy, hy_gt⟩
+    have hy_le_M' : y ≤ M' := hM'_ub y hy
+    have h_one_div_mul_self : ((1 : Real) / ((N : Real) + 1)) * ((N : Real) + 1) = 1 :=
+      h_div_mul_self 1 ((N : Real) + 1) h_denom_ne_zero
+    have h_ineq1 : (S - M') * ((N : Real) + 1) < 2 := by
+      have h1 : (S - (a N : Real)) * ((N : Real) + 1) ≤ 1 := by
+        rcases abs_le.mp h_error_N with ⟨h_low, h_high⟩
+        have h' : S - (a N : Real) ≤ (1 : Real) / ((N : Real) + 1) := by linarith
+        calc
+          (S - (a N : Real)) * ((N : Real) + 1) ≤ ((1 : Real) / ((N : Real) + 1)) * ((N : Real) + 1) :=
+            mul_le_mul_of_nonneg_right h' (by nlinarith)
+          _ = 1 := h_one_div_mul_self
+      have h2 : ((a N : Real) - M') * ((N : Real) + 1) < 1 := by
+        have h' : (a N : Real) - M' < (1 : Real) / ((N : Real) + 1) := by
+          linarith
+        calc
+          ((a N : Real) - M') * ((N : Real) + 1) < ((1 : Real) / ((N : Real) + 1)) * ((N : Real) + 1) :=
+            mul_lt_mul_of_pos_right h' h_denom_pos
+          _ = 1 := h_one_div_mul_self
+      nlinarith
+    have h_ineq2 : 2 < (S - M') * ((N : Real) + 1) := by
+      calc
+        2 < ((N : Real) + 1) * (S - M') := h_Np1_SM'_gt_2
+        _ = (S - M') * ((N : Real) + 1) := mul_comm _ _
+    have : (S - M') * ((N : Real) + 1) < (S - M') * ((N : Real) + 1) := by
+      calc
+        (S - M') * ((N : Real) + 1) < 2 := h_ineq1
+        _ < (S - M') * ((N : Real) + 1) := h_ineq2
+    exact lt_irrefl _ this
 
 /-- A bare-bones extended real class to define supremum. -/
 inductive ExtendedReal where
