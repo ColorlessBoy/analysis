@@ -59,7 +59,8 @@ example : ¬ ∃ M : Real, M ∈ upperBounds (.Ioi 0) := by
   rw [Real.upperBound_def] at hM
   by_cases h : M ≤ 0
   · have hM1 := hM 1 (by
-      simpa [Real.Ioi_def] using (by norm_num : (1 : ℝ) > (0 : ℝ)))
+      simp only [Real.Ioi_def, Set.mem_setOf_eq]
+      norm_num)
     linarith
   · have hpos : M > 0 := by linarith
     have hM' := hM (M + 1) (by
@@ -68,7 +69,7 @@ example : ¬ ∃ M : Real, M ∈ upperBounds (.Ioi 0) := by
 
 /-- Example 5.5.4 -/
 example : ∀ M, M ∈ upperBounds (∅ : Set Real) := by
-  intro M; simp [Real.upperBound_def]
+  intro M; simp
 
 theorem Real.upperBound_upper {M M': Real} (h: M ≤ M') {E: Set Real} (hb: M ∈ upperBounds E) :
     M' ∈ upperBounds E := by
@@ -100,7 +101,7 @@ example : ¬∃ M, IsLUB (∅: Set Real) M := by
   rw [Real.isLUB_def] at hM
   rcases hM with ⟨hM_ub, hM_min⟩
   have all_ub : ∀ M', M' ∈ upperBounds (∅ : Set Real) := by
-    intro M'; simp [Real.upperBound_def]
+    intro M'; simp
   have hM1 := hM_min (M - 1) (all_ub (M - 1))
   linarith
 
@@ -142,7 +143,10 @@ theorem Real.upperBound_between {E: Set Real} {n:ℕ} {L K:ℤ} (hLK: L < K)
         simpa using h
       have hm1_S : m-1 ∈ S := ⟨hm1_Icc, h'⟩
       have hm1_lt_m : m-1 < m := by omega
-      have hm1_notin_S : m-1 ∉ S := sorry
+      have hm1_notin_S : m-1 ∉ S := by
+        intro hm1_in_S
+        have hle : m ≤ m-1 := hm_min hm1_in_S (by omega)
+        omega
       exact hm1_notin_S hm1_S
     · have hm1_eq_L : m-1 = L := by omega
       have hL' : (L:ℤ)*ε ∉ upperBounds E := hL
@@ -442,7 +446,74 @@ lemma cauchy_of_rate {q : ℕ → ℚ} (hq : ∀ M, ∀ n ≥ M, ∀ n' ≥ M, |
 /-- Exercise 5.5.4 -/
 theorem Real.LIM_of_Cauchy {q:ℕ → ℚ} (hq: ∀ M, ∀ n ≥ M, ∀ n' ≥ M, |q n - q n'| ≤ 1 / (M+1)) :
     (q:Sequence).IsCauchy ∧ ∀ M, |q M - LIM q| ≤ 1 / (M+1) := by
-  sorry
+  have hcauchy : (q:Sequence).IsCauchy := cauchy_of_rate hq
+  have hcauchy_neg : ((-q:ℕ → ℚ):Sequence).IsCauchy := Sequence.IsCauchy.neg q hcauchy
+  refine ⟨hcauchy, ?_⟩
+  intro M
+  -- For each n ≥ M: |q n - q M| ≤ 1/(M+1) gives q M - 1/(M+1) ≤ q n ≤ q M + 1/(M+1) in ℚ.
+  have h_upper_q : ∀ n ≥ M, (q n : ℚ) ≤ q M + 1/((M+1):ℚ) := by
+    intro n hn
+    have h := hq M n hn M (le_refl _)
+    rw [abs_le] at h; linarith
+  have h_lower_q : ∀ n ≥ M, (q M - 1/((M+1):ℚ) : ℚ) ≤ q n := by
+    intro n hn
+    have h := hq M n hn M (le_refl _)
+    rw [abs_le] at h; linarith
+  -- Cast the ℚ inequality (q n ≤ q M + 1/(M+1)) into Real, via proof by contradiction.
+  -- Real.lt_of_coe q q' : q < q' ↔ (q:Real) < (q':Real).
+  have h_cast_le : ∀ n ≥ M, (q n : Real) ≤ (q M + 1/((M+1):ℚ) : ℚ) := by
+    intro n hn
+    by_contra! h
+    have : (q M + 1/((M+1):ℚ) : ℚ) < q n := (Real.lt_of_coe _ _).mpr h
+    linarith [h_upper_q n hn]
+  have h_cast_le_neg : ∀ n ≥ M, ((-q) n : Real) ≤ ((-(q M)) + 1/((M+1):ℚ) : ℚ) := by
+    intro n hn
+    by_contra! h
+    have : ((-(q M)) + 1/((M+1):ℚ) : ℚ) < (-q n : ℚ) := (Real.lt_of_coe _ _).mpr h
+    linarith [h_lower_q n hn]
+  -- LIM q ≤ q M + 1/(M+1)
+  have hLIM_le : LIM q ≤ (q M + 1/((M+1):ℚ) : ℚ) :=
+    Real.LIM_of_le' hcauchy ⟨M, h_cast_le⟩
+  -- LIM (-q) ≤ -q M + 1/(M+1)
+  have hLIM_neg_le : LIM (-q : ℕ → ℚ) ≤ ((-(q M)) + 1/((M+1):ℚ) : ℚ) :=
+    Real.LIM_of_le' hcauchy_neg ⟨M, h_cast_le_neg⟩
+  -- q M - 1/(M+1) ≤ LIM q
+  have hle_LIM : (q M - 1/((M+1):ℚ) : ℚ) ≤ LIM q := by
+    have hneg_LIM : LIM (-q : ℕ → ℚ) = -(LIM q) := (Real.neg_LIM q hcauchy).symm
+    rw [hneg_LIM] at hLIM_neg_le
+    by_contra! h
+    have hq_eq : (-(q M - 1/((M+1):ℚ)) : ℚ) = (-(q M)) + 1/((M+1):ℚ) := by ring
+    have hr_eq : -(↑(q M - 1/((M+1):ℚ) : ℚ) : Real) = ↑((-(q M)) + 1/((M+1):ℚ) : ℚ) := by
+      rw [Real.neg_ratCast, ← hq_eq]
+    linarith
+  -- Goal: |↑(q M) - LIM q| ≤ 1/(M+1)  where 1/(M+1) = (1:Real)/↑(M+1).
+  -- Key identity: ↑(q M + 1/((M+1):ℚ) : ℚ) = (q M : Real) + 1/(M+1).
+  have h_eps_cast : ((1:Real)/(M+1)) = ↑(1/((M+1):ℚ) : ℚ) := by
+    have hM : (↑M:Chapter5.Real) = ↑(M:ℚ) := rfl
+    have hM1 : ((↑M + 1):Chapter5.Real) = ↑((M+1):ℚ) := by
+      rw [hM, show (1:Chapter5.Real) = ↑(1:ℚ) from rfl, ← Real.ratCast_add]
+    rw [hM1, Real.div_eq, Real.inv_ratCast, one_div, one_mul]
+  have h_cast_add : ↑(q M + 1/((M+1):ℚ) : ℚ) = (q M : Real) + ((1:Real)/(M+1)) := by
+    rw [h_eps_cast]
+    exact (Real.ratCast_add (q M) (1/((M+1):ℚ))).symm
+  -- hLIM_le : LIM q ≤ ↑(q M + 1/((M+1):ℚ))
+  -- Rewriting RHS via h_cast_add.symm gives LIM q ≤ (q M : Real) + 1/(M+1).
+  -- For the lower bound, use hle_LIM and a similar cast for subtraction.
+  have h_cast_sub_eq : (q M : Real) - ((1:Real)/(M+1)) = ↑(q M - 1/((M+1):ℚ) : ℚ) := by
+    have h1 : (q M : Real) - ((1:Real)/(M+1)) = (q M : Real) + (-((1:Real)/(M+1))) := by
+      rw [sub_eq_add_neg]
+    rw [h1, h_eps_cast, Real.neg_ratCast, Real.ratCast_add]
+    -- Goal: ↑(q M + -(1/((M+1):ℚ)) : ℚ) = ↑(q M - 1/((M+1):ℚ) : ℚ)
+    congr 1; linarith
+  -- Final bounds using the original hypotheses.
+  have h_upper : LIM q ≤ (q M : Real) + ((1:Real)/(M+1)) := by
+    rw [← h_cast_add]; exact hLIM_le
+  have h_lower : (q M : Real) - ((1:Real)/(M+1)) ≤ LIM q := by
+    rw [h_cast_sub_eq]; exact hle_LIM
+  rw [abs_le]
+  constructor
+  · linarith [h_upper]
+  · linarith [h_lower]
 
 lemma Real.LUB_claim2 {E : Set Real} (N:ℕ) {a b: ℕ → ℚ}
   (hb : ∀ n, b n = 1 / (↑n + 1))
@@ -531,10 +602,67 @@ theorem Real.exist_irrational : ∃ x:Real, ¬ ∃ q:ℚ, x = (q:Real) := by sor
 theorem Real.mem_neg (E: Set Real) (x:Real) : x ∈ -E ↔ -x ∈ E := Set.mem_neg
 
 /-- Exercise 5.5.1-/
-theorem Real.inf_neg {E: Set Real} {M:Real} (h: IsLUB E M) : IsGLB (-E) (-M) := by sorry
+theorem Real.inf_neg {E: Set Real} {M:Real} (h: IsLUB E M) : IsGLB (-E) (-M) := by
+  rw [Real.isLUB_def] at h
+  rw [Real.isGLB_def]
+  constructor
+  · -- -M ∈ lowerBounds (-E)
+    rw [Real.lowerBound_def]
+    rintro x hx
+    rw [Real.mem_neg] at hx
+    have hub := h.1 hx
+    linarith
+  · -- ∀ M' ∈ lowerBounds (-E), M' ≤ -M
+    intro M' hM'
+    rw [Real.lowerBound_def] at hM'
+    -- hM' : ∀ x ∈ -E, x ≥ M'  →  -M' is an upper bound of E
+    have hnegM'_ub : (-M') ∈ upperBounds E := by
+      rw [Real.upperBound_def]
+      intro y hy
+      have hnegy : -y ∈ -E := (Real.mem_neg _ _).mpr (by simpa using hy)
+      have := hM' (-y) hnegy
+      linarith
+    have := h.2 (-M') hnegM'_ub
+    linarith
 
 theorem Real.GLB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddBelow E): ∃ S, IsGLB E S := by
-  sorry
+  -- -E is nonempty and bounded above, so it has a LUB.
+  have hnegE_nonempty : (-E).Nonempty := by
+    obtain ⟨x, hx⟩ := hE
+    refine ⟨-x, ?_⟩
+    rw [Real.mem_neg, neg_neg]; exact hx
+  have hnegE_bdd : BddAbove (-E) := by
+    rw [Real.bddBelow_def] at hbound
+    obtain ⟨M, hM⟩ := hbound
+    rw [Real.lowerBound_def] at hM
+    rw [Real.bddAbove_def]
+    refine ⟨-M, ?_⟩
+    rw [Real.upperBound_def]
+    rintro y hy
+    rw [Real.mem_neg] at hy
+    have := hM (-y) hy
+    linarith
+  obtain ⟨S, hS⟩ := Real.LUB_exist hnegE_nonempty hnegE_bdd
+  -- IsLUB (-E) S → IsGLB E (-S)
+  refine ⟨-S, ?_⟩
+  rw [Real.isGLB_def]
+  rw [Real.isLUB_def] at hS
+  constructor
+  · rw [Real.lowerBound_def]
+    rintro y hy
+    have hy' : -y ∈ -E := by rw [Real.mem_neg, neg_neg]; exact hy
+    have := hS.1 hy'
+    linarith
+  · intro M' hM'
+    rw [Real.lowerBound_def] at hM'
+    have hub : (-M') ∈ upperBounds (-E) := by
+      rw [Real.upperBound_def]
+      intro y hy
+      rw [Real.mem_neg] at hy
+      have := hM' (-y) hy
+      linarith
+    have := hS.2 (-M') hub
+    linarith
 
 open Classical in
 noncomputable abbrev ExtendedReal.inf (E: Set Real) : ExtendedReal :=
