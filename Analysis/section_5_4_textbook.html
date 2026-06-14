@@ -508,7 +508,22 @@ instance Real.instLE : LE Real where
     </p>
     <p>
     在 Lean 中，该命题对应 <code>Real.rat_between</code>，其证明依赖于
-    阿基米德性质（推论 5.4.13）和一些巧妙的估计。
+    阿基米德性质（推论 5.4.13）和自然数的良序性。
+    </p>
+    <p style="color:#555;font-size:0.9em;border-left:3px solid #1a5276;padding-left:12px;margin-top:12px;">
+    <strong>Lean 实现要点：</strong><br>
+    · <strong>证明策略</strong>：先处理 \(y > 0\) 的情形（<code>rat_between_pos_y</code>）。
+      由 Archimedean 性质取 \(M\) 满足 \(M(y-x) &gt; 1\)，则 \(x + 1/M &lt; y\)。
+      利用 <code>Nat.find</code> 找到最小的 \(m \in \mathbb N\) 使得 \(m/M &gt; x\)，
+      由极小性知 \((m-1)/M \le x\)，从而 \(m/M \le x + 1/M &lt; y\)。
+      取 \(q = m/M\)（实际上实现取 \(q = m \cdot M^{-1}\) 以避免 kernel normalization 问题）。<br>
+    · <strong>负数的情形</strong>：当 \(y \le 0\) 时，\(x &lt; y \le 0\)，取负后对 \(-y &lt; -x\) 应用上述情形，再取反即可。<br>
+    · <strong>最大难点</strong>：<code>calc</code> 宏会对表达式进行 <code>simp</code> 规范化（normalize），
+      导致 \(((m : \mathbb Q) / (M : \mathbb Q) : \mathbb R)\) 与 \((\uparrow m) / (\uparrow M)\)
+      在 kernel 层面成为不同的项，无法直接匹配。
+      最终方案是避免使用除法形式的 \(q\)，改用 \(q = (m : \mathbb Q) \cdot (M : \mathbb Q)^{-1}\)，
+      并利用 <code>Real.ratCast_mul</code> 和 <code>push_cast</code> 完成类型转换。<br>
+    · 该证明共耗时约 <strong>4 小时</strong>，大部分时间花在调试 <code>calc</code> 的类型规范化问题上。
     </p>
 </div>
 

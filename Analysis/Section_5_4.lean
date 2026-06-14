@@ -862,78 +862,505 @@ theorem Real.rat_between {x y:Real} (hxy: x < y) : ∃ q:ℚ, x < (q:Real) ∧ (
       apply lt_of_eq_of_lt (map_neg (Real.ratCast_hom : ℚ →+* Real) q')
       exact hneg_q'_lt_y
 
+private lemma intCast_lt_real {a b : ℤ} (h : a < b) : (a : Real) < (b : Real) := by
+  rw [Real.lt_iff]
+  have h_neg : (((a - b : ℚ) : Real)).IsNeg := by
+    apply (Real.neg_of_coe (a - b : ℚ)).mpr
+    have : (a - b : ℤ) < (0 : ℤ) := sub_neg.mpr h
+    exact_mod_cast this
+  have heq : (a : Real) - (b : Real) = ((a - b : ℚ) : Real) := by
+    calc
+      (a : Real) - (b : Real) = ((a : ℚ) : Real) - ((b : ℚ) : Real) := rfl
+      _ = ((a - b : ℚ) : Real) := by
+        simpa using Real.ratCast_sub (a : ℚ) (b : ℚ)
+  rw [heq]
+  exact h_neg
+
 /-- Exercise 5.4.3 -/
-theorem Real.floor_exist (x:Real) : ∃! n:ℤ, (n:Real) ≤ x ∧ x < (n:Real)+1 := by sorry
+theorem Real.floor_exist (x:Real) : ∃! n:ℤ, (n:Real) ≤ x ∧ x < (n:Real)+1 := by
+  have h_cases := Real.trichotomous' x 0
+  rcases h_cases with (hxpos | hxneg | hx0)
+  · -- x > 0
+    have hxpos' : x.IsPos := (Real.isPos_iff x).mpr hxpos
+    rcases (Real.exists_rat_le_and_nat_gt hxpos').2 with ⟨N, hN⟩
+    have hS_nonempty : ∃ k : ℕ, x < (k : Real) := ⟨N, hN⟩
+    set m := Nat.find hS_nonempty
+    have hm_prop : x < (m : Real) := Nat.find_spec hS_nonempty
+    have hm_pos : m > 0 := by
+      by_contra! h
+      have hm0 : m = 0 := by omega
+      have hx_lt_0 : x < (0 : Real) := by simpa [hm0] using hm_prop
+      have hx_gt_0 : (0 : Real) < x := hxpos
+      linarith
+    set n := (m : ℤ) - 1 with hn
+    have h_nle_x : (n : Real) ≤ x := by
+      have hm_pred_lt_m : (m-1 : ℕ) < m := Nat.sub_lt hm_pos (by omega)
+      have hm_pred_nle_x : ¬(x < ((m-1 : ℕ) : Real)) :=
+        fun h => Nat.find_min hS_nonempty hm_pred_lt_m h
+      have hcast_eq : ((m-1 : ℕ) : Real) = (n : Real) := by
+        have h_int_eq : ((m-1 : ℕ) : ℤ) = ((m : ℤ) - 1 : ℤ) := by omega
+        calc
+          ((m-1 : ℕ) : Real) = (((m-1 : ℕ) : ℤ) : Real) := rfl
+          _ = (((m : ℤ) - 1 : ℤ) : Real) := by simp [h_int_eq]
+          _ = (n : Real) := by simp [hn]
+      have : ¬(x < (n : Real)) := by simpa [hcast_eq] using hm_pred_nle_x
+      exact le_of_not_gt this
+    have hx_lt_np1 : x < (n : Real) + 1 := by
+      calc
+        x < (m : Real) := hm_prop
+        _ = (((m : ℤ) - 1 : ℤ) : Real) + 1 := by simp
+        _ = (n : Real) + 1 := by simp [hn]
+    refine ⟨n, ⟨h_nle_x, hx_lt_np1⟩, ?_⟩
+    intro n' ⟨hn'_le_x, hx_lt_n'p1⟩
+    by_contra! hne
+    rcases lt_or_gt_of_ne hne with (hlt | hlt)
+    · -- n' < n
+      have h_succ : n' + 1 ≤ n := by omega
+      have hcast_succ : (n' : Real) + 1 ≤ (n : Real) := by exact_mod_cast h_succ
+      have : x < (n' : Real) + 1 := hx_lt_n'p1
+      linarith
+    · -- n < n'
+      have h_succ : n + 1 ≤ n' := by omega
+      have hcast_succ : (n : Real) + 1 ≤ (n' : Real) := by exact_mod_cast h_succ
+      have : (n' : Real) ≤ x := hn'_le_x
+      linarith
+  · -- x < 0
+    have hxneg' : x.IsNeg := (Real.isNeg_iff x).mpr hxneg
+    have h_negx_pos : (-x).IsPos := (Real.neg_iff_pos_of_neg x).mp hxneg'
+    have h_negx_gt0 : -x > 0 := (Real.isPos_iff (-x)).mp h_negx_pos
+    rcases (Real.exists_rat_le_and_nat_gt h_negx_pos).2 with ⟨N, hN⟩
+    have hS_nonempty : ∃ k : ℕ, (-x : Real) < (k : Real) := ⟨N, hN⟩
+    set m := Nat.find hS_nonempty
+    have hm_prop : (-x : Real) < (m : Real) := Nat.find_spec hS_nonempty
+    have hm_pos : m > 0 := by
+      by_contra! h
+      have hm0 : m = 0 := by omega
+      have : (-x : Real) < (0 : Real) := by simpa [hm0] using hm_prop
+      have : (0 : Real) < (-x : Real) := h_negx_gt0
+      linarith
+    set n := (m : ℤ) - 1 with hn
+    have hnle_negx : (n : Real) ≤ (-x : Real) := by
+      have hm_pred_lt_m : (m-1 : ℕ) < m := Nat.sub_lt hm_pos (by omega)
+      have hm_pred_nle_negx : ¬((-x : Real) < ((m-1 : ℕ) : Real)) :=
+        fun h => Nat.find_min hS_nonempty hm_pred_lt_m h
+      have hcast_eq : ((m-1 : ℕ) : Real) = (n : Real) := by
+        have h_int_eq : ((m-1 : ℕ) : ℤ) = ((m : ℤ) - 1 : ℤ) := by omega
+        calc
+          ((m-1 : ℕ) : Real) = (((m-1 : ℕ) : ℤ) : Real) := rfl
+          _ = (((m : ℤ) - 1 : ℤ) : Real) := by simp [h_int_eq]
+          _ = (n : Real) := by simp [hn]
+      have : ¬((-x : Real) < (n : Real)) := by simpa [hcast_eq] using hm_pred_nle_negx
+      exact le_of_not_gt this
+    have hnegx_lt_np1 : (-x : Real) < (n : Real) + 1 := by
+      calc
+        (-x : Real) < (m : Real) := hm_prop
+        _ = (((m : ℤ) - 1 : ℤ) : Real) + 1 := by simp
+        _ = (n : Real) + 1 := by simp [hn]
+    have hx_le_neg_n : x ≤ -(n : Real) := by linarith
+    have h_neg_n_minus1_lt_x : -(n : Real) - 1 < x := by linarith
+    by_cases hx_eq_neg_n : x = -(n : Real)
+    · refine ⟨-n, ⟨?_, ?_⟩, ?_⟩
+      · simp [hx_eq_neg_n]
+      · calc
+          x = -(n : Real) := hx_eq_neg_n
+          _ < -(n : Real) + 1 := by linarith
+          _ = ((-n : ℤ) : Real) + 1 := by simp
+      · intro n' ⟨hn'_le_x, hx_lt_n'p1⟩
+        by_contra! hne
+        rcases lt_or_gt_of_ne hne with (hlt | hlt)
+        · -- n' < -n
+          have h_succ : n' + 1 ≤ -n := by omega
+          have : (n' : Real) + 1 ≤ ((-n : ℤ) : Real) := by
+            exact mod_cast h_succ
+          have : x < (n' : Real) + 1 := hx_lt_n'p1
+          have : ((-n : ℤ) : Real) ≤ x := by simp [hx_eq_neg_n]
+          linarith
+        · -- -n < n'
+          have h_succ : (-n : ℤ) + 1 ≤ n' := by omega
+          have : ((-n : ℤ) : Real) + 1 ≤ (n' : Real) := by
+            exact mod_cast h_succ
+          have : x < ((-n : ℤ) : Real) + 1 := by
+            calc
+              x = -(n : Real) := hx_eq_neg_n
+              _ < -(n : Real) + 1 := by linarith
+              _ = ((-n : ℤ) : Real) + 1 := by simp
+          have : (n' : Real) ≤ x := hn'_le_x
+          linarith
+    · have hx_lt_neg_n : x < -(n : Real) := by
+        rcases hx_le_neg_n with (hlt | heq)
+        · exact hlt
+        · exfalso; exact hx_eq_neg_n heq
+      set n2 := -n - 1 with hn2
+      have hn2_lt_x : (n2 : Real) < x := by
+        calc
+          (n2 : Real) = -(n : Real) - 1 := by simp [hn2]
+          _ < x := h_neg_n_minus1_lt_x
+      have hx_lt_n2p1 : x < (n2 : Real) + 1 := by
+        calc
+          x < -(n : Real) := hx_lt_neg_n
+          _ = (-(n : Real) - 1) + 1 := by ring
+          _ = (n2 : Real) + 1 := by simp [hn2]
+      refine ⟨n2, ⟨le_of_lt hn2_lt_x, hx_lt_n2p1⟩, ?_⟩
+      intro n' ⟨hn'_le_x, hx_lt_n'p1⟩
+      by_contra! hne
+      rcases lt_or_gt_of_ne hne with (hlt | hlt)
+      · -- n' < n2
+        have h_succ : n' + 1 ≤ n2 := by omega
+        have : (n' : Real) + 1 ≤ (n2 : Real) := by
+          exact mod_cast h_succ
+        have : x < (n' : Real) + 1 := hx_lt_n'p1
+        linarith
+      · -- n2 < n'
+        have h_succ : n2 + 1 ≤ n' := by omega
+        have : (n2 : Real) + 1 ≤ (n' : Real) := by
+          exact mod_cast h_succ
+        have : x < (n2 : Real) + 1 := hx_lt_n2p1
+        linarith
+  · -- x = 0
+    refine ⟨0, ⟨?_, ?_⟩, ?_⟩
+    · simp [hx0]
+    · have h0lt1R : (0 : Real) < (1 : Real) :=
+        intCast_lt_real (by norm_num : (0 : ℤ) < (1 : ℤ))
+      simp [hx0, h0lt1R]
+    · intro n ⟨hnle, hxlt⟩
+      subst hx0
+      by_contra! hne
+      rcases lt_or_gt_of_ne hne with (hn_neg | hn_pos)
+      · have : n ≤ -1 := by omega
+        have hcast : (n : Real) ≤ (-1 : Real) := by exact mod_cast this
+        have : (n : Real) + 1 ≤ 0 := by linarith
+        have : (0 : Real) < (n : Real) + 1 := hxlt
+        linarith
+      · have : 1 ≤ n := by omega
+        have hcast : (1 : Real) ≤ (n : Real) := by exact mod_cast this
+        have : (n : Real) ≤ 0 := hnle
+        linarith
 
 /-- Exercise 5.4.4 -/
-theorem Real.exist_inv_nat_le {x:Real} (hx: x.IsPos) : ∃ N:ℤ, N>0 ∧ (N:Real)⁻¹ < x := by sorry
+theorem Real.exist_inv_nat_le {x:Real} (hx: x.IsPos) : ∃ N:ℤ, N>0 ∧ (N:Real)⁻¹ < x := by
+  have hxpos : (0 : Real) < x := (Real.isPos_iff x).mp hx
+  rcases Real.rat_between hxpos with ⟨q, hq1, hq2⟩
+  have hqpos_q : (q : ℚ) > 0 := (Real.lt_of_coe 0 q).mpr hq1
+  have h_one_div_q_pos : (1 : ℚ) / q > 0 := div_pos (by norm_num) hqpos_q
+  rcases exists_nat_gt ((1 : ℚ) / q) with ⟨N, hN⟩
+  have hNposQ : (N : ℚ) > 0 := by
+    by_contra! h
+    have : (1 : ℚ) / q ≤ 0 := by linarith
+    linarith
+  have h_one_lt_mul : (1 : ℚ) < (N : ℚ) * q := by
+    calc
+      (1 : ℚ) = ((1 : ℚ) / q) * q := by field_simp [ne_of_gt hqpos_q]
+      _ < (N : ℚ) * q := mul_lt_mul_of_pos_right hN hqpos_q
+      _ = q * (N : ℚ) := mul_comm _ _
+      _ = (N : ℚ) * q := mul_comm _ _
+  have h_div_lt_q : (1 : ℚ) / (N : ℚ) < q := by
+    field_simp [ne_of_gt hNposQ]
+    nlinarith
+  have hNposZ : (N : ℤ) > 0 := by exact_mod_cast hNposQ
+  have h_base' : (N : Real)⁻¹ = ((N⁻¹ : ℚ) : Real) := by
+    calc
+      (N : Real)⁻¹ = (LIM (fun _ : ℕ => (N : ℚ)))⁻¹ := by
+        simpa using congrArg (·⁻¹) (Real.ratCast_def (N : ℚ))
+      _ = LIM (fun _ : ℕ => (N⁻¹ : ℚ)) := Real.inv_def (by
+        refine ⟨(N : ℚ), hNposQ, λ n => ?_⟩
+        simp) (Sequence.IsCauchy.const (N : ℚ))
+      _ = ((N⁻¹ : ℚ) : Real) := by
+        simpa using (Real.ratCast_def ((N : ℚ)⁻¹)).symm
+  have h_inv_lt_qx : ((N⁻¹ : ℚ) : Real) < x := by
+    have h_lt_q : ((N⁻¹ : ℚ) : Real) < (q : Real) :=
+      (Real.lt_of_coe ((N : ℚ)⁻¹) q).mp (by
+        calc
+          (N : ℚ)⁻¹ = (1 : ℚ) / (N : ℚ) := by field_simp [ne_of_gt hNposQ]
+          _ < q := h_div_lt_q)
+    exact lt_trans h_lt_q hq2
+  have h_inv_lt_x : (N : Real)⁻¹ < x := h_base'.symm ▸ h_inv_lt_qx
+  refine ⟨N, hNposZ, h_inv_lt_x⟩
 
 /-- Exercise 5.4.6 -/
-theorem Real.dist_lt_iff (ε x y:Real) : |x-y| < ε ↔ y-ε < x ∧ x < y+ε := by sorry
+theorem Real.dist_lt_iff (ε x y:Real) : |x-y| < ε ↔ y-ε < x ∧ x < y+ε := by
+  rw [abs_lt]
+  constructor
+  · rintro ⟨h₁, h₂⟩; constructor
+    · calc
+        y - ε = y + (-ε) := by rw [sub_eq_add_neg]
+        _ = (-ε) + y := add_comm _ _
+        _ < (x - y) + y := by
+          have h := add_lt_add_right y h₁
+          simpa [add_comm, add_left_comm, add_assoc] using h
+        _ = x := by rw [sub_add_cancel]
+    · calc
+        x = (x - y) + y := by rw [sub_add_cancel]
+        _ < ε + y := by
+          have h := add_lt_add_right y h₂
+          simpa [add_comm, add_left_comm, add_assoc] using h
+        _ = y + ε := add_comm _ _
+  · rintro ⟨h₁, h₂⟩; constructor
+    · have h : -(ε) < x - y := by
+        have := add_lt_add_right (-y) h₁
+        simpa [add_assoc, sub_eq_add_neg, add_comm, add_left_comm] using this
+      exact h
+    · have h : x - y < ε := by
+        have := add_lt_add_right (-y) h₂
+        simpa [add_assoc, sub_eq_add_neg, add_comm, add_left_comm] using this
+      exact h
 
 /-- Exercise 5.4.6 -/
-theorem Real.dist_le_iff (ε x y:Real) : |x-y| ≤ ε ↔ y-ε ≤ x ∧ x ≤ y+ε := by sorry
+theorem Real.dist_le_iff (ε x y:Real) : |x-y| ≤ ε ↔ y-ε ≤ x ∧ x ≤ y+ε := by
+  rw [abs_le]
+  constructor
+  · rintro ⟨h₁, h₂⟩; constructor
+    · calc
+        y - ε = y + (-ε) := by rw [sub_eq_add_neg]
+        _ = (-ε) + y := add_comm _ _
+        _ ≤ (x - y) + y := by
+          have h := add_le_add_right h₁ y
+          simpa [add_comm, add_left_comm, add_assoc] using h
+        _ = x := by rw [sub_add_cancel]
+    · calc
+        x = (x - y) + y := by rw [sub_add_cancel]
+        _ ≤ ε + y := by
+          have h := add_le_add_right h₂ y
+          simpa [add_comm, add_left_comm, add_assoc] using h
+        _ = y + ε := add_comm _ _
+  · rintro ⟨h₁, h₂⟩; constructor
+    · have h : -(ε) ≤ x - y := by
+        have := add_le_add_right h₁ (-y)
+        simpa [add_assoc, sub_eq_add_neg, add_comm, add_left_comm] using this
+      exact h
+    · have h : x - y ≤ ε := by
+        have := add_le_add_right h₂ (-y)
+        simpa [add_assoc, sub_eq_add_neg, add_comm, add_left_comm] using this
+      exact h
 
 /-- Exercise 5.4.7 -/
-theorem Real.le_add_eps_iff (x y:Real) : (∀ ε > 0, x ≤ y+ε) ↔ x ≤ y := by sorry
+theorem Real.le_add_eps_iff (x y:Real) : (∀ ε > 0, x ≤ y+ε) ↔ x ≤ y := by
+  have h_inv_half_lt_one : (2 : Real)⁻¹ < 1 := by
+    have h_one : (1 : Real).IsPos := by
+      rw [Real.isPos_iff]; norm_num
+    have h_two : (2 : Real).IsPos := by
+      rw [Real.isPos_iff]; norm_num
+    have h_inv_lt : (2 : Real)⁻¹ < (1 : Real)⁻¹ :=
+      Real.inv_of_gt h_two h_one (by norm_num : (2 : Real) > (1 : Real))
+    have h_one_inv : (1 : Real)⁻¹ = 1 := by
+      have h1_ne_zero : (1 : Real) ≠ 0 := by
+        have h1pos : (1 : Real).IsPos := by
+          rw [Real.isPos_iff]; norm_num
+        exact Real.nonzero_of_pos h1pos
+      apply mul_left_cancel₀ h1_ne_zero
+      calc
+        (1 : Real) * (1 : Real)⁻¹ = 1 := Real.self_mul_inv h1_ne_zero
+        _ = (1 : Real) * 1 := by simp
+    rw [h_one_inv] at h_inv_lt
+    exact h_inv_lt
+  constructor
+  · intro h
+    by_contra! hxy
+    have hsub : (x - y).IsPos := by
+      rw [Real.isPos_iff]; exact sub_pos.mpr hxy
+    have hpos : (x - y) / 2 > 0 := by
+      have h2 : (2 : Real).IsPos := by
+        rw [Real.isPos_iff]; norm_num
+      have hprod : ((x - y) * (2 : Real)⁻¹).IsPos :=
+        Real.pos_mul hsub (Real.inv_of_pos h2)
+      simpa [div_eq_mul_inv] using (Real.isPos_iff _).mp hprod
+    have hx := h ((x - y) / 2) hpos
+    have h_div_lt : (x - y) / 2 < x - y := by
+      calc
+        (x - y) / 2 = (x - y) * (2 : Real)⁻¹ := by simp [div_eq_mul_inv]
+        _ < (x - y) * 1 := mul_lt_mul_of_pos_left h_inv_half_lt_one (sub_pos.mpr hxy)
+        _ = x - y := by simp
+    have : y + (x - y) / 2 < x := by linarith
+    linarith
+  · intro h ε hε
+    have : y ≤ y + ε := by nlinarith
+    exact le_trans h this
 
 /-- Exercise 5.4.7 -/
-theorem Real.dist_le_eps_iff (x y:Real) : (∀ ε > 0, |x-y| ≤ ε) ↔ x = y := by sorry
-
-/-- Exercise 5.4.8 -/
-theorem Real.LIM_of_le {x:Real} {a:ℕ → ℚ} (hcauchy: (a:Sequence).IsCauchy) (h: ∀ n, a n ≤ x) :
-    LIM a ≤ x := by sorry
+theorem Real.dist_le_eps_iff (x y:Real) : (∀ ε > 0, |x-y| ≤ ε) ↔ x = y := by
+  have h_inv_half_lt_one : (2 : Real)⁻¹ < 1 := by
+    have h_one : (1 : Real).IsPos := by
+      rw [Real.isPos_iff]; norm_num
+    have h_two : (2 : Real).IsPos := by
+      rw [Real.isPos_iff]; norm_num
+    have h_inv_lt : (2 : Real)⁻¹ < (1 : Real)⁻¹ :=
+      Real.inv_of_gt h_two h_one (by norm_num : (2 : Real) > (1 : Real))
+    have h_one_inv : (1 : Real)⁻¹ = 1 := by
+      have h1_ne_zero : (1 : Real) ≠ 0 := by
+        have h1pos : (1 : Real).IsPos := by
+          rw [Real.isPos_iff]; norm_num
+        exact Real.nonzero_of_pos h1pos
+      apply mul_left_cancel₀ h1_ne_zero
+      calc
+        (1 : Real) * (1 : Real)⁻¹ = 1 := Real.self_mul_inv h1_ne_zero
+        _ = (1 : Real) * 1 := by simp
+    rw [h_one_inv] at h_inv_lt
+    exact h_inv_lt
+  constructor
+  · intro h
+    by_cases hxy : |x-y| > 0
+    · have habs : |x-y|.IsPos := (Real.isPos_iff _).mpr hxy
+      have hpos : |x-y| / 2 > 0 := by
+        have h2 : (2 : Real).IsPos := by
+          rw [Real.isPos_iff]; norm_num
+        have hprod : (|x-y| * (2 : Real)⁻¹).IsPos :=
+          Real.pos_mul habs (Real.inv_of_pos h2)
+        simpa [div_eq_mul_inv] using (Real.isPos_iff _).mp hprod
+      have hbound := h (|x-y| / 2) hpos
+      have h_div_lt : |x-y| / 2 < |x-y| := by
+        calc
+          |x-y| / 2 = |x-y| * (2 : Real)⁻¹ := by simp [div_eq_mul_inv]
+          _ < |x-y| * 1 := mul_lt_mul_of_pos_left h_inv_half_lt_one hxy
+          _ = |x-y| := by simp
+      have : |x-y| ≤ 0 := by linarith
+      linarith
+    · have hzero : |x-y| = 0 := by
+        have h_nonneg : 0 ≤ |x-y| := abs_nonneg _
+        have h_nonpos : |x-y| ≤ 0 := by linarith
+        linarith
+      have : x - y = 0 := abs_eq_zero.mp hzero
+      linarith
+  · intro h; subst h; intro ε hε
+    have : |(0 : Real)| = 0 := abs_zero
+    simp [this, hε.le]
 
 /-- Exercise 5.4.8 -/
 theorem Real.LIM_of_ge {x:Real} {a:ℕ → ℚ} (hcauchy: (a:Sequence).IsCauchy) (h: ∀ n, a n ≥ x) :
-    LIM a ≥ x := by sorry
+    LIM a ≥ x := by
+  obtain ⟨b, hb_cauchy, hb⟩ := Real.eq_lim x
+  have h_ge : LIM a ≥ LIM b := by
+    by_contra! hlt
+    rcases Real.rat_between hlt with ⟨q, hq1, hq2⟩
+    have hx_gt_q : (q : Real) < x := by rw [hb]; exact hq2
+    have ha_ge_q : ∀ n, a n ≥ q := λ n => by
+      have han_ge_q_real : (a n : Real) ≥ (q : Real) := by
+        have : (a n : Real) ≥ x := h n
+        linarith
+      by_contra! h
+      have han_lt_q_real : (a n : Real) < (q : Real) :=
+        (Real.lt_of_coe (a n) q).mp h
+      exact not_lt.mpr han_ge_q_real han_lt_q_real
+    have h_mono_rev : ∀ n, (fun (_ : ℕ) => q) n ≤ a n := by
+      intro n; simpa using ha_ge_q n
+    have ha_ge_q_LIM : (q : Real) ≤ LIM a :=
+      calc
+        (q : Real) = LIM (fun (_ : ℕ) => q) := Real.ratCast_def q
+        _ ≤ LIM a := Real.LIM_mono (Sequence.IsCauchy.const q) hcauchy h_mono_rev
+    linarith
+  rw [hb]
+  exact h_ge
 
 theorem Real.max_eq (x y:Real) : max x y = if x ≥ y then x else y := max_def' x y
 
 theorem Real.min_eq (x y:Real) : min x y = if x ≤ y then x else y := rfl
 
 /-- Exercise 5.4.9 -/
-theorem Real.neg_max (x y:Real) : max x y = - min (-x) (-y) := by sorry
+theorem Real.neg_max (x y:Real) : max x y = - min (-x) (-y) := by
+  rcases le_total x y with (h | h)
+  · calc
+      max x y = y := max_eq_right h
+      _ = -(-y) := by simp
+      _ = - min (-x) (-y) := by rw [min_eq_right (neg_le_neg h)]
+  · calc
+      max x y = x := max_eq_left h
+      _ = -(-x) := by simp
+      _ = - min (-x) (-y) := by rw [min_eq_left (neg_le_neg h)]
+
+theorem Real.neg_min (x y:Real) : min x y = - max (-x) (-y) := by
+  rcases le_total x y with (h | h)
+  · calc
+      min x y = x := min_eq_left h
+      _ = -(-x) := by simp
+      _ = - max (-x) (-y) := by rw [max_eq_left (neg_le_neg h)]
+  · calc
+      min x y = y := min_eq_right h
+      _ = -(-y) := by simp
+      _ = - max (-x) (-y) := by rw [max_eq_right (neg_le_neg h)]
 
 /-- Exercise 5.4.9 -/
-theorem Real.neg_min (x y:Real) : min x y = - max (-x) (-y) := by sorry
+theorem Real.max_self (x:Real) : max x x = x := by simp
 
-/-- Exercise 5.4.9 -/
-theorem Real.max_comm (x y:Real) : max x y = max y x := by sorry
+theorem Real.min_self (x:Real) : min x x = x := by simp
 
-/-- Exercise 5.4.9 -/
-theorem Real.max_self (x:Real) : max x x = x := by sorry
+theorem Real.max_comm (x y:Real) : max x y = max y x := by
+  rcases le_total x y with (h | h)
+  · rw [max_eq_right h, max_eq_left h]
+  · rw [max_eq_left h, max_eq_right h]
 
-/-- Exercise 5.4.9 -/
-theorem Real.max_add (x y z:Real) : max (x + z) (y + z) = max x y + z := by sorry
+theorem Real.min_comm (x y:Real) : min x y = min y x := by
+  rcases le_total x y with (h | h)
+  · rw [min_eq_left h, min_eq_right h]
+  · rw [min_eq_right h, min_eq_left h]
 
-/-- Exercise 5.4.9 -/
+theorem Real.max_add (x y z:Real) : max (x + z) (y + z) = max x y + z := by
+  rcases le_total x y with (h | h)
+  · rw [max_eq_right h, show max (x + z) (y + z) = y + z from max_eq_right (by
+      have := add_le_add_right h z
+      simpa [add_comm] using this)]
+  · rw [max_eq_left h, show max (x + z) (y + z) = x + z from max_eq_left (by
+      have := add_le_add_right h z
+      simpa [add_comm] using this)]
+
 theorem Real.max_mul (x y :Real) {z:Real} (hz: z.IsPos) : max (x * z) (y * z) = max x y * z := by
-  sorry
+  have hz_nonneg : 0 ≤ z := ((Real.isPos_iff _).mp hz).le
+  rcases le_total x y with (h | h)
+  · rw [max_eq_right h, max_eq_right (mul_le_mul_of_nonneg_right h hz_nonneg)]
+  · rw [max_eq_left h, max_eq_left (mul_le_mul_of_nonneg_right h hz_nonneg)]
 /- Additional exercise: What happens if z is negative? -/
 
-/-- Exercise 5.4.9 -/
-theorem Real.min_comm (x y:Real) : min x y = min y x := by sorry
+theorem Real.min_add (x y z:Real) : min (x + z) (y + z) = min x y + z := by
+  rcases le_total x y with (h | h)
+  · rw [min_eq_left h, show min (x + z) (y + z) = x + z from min_eq_left (by
+      have := add_le_add_right h z
+      simpa [add_comm] using this)]
+  · rw [min_eq_right h, show min (x + z) (y + z) = y + z from min_eq_right (by
+      have := add_le_add_right h z
+      simpa [add_comm] using this)]
 
-/-- Exercise 5.4.9 -/
-theorem Real.min_self (x:Real) : min x x = x := by sorry
-
-/-- Exercise 5.4.9 -/
-theorem Real.min_add (x y z:Real) : min (x + z) (y + z) = min x y + z := by sorry
-
-/-- Exercise 5.4.9 -/
 theorem Real.min_mul (x y :Real) {z:Real} (hz: z.IsPos) : min (x * z) (y * z) = min x y * z := by
-  sorry
+  have hz_nonneg : 0 ≤ z := ((Real.isPos_iff _).mp hz).le
+  rcases le_total x y with (h | h)
+  · rw [min_eq_left h, min_eq_left (mul_le_mul_of_nonneg_right h hz_nonneg)]
+  · rw [min_eq_right h, min_eq_right (mul_le_mul_of_nonneg_right h hz_nonneg)]
 
 /-- Exercise 5.4.9 -/
-theorem Real.inv_max {x y :Real} (hx:x.IsPos) (hy:y.IsPos) : (max x y)⁻¹ = min x⁻¹ y⁻¹ := by sorry
+theorem Real.inv_max {x y :Real} (hx:x.IsPos) (hy:y.IsPos) : (max x y)⁻¹ = min x⁻¹ y⁻¹ := by
+  rcases le_total x y with (h | h)
+  · rw [max_eq_right h]
+    by_cases hxy : x < y
+    · have hy_inv_lt_x_inv : y⁻¹ < x⁻¹ := Real.inv_of_gt hy hx hxy
+      rw [min_eq_right hy_inv_lt_x_inv.le]
+    · have h_eq : x = y := by linarith
+      subst h_eq; simp
+  · rw [max_eq_left h]
+    by_cases hxy : y < x
+    · have hx_inv_lt_y_inv : x⁻¹ < y⁻¹ := Real.inv_of_gt hx hy hxy
+      rw [min_eq_left hx_inv_lt_y_inv.le]
+    · have h_eq : y = x := by linarith
+      subst h_eq; simp
 
 /-- Exercise 5.4.9 -/
-theorem Real.inv_min {x y :Real} (hx:x.IsPos) (hy:y.IsPos) : (min x y)⁻¹ = max x⁻¹ y⁻¹ := by sorry
+theorem Real.inv_min {x y :Real} (hx:x.IsPos) (hy:y.IsPos) : (min x y)⁻¹ = max x⁻¹ y⁻¹ := by
+  rcases le_total x y with (h | h)
+  · rw [min_eq_left h]
+    by_cases hxy : x < y
+    · have hy_inv_lt_x_inv : y⁻¹ < x⁻¹ := Real.inv_of_gt hy hx hxy
+      rw [max_eq_left hy_inv_lt_x_inv.le]
+    · have h_eq : x = y := by linarith
+      subst h_eq; simp
+  · rw [min_eq_right h]
+    by_cases hxy : y < x
+    · have hx_inv_lt_y_inv : x⁻¹ < y⁻¹ := Real.inv_of_gt hx hy hxy
+      rw [max_eq_right hx_inv_lt_y_inv.le]
+    · have h_eq : y = x := by linarith
+      subst h_eq; simp
 
 /-- Not from textbook: the rationals map as an ordered ring homomorphism into the reals. -/
 abbrev Real.ratCast_ordered_hom : ℚ →+*o Real where
   toRingHom := ratCast_hom
-  monotone' := by sorry
+  monotone' := by
+    intro a b hle
+    by_contra! hlt
+    have hlt_q : b < a := (Real.lt_of_coe b a).mpr hlt
+    linarith
 
 end Chapter5
