@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第 5 章尾声：<span class="t" data-zh="与 Mathlib 实数的同构" data-en="Isomorphism with the Mathlib real numbers"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+        h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: #1a1a1a; }
+        .book-info { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: #2c2c2c; }
+        .section-number { font-size: 0.75em; color: #888; display: block; margin-bottom: 0.3em; }
+        p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+        .definition { background: #f8f9fa; border-left: 4px solid #4a90d9; padding: 15px 20px; margin: 1.5em 0; }
+        .definition .label { font-weight: 600; font-style: normal; color: #2c5a8a; }
+        .remark { color: #555; padding-left: 1.5em; border-left: 2px solid #ddd; margin: 1.5em 0; }
+        .remark strong { color: #333; }
+        .proof { background: #fff; padding: 15px 20px 15px 40px; margin: 1em 0; font-size: 0.95em; }
+        .proof::before { content: "证明."; font-style: italic; color: #666; }
+        .proof::after { content: "∎"; display: block; text-align: right; color: #999; margin-top: 0.5em; }
+        .exercise { background: #f0f4f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 15px 20px; margin: 1.5em 0; }
+        .exercise .label { font-weight: 600; color: #3a6a9a; display: block; margin-bottom: 0.5em; }
+        .proposition-box { background: #f0f7f0; border-left: 4px solid #5a9a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .proposition-box .label { font-weight: 600; color: #2d5a2d; }
+        .lemma-box { background: #f5f0f7; border-left: 4px solid #8a5a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .lemma-box .label { font-weight: 600; color: #5a2d6a; }
+        .formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+        .chapter-marker { color: #888; font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+        .page-ref { color: #999; font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+        .note { background: #fff8e7; border: 1px solid #e0d8c0; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: #665; }
+        .note::before { content: "注: "; font-weight: 600; }
+        .supplement { background: #f0f7ff; border-left: 4px solid #e06090; padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+        .supplement .sup-title { font-weight: 700; color: #b04060; font-size: 1.05em; margin-bottom: 0.5em; display: block; }
+        .supplement p { text-indent: 0; font-size: 0.95em; }
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+        .code-block { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; margin: 1em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #eee; color: #888; font-size: 0.85em; }
+        .toc { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; }
+        .toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: #444; }
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .lang-toggle { text-align: center; margin: 0 0 20px 0; }
+        .lang-toggle button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid #ccc; border-radius: 20px; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+        .lang-toggle button:hover { border-color: #4a90d9; color: #4a90d9; }
+        .lang-toggle button.on { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .t { border-bottom: 1px dotted #c0c0c0; cursor: help; position: relative; }
+        .t::before { content: attr(data-zh); }
+        .t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: #fff; background: #555; padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s; }
+        .t:hover::after { opacity: 1; transition-delay: 0.4s; }
+        .lang-en .t::after { font-size: 0.85em; color: #888; margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section5epi_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section5epi_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    第 5 章尾声 (本节为补充材料 / supplementary material)
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>5 <span class="t" data-zh="实数" data-en="real numbers"></span>·尾声</h1>
+
+<h2 class="section-title">
+    <span class="section-number">第 5 章尾声 (Epilogue)</span>
+    <span class="t" data-zh="与 Mathlib 实数的同构" data-en="Isomorphism with the Mathlib real numbers"></span>
+    <span class="page-ref">(本节为补充材料 / supplementary material)</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#intro">引言：两种实数构造的"会师"</a></li>
+        <li><a href="#dedekind">戴德金分割：连接两套构造的桥梁</a></li>
+        <li><a href="#chap5-side">第 5 章实数侧的双射 \(\mathbf{R}_{\text{Cau}} \leftrightarrow \mathcal{C}\)</a></li>
+        <li><a href="#mathlib-side">Mathlib 实数侧的双射 \(\mathbb{R} \leftrightarrow \mathcal{C}\)</a></li>
+        <li><a href="#iso">主同构 \(\mathrm{equivR}: \mathbf{R}_{\text{Cau}} \xrightarrow{\sim} \mathbb{R}\)</a></li>
+        <li><a href="#bridge">柯西序列层面的桥接引理</a></li>
+        <li><a href="#ring-order">环结构和序结构的保持</a></li>
+        <li><a href="#exp">指数运算的保持</a></li>
+        <li><a href="#significance">意义：为何要做这件事？</a></li>
+        <li><a href="#supp">补充说明</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="intro">— 引言 —</div>
+
+<p>
+第 5 章从<span class="t" data-zh="柯西序列" data-en="Cauchy sequences"></span>出发，
+用<span class="t" data-zh="形式极限" data-en="formal limits"></span>构造出一个
+具备<span class="t" data-zh="完备有序域" data-en="complete ordered field"></span>结构的对象
+\(\mathbf{R}_{\text{Cau}}\)（在 Lean 形式化中记为 <code>Chapter5.Real</code>）。
+而 Mathlib 中早已存在一个标准的实数对象 \(\mathbb{R}\)（在 Lean 中记为 <code>ℝ</code>），
+它是用<span class="t" data-zh="戴德金分割" data-en="Dedekind cuts"></span>或同等方式构造的。
+</p>
+
+<p>
+本章<strong>尾声</strong>的目标是：
+证明这两种实数本质上是<strong>同一个对象</strong>。
+更精确地说，我们要构造一个
+\[
+\mathrm{equivR} : \mathbf{R}_{\text{Cau}} \;\xrightarrow{\;\sim\;}\; \mathbb{R}
+\]
+作为<span class="t" data-zh="保序环同构" data-en="order-preserving ring isomorphism"></span>，
+且与有理数嵌入相容、与一切自然/整数/有理指数相容。
+有了这个同构后，我们就可以"忘掉"自己费力构造的 \(\mathbf{R}_{\text{Cau}}\)，
+直接使用 Mathlib 的 \(\mathbb{R}\) 及其完整的代数与分析 API。
+</p>
+
+<div class="note">
+本节是一个<strong>技术性章节</strong> (technical chapter)。它不再引入新的数学概念，
+而是把"两种构造给出同一个数系"这件直觉上显然的事情严格化。
+原书中并无对应章节——这是 Lean 形式化项目独有的"同构桥"。
+</div>
+
+<hr>
+
+<!-- ========== 戴德金分割 ========== -->
+<div class="chapter-marker" id="dedekind">— 戴德金分割：桥梁 —</div>
+
+<p>
+为了把 \(\mathbf{R}_{\text{Cau}}\) 和 \(\mathbb{R}\) 这两个看似不相关的对象联系起来，
+我们让它们都对应到第三个对象——
+<span class="t" data-zh="戴德金分割集合" data-en="set of Dedekind cuts"></span> \(\mathcal{C}\)。
+关键观察是：任何一个有理数<span class="t" data-zh="完备化" data-en="completion"></span>
+都可以"被它所超越的有理数集合"完全刻画。
+</p>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span>（戴德金分割）。</span>
+    一个 <strong>戴德金分割</strong> (Dedekind cut) 是一个有理数子集 \(E \subseteq \mathbb{Q}\)，
+    满足以下四条：
+    <ol>
+        <li><strong>非空</strong> (nonempty)：\(E \neq \varnothing\)；</li>
+        <li><strong>有上界</strong> (bounded above)：存在 \(M \in \mathbb{Q}\) 使得 \(\forall q \in E, q \leq M\)；</li>
+        <li><strong>下集</strong> (lower set / downward closed)：若 \(q \in E\) 且 \(r < q\)，则 \(r \in E\)；</li>
+        <li><strong>无最大元</strong> (no maximum)：\(\forall q \in E, \exists r \in E, r > q\)。</li>
+    </ol>
+    用 \(\mathcal{C}\) 表示所有戴德金分割构成的集合。
+</div>
+
+<div class="remark">
+    <strong>直观。</strong> 把 \(E\) 想象成数轴上"某个实数 \(x\) 之下的全体有理数"，
+    即 \(E = \{q \in \mathbb{Q} : q < x\}\)。
+    四条公理逐条对应：
+    一定有有理数小于 \(x\)（非空）；
+    一定有有理数大于 \(x\)（有上界）；
+    比 \(x\) 小的有理数下面也都比 \(x\) 小（下集）；
+    没有"最大的小于 \(x\) 的有理数"（无最大元，这把 \(x\) 自己排除掉）。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 为什么要"无最大元"？</span>
+    <p>
+    考虑分割 \(E = \{q \in \mathbb{Q} : q \leq 1\}\) 和 \(E' = \{q \in \mathbb{Q} : q < 1\}\)。
+    如果不要求"无最大元"，这两者会是不同的分割，但它们都"代表" \(1\) 这个实数——一个对应的实数会有两个分割。
+    要求<strong>无最大元</strong>就把 \(E\) 排除掉，确保
+    "实数 \(\leftrightarrow\) 分割"是<strong>双射</strong>（每个实数恰有一个分割）。
+    </p>
+    <p>
+    这与 Tao 教科书中 Cauchy 序列定义里要求<strong>严格</strong> "\(\varepsilon\)-接近" 而不是 \(\leq\)
+    的精神类似：略加苛刻一点，换取唯一性。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 第5章实数一侧的双射 ========== -->
+<div class="chapter-marker" id="chap5-side">— 第 5 章实数侧的双射 —</div>
+
+<p>
+我们先在 \(\mathbf{R}_{\text{Cau}}\) 一侧做戴德金分割的对应。
+</p>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">从 \(\mathbf{R}_{\text{Cau}}\) 出发：取所有"被自己严格超越"的有理数</h3>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label">定义（<code>toCut</code>）。</span>
+    对每个 \(x \in \mathbf{R}_{\text{Cau}}\)，定义
+    \[
+    E_x \;:=\; \{\, q \in \mathbb{Q} \;:\; (q : \mathbf{R}_{\text{Cau}}) < x \,\}.
+    \]
+    这里 \((q : \mathbf{R}_{\text{Cau}})\) 是把有理数 \(q\) 通过有理数嵌入视为第 5 章实数。
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（<code>toCut</code> 是分割）。</span>
+    对任何 \(x \in \mathbf{R}_{\text{Cau}}\)，集合 \(E_x\) 是一个戴德金分割。
+</div>
+
+<div class="proof">
+    四条公理逐一验证：
+    <ul>
+        <li><strong>非空：</strong> 由"两个实数之间存在有理数"（命题 5.4 的结论），
+        取 \(q \in (x-1, x)\) 即可，则 \(q < x\)。</li>
+        <li><strong>有上界：</strong> 由<span class="t" data-zh="阿基米德性质" data-en="Archimedean property"></span>，
+        存在自然数 \(N\) 使 \(x < N\)。则 \(N\) 即 \(E_x\) 的有理数上界。</li>
+        <li><strong>下集：</strong> 若 \(r < q\) 在 \(\mathbb{Q}\) 中，则在 \(\mathbf{R}_{\text{Cau}}\) 中也成立，
+        从而 \(r < q < x\)，故 \(r \in E_x\)。</li>
+        <li><strong>无最大元：</strong> 对 \(q \in E_x\)（即 \(q < x\)），由有理稠密性，
+        存在 \(r \in (q, x) \cap \mathbb{Q}\)，故 \(r \in E_x\) 且 \(r > q\)。</li>
+    </ul>
+</div>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">从分割出发：取上确界</h3>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label">定义（<code>toReal</code>）。</span>
+    对每个戴德金分割 \(c\)，定义
+    \[
+    \widehat{c} \;:=\; \sup_{\mathbf{R}_{\text{Cau}}} \{\, (q : \mathbf{R}_{\text{Cau}}) \,:\, q \in c \,\}.
+    \]
+    这里的上确界存在，因为根据命题 5.5（最小上界性质），
+    \(\mathbf{R}_{\text{Cau}}\) 是<span class="t" data-zh="条件完备" data-en="conditionally complete"></span>的，
+    并且 \(c\) 在转化为实数集后非空且有上界。
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（互逆）。</span>
+    映射 \(x \mapsto E_x\) 与 \(c \mapsto \widehat{c}\) 互为逆映射。即：
+    <ol type="i">
+        <li>对任何 \(x \in \mathbf{R}_{\text{Cau}}\)，\(\widehat{E_x} = x\)；</li>
+        <li>对任何分割 \(c \in \mathcal{C}\)，\(E_{\widehat{c}} = c\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    <strong>(i) 关键事实：</strong>
+    "每个实数都是它所超越的有理数们的<span class="t" data-zh="最小上界" data-en="least upper bound"></span>"。
+    证明：
+    <ul>
+        <li><em>上界：</em> 集合中每一项 \((q : \mathbf{R}_{\text{Cau}})\)（其中 \(q < x\)）显然 \(\leq x\)。</li>
+        <li><em>最小性：</em> 假设存在 \(y < x\) 也是上界。由有理稠密性，存在 \(q \in (y, x) \cap \mathbb{Q}\)。
+        则 \(q < x\) 故 \(q \in E_x\)，但 \(y < q\) 矛盾于 \(y\) 是上界。</li>
+    </ul>
+    <strong>(ii) 关键事实：</strong>
+    一个分割可以从它的上确界恢复出来。证明：固定有理数 \(q\)。
+    <ul>
+        <li><em>(\(\Rightarrow\))</em> 若 \(q \in c\)，由"无最大元"取 \(r \in c\) 且 \(r > q\)。
+        则 \((q:\mathbf{R}_{\text{Cau}}) < (r:\mathbf{R}_{\text{Cau}}) \leq \widehat{c}\)，故 \(q \in E_{\widehat{c}}\)。</li>
+        <li><em>(\(\Leftarrow\))</em> 若 \(q \notin c\)，由"下集"性质，每个 \(r \in c\) 必满足 \(r \leq q\)
+        （否则 \(q < r\) 配合 \(r \in c\) 推出 \(q \in c\)），故 \((q:\mathbf{R}_{\text{Cau}})\) 是 \(c\) 对应的实数集的上界，
+        从而 \(\widehat{c} \leq q\)，即 \(q \notin E_{\widehat{c}}\)。</li>
+    </ul>
+</div>
+
+<p>
+综上，我们得到了第 5 章实数侧的双射
+\[
+\mathrm{equivCut}_{\mathbf{R}_{\text{Cau}}} \;:\; \mathbf{R}_{\text{Cau}} \;\xrightarrow{\;\sim\;}\; \mathcal{C}.
+\]
+</p>
+
+<hr>
+
+<!-- ========== Mathlib 实数一侧的双射 ========== -->
+<div class="chapter-marker" id="mathlib-side">— Mathlib 实数侧的双射 —</div>
+
+<p>
+对 Mathlib 实数 \(\mathbb{R}\) 重复完全相同的构造，逐字替换：
+\((q : \mathbf{R}_{\text{Cau}})\) 换成 \((q : \mathbb{R})\)，
+\(\mathbf{R}_{\text{Cau}}\) 中的上确界换成 \(\mathbb{R}\) 中的上确界 (<code>sSup</code>)，
+\(\mathbf{R}_{\text{Cau}}\) 的有理稠密性换成 Mathlib 的 <code>exists_rat_btwn</code>，
+阿基米德性质换成 Mathlib 的 <code>exists_rat_gt</code>。
+</p>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（\(\mathbb{R}\) 侧的双射）。</span>
+    映射
+    \[
+    x \mapsto E_x^{\mathbb{R}} := \{q \in \mathbb{Q} : (q:\mathbb{R}) < x\},\qquad
+    c \mapsto \widehat{c}^{\,\mathbb{R}} := \sup_{\mathbb{R}}\{(q:\mathbb{R}) : q \in c\}
+    \]
+    给出双射
+    \[
+    \mathrm{equivCut}_{\mathbb{R}} \;:\; \mathbb{R} \;\xrightarrow{\;\sim\;}\; \mathcal{C}.
+    \]
+</div>
+
+<div class="remark">
+    <strong>结构上的相似。</strong> 两次证明在结构上是一样的：
+    把"完备性"、"阿基米德性"、"有理稠密性"这三个条件抽出来，
+    \(\mathbf{R}_{\text{Cau}}\) 和 \(\mathbb{R}\) 都满足，自然得到对称的结论。
+    在更高观点下，这是说"任何完备阿基米德有序域都同构于戴德金分割"，
+    而我们这里把一般定理实例化了两次。
+</div>
+
+<hr>
+
+<!-- ========== 主同构 ========== -->
+<div class="chapter-marker" id="iso">— 主同构 —</div>
+
+<p>
+有了两侧分别到 \(\mathcal{C}\) 的双射，把它们组合起来就得到主同构：
+</p>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span>（主同构 <code>equivR</code>）。</span>
+    复合
+    \[
+    \mathrm{equivR} \;:=\; \mathrm{equivCut}_{\mathbf{R}_{\text{Cau}}} \;\circ\; \bigl(\mathrm{equivCut}_{\mathbb{R}}\bigr)^{-1}
+    \;:\; \mathbf{R}_{\text{Cau}} \;\xrightarrow{\;\sim\;}\; \mathbb{R}
+    \]
+    是一个集合双射。其作用是：把第 5 章实数 \(x\) 送到具有"相同分割"的标准实数。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; "相同分割"是什么意思</span>
+    <p>
+    展开看，\(y = \mathrm{equivR}(x)\) 当且仅当
+    \[
+    \{q \in \mathbb{Q} : (q:\mathbb{R}) < y\} \;=\; \{q \in \mathbb{Q} : (q:\mathbf{R}_{\text{Cau}}) < x\}.
+    \]
+    这是一个非常自然的对应：两边都用"哪些有理数严格小于我"来标识自己。
+    </p>
+    <p>
+    在 Lean 形式化中这一刻画就是引理
+    <code>Real.equivR_iff : y = equivR x ↔ y.toCut = x.toCut</code>。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 桥接引理 ========== -->
+<div class="chapter-marker" id="bridge">— 桥接引理 —</div>
+
+<p>
+仅仅得到一个集合双射是远远不够的。我们还需要证明它和两侧的代数、序、嵌入都相容。
+这部分是本章的<strong>技术核心</strong>。第一步是处理有理数的嵌入。
+</p>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">有理数嵌入相容</h3>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（<code>equivR_ratCast</code>）。</span>
+    对任何有理数 \(q\)，
+    \[
+    \mathrm{equivR}\bigl((q : \mathbf{R}_{\text{Cau}})\bigr) \;=\; (q : \mathbb{R}).
+    \]
+</div>
+
+<div class="proof">
+    根据 <code>equivR_iff</code>，只需证 \((q : \mathbb{R})\) 和 \((q : \mathbf{R}_{\text{Cau}})\) 给出相同的分割。
+    对任意有理数 \(r\)：
+    \[
+    (r : \mathbb{R}) < (q : \mathbb{R})
+    \;\Longleftrightarrow\; r < q
+    \;\Longleftrightarrow\; (r : \mathbf{R}_{\text{Cau}}) < (q : \mathbf{R}_{\text{Cau}}).
+    \]
+    第一和第三个等价是有理数嵌入对序的保持，分别在 \(\mathbb{R}\) 和 \(\mathbf{R}_{\text{Cau}}\) 中成立。
+</div>
+
+<p>
+作为推论，自然数和整数的嵌入也相容（因为它们都是有理数嵌入的特例）：
+</p>
+
+<div class="formula">
+\(\mathrm{equivR}((n:\mathbb{N})) = (n:\mathbb{R}),\qquad \mathrm{equivR}((n:\mathbb{Z})) = (n:\mathbb{R}).\)
+</div>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">两套柯西序列定义的桥接</h3>
+
+<p>
+在 \(\mathbf{R}_{\text{Cau}}\) 中，一个柯西序列 \(a : \mathbb{N} \to \mathbb{Q}\) 通过
+<span class="t" data-zh="形式极限算子" data-en="formal limit operator"></span> \(\mathrm{LIM}\) 给出实数 \(\mathrm{LIM}\, a\)。
+而在 Mathlib 中，\(\mathbb{R}\) 是用 <code>CauSeq ℚ abs</code>（对绝对值<span class="t" data-zh="柯西的" data-en="Cauchy"></span>的有理数序列）
+的<span class="t" data-zh="商" data-en="quotient"></span>来构造的，相应的极限算子叫 <code>Real.mk</code>。
+</p>
+
+<p>
+我们需要一座<strong>翻译之桥</strong>：把第 5 章用的 <code>Sequence.IsCauchy</code> 翻译成 Mathlib 用的 <code>IsCauSeq abs</code>，
+把第 5 章用的<span class="t" data-zh="序列等价" data-en="sequence equivalence"></span> <code>Sequence.Equiv</code>
+翻译成 Mathlib 用的<span class="t" data-zh="差极限趋零" data-en="LimZero of difference"></span> <code>CauSeq.LimZero</code>。
+</p>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（柯西性的两种说法）。</span>
+    若 \(a : \mathbb{N} \to \mathbb{Q}\) 在第 5 章定义意义下是柯西的（\(\forall \varepsilon > 0\) 最终 \(\varepsilon\)-稳定），
+    则它在 Mathlib 定义意义下也是关于绝对值的柯西序列。
+</div>
+
+<div class="proof">
+    给定 \(\varepsilon > 0\)。对 \(\varepsilon/2\) 应用柯西性，得 \(N\) 使 \(\forall j, k \geq N, |a_j - a_k| \leq \varepsilon/2\)。
+    特别地，固定 \(k = N\)，则 \(\forall j \geq N, |a_j - a_N| \leq \varepsilon/2 < \varepsilon\)。
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（等价的两种说法）。</span>
+    若 \(a, b\) 都柯西且 \(a \equiv b\)（第 5 章意义下），则 \(a - b \to 0\)（Mathlib 意义下）。反过来也成立。
+</div>
+
+<div class="proof">
+    第 5 章的等价说"\(\forall \varepsilon > 0\) 最终 \(\varepsilon\)-接近"，
+    Mathlib 的 <code>LimZero</code> 说"\(\forall \varepsilon > 0\) 最终 \(|a_n - b_n| < \varepsilon\)"，
+    两者就 \(\varepsilon/2\) 一调即通。
+</div>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">关键桥接定理</h3>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span>（<code>equivR_eq'</code>，<strong>关键</strong>）。</span>
+    对任何柯西序列 \(a\)，
+    \[
+    \mathrm{equivR}\bigl(\mathrm{LIM}\, a\bigr) \;=\; \mathrm{Real.mk}\bigl(a\bigr).
+    \]
+    （右侧的 \(\mathrm{Real.mk}\) 是 Mathlib 把柯西序列变成实数的算子。）
+</div>
+
+<p>
+这是整个尾声章节的<strong>真正的心脏</strong>：它把第 5 章的"形式极限"翻译成 Mathlib 的标准极限。
+这条引理一旦建立，把任何用柯西序列定义的运算（加、乘、序）翻译到 \(\mathbb{R}\) 一侧就只需要例行公事。
+</p>
+
+<div class="proof">
+    分两种情形。
+    <ul>
+        <li><strong>情形 1：</strong> 若 \(\mathrm{LIM}\, a = q\) 是有理数。则一边是 \((q:\mathbb{R})\)（由 <code>equivR_ratCast</code>），
+        另一边由常值序列 \(q,q,q,\ldots\) 与 \(a\) 等价及 \(\mathrm{Real.mk}\) 的常数性可知也是 \((q:\mathbb{R})\)。</li>
+        <li><strong>情形 2：</strong> 若 \(\mathrm{LIM}\, a\) 不是有理数。
+        要证 \(\sup\{(q:\mathbb{R}) : q \in E_{\mathrm{LIM}\, a}\} = \mathrm{Real.mk}\, a\)。
+        分两步：
+        <ul>
+            <li><em>(上界)</em> 任取 \(q \in \mathbb{Q}\) 使 \((q:\mathbf{R}_{\text{Cau}}) < \mathrm{LIM}\, a\)。
+            利用第 5 章的"序与 LIM 的相容性"，\(a_n\) 最终大于 \(q\)。
+            由 Mathlib 的 <code>Real.mk_le</code> 类引理，\((q:\mathbb{R}) \leq \mathrm{Real.mk}\, a\)。</li>
+            <li><em>(最小性)</em> 假设 \(M < \mathrm{Real.mk}\, a\) 是上界。由有理稠密性取 \(q \in (M, \mathrm{Real.mk}\, a)\)。
+            类似地推出 \((q:\mathbf{R}_{\text{Cau}}) < \mathrm{LIM}\, a\)，故 \((q:\mathbb{R})\) 在我们考察的集合里，
+            从而 \(M < q\) 应被达到，矛盾。</li>
+        </ul>
+        </li>
+    </ul>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; "形式极限 = 真正极限" 这件事并不平凡</span>
+    <p>
+    第 5 章构造 \(\mathbf{R}_{\text{Cau}}\) 的方式是：给定柯西序列 \(a\)，<strong>定义</strong>一个新对象 \(\mathrm{LIM}\, a\)，
+    并通过等价类"硬塞"\(\mathbf{R}_{\text{Cau}}\) 的代数与序结构。
+    它是不是真的等于"\(a_n\) 的极限"？在第 5 章语境下这个问题没有意义，因为彼时还没有定义"极限"。
+    </p>
+    <p>
+    这条桥接引理回过头来证明：当我们最终建立了极限理论后，<strong>形式极限就是真正的极限</strong>。
+    这把一切努力封闭起来——我们没有做无用功，我们造出来的就是教科书里的那个 \(\mathbb{R}\)。
+    </p>
+</div>
+
+<div class="note">
+注：原 Lean 文件中 <code>equivR_eq'</code> 及它依赖的几个辅助引理
+（<code>cauchy_equiv_of_close</code>、<code>exists_equiv_above</code>、<code>exists_equiv_below</code>）
+仍带有 <code>sorry</code>，是留给读者完成的练习。它们都属于"原则上无难度，体力上需细致"的类型。
+</div>
+
+<hr>
+
+<!-- ========== 环和序的保持 ========== -->
+<div class="chapter-marker" id="ring-order">— 环结构与序结构的保持 —</div>
+
+<p>
+有了 <code>equivR_eq'</code>，把代数运算翻译过去就成了固定套路。
+对任何 \(x, y \in \mathbf{R}_{\text{Cau}}\)，可写成 \(x = \mathrm{LIM}\, a, y = \mathrm{LIM}\, b\)。
+则 \(x + y = \mathrm{LIM}\,(a+b)\)，故
+\[
+\mathrm{equivR}(x+y) = \mathrm{Real.mk}(a+b) = \mathrm{Real.mk}(a) + \mathrm{Real.mk}(b) = \mathrm{equivR}(x) + \mathrm{equivR}(y).
+\]
+乘法、序、负元、倒数同理。
+</p>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span>（<code>equivR_ordered_ring</code>）。</span>
+    \(\mathrm{equivR}\) 是<span class="t" data-zh="保序环同构" data-en="ordered ring isomorphism"></span>：
+    \[
+    \mathbf{R}_{\text{Cau}} \;\;\simeq^{+,\times,\leq}\;\; \mathbb{R}.
+    \]
+    具体而言，\(\mathrm{equivR}\) 把 \(0 \mapsto 0\)、\(1 \mapsto 1\)、并保持加法、乘法、不等式 \(\leq\)。
+</div>
+
+<p>
+保序环同构自动保持所有由 \(+, \times, 0, 1, \leq\) 派生的结构：减法、倒数、绝对值、上确界、下确界等等。
+具体地，
+</p>
+
+<div class="formula">
+\(\mathrm{equivR}(-x) = -\mathrm{equivR}(x),\qquad \mathrm{equivR}(x^{-1}) = (\mathrm{equivR}\,x)^{-1},\)
+</div>
+<div class="formula">
+\(0 < x \;\Longleftrightarrow\; 0 < \mathrm{equivR}(x),\qquad 0 \leq x \;\Longleftrightarrow\; 0 \leq \mathrm{equivR}(x).\)
+</div>
+
+<hr>
+
+<!-- ========== 指数运算的保持 ========== -->
+<div class="chapter-marker" id="exp">— 指数运算的保持 —</div>
+
+<p>
+最后还要验证"<strong>指数运算</strong>"——第 5.6 节费力建立起来的那一系列方根和有理指数——也被同构保持。
+</p>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">自然数指数</h3>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（<code>pow_of_equivR</code>）。</span>
+    对 \(x \in \mathbf{R}_{\text{Cau}}\)，\(n \in \mathbb{N}\)，
+    \[
+    \mathrm{equivR}(x^n) \;=\; (\mathrm{equivR}\, x)^n.
+    \]
+</div>
+
+<div class="proof">
+    对 \(n\) 归纳。\(n = 0\)：两边均为 \(1\)，由 \(\mathrm{equivR}(1) = 1\)。
+    归纳步骤：\(\mathrm{equivR}(x^{n+1}) = \mathrm{equivR}(x^n \cdot x) = \mathrm{equivR}(x^n) \cdot \mathrm{equivR}(x)
+    = (\mathrm{equivR}\,x)^n \cdot \mathrm{equivR}(x) = (\mathrm{equivR}\,x)^{n+1}\)，
+    用了乘法的保持和归纳假设。
+</div>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">整数指数</h3>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（<code>zpow_of_equivR</code>）。</span>
+    对 \(x \in \mathbf{R}_{\text{Cau}}, n \in \mathbb{Z}\)，
+    \(\mathrm{equivR}(x^n) = (\mathrm{equivR}\, x)^n.\)
+</div>
+
+<div class="proof">
+    对负幂 \(n = -m\)，\(x^{-m} = (x^m)^{-1}\)。再用 \(\mathrm{equivR}\) 保持乘法逆和上一引理。
+</div>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">有理指数（与 Mathlib 的 <code>rpow</code> 对接）</h3>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span>（<code>ratPow_of_equivR</code>，<strong>核心兼容性</strong>）。</span>
+    对 \(x \in \mathbf{R}_{\text{Cau}}, q \in \mathbb{Q}\)，
+    \[
+    \mathrm{equivR}(x^q) \;=\; (\mathrm{equivR}\, x)^{(q:\mathbb{R})}.
+    \]
+    左侧的 \(x^q\) 是第 5.6 节定义的<span class="t" data-zh="有理指数" data-en="rational exponent"></span>（<code>Real.ratPow</code>），
+    右侧的 \(\;\cdot^{(q:\mathbb{R})}\) 是 Mathlib 的<span class="t" data-zh="实指数" data-en="real exponent"></span>（<code>Real.rpow</code>）
+    在有理数处的取值。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 这条引理为什么重要</span>
+    <p>
+    从第 6 章开始，整本书都将使用 Mathlib 的 \(\mathbb{R}\) 及其 <code>rpow</code>。
+    但第 5.6 节的 <code>ratPow</code> 是<strong>另一套</strong>定义，
+    通过"\(b\) 次方根，再 \(a\) 次幂"来构造。
+    没有这条引理，第 5 章建立的所有有理指数性质都用不到后续章节中。
+    </p>
+    <p>
+    这条引理就是说：<strong>两套定义殊途同归</strong>。
+    数学上当然是显然的（毕竟正实数的有理指数本来就只有一种合理定义），
+    但在形式化中需要通过同构 \(\mathrm{equivR}\) 把"两套"明确等同起来。
+    </p>
+</div>
+
+<div class="proof">
+    把 \(q\) 写成 \(q = a/b\)，其中 \(a \in \mathbb{Z}, b \in \mathbb{N}^{+}\)。则
+    \(x^q = (x^{1/b})^a\)（第 5.6 节定义）。两侧分别处理：
+    <ul>
+        <li><strong>方根的保持：</strong> 设 \(y := x^{1/b}\)，则 \(y \geq 0\) 且 \(y^b = x\)。应用 \(\mathrm{equivR}\)：
+        \(\mathrm{equivR}(y) \geq 0\) 且 \((\mathrm{equivR}\, y)^b = \mathrm{equivR}(x)\)。
+        由 \(\mathbb{R}\) 中方根的唯一性，\(\mathrm{equivR}(y) = (\mathrm{equivR}\, x)^{1/b}\)。</li>
+        <li><strong>整数幂的保持：</strong> 已由 <code>zpow_of_equivR</code> 给出。</li>
+        <li>合起来：
+        \(\mathrm{equivR}(x^q) = \mathrm{equivR}((x^{1/b})^a) = (\mathrm{equivR}(x^{1/b}))^a = ((\mathrm{equivR}\,x)^{1/b})^a
+        = (\mathrm{equivR}\,x)^{a/b} = (\mathrm{equivR}\,x)^{(q:\mathbb{R})}\)。</li>
+    </ul>
+    最后一步用了 Mathlib 中 <code>rpow</code> 在有理指数处与方根复合的定义性等式。
+</div>
+
+<hr>
+
+<!-- ========== 意义 ========== -->
+<div class="chapter-marker" id="significance">— 意义：为何要做这件事？—</div>
+
+<p>
+有人可能会问：既然 Mathlib 已经有 \(\mathbb{R}\)，为什么 Tao 要"再造一遍"，然后又花一个尾声章节证明它和 Mathlib 的同构？
+答案分两个层面。
+</p>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">数学层面</h3>
+
+<p>
+教科书《分析学 I》的目的之一就是让读者<strong>从零构造实数</strong>，亲身体会"完备化"的全过程。
+跳过这一构造，直接使用 \(\mathbb{R}\)，就丧失了第 5 章的教学价值。
+但教学价值不等于实用价值——构造一旦完成，所有进一步的分析（极限、连续、微积分）
+应该建立在一个统一的、有完整 API 的实数对象之上。
+本尾声章节正是把"教学构造"和"实用对象"严格地连接起来。
+</p>
+
+<h3 style="margin: 1.5em 0 0.8em 0;">形式化层面</h3>
+
+<p>
+更具体地说，从第 6 章开始，本 Lean 形式化项目将使用 Mathlib 的 \(\mathbb{R}\) 而非 <code>Chapter5.Real</code>。
+这一过渡的合理性正是依赖于 <code>equivR</code> 是<strong>保结构</strong>同构。
+有了它：
+</p>
+<ul>
+    <li>第 5 章证明的任何关于 <code>Chapter5.Real</code> 的定理，都能通过 <code>equivR</code> 转移到 \(\mathbb{R}\) 上；</li>
+    <li>反之，Mathlib 中关于 \(\mathbb{R}\) 的丰富 API（极限、拓扑、测度、积分），可以为后续章节直接所用；</li>
+    <li>读者无需在两套实数之间反复切换——同构在某种意义上让 <code>Chapter5.Real</code> "退役"。</li>
+</ul>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4AC; 关于"过度工程"的辩护</span>
+    <p>
+    本尾声章节的代码量并不小，并且证明明显比第 5.1 至 5.6 节繁琐：
+    它要不断在两个不同（但同构）的世界之间翻译。
+    乍看之下这像是"过度工程"——既然两个 \(\mathbb{R}\) 是同构的，何必如此较真？
+    </p>
+    <p>
+    但形式化的灵魂正在于此。"两个对象同构"在数学中是<strong>结论</strong>，
+    在形式化中是<strong>需要被构造的同构</strong>。
+    没有显式的 <code>equivR</code>，Lean 不会自动认为 <code>Chapter5.Real.add</code> 和 <code>Real.add</code> 是"同一种"加法。
+    本章把这种"显然的同一性"翻译成 Lean 看得懂的语言，从而打开了通向后续章节的大门。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div class="chapter-marker" id="supp">— 补充说明 —</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 三种实数构造的视角</span>
+    <p>
+    历史上构造实数的方法不止两种，常见的有：
+    </p>
+    <ul>
+        <li><strong>戴德金分割</strong>（Dedekind, 1872）：本章的"桥梁"。直接，但代数运算定义繁琐。</li>
+        <li><strong>柯西序列商</strong>（Cantor, Méray）：本书第 5 章。代数运算自然，但"等价类"略显抽象。</li>
+        <li><strong>无尽小数展开</strong>：直观，但小数运算（如 \(0.999\ldots = 1\)）需要小心处理。</li>
+    </ul>
+    <p>
+    更现代的方法还有"完备阿基米德有序域的范畴是连通的（任何两个对象间存在唯一同构）"
+    这个范畴论刻画。本尾声证明的事实是这一连通性的具体实例。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; 形式化中的 <code>Equiv</code> 与 <code>≃+*o</code></span>
+    <p>
+    Lean/Mathlib 中关于"同构"有多种类型：
+    </p>
+    <ul>
+        <li><code>≃</code>（<code>Equiv</code>）：仅集合双射，不要求保持任何结构；</li>
+        <li><code>≃+</code>：保加法的群同构；</li>
+        <li><code>≃+*</code>：保加法和乘法的环同构；</li>
+        <li><code>≃+*o</code>：保加法、乘法和序的<strong>有序环同构</strong>。</li>
+    </ul>
+    <p>
+    本章的 <code>Real.equivR</code> 是 <code>≃</code>，而升级版 <code>Real.equivR_ordered_ring</code> 是 <code>≃+*o</code>。
+    后者几乎"什么都保持"，因此可以从它派生出 <code>map_inv</code>、<code>map_pos</code> 等无穷多个推论。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">&#x1F4D6; Lean 中的 <code>LIM</code> 与 <code>Real.mk</code></span>
+    <p>
+    它们是"同一件事"的两种语法：
+    </p>
+    <table>
+        <tr><th>用法</th><th>第 5 章 (<code>Chapter5.Real</code>)</th><th>Mathlib (<code>ℝ</code>)</th></tr>
+        <tr><td>柯西性谓词</td><td><code>Sequence.IsCauchy</code></td><td><code>IsCauSeq abs</code></td></tr>
+        <tr><td>柯西序列类型</td><td>(隐式：<code>ℕ → ℚ</code> + 谓词)</td><td><code>CauSeq ℚ abs</code></td></tr>
+        <tr><td>等价</td><td><code>Sequence.Equiv</code></td><td><code>(· ≈ ·)</code> 即 <code>CauSeq.LimZero</code></td></tr>
+        <tr><td>取极限</td><td><code>LIM a</code></td><td><code>Real.mk c</code></td></tr>
+    </table>
+    <p>
+    桥接定理 <code>equivR_eq'</code> 把左列翻译成右列，是本尾声章节最技术的一步。
+    </p>
+</div>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">&#x1F4AC; 个人感悟：再见，Chapter5.Real</span>
+    <p>
+    写到这里，第 5 章就真正落幕了。从 5.1 节的 \(\varepsilon\)-稳定序列，
+    到 5.6 节的有理指数，再到本尾声的同构桥，我们花了相当多的篇幅<strong>从零构造一个实数系</strong>，
+    然后又花一整章证明它与 Mathlib 的标准构造等价。
+    </p>
+    <p>
+    回过头看，整个旅程最值得学习的不是"哪种构造更优"，
+    而是"<strong>什么样的对象配得上叫实数</strong>"——
+    它必须是一个完备阿基米德有序域，并且这个性质在同构的意义下是唯一的。
+    所有的构造（柯西序列、戴德金分割、无尽小数）都在追逐同一个不变量。
+    </p>
+    <p>
+    从下一章起，我们就把 <code>Chapter5.Real</code> 这个老朋友放下，
+    转而使用 Mathlib 的 <code>ℝ</code>。但有了本尾声章节的 <code>equivR</code>，
+    我们随时可以把第 5 章学到的一切翻译过去。这种"翻译自由"正是同构的礼物。
+    </p>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 第 5 章尾声·完 —</div>
+
+<p>
+本章证明了第 5 章的柯西序列实数 \(\mathbf{R}_{\text{Cau}}\) 与 Mathlib 的标准实数 \(\mathbb{R}\) 通过戴德金分割
+<span class="t" data-zh="同构" data-en="isomorphic"></span>，
+且这一同构保持所有的加法、乘法、序、有理嵌入、自然数/整数/有理指数。
+从下一章开始，<code>Chapter5.Real</code> 退役，我们将直接使用 \(\mathbb{R}\)。
+</p>
+
+<div class="footer">
+    <p>本文档为 Terence Tao 所著《<em>分析学 I</em>》Lean 形式化项目的补充材料，
+    解释第 5 章尾声章节中关于"两种实数构造同构"的核心思想与证明骨架。</p>
+    <p>相应的 Lean 形式化代码（含若干待完成的 <code>sorry</code>）见 <code>Section_5_epilogue.lean</code>。</p>
+</div>
+
+</body>
+</html>
