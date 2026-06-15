@@ -1,5 +1,6 @@
 import Mathlib.Tactic
 import Analysis.Section_5_4
+import Analysis.Section_4_4
 
 set_option maxHeartbeats 800000
 
@@ -774,10 +775,142 @@ theorem ExtendedReal.sup_of_bounded_finite {E: Set Real} (hnon: E.Nonempty) (hb:
 
 /-- Proposition 5.5.12 -/
 theorem Real.exist_sqrt_two : ∃ x:Real, x^2 = 2 := by
-  sorry
+  -- Let E := {y : Real | y ≥ 0 ∧ y^2 < 2}.
+  set E := { y : Real | 0 ≤ y ∧ y^2 < 2 } with hE_def
+  -- Helper: positivity of (5:Real)⁻¹ (project's Real uses a custom OfNat, so we
+  -- go through the IsPos API rather than Mathlib's `inv_pos`).
+  have h5inv_pos : 0 < (5:Real)⁻¹ := by
+    have h5pos : (5:Real).IsPos := by rw [Real.isPos_iff]; norm_num
+    exact (Real.isPos_iff _).mp (Real.inv_of_pos h5pos)
+  have h5_ne_zero : (5:Real) ≠ 0 := by
+    have h5pos : (5:Real).IsPos := by rw [Real.isPos_iff]; norm_num
+    exact Real.nonzero_of_pos h5pos
+  -- E is nonempty (1 ∈ E).
+  have h_one_mem : (1:Real) ∈ E := by
+    show (0 : Real) ≤ 1 ∧ (1:Real)^2 < 2
+    constructor <;> norm_num
+  have h_nonempty : E.Nonempty := ⟨1, h_one_mem⟩
+  -- 2 is an upper bound of E: if y ∈ E and y > 2 then y^2 > 4 > 2, contradiction.
+  have h_two_ub : (2:Real) ∈ upperBounds E := by
+    rw [Real.upperBound_def]
+    intro y hy
+    rw [Set.mem_setOf_eq] at hy
+    obtain ⟨hy_nonneg, hy_sq⟩ := hy
+    by_contra h
+    push_neg at h
+    -- y > 2 ≥ 0 ⟹ y^2 > 4.
+    have hy_sq_gt4 : y^2 > (4:Real) := by
+      have hkey : (2:Real)^2 < y^2 := sq_lt_sq' (by linarith : (-(y:Real)) < 2) h
+      rwa [show (2:Real)^2 = 4 from by norm_num] at hkey
+    linarith
+  have h_bdd : BddAbove E := ⟨2, h_two_ub⟩
+  -- Let x be the least upper bound of E.
+  obtain ⟨x, hx⟩ := Real.LUB_exist h_nonempty h_bdd
+  rw [Real.isLUB_def] at hx
+  obtain ⟨hx_ub, hx_min⟩ := hx
+  have hx_ub_all : ∀ a, a ∈ E → a ≤ x := mem_upperBounds.mp hx_ub
+  have hx_min_all : ∀ M' ∈ upperBounds E, M' ≥ x := hx_min
+  have h_one_le_x : (1:Real) ≤ x := hx_ub_all 1 h_one_mem
+  have h_x_le_two : x ≤ 2 := hx_min_all 2 h_two_ub
+  refine ⟨x, ?_⟩
+  rcases Real.trichotomous' (x^2) 2 with (hgt | hlt | heq)
+  · -- Case x^2 > 2 (contradiction). Take ε := (x^2 - 2)/(2*x) so that 2*x*ε = x^2 - 2.
+    exfalso
+    have hx_pos : 0 < x := by linarith
+    have h2x_pos : 0 < 2 * x := by nlinarith
+    set ε : Real := (x^2 - 2) / (2 * x) with hε_def
+    have h2x_ne_zero : (2 * x : Real) ≠ 0 := by nlinarith
+    have hε_pos : 0 < ε := by
+      rw [hε_def, Real.div_eq]
+      exact mul_pos (by linarith) ((Real.isPos_iff _).mp (Real.inv_of_pos
+        (by rw [Real.isPos_iff]; exact h2x_pos)))
+    -- 0 ≤ x - ε: ε ≤ x ⟺ (x^2-2)/(2x) ≤ x ⟺ x^2 - 2 ≤ 2x^2 (since 2x > 0).
+    have hxm_nonneg : 0 ≤ x - ε := by
+      rw [hε_def, Real.div_eq, le_sub_iff_add_le]
+      have h1 : 0 < (2 * x : Real)⁻¹ :=
+        (Real.isPos_iff _).mp (Real.inv_of_pos (by rw [Real.isPos_iff]; exact h2x_pos))
+      -- Show (x^2 - 2) * (2x)⁻¹ ≤ x via (x^2-2) ≤ 2x^2.
+      have h3 : (x^2 - 2) * (2 * x)⁻¹ ≤ (2 * x) * (2 * x)⁻¹ :=
+        mul_le_mul_of_nonneg_right (by nlinarith [sq_nonneg x]) (le_of_lt h1)
+      have h4 : (2 * x) * (2 * x)⁻¹ = 1 := Real.self_mul_inv h2x_ne_zero
+      linarith
+    -- (x - ε)^2 = x^2 - 2*x*ε + ε^2 = 2 + ε^2 > 2.
+    have h_2xε : 2 * x * ε = x^2 - 2 := by
+      rw [hε_def, Real.div_eq, mul_left_comm, Real.self_mul_inv h2x_ne_zero]
+      ring
+    have hxm_sq_gt_two : (x - ε)^2 > 2 := by
+      have h_expand : (x - ε)^2 = x^2 - 2*x*ε + ε^2 := by ring
+      calc (x - ε)^2 = x^2 - 2*x*ε + ε^2 := h_expand
+        _ = x^2 - (x^2 - 2) + ε^2 := by rw [h_2xε]
+        _ = 2 + ε^2 := by ring
+        _ > 2 := by nlinarith [hε_pos]
+    -- x - ε is an upper bound of E.
+    have hxm_ub : (x - ε) ∈ upperBounds E := by
+      rw [Real.upperBound_def]
+      intro y hy
+      rw [Set.mem_setOf_eq] at hy
+      obtain ⟨hy_nonneg, hy_sq⟩ := hy
+      by_contra h
+      push_neg at h
+      -- y > x - ε ≥ 0, so y^2 ≥ (x-ε)^2 > 2 > y^2, contradiction.
+      have hy_ge_xm_sq : (x - ε)^2 ≤ y^2 :=
+        sq_le_sq' (by linarith) (by linarith : (x - ε) ≤ y)
+      linarith
+    -- x is the least upper bound, so x ≤ x - ε, i.e. ε ≤ 0; contradiction.
+    linarith [hx_min (x - ε) hxm_ub]
+  · -- Case x^2 < 2 (contradiction). Take ε := (2 - x^2)/5 so that 5*ε = 2 - x^2.
+    exfalso
+    set ε : Real := (2 - x^2) / 5 with hε_def
+    have hε_pos : 0 < ε := by
+      rw [hε_def, Real.div_eq]
+      exact mul_pos (by linarith) h5inv_pos
+    -- x^2 + 5*ε = 2.
+    have h_sum : x^2 + 5*ε = 2 := by
+      rw [hε_def, Real.div_eq, mul_left_comm, Real.self_mul_inv h5_ne_zero]; ring
+    have hε_le_one : ε ≤ 1 := by
+      rw [hε_def, Real.div_eq]
+      have hle : (2 - x^2) * (5:Real)⁻¹ ≤ 5 * (5:Real)⁻¹ :=
+        mul_le_mul_of_nonneg_right (by nlinarith [sq_nonneg x]) (le_of_lt h5inv_pos)
+      calc (2 - x^2) * (5:Real)⁻¹ ≤ 5 * (5:Real)⁻¹ := hle
+        _ = 1 := by rw [Real.self_mul_inv h5_ne_zero]
+    -- (x + ε)^2 = x^2 + 2*x*ε + ε^2 < x^2 + 5*ε = 2.
+    -- Key: x^2 < 2 ⟹ x < 2 ⟹ 2*x + ε < 5 (since ε ≤ 1, with strictness from x<2).
+    have hxp_nonneg : 0 ≤ x + ε := by nlinarith [sq_nonneg x, h_one_le_x]
+    have hxp_sq_lt_two : (x + ε)^2 < 2 := by
+      have h_expand : (x + ε)^2 = x^2 + 2*x*ε + ε^2 := by ring
+      -- 2*x*ε + ε^2 = ε*(2*x + ε) < ε*5 = 5*ε  (since 2*x + ε < 5).
+      have hx_lt_2 : x < 2 := by
+        -- x ≤ 2 and x^2 < 2; if x = 2 then x^2 = 4, contradiction.
+        by_contra h
+        push_neg at h
+        have : x^2 = 4 := by nlinarith
+        linarith
+      have h2xpε_lt_5 : 2*x + ε < 5 := by nlinarith [hx_lt_2, hε_le_one]
+      have h_strict : 2*x*ε + ε^2 < 5*ε := by nlinarith [h2xpε_lt_5, hε_pos]
+      calc (x + ε)^2 = x^2 + 2*x*ε + ε^2 := h_expand
+        _ < x^2 + 5*ε := by nlinarith [h_strict]
+        _ = 2 := h_sum
+    -- So x + ε ∈ E, contradicting x being an upper bound.
+    have hxp_mem : x + ε ∈ E := by
+      rw [Set.mem_setOf_eq]; exact ⟨hxp_nonneg, hxp_sq_lt_two⟩
+    have hxp_le_x : (x + ε) ≤ x := mem_upperBounds.mp hx_ub (x + ε) hxp_mem
+    linarith
+  · -- Case x^2 = 2: done.
+    exact heq
 
 /-- Remark 5.5.13 -/
-theorem Real.exist_irrational : ∃ x:Real, ¬ ∃ q:ℚ, x = (q:Real) := by sorry
+theorem Real.exist_irrational : ∃ x:Real, ¬ ∃ q:ℚ, x = (q:Real) := by
+  obtain ⟨x, hx⟩ := Real.exist_sqrt_two
+  refine ⟨x, ?_⟩
+  rintro ⟨q, rfl⟩
+  -- (q:Real)^2 = 2; cast back to ℚ to get q^2 = 2, contradicting irrationality of √2.
+  have hq2 : ((q^2 : ℚ) : Real) = 2 := by
+    have key : ((q^2 : ℚ) : Real) = (q:Real) * (q:Real) := by
+      rw [pow_two, Real.ratCast_mul]
+    rw [key, ← pow_two, hx]
+  have h2 : (2:Real) = (2:ℚ) := rfl
+  rw [h2] at hq2
+  exact _root_.Rat.not_exist_sqrt_two ⟨q, (Real.ratCast_inj _ _).mp hq2⟩
 
 /-- Helper lemma for Exercise 5.5.1. -/
 theorem Real.mem_neg (E: Set Real) (x:Real) : x ∈ -E ↔ -x ∈ E := Set.mem_neg
@@ -863,7 +996,97 @@ theorem ExtendedReal.inf_of_bounded_finite {E: Set Real} (hnon: E.Nonempty) (hb:
 
 /-- Exercise 5.5.5 -/
 theorem Real.irrat_between {x y:Real} (hxy: x < y) :
-    ∃ z, x < z ∧ z < y ∧ ¬ ∃ q:ℚ, z = (q:Real) := by sorry
+    ∃ z, x < z ∧ z < y ∧ ¬ ∃ q:ℚ, z = (q:Real) := by
+  -- Pick the positive √2 (which is irrational), and shift it by a rational q₁.
+  obtain ⟨w, hw⟩ := Real.exist_sqrt_two
+  -- Ensure we have a positive square root: if w < 0 use -w (whose square is also 2).
+  set α : Real := if w < 0 then -w else w with hα_def
+  have hα_sq : α^2 = 2 := by
+    rw [hα_def]
+    split_ifs with h
+    · rw [neg_sq, hw]
+    · exact hw
+  have hα_pos : 0 < α := by
+    rcases Real.trichotomous' w 0 with (hwpos | hwneg | hwzero)
+    · -- w > 0: α = w (since ¬(w < 0))
+      rw [hα_def]; split_ifs <;> linarith
+    · -- w < 0: α = -w
+      rw [hα_def]; split_ifs; linarith
+    · -- w = 0: then w^2 = 0 ≠ 2, contradiction
+      exfalso
+      rw [hwzero] at hw
+      norm_num at hw
+  have hα_irrat : ¬ ∃ q : ℚ, α = (q:Real) := by
+    rintro ⟨q, hq⟩
+    -- α = (q:Real), so (q:Real)^2 = 2, hence q^2 = 2 in ℚ.
+    have hq2 : (q:Real)^2 = 2 := by rw [← hq, hα_sq]
+    have hcast : ((q^2 : ℚ) : Real) = (q:Real) * (q:Real) := by
+      rw [pow_two, Real.ratCast_mul]
+    have hkey : ((q^2 : ℚ) : Real) = 2 := by rw [hcast, ← pow_two, hq2]
+    have h2 : (2:Real) = (2:ℚ) := rfl
+    rw [h2] at hkey
+    exact _root_.Rat.not_exist_sqrt_two ⟨q, (Real.ratCast_inj _ _).mp hkey⟩
+  -- Find rationals q₁ < q₂ inside (x, y).
+  obtain ⟨q₁, hq₁x, hq₁y⟩ := Real.rat_between hxy
+  obtain ⟨q₂, hq₂q₁, hq₂y⟩ := Real.rat_between hq₁y
+  set δ : Real := (q₂:Real) - (q₁:Real) with hδ_def
+  have hδ_pos : 0 < δ := by rw [hδ_def]; linarith
+  -- Find N : ℕ with N > 0 and α < δ * N (so that α/N < δ).
+  have hδ_pos_isPos : δ.IsPos := (Real.isPos_iff _).mpr hδ_pos
+  obtain ⟨N, hNpos, hN⟩ := Real.le_mul hδ_pos_isPos α
+  have hN_pos_real : (0:Real) < N := by exact_mod_cast hNpos
+  have hN_ne_zero : (N : Real) ≠ 0 := by linarith
+  -- z := (q₁:Real) + α / N. Need α / N < δ and α/N > 0.
+  set z : Real := (q₁:Real) + α / N with hz_def
+  -- α / N < δ:  α < δ * N  ⟺  α / N < δ  (since N > 0).
+  have hα_div_N_lt_δ : α / N < δ := by
+    rw [Real.div_eq]
+    -- α * N⁻¹ < δ ⟺ α < δ * N.
+    have hN_inv_pos : 0 < (N:Real)⁻¹ :=
+      (Real.isPos_iff _).mp (Real.inv_of_pos ((Real.isPos_iff _).mpr hN_pos_real))
+    have hN_lt : α < δ * N := by linarith [mul_comm (N:Real) δ, hN]
+    -- (N⁻¹ * N) * δ = δ.
+    calc α * (N:Real)⁻¹ < (δ * N) * (N:Real)⁻¹ :=
+      mul_lt_mul_of_pos_right hN_lt hN_inv_pos
+      _ = δ * ((N:Real) * (N:Real)⁻¹) := by ring
+      _ = δ * 1 := by rw [Real.self_mul_inv hN_ne_zero]
+      _ = δ := by ring
+  have hα_div_N_pos : 0 < α / N := by
+    rw [Real.div_eq]
+    have hN_inv_pos : 0 < (N:Real)⁻¹ :=
+      (Real.isPos_iff _).mp (Real.inv_of_pos ((Real.isPos_iff _).mpr hN_pos_real))
+    exact mul_pos hα_pos hN_inv_pos
+  refine ⟨z, ?_, ?_, ?_⟩
+  · -- x < z
+    calc x < (q₁:Real) := hq₁x
+      _ < (q₁:Real) + α / N := by linarith [hα_div_N_pos]
+      _ = z := by rw [hz_def]
+  · -- z < y
+    have hz_lt_q2 : (q₁:Real) + α / N < (q₂:Real) := by
+      have : α / N < (q₂:Real) - (q₁:Real) := hα_div_N_lt_δ
+      linarith
+    calc z = (q₁:Real) + α / N := by rw [hz_def]
+      _ < (q₂:Real) := hz_lt_q2
+      _ < y := hq₂y
+  · -- z is irrational: if z = (r:Real), then α/N = z - q₁ = (r - q₁ : ℚ),
+    -- so α = N * (α/N) = N * (r - q₁) is rational, contradicting hα_irrat.
+    rintro ⟨r, hr⟩
+    apply hα_irrat
+    -- α/N = (r - q₁ : ℚ), and α = N * (α/N) = (N * (r - q₁) : ℚ).
+    refine ⟨(N : ℚ) * (r - q₁), ?_⟩
+    -- Cast witness: (N*(r-q₁) : ℚ) : Real = (N:Real) * ((r:Real) - (q₁:Real)).
+    have h_cast : (((N:ℚ) * (r - q₁) : ℚ) : Real) = (N:Real) * ((r:Real) - (q₁:Real)) := by
+      rw [Real.ratCast_sub,
+          show (N:Real) = ((N:ℚ):Real) from rfl,
+          Real.ratCast_mul]
+    rw [h_cast]
+    -- Goal: (N:Real) * ((r:Real) - (q₁:Real)) = α.
+    -- Use α/N = (r:Real) - (q₁:Real) and (N:Real)*(α/N) = α.
+    have hz_eq : (q₁:Real) + α / N = (r:Real) := by
+      rw [← hz_def]; exact hr
+    have hα_div_eq : α / N = (r:Real) - (q₁:Real) := by linarith
+    -- (N:Real) * (α/N) = α  via  α/N = α*(N:Real)⁻¹, then rearrange.
+    rw [← hα_div_eq, Real.div_eq, mul_left_comm, Real.self_mul_inv hN_ne_zero, mul_one]
 
 /- Use the notion of supremum in this section to define a Mathlib `sSup` operation -/
 noncomputable instance Real.inst_SupSet : SupSet Real where
