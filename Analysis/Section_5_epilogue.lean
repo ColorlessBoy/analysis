@@ -43,15 +43,14 @@ abbrev Real.toSet_Rat (x:Real) : Set ℚ := { q | (q:Real) < x }
 /-- Local Archimedean helper: every Chapter 5 real is dominated by some natural. -/
 private lemma Real.exists_nat_gt'' (x:Real) : ∃ N:ℕ, x < (N:Real) := by
   rcases lt_or_ge x 0 with h | h
-  · refine ⟨1, ?_⟩
-    have h1 : ((1:ℕ):Real) = (1:Real) := by norm_num
-    rw [h1]
+  · use 1
+    rw [Nat.cast_one]
     have : (0:Real) < (1:Real) := by norm_num
     linarith
   · rcases eq_or_lt_of_le h with heq | hlt
-    · refine ⟨1, ?_⟩
-      have h1 : ((1:ℕ):Real) = (1:Real) := by norm_num
-      rw [h1, ← heq]; norm_num
+    · use 1
+      rw [Nat.cast_one]
+      rw [← heq]; norm_num
     · exact (Real.exists_rat_le_and_nat_gt ((Real.isPos_iff x).mpr hlt)).2
 
 lemma Real.toSet_Rat_nonempty (x:Real) : x.toSet_Rat.Nonempty := by
@@ -60,7 +59,7 @@ lemma Real.toSet_Rat_nonempty (x:Real) : x.toSet_Rat.Nonempty := by
 
 lemma Real.toSet_Rat_bounded (x:Real) : BddAbove x.toSet_Rat := by
   obtain ⟨N, hN⟩ := Real.exists_nat_gt'' x
-  refine ⟨(N:ℚ), fun q hq => ?_⟩
+  use N; intro q hq
   simp only [Real.toSet_Rat, Set.mem_setOf_eq] at hq
   have hqN : (q:Real) < ((N:ℚ):Real) := by
     rw [show (((N:ℚ)):Real) = ((N:ℕ):Real) from by rfl]
@@ -357,7 +356,7 @@ theorem Sequence.Equiv_iff_LimZero {a b: ℕ → ℚ} (ha: IsCauchy a) (hb: IsCa
 ----
 -- We create some cauchy sequences with useful properties
 
-/-- Cast respects `≤`. -/
+/-- Cast respects {lit}`≤`. -/
 private lemma Real.le_of_coe (q r : ℚ) : q ≤ r ↔ (q:Real) ≤ (r:Real) := by
   constructor
   · intro h
@@ -412,8 +411,8 @@ theorem Sequence.difference_approaches_zero {a: ℕ → ℚ} (ha: Sequence.IsCau
       rw [hsum] at hcoe; linarith
     linarith
 
-/-- Helper: if `q n` is eventually within ε of `LIM a` (for every ε > 0), then
-`q` is itself Cauchy and equivalent to `a`. -/
+/-- Helper: if {lit}`q n` is eventually within ε of {lit}`LIM a` (for every ε > 0), then
+{lit}`q` is itself Cauchy and equivalent to {lit}`a`. -/
 private lemma cauchy_equiv_of_close {a q : ℕ → ℚ} (ha: Sequence.IsCauchy a)
   (hq_close : ∀ε > (0:ℚ), ∃N, ∀n ≥ N, |LIM a - q n| ≤ (ε:ℚ))
   : Sequence.IsCauchy q ∧ Sequence.Equiv a q := by
