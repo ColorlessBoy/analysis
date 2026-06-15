@@ -548,7 +548,7 @@ theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): 
   have real_ratCast_div (a b : ℚ) : ((a / b : ℚ) : Real) = (a : Real) / (b : Real) := by
     calc
       ((a / b : ℚ) : Real) = ((a * b⁻¹ : ℚ) : Real) := by
-        push_cast; field_simp
+        field_simp
       _ = (a : Real) * ((b⁻¹ : ℚ) : Real) := by rw [Real.ratCast_mul]
       _ = (a : Real) * (b : Real)⁻¹ := by rw [Real.inv_ratCast]
       _ = (a : Real) / (b : Real) := rfl
@@ -637,11 +637,13 @@ theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): 
       refine ⟨fun _ : ℕ => (1 : ℚ) / 2, ⟨(1 : ℚ) / 2, by norm_num, λ _ => le_refl _⟩,
         Sequence.IsCauchy.const _, ?_⟩
       calc
-        ((2 : Real)⁻¹) = (1 : Real) * ((2 : Real)⁻¹) := by rw [one_mul]
-        _ = ((1 : Real) / (2 : Real)) := by rw [div_eq_mul_inv]
-        _ = (((1 : ℚ) / (2 : ℚ)) : Real) := by rw [real_ratCast_div 1 2]
+        ((2 : Real)⁻¹) = (1 : Real) / (2 : Real) := by rw [one_div]
+        _ = (((1 : ℚ) / (2 : ℚ)) : Real) := by
+          have h1 : (1 : Real) = ((1 : ℚ) : Real) := rfl
+          have h2 : (2 : Real) = ((2 : ℚ) : Real) := rfl
+          rw [h1, h2]
         _ = LIM (fun _ : ℕ => (1 : ℚ) / 2) :=
-          Real.ratCast_def ((1 : ℚ) / (2 : ℚ))
+          (real_ratCast_div 1 2).symm.trans (Real.ratCast_def ((1 : ℚ) / (2 : ℚ)))
     have h2inv_pos : (2 : Real)⁻¹ > 0 := (Real.isPos_iff _).mp h2inv_IsPos
     have h_half_pos : ((S - M') / 2).IsPos := by
       apply (Real.isPos_iff _).mpr
@@ -668,13 +670,14 @@ theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): 
     have h_upper_dist : S - (1 : Real) / ((N : Real) + 1) ≤ (a N : Real) := by
       rcases abs_le.mp h_error_N with ⟨h_low, h_high⟩
       linarith
+    have hcast : ((1 / ((N : ℚ) + 1) : ℚ) : Real) = (1 : Real) / ((N : Real) + 1) :=
+      (real_ratCast_div 1 ((N : ℚ) + 1)).trans (by
+        rw [← Real.ratCast_add (N : ℚ) 1]
+        have h1 : ((1 : ℚ) : Real) = (1 : Real) := rfl
+        have h2 : ((N : ℚ) : Real) = (N : Real) := rfl
+        rw [h1, h2])
     have h_not_ub : ((a N : Real) - ((1 : Real) / ((N : Real) + 1))) ∉ upperBounds E := by
       have h := hm2 N
-      have hcast : ((1 / ((N : ℚ) + 1) : ℚ) : Real) = (1 : Real) / ((N : Real) + 1) := by
-        calc
-          ((1 / ((N : ℚ) + 1) : ℚ) : Real) = ((1 : ℚ) : Real) / (((N : ℚ) + 1) : Real) := by
-            rw [real_ratCast_div 1 ((N : ℚ) + 1)]
-          _ = (1 : Real) / ((N : Real) + 1) := by simp [Real.ratCast_add]
       have hcalc : ((a - b) N : Real) = (a N : Real) - ((1 : Real) / ((N : Real) + 1)) := by
         calc
           ((a - b) N : Real) = ((m N : Real) - 1) * ((1 / ((N : ℚ) + 1) : ℚ) : Real) := hm2_eq N
