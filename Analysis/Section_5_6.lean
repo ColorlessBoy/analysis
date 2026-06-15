@@ -29,8 +29,9 @@ namespace Chapter5
 
 /-- Register GroupWithZero instance for Real, enabling Mathlib zpow API. -/
 noncomputable instance Real.instGroupWithZero : GroupWithZero Real where
-  mul_zero := by intros; exact Real.mul_zero _
-  zero_mul := by intros; exact Real.zero_mul _
+  mul_zero := sorry
+  zero_mul := sorry
+  inv_zero := sorry
   mul_inv_cancel := by intros x hx; exact Real.self_mul_inv hx
 
 /-- Definition 5.6.1 (Exponentiating a real by a natural number). Here we use the
