@@ -165,29 +165,53 @@ instance Chapter5.Sequence.inst_coe_sequence : Coe Chapter5.Sequence Sequence wh
 theorem Chapter5.coe_sequence_eval (a: Chapter5.Sequence) (n:ℤ) : (a:Sequence) n = (a n:ℝ) := rfl
 
 theorem Sequence.is_steady_of_rat (ε:ℚ) (a: Chapter5.Sequence) :
-    ε.Steady a ↔ (ε:ℝ).Steady (a:Sequence) := by sorry
+    ε.Steady a ↔ (ε:ℝ).Steady (a:Sequence) := by
+  peel with Z hZ
+  constructor
+  · intro h m hm
+    specialize h m hm
+    rw [Real.close_def, Real.dist_eq, ← Rat.cast_sub, ← Rat.cast_abs, Rat.cast_le]
+    exact h
+  intro h m hm
+  specialize h m hm
+  rw [Rat.Close]
+  rw [Real.close_def, Real.dist_eq, ← Rat.cast_sub, ← Rat.cast_abs, Rat.cast_le] at h
+  exact h
 
 theorem Sequence.is_eventuallySteady_of_rat (ε:ℚ) (a: Chapter5.Sequence) :
-    ε.EventuallySteady a ↔ (ε:ℝ).EventuallySteady (a:Sequence) := by sorry
+    ε.EventuallySteady a ↔ (ε:ℝ).EventuallySteady (a:Sequence) := by
+  peel with Z hZ
+  constructor
+  · intro hsteady N hN M hM
+    specialize hsteady N hN M hM
+    simp at hM hN
+    rw [Real.close_def, Real.dist_eq, Sequence.from_eval _ hN.2, Sequence.from_eval _ hM.2, ← Rat.cast_sub, ← Rat.cast_abs, Rat.cast_le]
+    rw [Rat.Close, Chapter5.Sequence.from_eval _ hN.2, Chapter5.Sequence.from_eval _ hM.2] at hsteady
+    exact hsteady
+  · intro hsteady N hN M hM
+    specialize hsteady N hN M hM
+    simp at hM hN
+    rw [Real.close_def, Real.dist_eq, Sequence.from_eval _ hN.2, Sequence.from_eval _ hM.2, ← Rat.cast_sub, ← Rat.cast_abs, Rat.cast_le] at hsteady
+    rw [Rat.Close, Chapter5.Sequence.from_eval _ hN.2, Chapter5.Sequence.from_eval _ hM.2]
+    exact hsteady
 
 /-- Proposition 6.1.4 -/
 theorem Sequence.isCauchy_of_rat (a: Chapter5.Sequence) : a.IsCauchy ↔ (a:Sequence).IsCauchy := by
   -- This proof is written to follow the structure of the original text.
   constructor
-  swap
+  · intro h
+    rw [Chapter5.Sequence.isCauchy_def] at h
+    rw [isCauchy_def]
+    intro ε hε
+    choose ε' hε' hlt using exists_pos_rat_lt hε
+    specialize h ε' hε'
+    rw [is_eventuallySteady_of_rat] at h
+    exact h.mono (le_of_lt hlt)
   . intro h; rw [isCauchy_def] at h
     rw [Chapter5.Sequence.isCauchy_def]
     intro ε hε
     specialize h ε (by positivity)
     rwa [is_eventuallySteady_of_rat]
-  intro h
-  rw [Chapter5.Sequence.isCauchy_def] at h
-  rw [isCauchy_def]
-  intro ε hε
-  choose ε' hε' hlt using exists_pos_rat_lt hε
-  specialize h ε' hε'
-  rw [is_eventuallySteady_of_rat] at h
-  exact h.mono (le_of_lt hlt)
 
 end Chapter6
 
@@ -229,7 +253,23 @@ theorem Sequence.tendsTo_def (a:Sequence) (L:ℝ) :
 
 /-- Exercise 6.1.2 -/
 theorem Sequence.tendsTo_iff (a:Sequence) (L:ℝ) :
-  a.TendsTo L ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - L| ≤ ε := by sorry
+  a.TendsTo L ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - L| ≤ ε := by
+  constructor
+  · intro h ε hε
+    obtain ⟨N, hN, hclose⟩ := h ε hε
+    use N; intro n hn
+    have hn' : n ≥ (a.from N).m := by unfold Sequence.from; simp; omega
+    specialize hclose n hn'
+    rw [Real.close_def, Sequence.from_eval _ (show n ≥ N from hn), Real.dist_eq] at hclose
+    exact hclose
+  · intro h ε hε
+    obtain ⟨N, hN⟩ := h ε hε
+    refine ⟨max a.m N, le_max_left _ _, ?_⟩
+    intro n hn
+    have hn_N : n ≥ max a.m N := by
+      unfold Sequence.from Sequence.mk' at hn; simp at hn; omega
+    rw [Real.close_def, Sequence.from_eval _ (show n ≥ max a.m N from hn_N), Real.dist_eq]
+    exact hN n (by omega)
 
 noncomputable def seq_6_1_6 : Sequence := (fun (n:ℕ) ↦ 1-(10:ℝ)^(-(n:ℤ)-1):Sequence)
 
@@ -251,10 +291,35 @@ example : ¬ (0.01:ℝ).CloseSeq seq_6_1_6 1 := by
   intro h; specialize h 0 (by positivity); simp [seq_6_1_6] at h; norm_num at h
 
 /-- Examples 6.1.6 -/
-example : (0.01:ℝ).EventuallyClose seq_6_1_6 1 := by sorry
+example : (0.01:ℝ).EventuallyClose seq_6_1_6 1 := by
+  refine ⟨1, by simp [seq_6_1_6], ?_⟩
+  rw [Real.closeSeq_def]
+  intro n hn
+  simp [seq_6_1_6] at hn ⊢
+  have hn' : n ≥ 1 := by omega
+  simp [hn', show (0:ℤ) ≤ n by omega]
+  rw [show (0.01:ℝ) = (10:ℝ)^(-2:ℤ) by norm_num]
+  gcongr
+  · norm_num
+  · omega
 
 /-- Examples 6.1.6 -/
-example : seq_6_1_6.TendsTo 1 := by sorry
+example : seq_6_1_6.TendsTo 1 := by
+  rw [Sequence.tendsTo_iff, seq_6_1_6]
+  intro ε hε
+  have h10' : (10:ℝ)⁻¹ < 1 := by norm_num
+  obtain ⟨k, hk⟩ := exists_pow_lt_of_lt_one hε h10'
+  refine ⟨(k:ℤ), fun n hn => ?_⟩
+  simp [show (0:ℤ) ≤ n by omega]
+  show (10:ℝ) ^ (-n - 1) ≤ ε
+  calc (10:ℝ) ^ (-n - 1)
+      ≤ (10:ℝ) ^ (-(k:ℤ)) := by
+        gcongr
+        · norm_num
+        · omega
+    _ = (10:ℝ)⁻¹ ^ k := by
+        rw [zpow_neg, zpow_natCast, inv_pow]
+    _ ≤ ε := le_of_lt hk
 
 /-- Proposition 6.1.7 (Uniqueness of limits) -/
 theorem Sequence.tendsTo_unique (a:Sequence) {L L':ℝ} (h:L ≠ L') :
