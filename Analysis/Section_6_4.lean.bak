@@ -407,7 +407,7 @@ example : Example_6_4_7.limsup = 1 := by
     have hn_even : Even n := ⟨k, by omega⟩
     have h_upperseq : Example_6_4_7.upperseq (n : ℤ) < x := by
       rw [Sequence.upperseq_eq_sSup hn_nonneg]
-      have h_sup_val : sSup {x_1 : EReal | ∃ m ≥ (n : ℤ), x_1 = (Example_6_4_7 m : EReal)} =
+      have h_sup_val : sSup {x_1 : EReal | ∃ m ≥ (n : ℤ), x_1 = (Example_6_4_7 m : EReal)} = 
         (1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ) : ℝ) := by
         -- We already know the exact upperseq value for even n from the previous theorem
         sorry
@@ -651,13 +651,6 @@ lemma Example_6_4_9_eval_even_z (m : ℤ) (hm : m ≥ 0) (h : Even (m.toNat)) : 
 lemma Example_6_4_9_eval_odd_z (m : ℤ) (hm : m ≥ 0) (h : ¬ Even (m.toNat)) : Example_6_4_9 m = -(((m.toNat : ℝ) + 1)⁻¹) := by
   unfold Example_6_4_9; simp [hm, h]
 
-<<<<<<< HEAD
-example : Example_6_4_10.limsup = ⊤ := by sorry
-
-example (n:ℕ) : Example_6_4_10.lowerseq n = n+1 := by sorry
-
-example : Example_6_4_10.liminf = ⊤ := by sorry
-=======
 lemma Example_6_4_9_upperseq_n (n : ℕ) : Example_6_4_9.upperseq n = if Even n then (n+1 : ℝ)⁻¹ else (n+2 : ℝ)⁻¹ := by
   have hn_nonneg : (n : ℤ) ≥ Example_6_4_9.m := by simp [Example_6_4_9]
   rw [Sequence.upperseq_eq_sSup hn_nonneg]
@@ -775,7 +768,6 @@ lemma Example_6_4_10_lowerseq_n (n : ℕ) : Example_6_4_10.lowerseq n = n+1 := b
     have hm_nonneg : m ≥ 0 := by omega
     rw [Example_6_4_10_eval m hm_nonneg, EReal.coe_le_coe_iff]
     push_cast; omega
->>>>>>> 72cc8c1 ([Stage]: Section_6_4.lean)
 
 /-- Proposition 6.4.12(a) -/
 theorem Sequence.gt_limsup_bounds {a:Sequence} {x:EReal} (h: x > a.limsup) :

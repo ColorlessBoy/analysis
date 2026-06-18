@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第6.4节：上极限、下极限与极限点 - Terence Tao</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --tb-bg: #fefefe; --tb-text: #333; --tb-text-secondary: #2c2c2c;
+    --tb-text-muted: #666; --tb-text-faint: #888; --tb-text-fainter: #999;
+    --tb-border: #eee; --tb-surface: #f8f9fa; --tb-link: #4a6fa5;
+    --tb-h1: #1a1a1a;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.09);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.13);
+    --tb-def-bg: #f8f9fa; --tb-def-border: #4a90d9; --tb-def-label: #2c5a8a;
+    --tb-prop-bg: #f0f7f0; --tb-prop-border: #5a9a5a; --tb-prop-label: #2d5a2d;
+    --tb-lem-bg: #f5f0f7; --tb-lem-border: #8a5a9a; --tb-lem-label: #5a2d6a;
+    --tb-thm-bg: #fff5f0; --tb-thm-border: #d97a5a; --tb-thm-label: #b04f2d;
+    --tb-ex-bg: #fffaf0; --tb-ex-border: #d9a85a; --tb-ex-label: #8a6620;
+    --tb-exer-bg: #f0f4f8; --tb-exer-border: #d0d8e0; --tb-exer-label: #3a6a9a;
+    --tb-supp-bg: #f0f7ff; --tb-supp-border: #e06090; --tb-supp-title: #b04060;
+    --tb-refl-bg: #fff5f5; --tb-refl-border: #c0392b; --tb-refl-title: #c0392b;
+    --tb-proof-bg: transparent; --tb-proof-label: #666; --tb-proof-qed: #999;
+    --tb-remark-border: #ddd; --tb-remark-text: #555;
+    --tb-note-bg: #fff8e7; --tb-note-border: #e0d8c0; --tb-note-text: #665;
+    --tb-code-bg: #f5f5f5; --tb-code-text: #333; --tb-code-border: #e8e8e8;
+    --tb-table-border: #ddd; --tb-table-head-bg: #f5f5f5;
+    --tb-toc-bg: #fafafa; --tb-toc-border: #e0e0e0; --tb-toc-link: #4a6fa5;
+    --tb-toc-active-bg: #eef4fb; --tb-toc-active-border: #4a90d9;
+    --tb-ctrl-bg: #fff; --tb-ctrl-border: #ccc; --tb-ctrl-text: #666;
+    --tb-ctrl-active-bg: #4a90d9; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #555; --tb-tooltip-text: #fff; --tb-t-border: #c0c0c0;
+    --tb-progress: #4a90d9; --tb-highlight: rgba(255, 236, 153, 0.5);
+    --tb-nav-bg: #f8f9fa; --tb-nav-border: #e0e0e0; --tb-nav-hover: #eef4fb;
+    --tb-syn-keyword: #8959a8; --tb-syn-tactic: #c82829; --tb-syn-type: #4271ae;
+    --tb-syn-comment: #8e908c; --tb-syn-string: #718c00; --tb-syn-number: #f5871f;
+    --tb-syn-sorry: #e74c3c;
+    --tb-copy-bg: rgba(0,0,0,0.05); --tb-copy-text: #666; --tb-copy-hover-bg: rgba(0,0,0,0.1);
+    --tb-copy-success: #27ae60; --tb-footer-text: #888;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+  }
+}
+[data-theme="dark"] {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { font-family: 'Source Serif 4', 'STIX Two Text', 'Georgia', serif; font-size: 18px; line-height: 1.8; margin: 0; padding: 0; background: var(--tb-bg); color: var(--tb-text); transition: background 0.3s, color 0.3s; }
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: linear-gradient(90deg, var(--tb-progress), var(--tb-def-border)); z-index: 1000; transition: width 0.1s linear; }
+.breadcrumb { max-width: 800px; margin: 0 auto; padding: 12px 20px 0; font-size: 0.82em; color: var(--tb-text-faint); }
+.breadcrumb a { color: var(--tb-link); text-decoration: none; } .breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { margin: 0 0.4em; opacity: 0.5; }
+.controls { text-align: center; margin: 0 0 20px 0; display: flex; justify-content: center; gap: 10px; }
+.controls button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid var(--tb-ctrl-border); border-radius: 20px; background: var(--tb-ctrl-bg); color: var(--tb-ctrl-text); cursor: pointer; transition: all 0.2s; }
+.controls button:hover { border-color: var(--tb-progress); color: var(--tb-progress); }
+.controls button.on { background: var(--tb-ctrl-active-bg); color: var(--tb-ctrl-active-text); border-color: var(--tb-ctrl-active-bg); }
+main.content { max-width: 800px; width: 100%; padding: 40px 20px; margin: 0 auto; }
+h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: var(--tb-h1); }
+h3 { color: var(--tb-text-secondary); }
+.book-info { text-align: center; color: var(--tb-text-muted); font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--tb-border); }
+.book-info a { color: var(--tb-link); }
+.section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: var(--tb-text-secondary); }
+.section-number { font-size: 0.75em; color: var(--tb-text-faint); display: block; margin-bottom: 0.3em; }
+p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+.chapter-marker { color: var(--tb-text-faint); font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+.page-ref { color: var(--tb-text-fainter); font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+hr { border: none; border-top: 1px solid var(--tb-border); margin: 2em 0; }
+.definition, .proposition-box, .lemma-box, .theorem-box, .example, .exercise, .supplement, .reflection { border-radius: 6px; box-shadow: var(--tb-shadow-sm); transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.3s; }
+.definition:hover, .proposition-box:hover, .lemma-box:hover, .theorem-box:hover, .example:hover { box-shadow: var(--tb-shadow-hover); transform: translateY(-1px); }
+.definition { background: var(--tb-def-bg); border-left: 5px solid var(--tb-def-border); padding: 15px 20px; margin: 1.5em 0; font-style: normal; }
+.definition .label { font-weight: 600; color: var(--tb-def-label); }
+.proposition-box { background: var(--tb-prop-bg); border-left: 5px solid var(--tb-prop-border); padding: 15px 20px; margin: 1.5em 0; }
+.proposition-box .label { font-weight: 600; color: var(--tb-prop-label); }
+.lemma-box { background: var(--tb-lem-bg); border-left: 5px solid var(--tb-lem-border); padding: 15px 20px; margin: 1.5em 0; }
+.lemma-box .label { font-weight: 600; color: var(--tb-lem-label); }
+.theorem-box { background: var(--tb-thm-bg); border-left: 5px solid var(--tb-thm-border); padding: 15px 20px; margin: 1.5em 0; }
+.theorem-box .label { font-weight: 600; color: var(--tb-thm-label); }
+.example { background: var(--tb-ex-bg); border-left: 5px solid var(--tb-ex-border); padding: 12px 18px; margin: 1.5em 0; }
+.example .label { font-weight: 600; color: var(--tb-ex-label); }
+.exercise { background: var(--tb-exer-bg); border: 1px solid var(--tb-exer-border); padding: 15px 20px; margin: 1.5em 0; }
+.exercise .label { font-weight: 600; color: var(--tb-exer-label); display: block; margin-bottom: 0.5em; }
+.remark { color: var(--tb-remark-text); padding-left: 1.5em; border-left: 2px solid var(--tb-remark-border); margin: 1.5em 0; }
+.remark strong { color: var(--tb-text); }
+.supplement { background: var(--tb-supp-bg); border-left: 5px solid var(--tb-supp-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.supplement .sup-title { font-weight: 700; color: var(--tb-supp-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.supplement p { text-indent: 0; font-size: 0.95em; } .supplement ul { font-size: 0.95em; padding-left: 1.5em; } .supplement li { margin: 0.3em 0; }
+.reflection { background: var(--tb-refl-bg); border-left: 5px solid var(--tb-refl-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.reflection .sup-title { font-weight: 700; color: var(--tb-refl-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.reflection p { text-indent: 0; font-size: 0.95em; }
+.proof-collapsible { margin: 1em 0; font-size: 0.95em; }
+.proof-collapsible summary { cursor: pointer; list-style: none; padding: 8px 0; color: var(--tb-proof-label); font-style: italic; display: flex; align-items: center; gap: 0.5em; user-select: none; }
+.proof-collapsible summary::-webkit-details-marker { display: none; }
+.proof-collapsible summary::before { content: ''; display: inline-block; width: 0; height: 0; border-left: 6px solid var(--tb-proof-label); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform 0.2s; }
+.proof-collapsible[open] summary::before { transform: rotate(90deg); }
+.proof-collapsible .proof-body { padding: 8px 20px 8px 40px; }
+.proof-collapsible .qed { text-align: right; color: var(--tb-proof-qed); margin-top: 0.5em; font-style: normal; }
+.code-block { position: relative; background: var(--tb-code-bg); border: 1px solid var(--tb-code-border); padding: 14px 16px; border-radius: 8px; font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; font-size: 0.82em; line-height: 1.6; overflow-x: auto; margin: 1em 0; color: var(--tb-code-text); transition: background 0.3s, border-color 0.3s; }
+.copy-btn { position: absolute; top: 6px; right: 6px; background: var(--tb-copy-bg); border: none; border-radius: 4px; padding: 3px 10px; font-size: 0.85em; color: var(--tb-copy-text); cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.code-block:hover .copy-btn { opacity: 1; } .copy-btn:hover { background: var(--tb-copy-hover-bg); } .copy-btn.copied { color: var(--tb-copy-success); }
+.syn-keyword { color: var(--tb-syn-keyword); font-weight: 600; } .syn-tactic { color: var(--tb-syn-tactic); } .syn-type { color: var(--tb-syn-type); }
+.syn-comment { color: var(--tb-syn-comment); font-style: italic; } .syn-string { color: var(--tb-syn-string); } .syn-number { color: var(--tb-syn-number); }
+.syn-sorry { color: var(--tb-syn-sorry); font-weight: 700; text-decoration: underline wavy var(--tb-syn-sorry); }
+table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+th, td { border: 1px solid var(--tb-table-border); padding: 8px 12px; text-align: center; }
+th { background: var(--tb-table-head-bg); font-weight: 600; }
+.toc { background: var(--tb-toc-bg); border: 1px solid var(--tb-toc-border); border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; box-shadow: var(--tb-shadow-sm); }
+.toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: var(--tb-text-secondary); }
+.toc ol { margin: 0; padding-left: 1.5em; } .toc li { margin: 0.3em 0; font-size: 0.95em; }
+.toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; transition: background 0.2s; }
+.toc a:hover { text-decoration: underline; }
+.toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+.sidebar-toc { display: none; position: fixed; top: 80px; width: 240px; max-height: calc(100vh - 100px); overflow-y: auto; padding: 16px; font-size: 0.85em; line-height: 1.6; border-right: 1px solid var(--tb-toc-border); background: var(--tb-bg); z-index: 100; }
+.sidebar-toc .toc-title { font-weight: 700; font-size: 1em; margin-bottom: 0.6em; color: var(--tb-text-secondary); }
+.sidebar-toc ol { margin: 0; padding-left: 1.2em; } .sidebar-toc li { margin: 0.25em 0; }
+.sidebar-toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; display: inline-block; transition: all 0.2s; }
+.sidebar-toc a:hover { background: var(--tb-toc-active-bg); }
+.sidebar-toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+@media (min-width: 1200px) { .sidebar-toc { display: block; left: max(0px, calc((100vw - 800px) / 2 - 280px)); } .toc.inline-toc { display: none; } }
+.section-nav { max-width: 800px; margin: 30px auto 0; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--tb-nav-border); font-size: 0.9em; }
+.section-nav a { color: var(--tb-link); text-decoration: none; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--tb-nav-border); background: var(--tb-nav-bg); transition: all 0.2s; display: flex; align-items: center; gap: 0.3em; }
+.section-nav a:hover { background: var(--tb-nav-hover); box-shadow: var(--tb-shadow-sm); }
+.section-nav .nav-label { font-size: 0.8em; color: var(--tb-text-faint); display: block; } .section-nav .nav-title { font-weight: 600; } .section-nav .spacer { flex: 1; }
+.t { border-bottom: 1px dotted var(--tb-t-border); cursor: help; position: relative; }
+.t::before { content: attr(data-zh); }
+.t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: var(--tb-tooltip-text); background: var(--tb-tooltip-bg); padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
+.t:hover::after { opacity: 1; transition-delay: 0.4s; }
+.lang-en .t::after { font-size: 0.85em; color: var(--tb-text-faint); margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+@keyframes highlight-flash { 0% { background-color: var(--tb-highlight); } 100% { background-color: transparent; } }
+.highlighted { animation: highlight-flash 1.8s ease-out; }
+.footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--tb-border); color: var(--tb-footer-text); font-size: 0.85em; }
+.icon { width: 1.1em; height: 1.1em; vertical-align: -0.15em; fill: currentColor; flex-shrink: 0; }
+@media print { .progress-bar, .controls, .sidebar-toc, .section-nav, .copy-btn, .breadcrumb { display: none !important; } body { background: #fff; color: #000; } .definition, .proposition-box, .theorem-box, .example, .exercise, .supplement, .reflection { box-shadow: none; break-inside: avoid; } }
+    </style>
+    <script>MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] } };</script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>(function(){ var t = localStorage.getItem('tb_theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); })();</script>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<aside class="sidebar-toc" id="sidebarToc"></aside>
+<nav class="breadcrumb" id="breadcrumb"></nav>
+<main class="content">
+<div class="controls">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+    <button id="themeBtn" onclick="toggleTheme()" title="切换深色/浅色模式">🌙</button>
+</div>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+</div>
+
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第6.4节</span>
+    <span class="t" data-zh="上极限、下极限与极限点" data-en="Limsup, Liminf, and Limit Points"></span>
+    <span class="page-ref">第120–126页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc inline-toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s64-intro">引言：不收敛序列的极限行为</a></li>
+        <li><a href="#s64-def641"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.1：极限点</a></li>
+        <li><a href="#s64-example643"><span class="t" data-zh="例子" data-en="Examples"></span> 6.4.3–6.4.4</a></li>
+        <li><a href="#s64-prop645"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.5：极限是极限点</a></li>
+        <li><a href="#s64-def646"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.6：上极限与下极限</a></li>
+        <li><a href="#s64-example647"><span class="t" data-zh="例子" data-en="Examples"></span> 6.4.7–6.4.10</a></li>
+        <li><a href="#s64-prop6412"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.12：上下极限的性质</a></li>
+        <li><a href="#s64-lem6413"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.4.13：比较原理</a></li>
+        <li><a href="#s64-cor6414"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.14：夹逼定理</a></li>
+        <li><a href="#s64-cor6417"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.17：零判别法</a></li>
+        <li><a href="#s64-thm6418"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.4.18：实数的完备性</a></li>
+        <li><a href="#s64-supp">补充说明</a></li>
+        <li><a href="#s64-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div id="s64-intro">
+<div class="chapter-marker">— 引言 —</div>
+</div>
+
+<p>
+在前几节中，我们讨论了序列的极限——序列"趋向"某个特定值的行为。
+但是，有些序列虽然不收敛，却有某种"想成为极限"的值。
+</p>
+
+<p>
+例如，考虑序列
+\[
+1.1,\ -1.01,\ 1.001,\ -1.0001,\ \ldots
+\]
+该序列不收敛（奇数项趋向 \(1\)，偶数项趋向 \(-1\)），
+但从某种意义上说，\(1\) 和 \(-1\) 都是序列的"极限点"——序列的项无限频繁地接近这两个值。
+</p>
+
+<p>
+本节的目标就是严格化这一直觉，引入极限点（limit point）、上极限（limsup）和下极限（liminf）的概念，
+并建立它们与极限的深刻联系，最终推导出实数完备性的一个重要版本：Cauchy 序列收敛定理。
+</p>
+
+<hr>
+
+<!-- ========== 定义 6.4.1 ========== -->
+<div id="s64-def641">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.1：极限点</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.1（极限点）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，\(x\) 是实数，\(\varepsilon > 0\)。称 \(x\) 是序列的
+    <strong><span class="t" data-zh="ε-附着的" data-en="ε-adherent"></span></strong>，如果存在 \(n \geq m\) 使得 \(|a_n - x| \leq \varepsilon\)。
+    称 \(x\) 是序列<strong><span class="t" data-zh="连续ε-附着的" data-en="continually ε-adherent"></span></strong>，
+    如果对每个 \(N \geq m\) 都存在 \(n \geq N\) 使得 \(|a_n - x| \leq \varepsilon\)。
+    称 \(x\) 是序列的<strong><span class="t" data-zh="极限点" data-en="limit point"></span></strong>（或<strong>聚点</strong>），
+    如果对每个 \(\varepsilon > 0\)，\(x\) 都是序列连续 \(\varepsilon\)-附着的。
+</div>
+
+<div class="remark">
+    <strong>注 6.4.2。</strong>
+    换言之，\(x\) 是极限点当且仅当：对所有 \(\varepsilon > 0\) 和所有 \(N \geq m\)，
+    存在 \(n \geq N\) 使得 \(|a_n - x| \leq \varepsilon\)。
+    这与极限的定义几乎相同，区别在于：极限要求"对充分大的所有 \(n\)"，
+    而极限点只要求"对充分大的无穷多个 \(n\)"。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
+    <div class="code-block">
+/-- Definition 6.4.1: x is ε-adherent to sequence a -/
+def Sequence.eAdherent (a : Sequence) (x : ℝ) (ε : ℝ) : Prop :=
+  ∃ n ≥ a.m, |a n - x| ≤ ε
+
+/-- x is continually ε-adherent to sequence a -/
+def Sequence.ContEAdherent (a : Sequence) (x : ℝ) (ε : ℝ) : Prop :=
+  ∀ N ≥ a.m, ∃ n ≥ N, |a n - x| ≤ ε
+
+/-- x is a limit point of sequence a -/
+def Sequence.LimitPoint (a : Sequence) (x : ℝ) : Prop :=
+  ∀ ε > 0, ∀ N ≥ a.m, ∃ n ≥ N, |a n - x| ≤ ε
+
+-- Equivalent formulation:
+-- Sequence.LimitPoint x ↔ ∀ ε > 0, ∀ N ≥ a.m, ∃ n ≥ N, |a n - x| ≤ ε
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 例子 6.4.3, 6.4.4 ========== -->
+<div id="s64-example643">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.4.3–6.4.4</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.3。</span>
+    设 \(a_n := 1 - 10^{-n}\)，即序列 \(0.9, 0.99, 0.999, \ldots\)。
+    则 \(1\) 是该序列的极限点。实际上，该序列收敛到 \(1\)，而收敛的极限也是极限点（见命题 6.4.5）。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.4。</span>
+    设序列为 \(1.1,\ -1.01,\ 1.001,\ -1.0001,\ \ldots\)，
+    其中奇数项为 \(1 + 10^{-n}\)，偶数项为 \(-(1 + 10^{-n})\)（从 \(n=1\) 开始）。
+    则 \(1\) 是该序列的极限点：对任意 \(\varepsilon > 0\) 和 \(N\)，只需取充分大的奇数 \(n \geq N\)，
+    就有 \(|a_n - 1| = 10^{-n} \leq \varepsilon\)。
+    类似地，\(-1\) 也是该序列的极限点。
+    该序列不收敛，但有两个极限点 \(1\) 和 \(-1\)。
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.4.5 ========== -->
+<div id="s64-prop645">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.5：极限是极限点</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.5（极限是极限点）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是收敛到极限 \(L\) 的实数序列。则 \(L\) 是该序列的极限点，
+    并且是唯一的极限点。
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    首先证明 \(L\) 是极限点。设 \(\varepsilon > 0\) 和 \(N \geq m\)。
+    由于序列收敛到 \(L\)，存在 \(N' \geq m\) 使得对所有 \(n \geq N'\) 有 \(|a_n - L| \leq \varepsilon\)。
+    取 \(n = \max(N, N')\)，则 \(n \geq N\) 且 \(|a_n - L| \leq \varepsilon\)。所以 \(L\) 是极限点。
+    </p>
+    <p style="text-indent:0">
+    再证唯一性。设 \(x\) 也是极限点，任取 \(\varepsilon > 0\)。
+    由收敛性，存在 \(N\) 使得对所有 \(n \geq N\) 有 \(|a_n - L| \leq \varepsilon/2\)。
+    由于 \(x\) 是极限点，存在 \(n \geq N\) 使 \(|a_n - x| \leq \varepsilon/2\)。
+    于是 \(|x - L| \leq |x - a_n| + |a_n - L| \leq \varepsilon\)。
+    由 \(\varepsilon\) 的任意性，\(x = L\)。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+-- Proposition 6.4.5: limits are limit points (and the only one)
+theorem Sequence.limit_point_of_limit {a : Sequence} {L : ℝ}
+    (h : a.TendsTo L) : a.LimitPoint L
+
+theorem Sequence.unique_limit_point {a : Sequence} {L x : ℝ}
+    (hL : a.TendsTo L) (hx : a.LimitPoint x) : x = L
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.4.6 ========== -->
+<div id="s64-def646">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.6：上极限与下极限</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.4.6（上极限与下极限）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列。对每个 \(N \geq m\)，定义
+    \[
+    a_N^+ := \sup(a_n)_{n=N}^\infty, \quad a_N^- := \inf(a_n)_{n=N}^\infty.
+    \]
+    则序列 \((a_N^+)_{N=m}^\infty\) 递减，\((a_N^-)_{N=m}^\infty\) 递增。
+    定义序列 \((a_n)_{n=m}^\infty\) 的<strong><span class="t" data-zh="上极限" data-en="limit superior (limsup)"></span></strong>为
+    \[
+    \limsup_{n\to\infty} a_n := \inf_{N \geq m} a_N^+ = \inf_{N \geq m} \sup_{n \geq N} a_n,
+    \]
+    定义<strong><span class="t" data-zh="下极限" data-en="limit inferior (liminf)"></span></strong>为
+    \[
+    \liminf_{n\to\infty} a_n := \sup_{N \geq m} a_N^- = \sup_{N \geq m} \inf_{n \geq N} a_n.
+    \]
+    这两个值都是拓展实数（可以为 \(\pm\infty\)）。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
+    <div class="code-block">
+/-- Definition 6.4.6: the partial supremum a_N^+ = sup_{n ≥ N} a_n -/
+noncomputable def Sequence.partialSup (a : Sequence) (N : ℤ) : EReal :=
+  sSup { x | ∃ n ≥ N, x = a n }
+
+/-- The limsup of a sequence -/
+noncomputable def Sequence.limsup (a : Sequence) : EReal :=
+  sInf { x | ∃ N ≥ a.m, x = a.partialSup N }
+
+/-- The liminf of a sequence -/
+noncomputable def Sequence.liminf (a : Sequence) : EReal :=
+  sSup { x | ∃ N ≥ a.m, x = a.partialInf N }
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 例子 6.4.7–6.4.10 ========== -->
+<div id="s64-example647">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.4.7–6.4.10</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.7。</span>
+    设 \(a_n := (-1)^n\)，序列为 \(-1, 1, -1, 1, \ldots\)。
+    对每个 \(N\)，集合 \(\{a_n : n \geq N\}\) 均为 \(\{-1, 1\}\)，
+    故 \(a_N^+ = 1\)，\(a_N^- = -1\)。
+    因此 \(\limsup_{n\to\infty} (-1)^n = 1\)，\(\liminf_{n\to\infty} (-1)^n = -1\)。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.8。</span>
+    设 \(a_n := 1/n\)（\(n \geq 1\)）。
+    则 \(a_N^+ = \sup(1/n)_{n \geq N} = 1/N\)（最大值在 \(n=N\) 取到），
+    \(a_N^- = \inf(1/n)_{n \geq N} = 0\)（下确界不可达）。
+    因此 \(\limsup_{n\to\infty} 1/n = \inf_N (1/N) = 0\)，
+    \(\liminf_{n\to\infty} 1/n = \sup_N 0 = 0\)。
+    两者相等，且等于极限 0。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.9。</span>
+    设 \(a_n := n\)（递增无界序列）。
+    则 \(a_N^+ = +\infty\)，\(a_N^- = N\)。
+    故 \(\limsup_{n\to\infty} n = +\infty\)，\(\liminf_{n\to\infty} n = \sup_N N = +\infty\)。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.4.10。</span>
+    设 \(a_n := -n\)（递减无界序列）。
+    则 \(a_N^+ = -N\)，\(a_N^- = -\infty\)。
+    故 \(\limsup_{n\to\infty} (-n) = \inf_N (-N) = -\infty\)，
+    \(\liminf_{n\to\infty} (-n) = -\infty\)。
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.4.12 ========== -->
+<div id="s64-prop6412">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.12：上下极限的性质</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.4.12（上下极限的性质）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，令 \(L^+ := \limsup_{n\to\infty} a_n\)，
+    \(L^- := \liminf_{n\to\infty} a_n\)。
+    <ul>
+        <li>(a) 对任意 \(x > L^+\)，存在 \(N \geq m\) 使得对所有 \(n \geq N\) 有 \(a_n \leq x\)。
+            对任意 \(x &lt; L^+\)，对所有 \(N \geq m\) 存在 \(n \geq N\) 使 \(a_n &gt; x\)。</li>
+        <li>(b) 对任意 \(x &lt; L^-\)，存在 \(N \geq m\) 使得对所有 \(n \geq N\) 有 \(a_n \geq x\)。
+            对任意 \(x &gt; L^-\)，对所有 \(N \geq m\) 存在 \(n \geq N\) 使 \(a_n &lt; x\)。</li>
+        <li>(c) \(\inf(a_n)_{n=m}^\infty \leq L^- \leq L^+ \leq \sup(a_n)_{n=m}^\infty\)。</li>
+        <li>(d) 若 \(x\) 是 \((a_n)_{n=m}^\infty\) 的极限点，则 \(L^- \leq x \leq L^+\)。</li>
+        <li>(e) 若 \(L^+\)（或 \(L^-\)）是有限实数，则它本身是序列的极限点。</li>
+        <li>(f) 序列 \((a_n)_{n=m}^\infty\) 收敛到 \(L\) 当且仅当 \(L^+ = L^- = L\)。</li>
+    </ul>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明（要点）。</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    <strong>(a)</strong> 若 \(x &gt; L^+ = \inf_N a_N^+\)，则存在 \(N\) 使 \(a_N^+ \leq x\)，即 \(\sup_{n \geq N} a_n \leq x\)，
+    故对所有 \(n \geq N\) 有 \(a_n \leq x\)。
+    若 \(x &lt; L^+\)，则对所有 \(N\) 有 \(a_N^+ \geq L^+ &gt; x\)，
+    故存在 \(n \geq N\) 使 \(a_n &gt; x\)。
+    </p>
+    <p style="text-indent:0">
+    <strong>(c)</strong> 对所有 \(N\)，有 \(\inf_{n \geq m} a_n \leq \inf_{n \geq N} a_n \leq \sup_{n \geq N} a_n \leq \sup_{n \geq m} a_n\)，
+    取关于 \(N\) 的上确界或下确界即得 \(\inf \leq L^- \leq L^+ \leq \sup\)。
+    </p>
+    <p style="text-indent:0">
+    <strong>(f)</strong> 若收敛到 \(L\)，对 \(\varepsilon &gt; 0\) 存在 \(N\) 使所有 \(n \geq N\) 满足 \(|a_n - L| \leq \varepsilon\)，
+    因此 \(L^- \leq L^+ \leq a_N^+ \leq L + \varepsilon\) 且 \(L^- \geq a_N^- \geq L - \varepsilon\)，
+    由 \(\varepsilon\) 任意性得 \(L^- = L^+ = L\)。
+    反之若 \(L^- = L^+ = L\)，对任意 \(\varepsilon &gt; 0\)，由 (a)(b) 存在 \(N\) 使所有 \(n \geq N\) 有 \(|a_n - L| \leq \varepsilon\)。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <ul>
+        <li><code>gt_limsup_bounds</code>：若 \(x &gt; \limsup\)，则序列最终小于等于 \(x\)</li>
+        <li><code>lt_limsup_bounds</code>：若 \(x &lt; \limsup\)，则序列无穷次大于 \(x\)</li>
+        <li><code>inf_le_liminf</code>：\(\inf \leq \liminf\)</li>
+        <li><code>liminf_le_limsup</code>：\(\liminf \leq \limsup\)</li>
+        <li><code>limsup_le_sup</code>：\(\limsup \leq \sup\)</li>
+        <li><code>limit_point_between_liminf_limsup</code>：极限点夹在 \(\liminf\) 和 \(\limsup\) 之间</li>
+        <li><code>limit_point_of_limsup</code>、<code>limit_point_of_liminf</code>：上下极限本身是极限点</li>
+        <li><code>tendsTo_iff_eq_limsup_liminf</code>：收敛 ↔ \(\limsup = \liminf\)</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 引理 6.4.13 ========== -->
+<div id="s64-lem6413">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.4.13：比较原理</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.4.13（比较原理）。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是实数序列，对所有 \(n \geq m\) 有 \(a_n \leq b_n\)。则
+    <ul>
+        <li>\(\sup(a_n)_{n=m}^\infty \leq \sup(b_n)_{n=m}^\infty\)；</li>
+        <li>\(\inf(a_n)_{n=m}^\infty \leq \inf(b_n)_{n=m}^\infty\)；</li>
+        <li>\(\limsup_{n\to\infty} a_n \leq \limsup_{n\to\infty} b_n\)；</li>
+        <li>\(\liminf_{n\to\infty} a_n \leq \liminf_{n\to\infty} b_n\)。</li>
+    </ul>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    由 \(a_n \leq b_n\) 知 \(\{a_n : n \geq m\} \subseteq \{x : x \leq b_n \text{ 对某 } n\}\)，
+    故 \(\sup(a_n) \leq \sup(b_n)\)。对 \(\inf\) 类似。
+    对于 limsup，有 \(\sup_{n \geq N} a_n \leq \sup_{n \geq N} b_n\)，
+    取关于 \(N\) 的下确界即得 \(\limsup a_n \leq \limsup b_n\)。liminf 类似。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <ul>
+        <li><code>sup_mono</code>：\(a_n \leq b_n \Rightarrow \sup(a) \leq \sup(b)\)</li>
+        <li><code>inf_mono</code>：\(a_n \leq b_n \Rightarrow \inf(a) \leq \inf(b)\)</li>
+        <li><code>limsup_mono</code>：\(a_n \leq b_n \Rightarrow \limsup(a) \leq \limsup(b)\)</li>
+        <li><code>liminf_mono</code>：\(a_n \leq b_n \Rightarrow \liminf(a) \leq \liminf(b)\)</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 推论 6.4.14 ========== -->
+<div id="s64-cor6414">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.14：夹逼定理</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.14（夹逼定理）。</span>
+    设 \((a_n)_{n=m}^\infty\)、\((b_n)_{n=m}^\infty\)、\((c_n)_{n=m}^\infty\) 是实数序列，
+    对所有 \(n \geq m\) 有 \(a_n \leq b_n \leq c_n\)。
+    若 \(\lim_{n\to\infty} a_n = \lim_{n\to\infty} c_n = L\)，则 \((b_n)_{n=m}^\infty\) 也收敛，且 \(\lim_{n\to\infty} b_n = L\)。
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    由命题 6.4.12(f)，\(\limsup a_n = \liminf a_n = L\) 且 \(\limsup c_n = \liminf c_n = L\)。
+    由引理 6.4.13，\(L = \limsup a_n \leq \limsup b_n\) 且 \(\limsup b_n \leq \limsup c_n = L\)，
+    故 \(\limsup b_n = L\)。类似地 \(\liminf b_n = L\)。再由 6.4.12(f) 得 \(b_n \to L\)。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+-- Corollary 6.4.14: squeeze test
+theorem lim_of_between {a b c : Sequence} {L : ℝ}
+    (hab : ∀ n ≥ a.m, a n ≤ b n) (hbc : ∀ n ≥ a.m, b n ≤ c n)
+    (ha : a.TendsTo L) (hc : c.TendsTo L) : b.TendsTo L
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 推论 6.4.17 ========== -->
+<div id="s64-cor6417">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.17：零判别法</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.4.17（零判别法）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列。则
+    \[
+    \lim_{n\to\infty} a_n = 0 \iff \lim_{n\to\infty} |a_n| = 0.
+    \]
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    注意 \(-|a_n| \leq a_n \leq |a_n|\)。
+    若 \(|a_n| \to 0\)，则 \(-|a_n| \to 0\)，由夹逼定理得 \(a_n \to 0\)。
+    反之若 \(a_n \to 0\)，则 \(\limsup |a_n| \leq \limsup a_n = 0\) 且 \(\liminf |a_n| \geq \liminf a_n = 0\)，故 \(|a_n| \to 0\)。
+    （也可用 \(\limsup |a_n| \leq \limsup a_n\) 和 \(\limsup |a_n| \leq \limsup (-a_n)\) 推导。）
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+-- Corollary 6.4.17: zero test
+theorem tendsTo_zero_iff {a : Sequence} :
+    a.TendsTo 0 ↔ (fun n ↦ |a n| : Sequence).TendsTo 0
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定理 6.4.18 ========== -->
+<div id="s64-thm6418">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.4.18：实数的完备性</h3>
+</div>
+
+<div class="theorem-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.4.18（实数的完备性）。</span>
+    实数序列 \((a_n)_{n=1}^\infty\) 是 Cauchy 序列当且仅当它收敛。
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    <strong>（收敛 ⟹ Cauchy）</strong>
+    已在命题 6.1.12 中证明：若序列收敛到 \(L\)，则对任意 \(\varepsilon &gt; 0\)，存在 \(N\) 使得对所有 \(n, m \geq N\) 有
+    \(|a_n - a_m| \leq |a_n - L| + |L - a_m| \leq \varepsilon/2 + \varepsilon/2 = \varepsilon\)。
+    </p>
+    <p style="text-indent:0">
+    <strong>（Cauchy ⟹ 收敛）</strong>
+    设 \((a_n)_{n=1}^\infty\) 是 Cauchy 序列。由推论 6.1.17，序列有界，故存在实数 \(M\) 使所有 \(a_n \in [-M, M]\)。
+    因此 \(-\infty &lt; L^- \leq L^+ &lt; +\infty\)（均为有限实数）。
+    </p>
+    <p style="text-indent:0">
+    若 \(L^- &lt; L^+\)，取 \(\varepsilon = (L^+ - L^-)/3 &gt; 0\)。
+    由命题 6.4.12(a)，存在无穷多 \(n\) 使 \(a_n &gt; L^+ - \varepsilon = L^- + 2\varepsilon\)；
+    由命题 6.4.12(b)，也存在无穷多 \(n\) 使 \(a_n &lt; L^- + \varepsilon\)。
+    这意味着序列无穷次振幅大于 \(\varepsilon\)，与 Cauchy 性矛盾。
+    故 \(L^- = L^+\)，由命题 6.4.12(f) 序列收敛。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+-- Theorem 6.4.18: Cauchy iff convergent
+theorem Cauchy_iff_convergent {a : Sequence} :
+    a.IsCauchy ↔ a.Convergent
+    </div>
+    <p>这是实数完备性的核心表现。在有理数中，Cauchy 序列不一定收敛（例如逼近 \(\sqrt{2}\) 的有理序列）；
+    而实数正是通过补全有理数中所有 Cauchy 序列的极限而构造的，因此在实数中 Cauchy 等价于收敛。</p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s64-supp">
+<div class="chapter-marker">— 补充说明 —</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节的概念结构</span>
+    <table>
+        <tr><th>概念</th><th>教材定义</th><th>Lean 对应</th></tr>
+        <tr><td>ε-附着</td><td>存在 \(n \geq m\), \(|a_n - x| \leq \varepsilon\)</td><td><code>Sequence.eAdherent</code></td></tr>
+        <tr><td>连续 ε-附着</td><td>对所有 \(N\), 存在 \(n \geq N\), \(|a_n - x| \leq \varepsilon\)</td><td><code>Sequence.ContEAdherent</code></td></tr>
+        <tr><td>极限点</td><td>对所有 \(\varepsilon &gt; 0\) 连续 ε-附着</td><td><code>Sequence.LimitPoint</code></td></tr>
+        <tr><td>上极限 \(\limsup\)</td><td>\(\inf_N \sup_{n \geq N} a_n\)</td><td><code>Sequence.limsup</code></td></tr>
+        <tr><td>下极限 \(\liminf\)</td><td>\(\sup_N \inf_{n \geq N} a_n\)</td><td><code>Sequence.liminf</code></td></tr>
+        <tr><td>收敛判定</td><td>\(\limsup = \liminf = L\)</td><td><code>tendsTo_iff_eq_limsup_liminf</code></td></tr>
+        <tr><td>完备性</td><td>Cauchy ↔ 收敛</td><td><code>Cauchy_iff_convergent</code></td></tr>
+    </table>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节形式化完成度</span>
+    <table>
+        <tr><th>内容</th><th>状态</th></tr>
+        <tr><td>定义 6.4.1（极限点）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.4.5（极限是唯一极限点）</td><td>✅ 已完成</td></tr>
+        <tr><td>定义 6.4.6（limsup/liminf）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.4.12a–b（上下极限的界）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.4.12c（inf ≤ liminf ≤ limsup ≤ sup）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.4.12d（极限点夹逼）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.4.12e（limsup/liminf 是极限点）</td><td>⬜ sorry</td></tr>
+        <tr><td>命题 6.4.12f（收敛 ↔ limsup = liminf）</td><td>✅ 已完成</td></tr>
+        <tr><td>引理 6.4.13（比较原理）</td><td>✅ 已完成</td></tr>
+        <tr><td>推论 6.4.14（夹逼定理）</td><td>✅ 已完成</td></tr>
+        <tr><td>推论 6.4.17（零判别法）</td><td>✅ 已完成</td></tr>
+        <tr><td>定理 6.4.18（Cauchy ↔ 收敛）</td><td>⬜ sorry</td></tr>
+    </table>
+</div>
+
+<div class="reflection">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：limsup/liminf 的深刻意义</span>
+    <p>
+    上极限和下极限是分析学中最优雅的概念之一：它们对任意有界序列都有定义，
+    不像极限那样要求序列收敛。从某种意义上说，limsup 和 liminf 是极限的"最坏情形"和"最好情形"的版本——
+    limsup 捕捉序列无穷次能达到的最高位置，liminf 捕捉最低位置。
+    </p>
+    <p>
+    命题 6.4.12(f) 表明，序列收敛当且仅当这两个"极端极限"恰好相同。
+    这种思路在数学分析中非常有用：要证明极限存在，只需分别估计 limsup 和 liminf 的上界和下界，
+    用夹逼迫使它们相等。
+    </p>
+    <p>
+    在 Lean 的形式化过程中，limsup 和 liminf 需要在扩展实数系 \(\mathbb{R}^*\) 中定义（因为可能为 \(\pm\infty\)），
+    但命题 6.4.12(f) 的证明要求它们是有限实数。这种"扩展"与"有限"之间的转换需要额外的类型推导。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s64-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-6.4.1">
+    <span class="label">习题 6.4.1。</span>
+    设 \((a_n)_{n=1}^\infty\) 是实数序列，\(L\) 是一个实数。证明：\(L\) 是该序列的极限点，
+    当且仅当存在一个子序列 \((a_{n_j})_{j=1}^\infty\) 收敛到 \(L\)。
+</div>
+
+<div class="exercise" id="ex-6.4.2">
+    <span class="label">习题 6.4.2。</span>
+    设 \((a_n)_{n=1}^\infty\) 是一个有界实数序列。证明 \(\limsup_{n\to\infty} a_n\) 和 \(\liminf_{n\to\infty} a_n\) 都是有限实数。
+</div>
+
+<div class="exercise" id="ex-6.4.3">
+    <span class="label">习题 6.4.3。</span>
+    证明命题 6.4.12 的 (b)(d)(e) 部分。
+</div>
+
+<div class="exercise" id="ex-6.4.4">
+    <span class="label">习题 6.4.4。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，\(c\) 是一个实数。证明：
+    \(\limsup_{n\to\infty}(a_n + c) = \limsup_{n\to\infty} a_n + c\)，
+    并求 \(\limsup_{n\to\infty}(c \cdot a_n)\)（分 \(c &gt; 0\)、\(c = 0\)、\(c &lt; 0\) 讨论）。
+</div>
+
+<div class="exercise" id="ex-6.4.5">
+    <span class="label">习题 6.4.5。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是实数序列。证明：
+    \(\limsup_{n\to\infty}(a_n + b_n) \leq \limsup_{n\to\infty} a_n + \limsup_{n\to\infty} b_n\)。
+    并举出等号不成立的例子。
+</div>
+
+<div class="exercise" id="ex-6.4.6">
+    <span class="label">习题 6.4.6。</span>
+    证明推论 6.4.14（夹逼定理）不使用命题 6.4.12，即直接用 \(\varepsilon\)-\(N\) 语言给出证明。
+</div>
+
+<div class="exercise" id="ex-6.4.7">
+    <span class="label">习题 6.4.7。</span>
+    设 \((a_n)_{n=1}^\infty\) 是一个序列，对所有 \(n\) 有 \(a_n &gt; 0\)。
+    若 \(\lim_{n\to\infty} a_{n+1}/a_n = L\)，证明：
+    若 \(L &lt; 1\) 则 \(\lim_{n\to\infty} a_n = 0\)；若 \(L &gt; 1\) 则序列发散到 \(+\infty\)。
+</div>
+
+<div class="exercise" id="ex-6.4.8">
+    <span class="label">习题 6.4.8。</span>
+    给出一个有两个不同极限点的有界序列的例子，并验证 \(\limsup \neq \liminf\)。
+</div>
+
+<div class="exercise" id="ex-6.4.9">
+    <span class="label">习题 6.4.9。</span>
+    设 \((a_n)_{n=1}^\infty\) 是一个 Cauchy 序列。利用定理 6.4.18（的证明思路），
+    不使用有理数完备化的构造，直接证明该序列有界。
+</div>
+
+<div class="exercise" id="ex-6.4.10">
+    <span class="label">习题 6.4.10。</span>
+    设 \((a_n)_{n=m}^\infty\) 是收敛到 \(L\) 的序列。证明序列 \((|a_n|)_{n=m}^\infty\) 收敛到 \(|L|\)。
+    （提示：利用反三角不等式 \(\big||x| - |y|\big| \leq |x - y|\)。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>tendsTo_abs</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.4 节的正文，
+    以及关于极限点、上下极限、Cauchy 完备性等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_4.lean</code>。</p>
+</div>
+
+</main>
+<nav class="section-nav" id="sectionNav"></nav>
+
+<script>
+var SECTION_NAV = {
+    chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
+    current: { num: '6.4', zh: '上极限、下极限与极限点', en: 'Limsup, Liminf, and Limit Points' },
+    prev: { num: '6.3', file: 'section_6_3_textbook.html', zh: '序列的上确界与下确界', en: 'Suprema and Infima of Sequences' },
+    next: null
+};
+(function(){ var s=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(s);})();
+(function(){ var o='section64_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
+(function(){ var t=false;window.addEventListener('scroll',function(){if(!t){requestAnimationFrame(function(){var h=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('progressBar').style.width=(h>0?window.scrollY/h*100:0)+'%';t=false;});t=true;}});})();
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.toc a,.sidebar-toc a').forEach(function(a){a.addEventListener('click',function(){var h=this.getAttribute('href');if(!h||h[0]!=='#')return;var e=document.getElementById(h.slice(1));if(e){e.classList.remove('highlighted');void e.offsetWidth;e.classList.add('highlighted');}});});});
+document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s64-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.code-block').forEach(function(b){var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';btn.addEventListener('click',function(){var t='';b.childNodes.forEach(function(c){if(c!==btn)t+=c.textContent;});t=t.trim();if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){s(btn);});else{var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');s(btn);}catch(e){}document.body.removeChild(ta);}});b.appendChild(btn);});function s(b){b.textContent='Copied!';b.classList.add('copied');setTimeout(function(){b.textContent='Copy';b.classList.remove('copied');},2000);}});
+document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('sidebarToc'),i=document.querySelector('.toc.inline-toc');if(!s||!i)return;s.innerHTML='<div class="toc-title">目录</div>'+i.querySelector('ol').outerHTML;});
+document.addEventListener('DOMContentLoaded',function(){var n=SECTION_NAV,el=document.getElementById('sectionNav'),bc=document.getElementById('breadcrumb');if(bc)bc.innerHTML='<em>分析学 I</em><span class="sep">›</span>第 '+n.chapter.num+' 章<span class="sep">›</span><strong>§'+n.current.num+'</strong>';if(!el)return;var h='';if(n.prev)h+='<a href="'+n.prev.file+'"><span class="nav-label">← 上一节</span><span class="nav-title">§'+n.prev.num+' '+n.prev.zh+'</span></a>';else h+='<span></span>';h+='<span class="spacer"></span>';if(n.next)h+='<a href="'+n.next.file+'"><span class="nav-label">下一节 →</span><span class="nav-title">§'+n.next.num+' '+n.next.zh+'</span></a>';else h+='<span></span>';el.innerHTML=h;});
+document.addEventListener('DOMContentLoaded',function(){var r=[[/--.*$/gm,'comment'],[/\/--.*?-\//gs,'comment'],[/\b(sorry|admit)\b/g,'sorry'],[/\b(theorem|def|lemma|example|abbrev|noncomputable|instance|structure|inductive|class|where|match|with|if|then|else|let|have|by|do|return|import|open|namespace|section|variable|deriving|extends|private|protected|set_option|fun)\b/g,'keyword'],[/\b(simp|rfl|ring|omega|norm_cast|norm_num|tauto|exact|apply|intro|rw|calc|congr|symm|constructor|cases|induction|rcases|obtain|use|ext|funext|contradiction|absurd|push_neg|contrapose|revert|specialize|erw|left|right|exfalso|trivial|decide|aesop|linarith|positivity|field_simp|convert|grind)\b/g,'tactic'],[/\b(ℝ|ℤ|ℕ|ℚ|Prop|Type|Sort|Set|True|False|EReal|Real|Nat|Int|Bool|Sequence)\b/g,'type'],[/"[^"]*"/g,'string'],[/\b\d+\.?\d*\b/g,'number']];function e(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}document.querySelectorAll('.code-block').forEach(function(b){if(b.querySelector('.syn-keyword'))return;var t=b.textContent,tk=[];r.forEach(function(rl){var re=new RegExp(rl[0].source,rl[0].flags),m;while((m=re.exec(t))!==null)tk.push({start:m.index,end:m.index+m[0].length,cls:'syn-'+rl[1]});});if(!tk.length)return;tk.sort(function(a,b){return a.start-b.start||a.end-b.end;});var f=[tk[0]];for(var i=1;i<tk.length;i++)if(tk[i].start>=f[f.length-1].end)f.push(tk[i]);var h='',l=0;f.forEach(function(x){if(x.start>l)h+=e(t.slice(l,x.start));h+='<span class="'+x.cls+'">'+e(t.slice(x.start,x.end))+'</span>';l=x.end;});if(l<t.length)h+=e(t.slice(l));var cb=b.querySelector('.copy-btn');b.innerHTML=h;if(cb)b.appendChild(cb);});});
+</script>
+</body>
+</html>
