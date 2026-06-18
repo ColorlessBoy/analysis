@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第6.2节：拓展实数系 - Terence Tao</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+/* ============================== */
+/*  CSS Custom Properties (Light) */
+/* ============================== */
+:root {
+    /* Base */
+    --tb-bg: #fefefe; --tb-text: #333; --tb-text-secondary: #2c2c2c;
+    --tb-text-muted: #666; --tb-text-faint: #888; --tb-text-fainter: #999;
+    --tb-border: #eee; --tb-surface: #f8f9fa; --tb-link: #4a6fa5;
+    /* Headings */
+    --tb-h1: #1a1a1a;
+    /* Shadows & Transitions */
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.09);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.13);
+    /* Definition */
+    --tb-def-bg: #f8f9fa; --tb-def-border: #4a90d9; --tb-def-label: #2c5a8a;
+    /* Proposition */
+    --tb-prop-bg: #f0f7f0; --tb-prop-border: #5a9a5a; --tb-prop-label: #2d5a2d;
+    /* Lemma */
+    --tb-lem-bg: #f5f0f7; --tb-lem-border: #8a5a9a; --tb-lem-label: #5a2d6a;
+    /* Theorem */
+    --tb-thm-bg: #fff5f0; --tb-thm-border: #d97a5a; --tb-thm-label: #b04f2d;
+    /* Example */
+    --tb-ex-bg: #fffaf0; --tb-ex-border: #d9a85a; --tb-ex-label: #8a6620;
+    /* Exercise */
+    --tb-exer-bg: #f0f4f8; --tb-exer-border: #d0d8e0; --tb-exer-label: #3a6a9a;
+    /* Supplement */
+    --tb-supp-bg: #f0f7ff; --tb-supp-border: #e06090; --tb-supp-title: #b04060;
+    /* Reflection */
+    --tb-refl-bg: #fff5f5; --tb-refl-border: #c0392b; --tb-refl-title: #c0392b;
+    /* Proof */
+    --tb-proof-bg: transparent; --tb-proof-label: #666; --tb-proof-qed: #999;
+    /* Remark */
+    --tb-remark-border: #ddd; --tb-remark-text: #555;
+    /* Note */
+    --tb-note-bg: #fff8e7; --tb-note-border: #e0d8c0; --tb-note-text: #665;
+    /* Code */
+    --tb-code-bg: #f5f5f5; --tb-code-text: #333; --tb-code-border: #e8e8e8;
+    /* Table */
+    --tb-table-border: #ddd; --tb-table-head-bg: #f5f5f5;
+    /* TOC */
+    --tb-toc-bg: #fafafa; --tb-toc-border: #e0e0e0; --tb-toc-link: #4a6fa5;
+    --tb-toc-active-bg: #eef4fb; --tb-toc-active-border: #4a90d9;
+    /* Controls */
+    --tb-ctrl-bg: #fff; --tb-ctrl-border: #ccc; --tb-ctrl-text: #666;
+    --tb-ctrl-active-bg: #4a90d9; --tb-ctrl-active-text: #fff;
+    /* Bilingual tooltip */
+    --tb-tooltip-bg: #555; --tb-tooltip-text: #fff;
+    --tb-t-border: #c0c0c0;
+    /* Progress */
+    --tb-progress: #4a90d9;
+    /* Highlight flash */
+    --tb-highlight: rgba(255, 236, 153, 0.5);
+    /* Nav */
+    --tb-nav-bg: #f8f9fa; --tb-nav-border: #e0e0e0; --tb-nav-hover: #eef4fb;
+    /* Syntax Highlighting */
+    --tb-syn-keyword: #8959a8; --tb-syn-tactic: #c82829; --tb-syn-type: #4271ae;
+    --tb-syn-comment: #8e908c; --tb-syn-string: #718c00; --tb-syn-number: #f5871f;
+    --tb-syn-sorry: #e74c3c;
+    /* Copy button */
+    --tb-copy-bg: rgba(0,0,0,0.05); --tb-copy-text: #666; --tb-copy-hover-bg: rgba(0,0,0,0.1);
+    --tb-copy-success: #27ae60;
+    /* Footer */
+    --tb-footer-text: #888;
+}
+
+/* ============================== */
+/*  Dark Mode                      */
+/* ============================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9;
+    --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee;
+    --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9;
+    --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e; --tb-copy-hover-bg: rgba(255,255,255,0.12);
+    --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+  }
+}
+[data-theme="dark"] {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9;
+    --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee;
+    --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9;
+    --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e; --tb-copy-hover-bg: rgba(255,255,255,0.12);
+    --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+}
+
+/* ============================== */
+/*  Base Layout                    */
+/* ============================== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body {
+    font-family: 'Source Serif 4', 'STIX Two Text', 'Georgia', serif;
+    font-size: 18px; line-height: 1.8; margin: 0; padding: 0;
+    background: var(--tb-bg); color: var(--tb-text);
+    transition: background 0.3s, color 0.3s;
+}
+.page-wrapper { display: flex; justify-content: center; min-height: 100vh; }
+main.content { max-width: 800px; width: 100%; padding: 40px 20px; margin: 0 auto; }
+
+/* ============================== */
+/*  Progress Bar                   */
+/* ============================== */
+.progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+    background: linear-gradient(90deg, var(--tb-progress), var(--tb-def-border));
+    z-index: 1000; transition: width 0.1s linear;
+}
+
+/* ============================== */
+/*  Breadcrumb                     */
+/* ============================== */
+.breadcrumb {
+    max-width: 800px; margin: 0 auto; padding: 12px 20px 0;
+    font-size: 0.82em; color: var(--tb-text-faint);
+}
+.breadcrumb a { color: var(--tb-link); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { margin: 0 0.4em; opacity: 0.5; }
+
+/* ============================== */
+/*  Controls (lang + theme)        */
+/* ============================== */
+.controls {
+    text-align: center; margin: 0 0 20px 0;
+    display: flex; justify-content: center; gap: 10px;
+}
+.controls button {
+    font-family: 'Source Serif 4', serif; font-size: 0.85em;
+    padding: 6px 18px; border: 1px solid var(--tb-ctrl-border);
+    border-radius: 20px; background: var(--tb-ctrl-bg); color: var(--tb-ctrl-text);
+    cursor: pointer; transition: all 0.2s;
+}
+.controls button:hover { border-color: var(--tb-progress); color: var(--tb-progress); }
+.controls button.on { background: var(--tb-ctrl-active-bg); color: var(--tb-ctrl-active-text); border-color: var(--tb-ctrl-active-bg); }
+
+/* ============================== */
+/*  Typography                     */
+/* ============================== */
+h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: var(--tb-h1); }
+h3 { color: var(--tb-text-secondary); }
+.book-info { text-align: center; color: var(--tb-text-muted); font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--tb-border); }
+.book-info a { color: var(--tb-link); }
+.section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: var(--tb-text-secondary); }
+.section-number { font-size: 0.75em; color: var(--tb-text-faint); display: block; margin-bottom: 0.3em; }
+p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+.formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+.chapter-marker { color: var(--tb-text-faint); font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+.page-ref { color: var(--tb-text-fainter); font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+hr { border: none; border-top: 1px solid var(--tb-border); margin: 2em 0; }
+
+/* ============================== */
+/*  Semantic Boxes (shared)        */
+/* ============================== */
+.definition, .proposition-box, .lemma-box, .theorem-box, .example, .exercise, .supplement, .reflection {
+    border-radius: 6px; box-shadow: var(--tb-shadow-sm);
+    transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.3s;
+}
+.definition:hover, .proposition-box:hover, .lemma-box:hover, .theorem-box:hover, .example:hover {
+    box-shadow: var(--tb-shadow-hover); transform: translateY(-1px);
+}
+
+/* Definition */
+.definition { background: var(--tb-def-bg); border-left: 5px solid var(--tb-def-border); padding: 15px 20px; margin: 1.5em 0; font-style: normal; }
+.definition .label { font-weight: 600; color: var(--tb-def-label); }
+/* Proposition */
+.proposition-box { background: var(--tb-prop-bg); border-left: 5px solid var(--tb-prop-border); padding: 15px 20px; margin: 1.5em 0; }
+.proposition-box .label { font-weight: 600; color: var(--tb-prop-label); }
+/* Lemma */
+.lemma-box { background: var(--tb-lem-bg); border-left: 5px solid var(--tb-lem-border); padding: 15px 20px; margin: 1.5em 0; }
+.lemma-box .label { font-weight: 600; color: var(--tb-lem-label); }
+/* Theorem */
+.theorem-box { background: var(--tb-thm-bg); border-left: 5px solid var(--tb-thm-border); padding: 15px 20px; margin: 1.5em 0; }
+.theorem-box .label { font-weight: 600; color: var(--tb-thm-label); }
+/* Example */
+.example { background: var(--tb-ex-bg); border-left: 5px solid var(--tb-ex-border); padding: 12px 18px; margin: 1.5em 0; }
+.example .label { font-weight: 600; color: var(--tb-ex-label); }
+/* Exercise */
+.exercise { background: var(--tb-exer-bg); border: 1px solid var(--tb-exer-border); padding: 15px 20px; margin: 1.5em 0; }
+.exercise .label { font-weight: 600; color: var(--tb-exer-label); display: block; margin-bottom: 0.5em; }
+/* Remark */
+.remark { color: var(--tb-remark-text); padding-left: 1.5em; border-left: 2px solid var(--tb-remark-border); margin: 1.5em 0; }
+.remark strong { color: var(--tb-text); }
+/* Note */
+.note { background: var(--tb-note-bg); border: 1px solid var(--tb-note-border); border-radius: 6px; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: var(--tb-note-text); }
+.note::before { content: "注: "; font-weight: 600; }
+
+/* Supplement */
+.supplement { background: var(--tb-supp-bg); border-left: 5px solid var(--tb-supp-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.supplement .sup-title { font-weight: 700; color: var(--tb-supp-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.supplement p { text-indent: 0; font-size: 0.95em; }
+.supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+.supplement li { margin: 0.3em 0; }
+
+/* Reflection */
+.reflection { background: var(--tb-refl-bg); border-left: 5px solid var(--tb-refl-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.reflection .sup-title { font-weight: 700; color: var(--tb-refl-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.reflection p { text-indent: 0; font-size: 0.95em; }
+
+/* ============================== */
+/*  Collapsible Proof              */
+/* ============================== */
+.proof-collapsible { margin: 1em 0; font-size: 0.95em; }
+.proof-collapsible summary {
+    cursor: pointer; list-style: none; padding: 8px 0;
+    color: var(--tb-proof-label); font-style: italic;
+    display: flex; align-items: center; gap: 0.5em;
+    user-select: none;
+}
+.proof-collapsible summary::-webkit-details-marker { display: none; }
+.proof-collapsible summary::before {
+    content: ''; display: inline-block; width: 0; height: 0;
+    border-left: 6px solid var(--tb-proof-label); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transition: transform 0.2s;
+}
+.proof-collapsible[open] summary::before { transform: rotate(90deg); }
+.proof-collapsible .proof-body { padding: 8px 20px 8px 40px; }
+.proof-collapsible .qed { text-align: right; color: var(--tb-proof-qed); margin-top: 0.5em; font-style: normal; }
+
+/* ============================== */
+/*  Code Block                     */
+/* ============================== */
+.code-block {
+    position: relative;
+    background: var(--tb-code-bg); border: 1px solid var(--tb-code-border);
+    padding: 14px 16px; border-radius: 8px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
+    font-size: 0.82em; line-height: 1.6; overflow-x: auto; margin: 1em 0;
+    color: var(--tb-code-text); transition: background 0.3s, border-color 0.3s;
+}
+/* Copy button */
+.copy-btn {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--tb-copy-bg); border: none; border-radius: 4px;
+    padding: 3px 10px; font-size: 0.85em; color: var(--tb-copy-text);
+    cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.code-block:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { background: var(--tb-copy-hover-bg); }
+.copy-btn.copied { color: var(--tb-copy-success); }
+/* Syntax highlighting */
+.syn-keyword { color: var(--tb-syn-keyword); font-weight: 600; }
+.syn-tactic { color: var(--tb-syn-tactic); }
+.syn-type { color: var(--tb-syn-type); }
+.syn-comment { color: var(--tb-syn-comment); font-style: italic; }
+.syn-string { color: var(--tb-syn-string); }
+.syn-number { color: var(--tb-syn-number); }
+.syn-sorry { color: var(--tb-syn-sorry); font-weight: 700; text-decoration: underline wavy var(--tb-syn-sorry); }
+
+/* ============================== */
+/*  Table                          */
+/* ============================== */
+table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+th, td { border: 1px solid var(--tb-table-border); padding: 8px 12px; text-align: center; }
+th { background: var(--tb-table-head-bg); font-weight: 600; }
+
+/* ============================== */
+/*  TOC (inline)                   */
+/* ============================== */
+.toc {
+    background: var(--tb-toc-bg); border: 1px solid var(--tb-toc-border);
+    border-radius: 8px; padding: 20px 25px; margin: 1.5em 0;
+    box-shadow: var(--tb-shadow-sm); transition: background 0.3s, border-color 0.3s;
+}
+.toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: var(--tb-text-secondary); }
+.toc ol { margin: 0; padding-left: 1.5em; }
+.toc li { margin: 0.3em 0; font-size: 0.95em; }
+.toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; transition: background 0.2s, color 0.2s; }
+.toc a:hover { text-decoration: underline; }
+.toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+
+/* ============================== */
+/*  Sidebar TOC                    */
+/* ============================== */
+.sidebar-toc {
+    display: none; position: fixed; top: 80px; width: 240px;
+    max-height: calc(100vh - 100px); overflow-y: auto;
+    padding: 16px; font-size: 0.85em; line-height: 1.6;
+    border-right: 1px solid var(--tb-toc-border);
+    background: var(--tb-bg); z-index: 100;
+}
+.sidebar-toc .toc-title { font-weight: 700; font-size: 1em; margin-bottom: 0.6em; color: var(--tb-text-secondary); }
+.sidebar-toc ol { margin: 0; padding-left: 1.2em; }
+.sidebar-toc li { margin: 0.25em 0; }
+.sidebar-toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; display: inline-block; transition: all 0.2s; }
+.sidebar-toc a:hover { background: var(--tb-toc-active-bg); }
+.sidebar-toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+
+@media (min-width: 1200px) {
+    .sidebar-toc { display: block; left: max(0px, calc((100vw - 800px) / 2 - 280px)); }
+    .toc.inline-toc { display: none; }
+}
+
+/* ============================== */
+/*  Section Navigation             */
+/* ============================== */
+.section-nav {
+    max-width: 800px; margin: 30px auto 0; padding: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--tb-nav-border);
+    font-size: 0.9em;
+}
+.section-nav a {
+    color: var(--tb-link); text-decoration: none;
+    padding: 8px 16px; border-radius: 8px;
+    border: 1px solid var(--tb-nav-border);
+    background: var(--tb-nav-bg);
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.3em;
+}
+.section-nav a:hover { background: var(--tb-nav-hover); box-shadow: var(--tb-shadow-sm); }
+.section-nav .nav-label { font-size: 0.8em; color: var(--tb-text-faint); display: block; }
+.section-nav .nav-title { font-weight: 600; }
+.section-nav .spacer { flex: 1; }
+
+/* ============================== */
+/*  Bilingual Toggle               */
+/* ============================== */
+.t { border-bottom: 1px dotted var(--tb-t-border); cursor: help; position: relative; }
+.t::before { content: attr(data-zh); }
+.t::after {
+    content: attr(data-en); position: absolute; bottom: 1.6em; left: 0;
+    font-size: 0.8em; color: var(--tb-tooltip-text); background: var(--tb-tooltip-bg);
+    padding: 3px 10px; border-radius: 4px; white-space: nowrap;
+    z-index: 10; font-style: normal; pointer-events: none;
+    opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s;
+}
+.t:hover::after { opacity: 1; transition-delay: 0.4s; }
+.lang-en .t::after {
+    font-size: 0.85em; color: var(--tb-text-faint); margin-left: 0.4em; font-style: italic;
+    opacity: 1; position: static; background: none; padding: 0; border-radius: 0;
+    white-space: normal; pointer-events: auto;
+}
+
+/* ============================== */
+/*  Highlight Animation            */
+/* ============================== */
+@keyframes highlight-flash {
+    0% { background-color: var(--tb-highlight); }
+    100% { background-color: transparent; }
+}
+.highlighted { animation: highlight-flash 1.8s ease-out; }
+
+/* ============================== */
+/*  Footer                         */
+/* ============================== */
+.footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--tb-border); color: var(--tb-footer-text); font-size: 0.85em; }
+
+/* ============================== */
+/*  SVG Icons                      */
+/* ============================== */
+.icon { width: 1.1em; height: 1.1em; vertical-align: -0.15em; fill: currentColor; flex-shrink: 0; }
+
+/* ============================== */
+/*  Print                          */
+/* ============================== */
+@media print {
+    .progress-bar, .controls, .sidebar-toc, .section-nav, .copy-btn, .breadcrumb { display: none !important; }
+    body { background: #fff; color: #000; }
+    .definition, .proposition-box, .lemma-box, .theorem-box, .example, .exercise, .supplement, .reflection { box-shadow: none; break-inside: avoid; }
+    .proof-collapsible { break-inside: avoid; }
+    .proof-collapsible[open] summary::before { display: none; }
+}
+    </style>
+
+    <!-- MathJax -->
+    <script>
+        MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Early theme application (prevent flash) -->
+    <script>
+    (function(){
+        var t = localStorage.getItem('tb_theme');
+        if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Sidebar TOC (populated by JS) -->
+<aside class="sidebar-toc" id="sidebarToc"></aside>
+
+<!-- Breadcrumb -->
+<nav class="breadcrumb" id="breadcrumb"></nav>
+
+<main class="content">
+
+<!-- Controls -->
+<div class="controls">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+    <button id="themeBtn" onclick="toggleTheme()" title="切换深色/浅色模式">🌙</button>
+</div>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+</div>
+
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第6.2节</span>
+    <span class="t" data-zh="拓展实数系" data-en="The Extended Real Number System"></span>
+    <span class="page-ref">第115–117页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc inline-toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s62-intro">引言：为什么需要拓展实数系</a></li>
+        <li><a href="#s62-def621"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.1：拓展实数系</a></li>
+        <li><a href="#s62-def622"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.2：拓展实数的取反</a></li>
+        <li><a href="#s62-def623"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.3：拓展实数的序</a></li>
+        <li><a href="#s62-example624"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.4</a></li>
+        <li><a href="#s62-prop625"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.2.5：序的基本性质</a></li>
+        <li><a href="#s62-def626"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.6：拓展实数集合的上确界</a></li>
+        <li><a href="#s62-example627"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.7–6.2.10</a></li>
+        <li><a href="#s62-thm6211"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.2.11：最小上界与最大下界</a></li>
+        <li><a href="#s62-supp">补充说明</a></li>
+        <li><a href="#s62-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s62-intro">— 引言 —</div>
+
+<p>
+有些序列不收敛到任何实数，但直觉上似乎想要收敛到 \(+\infty\) 或 \(-\infty\)。
+例如，序列
+\[
+1, 2, 3, 4, 5, \ldots
+\]
+直觉上应该收敛到 \(+\infty\)，而序列
+\[
+-1, -2, -3, -4, -5, \ldots
+\]
+应该收敛到 \(-\infty\)。同时，序列
+\[
+1, -1, 1, -1, 1, -1, \ldots
+\]
+似乎不收敛到任何值（尽管我们以后会看到 \(+1\) 和 \(-1\) 是它的"极限点"——见后文）。
+类似地，序列
+\[
+1, -2, 3, -4, 5, -6, \ldots
+\]
+不收敛到任何实数，也不像是收敛到 \(+\infty\) 或 \(-\infty\)。
+为了精确表述这些概念，我们需要引入<strong><span class="t" data-zh="拓展实数系" data-en="extended real number system"></span></strong>。
+</p>
+
+<hr>
+
+<!-- ========== 定义 6.2.1 ========== -->
+<div id="s62-def621">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.1：拓展实数系</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.1（拓展实数系）。</span>
+    <strong><span class="t" data-zh="拓展实数系" data-en="extended real number system"></span></strong> \(\mathbb{R}^*\)
+    是在实数线 \(\mathbb{R}\) 上附加两个额外元素 \(+\infty\) 和 \(-\infty\) 而得到的。
+    这两个元素彼此不同，也与每个实数不同。
+    拓展实数 \(x\) 称为<strong><span class="t" data-zh="有限的" data-en="finite"></span></strong>，
+    如果它是实数；称为<strong><span class="t" data-zh="无穷的" data-en="infinite"></span></strong>，
+    如果它等于 \(+\infty\) 或 \(-\infty\)。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个定义与第 3.6 节中有限集和无限集的概念没有直接关系，但精神上是类似的。
+    至于 \(+\infty\) 和 \(-\infty\) 的具体构造并不重要；
+    根据习题 3.2.2，例如可以令 \(+\infty := \{\mathbb{R}\}\)，\(-\infty := \{\mathbb{R} \cup \{\infty\}\}\)。
+</div>
+
+<p>
+这些新符号 \(+\infty\) 和 \(-\infty\) 目前没有太多含义，因为除了等号 \(=\) 和不等号 \(\neq\)
+之外我们没有操纵它们的运算。现在我们在拓展实数系上定义一些运算。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的拓展实数</span>
+    <p>
+    在 <code>Section_6_2.lean</code> 中，我们使用 Mathlib 的 <code>EReal</code> 类型来表示拓展实数系。
+    <code>EReal</code> 的定义本质上是 <code>WithBot (WithTop ℝ)</code>，
+    即先在 \(\mathbb{R}\) 上附加 \(+\infty\)（<code>⊤</code>），再附加 \(-\infty\)（<code>⊥</code>）。
+    </p>
+    <p>定义 6.2.1 对应的 Lean 定理：</p>
+    <div class="code-block">
+/-- Definition 6.2.1 -/
+theorem EReal.def (x:EReal) :
+    (∃ (y:Real), y = x) ∨ x = ⊤ ∨ x = ⊥
+    </div>
+    <p>
+    此外还定义了辅助概念 <code>EReal.IsFinite</code> 和 <code>EReal.IsInfinite</code>，
+    分别表示拓展实数是有限的还是无穷的。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.2.2 ========== -->
+<div id="s62-def622">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.2：拓展实数的取反</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.2（拓展实数的取反）。</span>
+    将 \(\mathbb{R}\) 上的取反运算 \(x \mapsto -x\) 扩展到 \(\mathbb{R}^*\)，定义
+    \[
+    -(+\infty) := -\infty, \qquad -(-\infty) := +\infty.
+    \]
+</div>
+
+<p>
+这样，每个拓展实数 \(x\) 都有一个取反 \(-x\)，并且 \(-(-x)\) 总是等于 \(x\)。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的取反</span>
+    <p>在 Mathlib 中，<code>EReal</code> 的取反由以下定理描述：</p>
+    <ul>
+        <li><code>EReal.neg_of_real</code>：对实数 \(x\)，\(-(x : \text{EReal}) = (-x : \mathbb{R})\)</li>
+        <li><code>EReal.neg_top</code>：\(-\top = \bot\)，即 \(-(+\infty) = -\infty\)</li>
+        <li><code>EReal.neg_bot</code>：\(-\bot = \top\)，即 \(-(-\infty) = +\infty\)</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.2.3 ========== -->
+<div id="s62-def623">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.3：拓展实数的序</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.3（拓展实数的序）。</span>
+    设 \(x\) 和 \(y\) 是拓展实数。
+    我们说 \(x \leq y\)（即 \(x\) <strong>小于或等于</strong> \(y\)），如果以下三个陈述之一成立：
+    <ol type="a">
+        <li>\(x\) 和 \(y\) 都是实数，并且作为实数有 \(x \leq y\)；</li>
+        <li>\(y = +\infty\)；</li>
+        <li>\(x = -\infty\)。</li>
+    </ol>
+    我们说 \(x < y\) 如果 \(x \leq y\) 且 \(x \neq y\)。
+    有时我们将 \(x < y\) 写作 \(y > x\)，将 \(x \leq y\) 写作 \(y \geq x\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的序</span>
+    <p>定义 6.2.3 在 <code>Section_6_2.lean</code> 中对应：</p>
+    <div class="code-block">
+/-- Definition 6.2.3 (Ordering of extended reals) -/
+theorem EReal.le_iff (x y:EReal) :
+    x ≤ y ↔ (∃ (x' y':Real), x = x' ∧ y = y' ∧ x' ≤ y')
+            ∨ y = ⊤ ∨ x = ⊥
+
+theorem EReal.lt_iff (x y:EReal) :
+    x < y ↔ x ≤ y ∧ x ≠ y
+    </div>
+    <p>
+    Mathlib 中 <code>EReal</code> 已经是 <code>CompleteLinearOrder</code> 的实例，
+    所以 \(\leq\) 和 \(<\) 可以直接使用。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 例子 6.2.4 ========== -->
+<div id="s62-example624">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.4</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.4。</span>
+    \(3 \leq 5\)，\(3 < +\infty\)，\(-\infty < +\infty\)，但 \(3 \not\leq -\infty\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的验证</span>
+    <p>这四个示例在 Lean 中均被形式化验证：</p>
+    <div class="code-block">
+example : (3:EReal) ≤ (5:EReal) := by
+  rw [le_iff]; left; use (3:ℝ), (5:ℝ); norm_cast
+
+example : (3:EReal) < ⊤ := by
+  rw [lt_iff]; exact ⟨le_top, real_neq_infty 3⟩
+
+example : (⊥:EReal) < ⊤ := bot_lt_top
+
+example : ¬ (3:EReal) ≤ ⊥ := by
+  by_contra h; simp at h
+  exact real_neq_neg_infty 3 h
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 关于算术运算的讨论 ========== -->
+<div class="chapter-marker">— 关于算术运算的讨论 —</div>
+
+<p>
+我们也可以在拓展实数系上引入其他运算，例如加法和乘法。然而这样做有些危险，
+因为这些运算几乎必然无法满足我们熟悉的代数规律。例如，要定义加法，
+直觉上（基于人们对无穷大的直觉）设
+\(+\infty + 5 = +\infty\) 和 \(+\infty + 3 = +\infty\) 似乎是合理的，
+但这意味着 \(+\infty + 5 = +\infty + 3\)，而 \(5 \neq 3\)。
+因此，一旦我们试图对无穷大进行运算，消去律之类的规则就开始崩溃了。
+</p>
+
+<p>
+为了避免这些问题，我们<strong>不在拓展实数系上定义除取反和序以外的任何算术运算</strong>。
+</p>
+
+<hr>
+
+<!-- ========== 命题 6.2.5 ========== -->
+<div id="s62-prop625">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.2.5：序的基本性质</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.2.5。</span>
+    设 \(x, y, z\) 是拓展实数。则以下陈述成立：
+    <ol type="a">
+        <li><strong>（<span class="t" data-zh="自反性" data-en="Reflexivity"></span>）</strong> \(x \leq x\)。</li>
+        <li><strong>（<span class="t" data-zh="三分律" data-en="Trichotomy"></span>）</strong> 恰好有一个陈述 \(x < y\)、\(x = y\)、\(x > y\) 成立。</li>
+        <li><strong>（<span class="t" data-zh="传递性" data-en="Transitivity"></span>）</strong> 如果 \(x \leq y\) 且 \(y \leq z\)，则 \(x \leq z\)。</li>
+        <li><strong>（<span class="t" data-zh="取反反转序" data-en="Negation reverses order"></span>）</strong> 如果 \(x \leq y\)，则 \(-y \leq -x\)。</li>
+    </ol>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">见习题 6.2.1。</div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <p>命题 6.2.5 的各部分在 <code>Section_6_2.lean</code> 中对应（均标记为 <code>sorry</code>，留作练习）：</p>
+    <ul>
+        <li>(a) <code>EReal.refl</code>：自反性</li>
+        <li>(b) <code>EReal.trichotomy</code>、<code>EReal.not_lt_and_eq</code>、<code>EReal.not_gt_and_eq</code>、<code>EReal.not_lt_and_gt</code>：三分律</li>
+        <li>(c) <code>EReal.trans</code>：传递性</li>
+        <li>(d) <code>EReal.neg_of_lt</code>：取反反转序</li>
+    </ul>
+    <p>
+    注意，Mathlib 中 <code>EReal</code> 已经是 <code>CompleteLinearOrder</code> 的实例
+    （<code>instCompleteLinearOrderEReal</code>），所以这些性质可以直接使用 <code>le_refl</code>、
+    <code>le_antisymm</code>、<code>le_trans</code> 等标准 API。
+    本节的目标是"从头证明"以加深理解。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.2.6 ========== -->
+<div id="s62-def626">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.6：拓展实数集合的上确界</h3>
+</div>
+
+<p>
+回忆我们在定义 5.5.10 中为实数集 \(E\) 定义了上确界（最小上界）的概念，
+得到的是一个拓展实数 \(\sup(E)\)。现在我们把这个概念稍作推广。
+</p>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.2.6（拓展实数集合的上确界）。</span>
+    设 \(E\) 是 \(\mathbb{R}^*\) 的子集。我们按以下规则定义 \(E\) 的<strong><span class="t" data-zh="上确界" data-en="supremum"></span></strong>
+    \(\sup(E)\)（或<strong><span class="t" data-zh="最小上界" data-en="least upper bound"></span></strong>）：
+    <ol type="a">
+        <li>如果 \(E\) 包含在 \(\mathbb{R}\) 中（即 \(+\infty\) 和 \(-\infty\) 都不是 \(E\) 的元素），则令 \(\sup(E)\) 为定义 5.5.10 中所定义的值。</li>
+        <li>如果 \(E\) 包含 \(+\infty\)，则令 \(\sup(E) := +\infty\)。</li>
+        <li>如果 \(E\) 不包含 \(+\infty\) 但包含 \(-\infty\)，则令 \(\sup(E) := \sup(E \setminus \{-\infty\})\)（此时 \(E \setminus \{-\infty\}\) 是 \(\mathbb{R}\) 的子集，属于情形 (a)）。</li>
+    </ol>
+    <p style="text-indent: 0;">
+    我们还定义 \(E\) 的<strong><span class="t" data-zh="下确界" data-en="infimum"></span></strong>
+    \(\inf(E)\)（也称为<strong><span class="t" data-zh="最大下界" data-en="greatest lower bound"></span></strong>）：
+    \[
+    \inf(E) := -\sup(-E)
+    \]
+    其中 \(-E\) 是集合 \(-E := \{-x : x \in E\}\)。
+    </p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的上确界/下确界</span>
+    <p>定义 6.2.6 的各种情形在 <code>Section_6_2.lean</code> 中被分别形式化：</p>
+    <ul>
+        <li><code>EReal.sup_of_bounded_nonempty</code>：情形 (a)，有界非空集的上确界等于实数意义下的上确界</li>
+        <li><code>EReal.sup_of_unbounded_nonempty</code>：无界非空集的上确界为 \(+\infty\)</li>
+        <li><code>EReal.sup_of_empty</code>：空集的上确界为 \(-\infty\)</li>
+        <li><code>EReal.sup_of_infty_mem</code>：情形 (b)，若 \(+\infty \in E\) 则 \(\sup(E) = +\infty\)</li>
+        <li><code>EReal.sup_of_neg_infty_mem</code>：情形 (c)，\(\sup(E) = \sup(E \setminus \{-\infty\})\)</li>
+        <li><code>EReal.inf_eq_neg_sup</code>：下确界与上确界的关系</li>
+    </ul>
+    <p>Mathlib 中 <code>EReal</code> 的 <code>sSup</code> 和 <code>sInf</code> 来自其 <code>CompleteLattice</code> 实例。上述定理验证了 Mathlib 的定义与教材的手工定义一致。</p>
+</div>
+
+<hr>
+
+<!-- ========== 例子 6.2.7–6.2.10 ========== -->
+<div id="s62-example627">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.2.7–6.2.10</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.7。</span>
+    设 \(E\) 为所有负整数加上 \(-\infty\)：
+    \[ E = \{-1, -2, -3, -4, \ldots\} \cup \{-\infty\}. \]
+    则 \(\sup(E) = \sup(E \setminus \{-\infty\}) = -1\)，而
+    \[ \inf(E) = -\sup(-E) = -(+\infty) = -\infty. \]
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.8。</span>
+    集合 \(\{0.9, 0.99, 0.999, 0.9999, \ldots\}\) 的下确界为 \(0.9\)，上确界为 \(1\)。
+    注意在这种情况下，上确界并不属于集合本身，但在某种意义上从右侧"触碰"着它。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.9。</span>
+    集合 \(\{1, 2, 3, 4, 5, \ldots\}\) 的下确界为 \(1\)，上确界为 \(+\infty\)。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.2.10。</span>
+    设 \(E\) 为空集。则 \(\sup(E) = -\infty\)，\(\inf(E) = +\infty\)（为什么？）。
+    这是上确界可以小于下确界的唯一情形（为什么？）。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 直觉上可以这样理解上确界和下确界。想象实数线，\(+\infty\) 在最右端，\(-\infty\) 在最左端。
+    想象一个活塞从 \(+\infty\) 开始向左移动，直到被集合 \(E\) 挡住；它停下的位置就是 \(\sup(E)\)。
+    类似地，想象一个活塞从 \(-\infty\) 开始向右移动，直到被 \(E\) 挡住；它停下的位置就是 \(\inf(E)\)。
+    当 \(E\) 是空集时，两个活塞穿过彼此，上确界落在 \(-\infty\)，下确界落在 \(+\infty\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的例子</span>
+    <p>例 6.2.7–6.2.9 在 <code>Section_6_2.lean</code> 中定义了对应的集合，并将上确界/下确界的计算作为待证目标（多数标记为 <code>sorry</code>）：</p>
+    <div class="code-block">
+abbrev Example_6_2_7 : Set EReal :=
+  { x | ∃ n:ℕ, x = -((n+1):EReal)} ∪ {⊥}
+
+abbrev Example_6_2_8 : Set EReal :=
+  { x | ∃ n:ℕ, x = (1 - (10:ℝ)^(-(n:ℤ)-1):Real)}
+
+abbrev Example_6_2_9 : Set EReal :=
+  { x | ∃ n:ℕ, x = n+1}
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 定理 6.2.11 ========== -->
+<div id="s62-thm6211">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.2.11：最小上界与最大下界</h3>
+</div>
+
+<p>
+下面的定理证明了"<span class="t" data-zh="最小上界" data-en="least upper bound"></span>"和"<span class="t" data-zh="最大下界" data-en="greatest lower bound"></span>"这两个名称的正当性：
+</p>
+
+<div class="theorem-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.2.11。</span>
+    设 \(E\) 是 \(\mathbb{R}^*\) 的子集。则以下陈述成立：
+    <ol type="a">
+        <li>对每个 \(x \in E\)，有 \(x \leq \sup(E)\) 且 \(x \geq \inf(E)\)。</li>
+        <li>假设 \(M \in \mathbb{R}^*\) 是 \(E\) 的<span class="t" data-zh="上界" data-en="upper bound"></span>，即对所有 \(x \in E\) 有 \(x \leq M\)。则 \(\sup(E) \leq M\)。</li>
+        <li>假设 \(M \in \mathbb{R}^*\) 是 \(E\) 的<span class="t" data-zh="下界" data-en="lower bound"></span>，即对所有 \(x \in E\) 有 \(x \geq M\)。则 \(\inf(E) \geq M\)。</li>
+    </ol>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">见习题 6.2.2。</div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <p>定理 6.2.11 的各部分在 <code>Section_6_2.lean</code> 中对应（均标记为 <code>sorry</code>，留作练习）：</p>
+    <ul>
+        <li>(a) <code>EReal.mem_le_sup</code>：\(x \in E \Rightarrow x \leq \sup(E)\)</li>
+        <li>(a) <code>EReal.mem_ge_inf</code>：\(x \in E \Rightarrow \inf(E) \leq x\)</li>
+        <li>(b) <code>EReal.sup_le_upper</code>：若 \(M\) 是上界，则 \(\sup(E) \leq M\)</li>
+        <li>(c) <code>EReal.inf_ge_upper</code>：若 \(M\) 是下界，则 \(\inf(E) \geq M\)</li>
+    </ul>
+    <p>提示：在 Mathlib 中，<code>isLUB_iff_sSup_eq</code> 和 <code>isGLB_iff_sInf_eq</code> 给出了最小上界/最大下界与 <code>sSup</code>/<code>sInf</code> 之间的等价关系。</p>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s62-supp">
+<div class="chapter-marker">— 补充说明 —</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：第 5 章的 ExtendedReal 与 Mathlib 的 EReal</span>
+    <p>在第 5 章（<code>Section_5_epilogue.lean</code>）中，我们自定义了一个 <code>ExtendedReal</code> 归纳类型：</p>
+    <div class="code-block">
+inductive ExtendedReal where
+  | real : Chapter5.Real → ExtendedReal
+  | infty : ExtendedReal
+  | neg_infty : ExtendedReal
+    </div>
+    <p>在 <code>Section_6_2.lean</code> 中，我们试图建立这个自定义类型与 Mathlib 的 <code>EReal</code> 之间的等价：</p>
+    <div class="code-block">
+noncomputable abbrev Chapter5.ExtendedReal.toEReal
+    (x:ExtendedReal) : EReal := match x with
+  | real r => ((Real.equivR r):EReal)
+  | infty => ⊤
+  | neg_infty => ⊥
+
+noncomputable abbrev Chapter5.ExtendedReal.equivEReal :
+    Chapter5.ExtendedReal ≃ EReal
+    </div>
+    <p>这个等价关系（<code>equivEReal</code>）目前尚未完全实现（标记为 <code>sorry</code>）。它的意义在于：确认我们"从头构造"的拓展实数与 Mathlib 中现成的定义是一致的。</p>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节的概念结构</span>
+    <table>
+        <tr><th>概念</th><th>教材定义</th><th>Lean / Mathlib 对应</th></tr>
+        <tr><td>拓展实数系 \(\mathbb{R}^*\)</td><td>\(\mathbb{R} \cup \{+\infty, -\infty\}\)</td><td><code>EReal</code>（= <code>WithBot (WithTop ℝ)</code>）</td></tr>
+        <tr><td>有限</td><td>\(x \in \mathbb{R}\)</td><td><code>EReal.IsFinite</code></td></tr>
+        <tr><td>无穷</td><td>\(x = +\infty\) 或 \(x = -\infty\)</td><td><code>EReal.IsInfinite</code></td></tr>
+        <tr><td>取反</td><td>\(-(+\infty) = -\infty\) 等</td><td><code>EReal.neg_top</code>、<code>EReal.neg_bot</code></td></tr>
+        <tr><td>序 \(\leq\)</td><td>三种情形的定义</td><td><code>EReal.le_iff</code></td></tr>
+        <tr><td>上确界 \(\sup(E)\)</td><td>分三种情形</td><td><code>sSup</code>（<code>CompleteLattice</code> 实例）</td></tr>
+        <tr><td>下确界 \(\inf(E)\)</td><td>\(-\sup(-E)\)</td><td><code>sInf</code>；<code>EReal.inf_eq_neg_sup</code></td></tr>
+    </table>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节形式化完成度</span>
+    <table>
+        <tr><th>内容</th><th>状态</th></tr>
+        <tr><td>定义 6.2.1（拓展实数系）</td><td>✅ 已完成</td></tr>
+        <tr><td>定义 6.2.2（取反）</td><td>✅ 已完成</td></tr>
+        <tr><td>定义 6.2.3（序）</td><td>✅ 已完成</td></tr>
+        <tr><td>例 6.2.4</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.2.5（序的性质）</td><td>⬜ sorry（习题 6.2.1）</td></tr>
+        <tr><td>定义 6.2.6（上确界/下确界）</td><td>✅ 已完成</td></tr>
+        <tr><td>例 6.2.7–6.2.9</td><td>⬜ 部分 sorry</td></tr>
+        <tr><td>定理 6.2.11（最小上界性质）</td><td>⬜ sorry（习题 6.2.2）</td></tr>
+        <tr><td>ExtendedReal ≃ EReal</td><td>⬜ sorry</td></tr>
+    </table>
+</div>
+
+<div class="reflection">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：无穷大不是数</span>
+    <p>
+    第 6.2 节虽然篇幅不长，但包含了一个重要的观念：
+    \(+\infty\) 和 \(-\infty\) 可以被精确定义和使用，但不应赋予它们算术运算。
+    Tao 特意指出 \(+\infty + 5 = +\infty + 3\) 会导致消去律崩溃，
+    这提醒我们在处理无穷大时必须小心谨慎。
+    </p>
+    <p>
+    从形式化的角度来看，Mathlib 的 <code>EReal</code> 类型实际上<em>确实</em>定义了加法和乘法，
+    但这些运算不满足通常的代数律（例如 <code>EReal</code> 不是 <code>Ring</code>）。
+    这与 Tao 的保守策略（完全不定义算术运算）形成了对比——
+    Mathlib 选择了"定义但标注局限性"的路线，而 Tao 选择了"干脆不定义"。
+    两种方法各有优缺点。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s62-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-6.2.1">
+    <span class="label">习题 6.2.1（序的性质）。</span>
+    证明命题 6.2.5。（提示：你可能需要命题 5.4.7。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：
+        <code>EReal.refl</code>、<code>EReal.trichotomy</code>、
+        <code>EReal.not_lt_and_eq</code>、<code>EReal.not_gt_and_eq</code>、
+        <code>EReal.not_lt_and_gt</code>、<code>EReal.trans</code>、
+        <code>EReal.neg_of_lt</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.2.2">
+    <span class="label">习题 6.2.2（上确界/下确界的性质）。</span>
+    证明定理 6.2.11。（提示：你可能需要根据 \(+\infty\) 或 \(-\infty\) 是否属于 \(E\) 来分情况讨论。
+    当 \(E\) 仅由实数组成时，可以使用定义 5.5.10。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：
+        <code>EReal.mem_le_sup</code>、<code>EReal.mem_ge_inf</code>、
+        <code>EReal.sup_le_upper</code>、<code>EReal.inf_ge_upper</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.2 节的正文，
+    以及关于拓展实数系、上确界/下确界等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_2.lean</code>。</p>
+</div>
+
+</main>
+
+<!-- Section Navigation (rendered by JS) -->
+<nav class="section-nav" id="sectionNav"></nav>
+
+<!-- ============================== -->
+<!--  JavaScript                     -->
+<!-- ============================== -->
+<script>
+/* Section navigation data */
+var SECTION_NAV = {
+    chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
+    current: { num: '6.2', zh: '拓展实数系', en: 'The Extended Real Number System' },
+    prev: { num: '6.1', file: 'section_6_1_textbook.html', zh: '收敛与极限定律', en: 'Convergence and Limit Laws' },
+    next: { num: '6.3', file: 'section_6_3_textbook.html', zh: '序列的上确界与下确界', en: 'Suprema and Infima of Sequences' }
+};
+
+/* ===== 1. Theme Toggle ===== */
+(function(){
+    var saved = localStorage.getItem('tb_theme') || 'auto';
+    function applyTheme(t) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', t);
+        var btn = document.getElementById('themeBtn');
+        if (btn) btn.textContent = t === 'dark' ? '☀️' : t === 'light' ? '🌙' : (window.matchMedia('(prefers-color-scheme:dark)').matches ? '☀️' : '🌙');
+    }
+    window.toggleTheme = function() {
+        var cur = localStorage.getItem('tb_theme') || 'auto';
+        var isDark = cur === 'dark' || (cur === 'auto' && window.matchMedia('(prefers-color-scheme:dark)').matches);
+        var next = isDark ? 'light' : 'dark';
+        localStorage.setItem('tb_theme', next);
+        applyTheme(next);
+    };
+    applyTheme(saved);
+})();
+
+/* ===== 2. Language Toggle (unified key) ===== */
+(function(){
+    // Migrate from old per-file key
+    var oldKey = 'section62_lang';
+    var old = localStorage.getItem(oldKey);
+    if (old && !localStorage.getItem('tb_lang')) {
+        localStorage.setItem('tb_lang', old);
+        localStorage.removeItem(oldKey);
+    }
+    window.currentLang = localStorage.getItem('tb_lang') || 'zh';
+    window.toggleLang = function() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('tb_lang', currentLang);
+        applyLang();
+    };
+    window.applyLang = function() {
+        var btn = document.getElementById('langBtn');
+        if (currentLang === 'en') {
+            btn.textContent = 'EN 中文'; btn.classList.add('on');
+            document.body.classList.add('lang-en');
+        } else {
+            btn.textContent = '中 EN'; btn.classList.remove('on');
+            document.body.classList.remove('lang-en');
+        }
+    };
+    document.addEventListener('DOMContentLoaded', applyLang);
+})();
+
+/* ===== 3. Reading Progress Bar ===== */
+(function(){
+    var ticking = false;
+    window.addEventListener('scroll', function() {
+        if (!ticking) { requestAnimationFrame(function() {
+            var h = document.documentElement.scrollHeight - window.innerHeight;
+            var pct = h > 0 ? (window.scrollY / h * 100) : 0;
+            document.getElementById('progressBar').style.width = pct + '%';
+            ticking = false;
+        }); ticking = true; }
+    });
+})();
+
+/* ===== 4. Anchor Highlight ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toc a, .sidebar-toc a').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            var hash = this.getAttribute('href');
+            if (!hash || hash[0] !== '#') return;
+            var el = document.getElementById(hash.slice(1));
+            if (el) { el.classList.remove('highlighted'); void el.offsetWidth; el.classList.add('highlighted'); }
+        });
+    });
+});
+
+/* ===== 5. ScrollSpy TOC ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    var anchors = document.querySelectorAll('[id^="s62-"]');
+    if (!anchors.length) return;
+    var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            var links = document.querySelectorAll('.toc a[href="#' + e.target.id + '"], .sidebar-toc a[href="#' + e.target.id + '"]');
+            links.forEach(function(l) {
+                if (e.isIntersecting) l.classList.add('toc-active');
+                else l.classList.remove('toc-active');
+            });
+        });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    anchors.forEach(function(a) { obs.observe(a); });
+});
+
+/* ===== 6. Copy-to-Clipboard for Code Blocks ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.code-block').forEach(function(box) {
+        var btn = document.createElement('button');
+        btn.className = 'copy-btn'; btn.textContent = 'Copy';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+        btn.addEventListener('click', function() {
+            var text = '';
+            box.childNodes.forEach(function(c) { if (c !== btn) text += c.textContent; });
+            text = text.trim();
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(function() { showCopied(btn); });
+            } else {
+                var ta = document.createElement('textarea'); ta.value = text;
+                ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta);
+                ta.select(); try { document.execCommand('copy'); showCopied(btn); } catch(e) {}
+                document.body.removeChild(ta);
+            }
+        });
+        box.appendChild(btn);
+    });
+    function showCopied(b) {
+        b.textContent = 'Copied!'; b.classList.add('copied');
+        setTimeout(function() { b.textContent = 'Copy'; b.classList.remove('copied'); }, 2000);
+    }
+});
+
+/* ===== 7. Sidebar TOC Builder ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    var sidebar = document.getElementById('sidebarToc');
+    var inlineToc = document.querySelector('.toc.inline-toc');
+    if (!sidebar || !inlineToc) return;
+    sidebar.innerHTML = '<div class="toc-title">目录</div>' + inlineToc.querySelector('ol').outerHTML;
+});
+
+/* ===== 8. Section Navigation Renderer ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    var nav = SECTION_NAV, el = document.getElementById('sectionNav');
+    var bc = document.getElementById('breadcrumb');
+    if (bc) {
+        bc.innerHTML = '<em>分析学 I</em><span class="sep">›</span>第 ' + nav.chapter.num + ' 章<span class="sep">›</span><strong>§' + nav.current.num + '</strong>';
+    }
+    if (!el) return;
+    var html = '';
+    if (nav.prev) html += '<a href="' + nav.prev.file + '"><span class="nav-label">← 上一节</span><span class="nav-title">§' + nav.prev.num + ' ' + nav.prev.zh + '</span></a>';
+    else html += '<span></span>';
+    html += '<span class="spacer"></span>';
+    if (nav.next) html += '<a href="' + nav.next.file + '"><span class="nav-label">下一节 →</span><span class="nav-title">§' + nav.next.num + ' ' + nav.next.zh + '</span></a>';
+    else html += '<span></span>';
+    el.innerHTML = html;
+});
+
+/* ===== 9. Lean Syntax Highlighter ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    var rules = [
+        [/--.*$/gm, 'comment'],
+        [/\/--.*?-\//gs, 'comment'],
+        [/\b(sorry|admit)\b/g, 'sorry'],
+        [/\b(theorem|def|lemma|example|abbrev|noncomputable|instance|structure|inductive|class|where|match|with|if|then|else|let|have|by|do|return|import|open|namespace|section|variable|deriving|extends|private|protected|mutual|unsafe|partial|macro|syntax|elab|attribute|set_option|universe|axiom|opaque|fun)\b/g, 'keyword'],
+        [/\b(simp|rfl|ring|omega|norm_cast|norm_num|tauto|exact|apply|intro|rw|calc|congr|symm|constructor|cases|induction|rcases|obtain|use|ext|funext|contradiction|absurd|push_neg|contrapose|revert|specialize|erw|left|right|exfalso|trivial|decide|aesop|linarith|positivity|field_simp|ring_nf|simp_rw|refine|convert|swap|refl)\b/g, 'tactic'],
+        [/\b(ℝ|ℤ|ℕ|ℚ|Prop|Type|Sort|Set|True|False|EReal|Real|Nat|Int|Bool|String|Unit|List|Array|Option|WithTop|WithBot|Function|BddAbove|Nonempty)\b/g, 'type'],
+        [/"[^"]*"/g, 'string'],
+        [/\b\d+\.?\d*\b/g, 'number'],
+    ];
+
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.querySelectorAll('.code-block').forEach(function(block) {
+        // Skip if already highlighted
+        if (block.querySelector('.syn-keyword')) return;
+        var text = block.textContent;
+        // Tokenize: mark spans by priority
+        var tokens = []; // {start, end, cls}
+        rules.forEach(function(rule) {
+            var re = new RegExp(rule[0].source, rule[0].flags);
+            var m;
+            while ((m = re.exec(text)) !== null) {
+                tokens.push({ start: m.index, end: m.index + m[0].length, cls: 'syn-' + rule[1] });
+            }
+        });
+        if (!tokens.length) return;
+        // Sort by start position; earlier wins on overlap
+        tokens.sort(function(a,b) { return a.start - b.start || a.end - b.end; });
+        // Remove overlapping
+        var filtered = [tokens[0]];
+        for (var i = 1; i < tokens.length; i++) {
+            if (tokens[i].start >= filtered[filtered.length-1].end) filtered.push(tokens[i]);
+        }
+        // Build HTML
+        var html = '', last = 0;
+        filtered.forEach(function(t) {
+            if (t.start > last) html += escapeHtml(text.slice(last, t.start));
+            html += '<span class="' + t.cls + '">' + escapeHtml(text.slice(t.start, t.end)) + '</span>';
+            last = t.end;
+        });
+        if (last < text.length) html += escapeHtml(text.slice(last));
+        // Preserve copy button if present
+        var copyBtn = block.querySelector('.copy-btn');
+        block.innerHTML = html;
+        if (copyBtn) block.appendChild(copyBtn);
+    });
+});
+</script>
+
+</body>
+</html>
