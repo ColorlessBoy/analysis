@@ -34,177 +34,21 @@ abbrev Sequence.LimitPoint (a:Sequence) (x:ℝ) : Prop :=
 theorem Sequence.limit_point_def (a:Sequence) (x:ℝ) :
   a.LimitPoint x ↔ ∀ ε > 0, ∀ N ≥ a.m, ∃ n ≥ N, |a n - x| ≤ ε := by
     unfold LimitPoint Real.ContinuallyAdherent Real.Adherent
-    constructor
-    · intro h ε hε N hN
-      obtain ⟨n, hn, hclose⟩ := h ε hε N hN
-      refine ⟨n, ?_, ?_⟩
-      · have : n ≥ (a.from N).m := hn; simp [Sequence.from] at this; omega
-      · rw [Real.close_def, Sequence.from_eval _ (by simp [Sequence.from] at hn; omega : n ≥ N),
-            Real.dist_eq] at hclose
-        exact hclose
-    · intro h ε hε N hN
-      obtain ⟨n, hn, hclose⟩ := h ε hε N hN
-      refine ⟨n, by simp [Sequence.from]; omega, ?_⟩
-      rw [Real.close_def, Sequence.from_eval _ hn, Real.dist_eq]
-      exact hclose
+    sorry
 
 noncomputable abbrev Example_6_4_3 : Sequence := (fun (n:ℕ) ↦ 1 - (10:ℝ)^(-(n:ℤ)-1))
 
-lemma pow_ten_mono {m n : ℕ} (hmn : m ≤ n) : (10:ℝ)^(m : ℕ) ≤ (10:ℝ)^(n : ℕ) := by
-  induction' hmn with k h ih
-  · rfl
-  · rw [Nat.succ_eq_add_one, pow_succ]
-    have hpos : (0 : ℝ) ≤ (10:ℝ)^k := by positivity
-    nlinarith
-
-lemma pow_neg_n_sub_one_le (n : ℤ) (hn : n ≥ 1) : (10:ℝ)^(-n-1 : ℤ) ≤ (0.01 : ℝ) := by
-  have hnpos : 0 ≤ n := by omega
-  set k : ℕ := n.toNat with hk
-  have hkn : (k : ℤ) = n := by
-    dsimp [k]; exact Int.toNat_of_nonneg hnpos
-  have hk1 : 1 ≤ k := by
-    have h_cast : (1 : ℕ) ≤ n.toNat := by omega
-    omega
-  have hpos_pow : 0 < (10:ℝ)^(k+1 : ℕ) := pow_pos (by norm_num) (k+1)
-  have hpos_pow2 : 0 < (10:ℝ)^(2 : ℕ) := by norm_num
-  calc
-    (10:ℝ)^(-n-1 : ℤ) = (10:ℝ)^(-(n+1 : ℤ)) := by ring_nf
-    _ = ((10:ℝ)^(n+1 : ℤ))⁻¹ := by simpa using zpow_neg (a := (10:ℝ)) (n+1 : ℤ)
-    _ = ((10:ℝ)^(k+1 : ℤ))⁻¹ := by simp [hkn]
-    _ = ((10:ℝ)^(k+1 : ℕ))⁻¹ := by simpa using zpow_ofNat (a := (10:ℝ)) (k+1 : ℕ)
-    _ ≤ ((10:ℝ)^(2 : ℕ))⁻¹ := by
-      have hk2 : (2 : ℕ) ≤ k + 1 := by omega
-      have hpow : (10:ℝ)^(2 : ℕ) ≤ (10:ℝ)^(k+1 : ℕ) := pow_ten_mono hk2
-      exact (inv_le_inv₀ hpos_pow hpos_pow2).mpr hpow
-    _ = (0.01 : ℝ) := by norm_num
-
-lemma pow_ten_mono_nat {m n : ℕ} (hmn : m ≤ n) : (10 : ℝ) ^ m ≤ (10 : ℝ) ^ n := by
-  induction' hmn with k hk ih
-  · rfl
-  · calc
-      (10 : ℝ) ^ m ≤ (10 : ℝ) ^ k := ih
-      _ ≤ (10 : ℝ) ^ k * (10 : ℝ) := by
-        have h10pos : (0 : ℝ) ≤ 10 := by norm_num
-        have hpowk : (0 : ℝ) ≤ (10 : ℝ) ^ k := pow_nonneg h10pos _
-        nlinarith
-      _ = (10 : ℝ) ^ (k + 1) := by ring
-
-lemma ten_pow_neg_le {m n : ℕ} (hmn : m ≥ n) : (10 : ℝ) ^ (-(m : ℤ)-1 : ℤ) ≤ (10 : ℝ) ^ (-(n : ℤ)-1 : ℤ) := by
-  calc
-    (10 : ℝ) ^ (-(m : ℤ) - 1 : ℤ) = (10 : ℝ) ^ (-(m + 1 : ℤ) : ℤ) := by ring_nf
-    _ = ((10 : ℝ) ^ (m + 1 : ℤ))⁻¹ := by rw [zpow_neg]
-    _ = ((10 : ℝ) ^ ((m + 1 : ℕ) : ℤ))⁻¹ := by simp
-    _ = ((10 : ℝ) ^ (m + 1 : ℕ))⁻¹ := by
-      simpa using congrArg (fun x : ℝ => x⁻¹) (zpow_ofNat (10 : ℝ) (m + 1))
-    _ ≤ ((10 : ℝ) ^ (n + 1 : ℕ))⁻¹ := by
-      refine (inv_le_inv₀ (by positivity) (by positivity)).mpr ?_
-      exact pow_ten_mono_nat (by omega : n + 1 ≤ m + 1)
-    _ = ((10 : ℝ) ^ ((n + 1 : ℕ) : ℤ))⁻¹ := by
-      simpa using congrArg (fun x : ℝ => x⁻¹) (zpow_ofNat (10 : ℝ) (n + 1)).symm
-    _ = ((10 : ℝ) ^ (n + 1 : ℤ))⁻¹ := by simp
-    _ = (10 : ℝ) ^ (-(n + 1 : ℤ) : ℤ) := by rw [zpow_neg]
-    _ = (10 : ℝ) ^ (-(n : ℤ) - 1 : ℤ) := by ring_nf
-
-lemma pow_neg_one_even (k : ℕ) (h : Even k) : (-1 : ℝ) ^ k = 1 := by
-  rcases h with ⟨t, ht⟩
-  rw [ht, ← two_mul, pow_mul]
-  simp
-
-lemma pow_neg_one_odd (k : ℕ) (h : ¬ Even k) : (-1 : ℝ) ^ k = -1 := by
-  have h_mod : k % 2 = 1 := by
-    have := Nat.mod_two_eq_zero_or_one k
-    rcases this with (h0 | h1)
-    · exfalso; apply h; refine ⟨k/2, ?_⟩
-      omega
-    · exact h1
-  have h_eq : k = 2*(k/2) + 1 := by omega
-  rw [h_eq]
-  calc
-    (-1 : ℝ) ^ (2*(k/2) + 1) = (-1 : ℝ) ^ (2*(k/2)) * (-1 : ℝ) ^ 1 := by rw [pow_add]
-    _ = (-1 : ℝ) ^ (2*(k/2)) * (-1 : ℝ) := by simp
-    _ = ((-1 : ℝ)^(2 : ℕ)) ^ (k/2) * (-1 : ℝ) := by rw [pow_mul]
-    _ = 1 * (-1 : ℝ) := by norm_num
-    _ = -1 := by simp
+/-- Example 6.4.3 -/
+example : (0.1:ℝ).Adherent Example_6_4_3 0.8 := by sorry
 
 /-- Example 6.4.3 -/
-example : (0.1:ℝ).Adherent Example_6_4_3 0.8 := by
-  unfold Real.Adherent; refine ⟨0, by simp, ?_⟩
-  rw [Real.close_def, Real.dist_eq]; norm_num
-
-/-- Example 6.4.3 -/
-example : ¬ (0.1:ℝ).ContinuallyAdherent Example_6_4_3 0.8 := by
-  unfold Real.ContinuallyAdherent; push_neg
-  refine ⟨1, by simp, ?_⟩
-  intro n hn
-  have hn_m : n ≥ (Example_6_4_3.from 1).m := hn
-  have hn1 : n ≥ (1 : ℤ) := by
-    unfold Sequence.from at hn_m; simp at hn_m; omega
-  rw [Real.dist_eq, Sequence.from_eval _ hn1]
-  have hpos : (10:ℝ)^(-n-1 : ℤ) ≤ (0.01 : ℝ) := pow_neg_n_sub_one_le n (by omega)
-  have hpos10 : (10:ℝ)^(-n-1 : ℤ) > 0 := by
-    exact (zpow_pos (by norm_num : 0 < (10 : ℝ)) (-n-1 : ℤ))
-  have hcalc : |Example_6_4_3 n - 0.8| = 0.2 - (10:ℝ)^(-n-1 : ℤ) := by
-    have : Example_6_4_3 n = 1 - (10:ℝ)^(-n-1 : ℤ) := by
-      dsimp [Example_6_4_3, Sequence.ofNatFun]
-      have hn0 : (0 : ℤ) ≤ n := by omega
-      simp [hn0, Int.toNat_of_nonneg hn0]
-    rw [this]
-    have h_nonneg : 0 ≤ 0.2 - (10:ℝ)^(-n-1 : ℤ) := by
-      have : (10:ℝ)^(-n-1 : ℤ) ≤ 0.2 := by linarith
-      linarith
-    have hdiff : 1 - (10:ℝ)^(-n-1 : ℤ) - 0.8 = 0.2 - (10:ℝ)^(-n-1 : ℤ) := by ring
-    rw [hdiff, abs_of_nonneg h_nonneg]
-  rw [hcalc]
-  nlinarith
+example : ¬ (0.1:ℝ).ContinuallyAdherent Example_6_4_3 0.8 := by sorry
 
 /-- Example 6.4.3 -/
 example : (0.1:ℝ).ContinuallyAdherent Example_6_4_3 1 := by sorry
 
 /-- Example 6.4.3 -/
-example : Example_6_4_3.LimitPoint 1 := by
-  rw [Sequence.limit_point_def]
-  intro ε hε N hN
-  have hN0 : (0 : ℤ) ≤ N := hN
-  have h10gt1 : (1 : ℝ) < (10 : ℝ) := by norm_num
-  obtain ⟨k : ℕ, hk⟩ := pow_unbounded_of_one_lt (1 / ε) h10gt1
-  have hk_val : (10:ℝ)^(k : ℕ) > 1 / ε := hk
-  set n := max N (k : ℤ) with hn
-  have hnN : n ≥ N := le_max_left _ _
-  have hn0 : (0 : ℤ) ≤ n := by
-    have : (0 : ℤ) ≤ N := hN0
-    omega
-  have hn_pos : (10:ℝ)^(n.toNat + 1 : ℕ) > 1 / ε := by
-    have hnk : n ≥ (k : ℤ) := le_max_right _ _
-    have h_nk_nat : n.toNat ≥ k := by omega
-    have hpow : (10:ℝ)^(k : ℕ) ≤ (10:ℝ)^(n.toNat + 1 : ℕ) := pow_ten_mono (by omega)
-    linarith
-  have hzpow : (10:ℝ)^(-n-1 : ℤ) < ε := by
-    have hcalc : (10:ℝ)^(n+1 : ℤ) = (10:ℝ)^(n.toNat + 1 : ℕ) := by
-      have hsum : ((n.toNat + 1 : ℕ) : ℤ) = n + 1 := by
-        simp [Int.toNat_of_nonneg hn0]
-      calc
-        (10:ℝ)^(n+1 : ℤ) = (10:ℝ)^(((n.toNat + 1 : ℕ) : ℤ)) := by
-          rw [hsum]
-        _ = (10:ℝ)^(n.toNat + 1 : ℕ) :=
-          zpow_ofNat (a := (10:ℝ)) (n.toNat + 1 : ℕ)
-    calc
-      (10:ℝ)^(-n-1 : ℤ) = (10:ℝ)^(-(n+1 : ℤ)) := by ring_nf
-      _ = ((10:ℝ)^(n+1 : ℤ))⁻¹ := by simpa using zpow_neg (a := (10:ℝ)) (n+1 : ℤ)
-      _ = ((10:ℝ)^(n.toNat + 1 : ℕ))⁻¹ := by rw [hcalc]
-      _ = 1 / (10:ℝ)^(n.toNat + 1 : ℕ) := by norm_num
-      _ < 1 / (1 / ε) := (one_div_lt_one_div (by positivity) (by positivity : 0 < 1 / ε)).mpr hn_pos
-      _ = ε := by field_simp [hε.ne.symm]
-  have h_val : Example_6_4_3 n = 1 - (10:ℝ)^(-n-1 : ℤ) := by
-    dsimp [Example_6_4_3, Sequence.ofNatFun]
-    simp [hn0, Int.toNat_of_nonneg hn0]
-  have h10pos : 0 < (10:ℝ) := by norm_num
-  refine ⟨n, hnN, ?_⟩
-  calc
-    |Example_6_4_3.seq n - 1| = |(1 - (10:ℝ)^(-n-1 : ℤ)) - 1| := by rw [h_val]
-    _ = |-(10:ℝ)^(-n-1 : ℤ)| := by ring_nf
-    _ = |(10:ℝ)^(-n-1 : ℤ)| := by rw [abs_neg]
-    _ = (10:ℝ)^(-n-1 : ℤ) := abs_of_pos (zpow_pos h10pos (-n-1 : ℤ))
-    _ ≤ ε := hzpow.le
+example : Example_6_4_3.LimitPoint 1 := by sorry
 
 noncomputable abbrev Example_6_4_4 : Sequence :=
   (fun (n:ℕ) ↦ (-1:ℝ)^n * (1 + (10:ℝ)^(-(n:ℤ)-1)))
@@ -226,11 +70,7 @@ example : ¬ Example_6_4_4.LimitPoint 0 := by sorry
 
 /-- Proposition 6.4.5 / Exercise 6.4.1 -/
 theorem Sequence.limit_point_of_limit {a:Sequence} {x:ℝ} (h: a.TendsTo x) : a.LimitPoint x := by
-  rw [limit_point_def]
-  intro ε hε N hN
-  rw [tendsTo_iff] at h
-  obtain ⟨M, hM⟩ := h ε hε
-  exact ⟨max N M, le_max_left _ _, hM _ (le_max_right _ _)⟩
+  sorry
 
 /--
   A technical issue uncovered by the formalization: the upper and lower sequences of a real
@@ -247,535 +87,55 @@ noncomputable abbrev Sequence.lowerseq (a:Sequence) : ℤ → EReal := fun N ↦
 noncomputable abbrev Sequence.liminf (a:Sequence) : EReal :=
   sSup { x | ∃ N ≥ a.m, x = a.lowerseq N }
 
-lemma Sequence.upperseq_eq_sSup {a : Sequence} {n : ℤ} (hn : n ≥ a.m) :
-    a.upperseq n = sSup {x : EReal | ∃ m ≥ n, x = (a m : EReal)} := by
-  unfold Sequence.upperseq Sequence.sup
-  have hm : (a.from n).m = n := by
-    simp [Sequence.from, hn]
-  have hset : {x : EReal | ∃ m ≥ (a.from n).m, x = ((a.from n) m : EReal)} =
-    {x : EReal | ∃ m ≥ n, x = (a m : EReal)} := by
-    ext x; constructor
-    · rintro ⟨m, hm', rfl⟩
-      have hm_ge_n : m ≥ n := by rw [hm] at hm'; exact hm'
-      refine ⟨m, hm_ge_n, ?_⟩
-      rw [Sequence.from_eval a hm_ge_n]
-    · rintro ⟨m, hm_ge_n, rfl⟩
-      refine ⟨m, by rw [hm]; exact hm_ge_n, ?_⟩
-      rw [Sequence.from_eval a hm_ge_n]
-  rw [hset]
-
-lemma Sequence.lowerseq_eq_sInf {a : Sequence} {n : ℤ} (hn : n ≥ a.m) :
-    a.lowerseq n = sInf {x : EReal | ∃ m ≥ n, x = (a m : EReal)} := by
-  unfold Sequence.lowerseq Sequence.inf
-  have hm : (a.from n).m = n := by
-    simp [Sequence.from, hn]
-  have hset : {x : EReal | ∃ m ≥ (a.from n).m, x = ((a.from n) m : EReal)} =
-    {x : EReal | ∃ m ≥ n, x = (a m : EReal)} := by
-    ext x; constructor
-    · rintro ⟨m, hm', rfl⟩
-      have hm_ge_n : m ≥ n := by rw [hm] at hm'; exact hm'
-      refine ⟨m, hm_ge_n, ?_⟩
-      rw [Sequence.from_eval a hm_ge_n]
-    · rintro ⟨m, hm_ge_n, rfl⟩
-      refine ⟨m, by rw [hm]; exact hm_ge_n, ?_⟩
-      rw [Sequence.from_eval a hm_ge_n]
-  rw [hset]
-
 noncomputable abbrev Example_6_4_7 : Sequence := (fun (n:ℕ) ↦ (-1:ℝ)^n * (1 + (10:ℝ)^(-(n:ℤ)-1)))
-
-lemma Example_6_4_7_eval (m : ℤ) (hm : m ≥ 0) : Example_6_4_7 m = (-1:ℝ)^(m.toNat) * (1 + (10 : ℝ)^(-m-1 : ℤ)) := by
-  unfold Example_6_4_7; simp [hm]
-
-lemma Example_6_4_7_eval_even (m : ℤ) (hm : m ≥ 0) (h : Even (m.toNat)) :
-    Example_6_4_7 m = 1 + (10 : ℝ)^(-m-1 : ℤ) := by
-  rw [Example_6_4_7_eval m hm, pow_neg_one_even (m.toNat) h]; ring
-
-lemma Example_6_4_7_eval_odd (m : ℤ) (hm : m ≥ 0) (h : ¬ Even (m.toNat)) :
-    Example_6_4_7 m = -(1 + (10 : ℝ)^(-m-1 : ℤ)) := by
-  rw [Example_6_4_7_eval m hm, pow_neg_one_odd (m.toNat) h]; ring
-
-lemma Example_6_4_7_parity_even (n : ℕ) (h : Even n) :
-    Example_6_4_7 (n : ℤ) = 1 + (10 : ℝ)^(-(n : ℤ)-1 : ℤ) := by
-  apply Example_6_4_7_eval_even (n : ℤ) (by exact_mod_cast Nat.zero_le n) h
-
-lemma Example_6_4_7_parity_odd (n : ℕ) (h : ¬ Even n) (hn1_even : Even (n + 1)) :
-    Example_6_4_7 ((n : ℤ) + 1) = 1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ) := by
-  have h_nonneg : (n : ℤ) + 1 ≥ 0 := by omega
-  have h_even_nat : Even (((n : ℤ) + 1).toNat) := by
-    have : ((n : ℤ) + 1).toNat = n + 1 := by omega
-    rw [this]; exact hn1_even
-  calc
-    Example_6_4_7 ((n : ℤ) + 1) = 1 + (10 : ℝ)^(-((n : ℤ) + 1)-1 : ℤ) :=
-      Example_6_4_7_eval_even ((n : ℤ) + 1) h_nonneg h_even_nat
-    _ = 1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ) := by ring
-
-lemma Even_succ_of_not_Even {n : ℕ} (h : ¬ Even n) : Even (n + 1) := by
-  have h_mod : n % 2 = 1 := by
-    have := Nat.mod_two_eq_zero_or_one n
-    rcases this with (h0 | h1)
-    · exfalso; apply h; refine ⟨n/2, ?_⟩; omega
-    · exact h1
-  refine ⟨n/2 + 1, ?_⟩
-  omega
 
 example (n:ℕ) :
     Example_6_4_7.upperseq n = if Even n then 1 + (10:ℝ)^(-(n:ℤ)-1) else 1 + (10:ℝ)^(-(n:ℤ)-2) := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_7.m := by
-    simp [Example_6_4_7]
-  rw [Sequence.upperseq_eq_sSup hn_nonneg]
-  by_cases h : Even n
-  · rw [if_pos h]
-    apply le_antisymm
-    · apply sSup_le; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      by_cases hm_even_nat : Even (m.toNat)
-      · rw [Example_6_4_7_eval_even m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have h_ten : (10 : ℝ)^(-m-1 : ℤ) ≤ (10 : ℝ)^(-(n : ℤ)-1 : ℤ) := by
-          calc
-            (10 : ℝ)^(-m-1 : ℤ) = (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := by simp [hm_toNat]
-            _ ≤ (10 : ℝ)^(-(n : ℤ)-1 : ℤ) := ten_pow_neg_le (by omega)
-        nlinarith
-      · rw [Example_6_4_7_eval_odd m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have h_ten : (10 : ℝ)^(-m-1 : ℤ) ≤ (10 : ℝ)^(-(n : ℤ)-1 : ℤ) := by
-          calc
-            (10 : ℝ)^(-m-1 : ℤ) = (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := by simp [hm_toNat]
-            _ ≤ (10 : ℝ)^(-(n : ℤ)-1 : ℤ) := ten_pow_neg_le (by omega)
-        have hpos1 : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-        have hpos2 : (10 : ℝ)^(-(n : ℤ)-1 : ℤ) ≥ 0 := by positivity
-        nlinarith
-    · apply le_sSup; refine ⟨(n : ℤ), le_refl _, ?_⟩
-      rw [Example_6_4_7_parity_even n h]
-  · rw [if_neg h]
-    apply le_antisymm
-    · apply sSup_le; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      by_cases hm_even_nat : Even (m.toNat)
-      · rw [Example_6_4_7_eval_even m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have hm_ge_np1 : m.toNat ≥ n + 1 := by
-          have hm_nat_ge_n : m.toNat ≥ n := by
-            have hm_ge_n_ziel : (m : ℤ) ≥ (n : ℤ) := hm_ge_n
-            omega
-          by_contra! hlt
-          have hm_eq_n : m.toNat = n := by omega
-          have : Even n := by
-            rw [← hm_eq_n]
-            exact hm_even_nat
-          exact h this
-        have h_ten : (10 : ℝ)^(-m-1 : ℤ) ≤ (10 : ℝ)^(-(n : ℤ)-2 : ℤ) := by
-          calc
-            (10 : ℝ)^(-m-1 : ℤ) = (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := by simp [hm_toNat]
-            _ ≤ (10 : ℝ)^(-(n+1 : ℤ)-1 : ℤ) := ten_pow_neg_le hm_ge_np1
-            _ = (10 : ℝ)^(-(n : ℤ)-2 : ℤ) := by ring
-        have hpos1 : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-        have hpos2 : (10 : ℝ)^(-(n : ℤ)-2 : ℤ) ≥ 0 := by positivity
-        nlinarith
-      · rw [Example_6_4_7_eval_odd m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have hpos1 : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-        have hpos2 : (10 : ℝ)^(-(n : ℤ)-2 : ℤ) ≥ 0 := by positivity
-        nlinarith
-    · apply le_sSup; refine ⟨(n : ℤ) + 1, by omega, ?_⟩
-      have hn1_even : Even (n + 1) := Even_succ_of_not_Even h
-      rw [Example_6_4_7_parity_odd n h hn1_even]
+  sorry
 
-example : Example_6_4_7.limsup = 1 := by
-  unfold Sequence.limsup
-  apply le_antisymm
-  · apply le_sInf; rintro x ⟨N, hN, rfl⟩
-    have h_nonneg : (N : ℤ) ≥ Example_6_4_7.m := hN
-    rw [Sequence.upperseq_eq_sSup h_nonneg]
-    apply sSup_le; rintro y ⟨m, hm_ge_n, rfl⟩
-    have hm_nonneg : m ≥ 0 := by omega
-    have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-    by_cases hm_even_nat : Even (m.toNat)
-    · rw [Example_6_4_7_eval_even m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-      have hpos : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-      nlinarith
-    · rw [Example_6_4_7_eval_odd m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-      have hpos : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-      nlinarith
-  · apply le_of_forall_gt_imp_ge_of_dense; intro x hx
-    have hx' : (0 : ℝ) < (x - 1 : ℝ) := by
-      have : (1 : ℝ) < x := by exact_mod_cast hx
-      linarith
-    have h10gt1 : (1 : ℝ) < (10 : ℝ) := by norm_num
-    obtain ⟨k, hk⟩ := pow_unbounded_of_one_lt ((1 : ℝ) / (x - 1)) h10gt1
-    have hk_val : (10 : ℝ)^(k : ℕ) > (1 : ℝ) / (x - 1) := hk
-    set n := 2 * k with hn
-    have hn_nonneg : (n : ℤ) ≥ Example_6_4_7.m := by simp [Example_6_4_7, n]
-    have hn_even : Even n := ⟨k, by omega⟩
-    have h_upperseq : Example_6_4_7.upperseq (n : ℤ) < x := by
-      rw [Sequence.upperseq_eq_sSup hn_nonneg]
-      have h_sup_val : sSup {x_1 : EReal | ∃ m ≥ (n : ℤ), x_1 = (Example_6_4_7 m : EReal)} =
-        (1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ) : ℝ) := by
-        -- We already know the exact upperseq value for even n from the previous theorem
-        sorry
-      sorry
-    exact sInf_le (by
-      refine ⟨(n : ℤ), ?_, rfl⟩
-      simp [Example_6_4_7])
-    -- Actually, we need a lemma about upperseq for even numbers
-    sorry
+example : Example_6_4_7.limsup = 1 := by sorry
 
 example (n:ℕ) :
     Example_6_4_7.lowerseq n
     = if Even n then -(1 + (10:ℝ)^(-(n:ℤ)-2)) else -(1 + (10:ℝ)^(-(n:ℤ)-1)) := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_7.m := by simp [Example_6_4_7]
-  rw [Sequence.lowerseq_eq_sInf hn_nonneg]
-  by_cases h : Even n
-  · rw [if_pos h]
-    apply le_antisymm
-    · apply le_sInf; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      by_cases hm_even_nat : Even (m.toNat)
-      · rw [Example_6_4_7_eval_even m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have h_ten : (10 : ℝ)^(-(n : ℤ)-2 : ℤ) ≤ (10 : ℝ)^(-m-1 : ℤ) := by
-          have hm_ge_np1 : m.toNat ≥ n + 1 := by
-            have hm_nat_ge_n : m.toNat ≥ n := by omega
-            by_contra! hlt
-            have hm_eq_n : m.toNat = n := by omega
-            have : Even n := by rw [← hm_eq_n]; exact hm_even_nat
-            exact h this
-          calc
-            (10 : ℝ)^(-(n : ℤ)-2 : ℤ) = (10 : ℝ)^(-(n+1 : ℤ)-1 : ℤ) := by ring
-            _ ≤ (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := ten_pow_neg_le (by omega : n+1 ≤ m.toNat)
-            _ = (10 : ℝ)^(-m-1 : ℤ) := by simp [hm_toNat]
-        nlinarith
-      · rw [Example_6_4_7_eval_odd m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have h_ten : (10 : ℝ)^(-(n : ℤ)-2 : ℤ) ≤ (10 : ℝ)^(-m-1 : ℤ) := by
-          have hm_nat_ge_n : m.toNat ≥ n := by omega
-          calc
-            (10 : ℝ)^(-(n : ℤ)-2 : ℤ) = (10 : ℝ)^(-(n+1 : ℤ)-1 : ℤ) := by ring
-            _ ≤ (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := ten_pow_neg_le (by omega : n+1 ≤ m.toNat)
-            _ = (10 : ℝ)^(-m-1 : ℤ) := by simp [hm_toNat]
-        nlinarith
-    · apply sInf_le; refine ⟨(n : ℤ) + 1, by omega, ?_⟩
-      have hn1_even : Even (n + 1) := Even_succ_of_not_Even h
-      rw [show Example_6_4_7 ((n : ℤ) + 1) = -(1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ)) := by
-        have h_nonneg : (n : ℤ) + 1 ≥ 0 := by omega
-        have h_even_nat : Even (((n : ℤ) + 1).toNat) := by
-          have : ((n : ℤ) + 1).toNat = n + 1 := by omega
-          rw [this]; exact hn1_even
-        calc
-          Example_6_4_7 ((n : ℤ) + 1) = 1 + (10 : ℝ)^(-((n : ℤ) + 1)-1 : ℤ) :=
-            Example_6_4_7_eval_even ((n : ℤ) + 1) h_nonneg h_even_nat
-          _ = -(1 + (10 : ℝ)^(-(n : ℤ)-2 : ℤ)) := by ring]
-  · rw [if_neg h]
-    apply le_antisymm
-    · apply le_sInf; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      by_cases hm_even_nat : Even (m.toNat)
-      · rw [Example_6_4_7_eval_even m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have hpos1 : (10 : ℝ)^(-m-1 : ℤ) ≥ 0 := by positivity
-        have hpos2 : (10 : ℝ)^(-(n : ℤ)-1 : ℤ) ≥ 0 := by positivity
-        nlinarith
-      · rw [Example_6_4_7_eval_odd m hm_nonneg hm_even_nat, EReal.coe_le_coe_iff]
-        have hm_nat_ge_n : m.toNat ≥ n := by omega
-        have h_ten : (10 : ℝ)^(-(n : ℤ)-1 : ℤ) ≤ (10 : ℝ)^(-m-1 : ℤ) := by
-          calc
-            (10 : ℝ)^(-(n : ℤ)-1 : ℤ) = (10 : ℝ)^(-(n+1 : ℤ)-1 : ℤ) := by ring
-            _ ≤ (10 : ℝ)^(-(m.toNat : ℤ)-1 : ℤ) := ten_pow_neg_le (by omega : n+1 ≤ m.toNat)
-            _ = (10 : ℝ)^(-m-1 : ℤ) := by simp [hm_toNat]
-        nlinarith
-    · apply sInf_le; refine ⟨(n : ℤ), le_refl _, ?_⟩
-      rw [Example_6_4_7_parity_even n h]
-      ring
+  sorry
 
-lemma Even_succ_iff_not_Even {n : ℕ} : Even (n + 1) ↔ ¬ Even n := by
-  constructor
-  · intro h; by_contra! h'; rcases h' with ⟨k, hk⟩
-    have : n + 1 = 2*k + 1 := by omega
-    have : Even (n + 1) := h
-    rcases this with ⟨l, hl⟩
-    omega
-  · exact Even_succ_of_not_Even
+example : Example_6_4_7.liminf = -1 := by sorry
 
-lemma ten_pow_neg_n_sq_pos (n : ℕ) : (10 : ℝ)^(-(n : ℤ)-1 : ℤ) > 0 := by positivity
+example : Example_6_4_7.sup = (1.1:ℝ) := by sorry
 
-lemma Example_6_4_7_liminf_neg_one : Example_6_4_7.liminf = -1 := by
-  unfold Sequence.liminf
-  apply le_antisymm
-  · apply le_sSup; refine ⟨(0 : ℤ), by simp [Example_6_4_7], ?_⟩
-    have h0 : Even (0 : ℕ) := ⟨0, by omega⟩
-    rw [Sequence.lowerseq_eq_sInf (by simp [Example_6_4_7] : (0 : ℤ) ≥ Example_6_4_7.m)]
-    have h_inf : sInf {x : EReal | ∃ m ≥ (0 : ℤ), x = (Example_6_4_7 m : EReal)} = (-1 : ℝ) := by
-      apply le_antisymm
-      · apply sInf_le; refine ⟨(1 : ℤ), by omega, ?_⟩
-        have h1 : Even ((1 : ℤ).toNat) := by
-          have : (1 : ℤ).toNat = 1 := by omega
-          rw [this]
-          exact Even_succ_of_not_Even (by
-            intro h; rcases h with ⟨k, hk⟩; omega)
-        sorry
-      · apply le_sInf; rintro x ⟨m, hm_ge_0, rfl⟩
-        have hm_nonneg : m ≥ 0 := hm_ge_0
-        sorry
-    exact h_inf
-  · sorry
+example : Example_6_4_7.inf = (-1.01:ℝ) := by sorry
 
-lemma Example_6_4_7_sup : Example_6_4_7.sup = (1.1 : ℝ) := by
-  unfold Sequence.sup
-  have hm : Example_6_4_7.m = (0 : ℤ) := by simp [Example_6_4_7]
-  apply le_antisymm
-  · apply sSup_le; rintro x ⟨n, hn, rfl⟩
-    have hn_nonneg : n ≥ 0 := hn
-    have hn_eval : Example_6_4_7 n = (-1 : ℝ)^(n.toNat) * (1 + (10 : ℝ)^(-n-1 : ℤ)) := by
-      simp [Example_6_4_7, hn]
-    rw [hn_eval, EReal.coe_le_coe_iff]
-    have hpos : (10 : ℝ)^(-n-1 : ℤ) ≥ 0 := by positivity
-    by_cases h_even_nat : Even (n.toNat)
-    · rw [pow_neg_one_even (n.toNat) h_even_nat]; nlinarith
-    · rw [pow_neg_one_odd (n.toNat) h_even_nat]; nlinarith
-  · apply le_sSup; refine ⟨(0 : ℤ), by simp [Example_6_4_7], ?_⟩
-    simp [Example_6_4_7, show (0 : ℤ) ≥ 0 from by omega]
+noncomputable abbrev Example_6_4_8 : Sequence := (fun (n:ℕ) ↦ if Even n then (n+1:ℝ) else -(n:ℝ)-1)
 
-lemma Example_6_4_7_inf : Example_6_4_7.inf = (-1.01 : ℝ) := by
-  unfold Sequence.inf
-  have hm : Example_6_4_7.m = (0 : ℤ) := by simp [Example_6_4_7]
-  apply le_antisymm
-  · apply sInf_le; refine ⟨(1 : ℤ), by simp [Example_6_4_7], ?_⟩
-    simp [Example_6_4_7, show (1 : ℤ) ≥ 0 from by omega]
-    norm_num
-  · apply le_sInf; rintro x ⟨n, hn, rfl⟩
-    have hn_nonneg : n ≥ 0 := hn
-    have hn_eval : Example_6_4_7 n = (-1 : ℝ)^(n.toNat) * (1 + (10 : ℝ)^(-n-1 : ℤ)) := by
-      simp [Example_6_4_7, hn]
-    rw [hn_eval, EReal.coe_le_coe_iff]
-    have hpos : (10 : ℝ)^(-n-1 : ℤ) ≥ 0 := by positivity
-    by_cases h_even_nat : Even (n.toNat)
-    · rw [pow_neg_one_even (n.toNat) h_even_nat]; nlinarith
-    · rw [pow_neg_one_odd (n.toNat) h_even_nat]; nlinarith
+example (n:ℕ) : Example_6_4_8.upperseq n = ⊤ := by sorry
 
-lemma Example_6_4_8_eval_even (m : ℤ) (hm : m ≥ 0) (h : Even (m.toNat)) : Example_6_4_8 m = (m.toNat : ℝ) + 1 := by
-  unfold Example_6_4_8; simp [hm, h]
+example : Example_6_4_8.limsup = ⊤ := by sorry
 
-lemma Example_6_4_8_eval_odd (m : ℤ) (hm : m ≥ 0) (h : ¬ Even (m.toNat)) : Example_6_4_8 m = -(m.toNat : ℝ) - 1 := by
-  unfold Example_6_4_8; simp [hm, h]
+example (n:ℕ) : Example_6_4_8.lowerseq n = ⊥ := by sorry
 
-lemma sSup_eq_top_iff {s : Set EReal} : sSup s = ⊤ ↔ ∀ x : EReal, x < ⊤ → ∃ y ∈ s, x < y := by
-  exact sSup_eq_top
+example : Example_6_4_8.liminf = ⊥ := by sorry
 
-lemma sInf_eq_bot_iff {s : Set EReal} : sInf s = ⊥ ↔ ∀ x : EReal, ⊥ < x → ∃ y ∈ s, y < x := by
-  exact sInf_eq_bot
+noncomputable abbrev Example_6_4_9 : Sequence :=
+  (fun (n:ℕ) ↦ if Even n then (n+1:ℝ)⁻¹ else -(n+1:ℝ)⁻¹)
 
-lemma Example_6_4_8_upperseq_top (n : ℕ) : Example_6_4_8.upperseq n = ⊤ := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_8.m := by simp [Example_6_4_8]
-  rw [Sequence.upperseq_eq_sSup hn_nonneg, sSup_eq_top_iff]
-  intro x hx
-  induction x using EReal.rec with
-  | bot =>
-    refine ⟨(Example_6_4_8 (n : ℤ) : EReal), ⟨(n : ℤ), le_refl _, rfl⟩, EReal.bot_lt_coe _⟩
-  | top => exact absurd hx (lt_irrefl _)
-  | coe r =>
-    obtain ⟨k, hk⟩ := exists_nat_gt r
-    set m := 2 * max k n with hm_def
-    have hm_nonneg : (m : ℤ) ≥ 0 := by
-      push_cast; exact Nat.zero_le _
-    have hm_even_nat : Even (m.toNat) := by
-      have : m.toNat = m := Nat.cast_inj.mp (by simp)
-      rw [this]
-      refine ⟨max k n, ?_⟩
-      omega
-    have hm_val : (Example_6_4_8 (m : ℤ) : EReal) = ((m : ℝ) + 1 : ℝ) := by
-      rw [Example_6_4_8_eval_even (m : ℤ) hm_nonneg hm_even_nat]
-      simp
-    have h_lt : (r : EReal) < (Example_6_4_8 (m : ℤ) : EReal) := by
-      rw [hm_val, EReal.coe_lt_coe_iff]
-      calc
-        (r : ℝ) < (k : ℝ) := hk
-        _ ≤ (m : ℝ) := by
-          push_cast
-          have hkm : (k : ℕ) ≤ m := by
-            calc k ≤ max k n := Nat.le_max_left _ _
-              _ ≤ 2 * max k n := by omega
-              _ = m := rfl
-          exact_mod_cast hkm
-        _ < (m : ℝ) + 1 := by nlinarith
-    refine ⟨(Example_6_4_8 (m : ℤ) : EReal), ⟨(m : ℤ), ?_, rfl⟩, h_lt⟩
-    push_cast; omega
+example (n:ℕ) : Example_6_4_9.upperseq n = if Even n then (n+1:ℝ)⁻¹ else (n+2:ℝ)⁻¹ := by sorry
 
-lemma Example_6_4_8_lowerseq_bot (n : ℕ) : Example_6_4_8.lowerseq n = ⊥ := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_8.m := by simp [Example_6_4_8]
-  rw [Sequence.lowerseq_eq_sInf hn_nonneg, sInf_eq_bot_iff]
-  intro x hx
-  induction x using EReal.rec with
-  | bot => exact absurd hx (lt_irrefl _)
-  | top =>
-    refine ⟨(Example_6_4_8 (n : ℤ) : EReal), ⟨(n : ℤ), le_refl _, rfl⟩, ?_⟩
-    exact EReal.coe_lt_top _
-  | coe r =>
-    obtain ⟨k, hk⟩ := exists_nat_gt (-r)
-    set m := 2 * max k n + 1 with hm_def
-    have hm_nonneg : (m : ℤ) ≥ 0 := by
-      push_cast; exact Nat.zero_le _
-    have hm_odd_nat : ¬ Even (m.toNat) := by
-      have : m.toNat = m := by
-        simp
-      rw [this]
-      have : m % 2 = 1 := by omega
-      intro h_even; rcases h_even with ⟨t, ht⟩
-      omega
-    have hm_val : (Example_6_4_8 (m : ℤ) : EReal) = (-(m : ℝ) - 1 : ℝ) := by
-      rw [Example_6_4_8_eval_odd (m : ℤ) hm_nonneg hm_odd_nat]
-      simp
-    have h_lt : (Example_6_4_8 (m : ℤ) : EReal) < (r : EReal) := by
-      rw [hm_val, EReal.coe_lt_coe_iff]
-      have : -(m : ℝ) - 1 < r := by
-        have hk_neg : -((k : ℝ) : ℝ) > -(-r) := by
-          have : (k : ℝ) > -r := hk
-          linarith
-        sorry
-      calc
-        -(m : ℝ) - 1 ≤ -(k : ℝ) := by
-          have hkm : (k : ℕ) ≤ m := by
-            calc k ≤ max k n := Nat.le_max_left _ _
-              _ < 2 * max k n + 1 := by omega
-              _ = m := rfl
-          nlinarith
-        _ < r := by linarith
-    refine ⟨(Example_6_4_8 (m : ℤ) : EReal), ⟨(m : ℤ), ?_, rfl⟩, h_lt⟩
-    push_cast; omega
+example : Example_6_4_9.limsup = 0 := by sorry
 
-lemma Example_6_4_9_eval_even (n : ℕ) : Example_6_4_9 (n : ℤ) = (n+1 : ℝ)⁻¹ := by
-  unfold Example_6_4_9; simp [show (n : ℤ) ≥ 0 from by exact_mod_cast Nat.zero_le n]
+example (n:ℕ) : Example_6_4_9.lowerseq n = if Even n then -(n+2:ℝ)⁻¹ else -(n+1:ℝ)⁻¹ := by sorry
 
-lemma Example_6_4_9_eval_odd (n : ℕ) (h : ¬ Even n) : Example_6_4_9 (n : ℤ) = -(n+1 : ℝ)⁻¹ := by
-  unfold Example_6_4_9; simp [h, show (n : ℤ) ≥ 0 from by exact_mod_cast Nat.zero_le n]
+example : Example_6_4_9.liminf = 0 := by sorry
 
-lemma Example_6_4_9_eval_even_z (m : ℤ) (hm : m ≥ 0) (h : Even (m.toNat)) : Example_6_4_9 m = ((m.toNat : ℝ) + 1)⁻¹ := by
-  unfold Example_6_4_9; simp [hm, h]
+noncomputable abbrev Example_6_4_10 : Sequence := (fun (n:ℕ) ↦ (n+1:ℝ))
 
-lemma Example_6_4_9_eval_odd_z (m : ℤ) (hm : m ≥ 0) (h : ¬ Even (m.toNat)) : Example_6_4_9 m = -(((m.toNat : ℝ) + 1)⁻¹) := by
-  unfold Example_6_4_9; simp [hm, h]
+example (n:ℕ) : Example_6_4_10.upperseq n = ⊤ := by sorry
 
-<<<<<<< HEAD
 example : Example_6_4_10.limsup = ⊤ := by sorry
 
 example (n:ℕ) : Example_6_4_10.lowerseq n = n+1 := by sorry
 
 example : Example_6_4_10.liminf = ⊤ := by sorry
-=======
-lemma Example_6_4_9_upperseq_n (n : ℕ) : Example_6_4_9.upperseq n = if Even n then (n+1 : ℝ)⁻¹ else (n+2 : ℝ)⁻¹ := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_9.m := by simp [Example_6_4_9]
-  rw [Sequence.upperseq_eq_sSup hn_nonneg]
-  by_cases h : Even n
-  · rw [if_pos h]
-    apply le_antisymm
-    · apply sSup_le; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      rw [EReal.coe_le_coe_iff]
-      by_cases hm_even : Even (m.toNat)
-      · rw [Example_6_4_9_eval_even_z m hm_nonneg hm_even]
-        have hm_ge_n' : m.toNat ≥ n := by omega
-        apply (one_div_le_one_div (by positivity) (by positivity)).mpr
-        push_cast; omega
-      · rw [Example_6_4_9_eval_odd_z m hm_nonneg hm_even]
-        have hpos : ((m.toNat : ℝ) + 1)⁻¹ ≥ 0 := by positivity
-        nlinarith
-    · apply le_sSup; refine ⟨(n : ℤ), le_refl _, ?_⟩
-      rw [Example_6_4_9_eval_even n h]
-  · rw [if_neg h]
-    apply le_antisymm
-    · apply sSup_le; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      rw [EReal.coe_le_coe_iff]
-      by_cases hm_even : Even (m.toNat)
-      · rw [Example_6_4_9_eval_even_z m hm_nonneg hm_even]
-        have hm_ge_np1 : m.toNat ≥ n + 1 := by
-          have hm_nat_ge_n : m.toNat ≥ n := by omega
-          by_contra! hlt
-          have hm_eq_n : m.toNat = n := by omega
-          have : Even n := by rw [← hm_eq_n]; exact hm_even
-          exact h this
-        apply (one_div_le_one_div (by positivity) (by positivity)).mpr
-        push_cast; omega
-      · rw [Example_6_4_9_eval_odd_z m hm_nonneg hm_even]
-        have hpos : ((m.toNat : ℝ) + 1)⁻¹ ≥ 0 := by positivity
-        nlinarith
-    · apply le_sSup; refine ⟨(n : ℤ) + 1, by omega, ?_⟩
-      have hn1_even : Even (n + 1) := Even_succ_of_not_Even h
-      rw [Example_6_4_9_eval_even (n+1) hn1_even]
-      push_cast; rfl
-
-lemma Example_6_4_9_lowerseq_n (n : ℕ) : Example_6_4_9.lowerseq n = if Even n then -(n+2 : ℝ)⁻¹ else -(n+1 : ℝ)⁻¹ := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_9.m := by simp [Example_6_4_9]
-  rw [Sequence.lowerseq_eq_sInf hn_nonneg]
-  by_cases h : Even n
-  · rw [if_pos h]
-    apply le_antisymm
-    · apply le_sInf; rintro x ⟨m, hm_ge_n, rfl⟩
-      have hm_nonneg : m ≥ 0 := by omega
-      have hm_toNat : (m.toNat : ℤ) = m := Int.toNat_of_nonneg hm_nonneg
-      rw [EReal.coe_le_coe_iff]
-      by_cases hm_even : Even (m.toNat)
-      · rw [Example_6_4_9_eval_even_z m hm_nonneg hm_even]
-        have hm_ge_np1 : m.toNat ≥ n + 1 := by
-          have hm_nat_ge_n : m.toNat ≥ n := by omega
-          by_contra! hlt
-          have hm_eq_n : m.toNat = n := by omega
-          have : Even n := by rw [← hm_eq_n]; exact hm_even
-          exact h this
-        have hpos : ((m.toNat : ℝ) + 1)⁻¹ ≥ 0 := by positivity
-        nlinarith
-      · rw [Example_6_4_9_eval_odd_z m hm_nonneg hm_even]
-        have hm_ge_np1 : m.toNat ≥ n + 1 := by
-          have hm_nat_ge_n : m.toNat ≥ n := by omega
-          by_contra! hlt
-          have hm_eq_n : m.toNat = n := by omega
-          have : Even n := by
-            -- Note: we can't derive Even n from ¬ Even m.toNat, but we're in the Even n case
-            -- and hm_eq_n says m.toNat = n, so we can't get a contradiction.
-            -- Actually, if m.toNat = n and n is even, we need to prove Even (m.toNat).
-            -- But hm_even says ¬ Even m.toNat. This IS a contradiction.
-            exact h hm_even_nat? -- No, h is Even n, not ¬ Even n
-          sorry
-        sorry
-    · sorry
-  · sorry
-
-lemma Example_6_4_10_eval (m : ℤ) (hm : m ≥ 0) : Example_6_4_10 m = (m.toNat : ℝ) + 1 := by
-  unfold Example_6_4_10; simp [hm]
-
-lemma Example_6_4_10_upperseq_top (n : ℕ) : Example_6_4_10.upperseq n = ⊤ := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_10.m := by simp [Example_6_4_10]
-  rw [Sequence.upperseq_eq_sSup hn_nonneg, sSup_eq_top_iff]
-  intro x hx
-  induction x using EReal.rec with
-  | bot =>
-    refine ⟨(Example_6_4_10 (n : ℤ) : EReal), ⟨(n : ℤ), le_refl _, rfl⟩, EReal.bot_lt_coe _⟩
-  | top => exact absurd hx (lt_irrefl _)
-  | coe r =>
-    obtain ⟨k, hk⟩ := exists_nat_gt r
-    set m := max k n with hm_def
-    have hm_nonneg : (m : ℤ) ≥ 0 := by push_cast; exact Nat.zero_le _
-    have hm_val : (Example_6_4_10 (m : ℤ) : EReal) = ((m : ℝ) + 1 : ℝ) := by
-      rw [Example_6_4_10_eval (m : ℤ) hm_nonneg]
-      simp
-    have h_lt : (r : EReal) < (Example_6_4_10 (m : ℤ) : EReal) := by
-      rw [hm_val, EReal.coe_lt_coe_iff]
-      calc
-        (r : ℝ) < (k : ℝ) := hk
-        _ ≤ (m : ℝ) := by exact_mod_cast (Nat.le_max_left _ _)
-        _ < (m : ℝ) + 1 := by nlinarith
-    refine ⟨(Example_6_4_10 (m : ℤ) : EReal), ⟨(m : ℤ), ?_, rfl⟩, h_lt⟩
-    push_cast; omega
-
-lemma Example_6_4_10_lowerseq_n (n : ℕ) : Example_6_4_10.lowerseq n = n+1 := by
-  have hn_nonneg : (n : ℤ) ≥ Example_6_4_10.m := by simp [Example_6_4_10]
-  rw [Sequence.lowerseq_eq_sInf hn_nonneg]
-  apply le_antisymm
-  · apply sInf_le; refine ⟨(n : ℤ), le_refl _, ?_⟩
-    simp [Example_6_4_10, show (n : ℤ) ≥ 0 from by exact_mod_cast Nat.zero_le n]
-  · apply le_sInf; rintro x ⟨m, hm_ge_n, rfl⟩
-    have hm_nonneg : m ≥ 0 := by omega
-    rw [Example_6_4_10_eval m hm_nonneg, EReal.coe_le_coe_iff]
-    push_cast; omega
->>>>>>> 72cc8c1 ([Stage]: Section_6_4.lean)
 
 /-- Proposition 6.4.12(a) -/
 theorem Sequence.gt_limsup_bounds {a:Sequence} {x:EReal} (h: x > a.limsup) :
@@ -793,14 +153,7 @@ theorem Sequence.gt_limsup_bounds {a:Sequence} {x:EReal} (h: x > a.limsup) :
 /-- Proposition 6.4.12(a) -/
 theorem Sequence.lt_liminf_bounds {a:Sequence} {y:EReal} (h: y < a.liminf) :
     ∃ N ≥ a.m, ∀ n ≥ N, a n > y := by
-  simp only [liminf, lt_sSup_iff] at h
-  obtain ⟨z, hz, ha⟩ := h
-  obtain ⟨N, hN, hNz⟩ := hz
-  rw [hNz] at ha; use N
-  simp [hN, lowerseq] at ha ⊢; intro n _
-  have hn' : n ≥ (a.from N).m := by grind
-  convert lt_of_lt_of_le ha ((a.from N).ge_inf hn') using 1
-  grind
+  sorry
 
 /-- Proposition 6.4.12(b) -/
 theorem Sequence.lt_limsup_bounds {a:Sequence} {x:EReal} (h: x < a.limsup) {N:ℤ} (hN: N ≥ a.m) :
@@ -813,193 +166,36 @@ theorem Sequence.lt_limsup_bounds {a:Sequence} {x:EReal} (h: x < a.limsup) {N:�
 /-- Proposition 6.4.12(b) -/
 theorem Sequence.gt_liminf_bounds {a:Sequence} {x:EReal} (h: x > a.liminf) {N:ℤ} (hN: N ≥ a.m) :
     ∃ n ≥ N, a n < x := by
-  have hx : x > a.lowerseq N := by apply lt_of_le_of_lt _ h; apply le_sSup; simp; use N
-  choose n hn hxn _ using exists_between_gt_inf hx
-  grind
+  sorry
 
 /-- Proposition 6.4.12(c) / Exercise 6.4.3 -/
-theorem Sequence.inf_le_liminf (a:Sequence) : a.inf ≤ a.liminf := by
-  apply le_sSup
-  simp only [Set.mem_setOf_eq]
-  refine ⟨a.m, le_refl _, ?_⟩
-  simp only [lowerseq, inf, Sequence.from]
-  congr 1; ext n; simp only [Sequence.mk', Set.mem_setOf_eq]
-  constructor
-  · rintro ⟨m, hm, rfl⟩
-    exact ⟨m, by omega, by simp_all [show m ≥ max a.m a.m from by omega]⟩
-  · rintro ⟨m, hm, rfl⟩
-    refine ⟨m, by omega, ?_⟩; simp_all
+theorem Sequence.inf_le_liminf (a:Sequence) : a.inf ≤ a.liminf := by sorry
 
 /-- Proposition 6.4.12(c) / Exercise 6.4.3 -/
-theorem Sequence.liminf_le_limsup (a:Sequence) : a.liminf ≤ a.limsup := by
-  apply sSup_le; rintro x ⟨N1, hN1, rfl⟩
-  apply le_sInf; rintro y ⟨N2, hN2, rfl⟩
-  simp only [lowerseq, upperseq]
-  have hK : max N1 N2 ≥ (a.from N1).m := by simp [Sequence.from]; omega
-  have hK' : max N1 N2 ≥ (a.from N2).m := by simp [Sequence.from]; omega
-  calc (a.from N1).inf ≤ ↑((a.from N1) (max N1 N2)) := ge_inf hK
-    _ = ↑(a (max N1 N2)) := by congr 1; apply Sequence.from_eval; omega
-    _ = ↑((a.from N2) (max N1 N2)) := by congr 1; symm; apply Sequence.from_eval; omega
-    _ ≤ (a.from N2).sup := le_sup hK'
+theorem Sequence.liminf_le_limsup (a:Sequence) : a.liminf ≤ a.limsup := by sorry
 
 /-- Proposition 6.4.12(c) / Exercise 6.4.3 -/
-theorem Sequence.limsup_le_sup (a:Sequence) : a.limsup ≤ a.sup := by
-  apply sInf_le; simp only [Set.mem_setOf_eq]
-  refine ⟨a.m, le_refl _, ?_⟩
-  simp only [upperseq, sup, Sequence.from]
-  congr 1; ext n; simp only [Sequence.mk', Set.mem_setOf_eq]
-  constructor
-  · rintro ⟨m, hm, rfl⟩
-    exact ⟨m, by omega, by simp_all [show m ≥ max a.m a.m from by omega]⟩
-  · rintro ⟨m, hm, rfl⟩
-    refine ⟨m, by omega, ?_⟩; simp_all
+theorem Sequence.limsup_le_sup (a:Sequence) : a.limsup ≤ a.sup := by sorry
 
 /-- Proposition 6.4.12(d) / Exercise 6.4.3 -/
 theorem Sequence.limit_point_between_liminf_limsup {a:Sequence} {c:ℝ} (h: a.LimitPoint c) :
   a.liminf ≤ c ∧ c ≤ a.limsup := by
-  rw [limit_point_def] at h
-  refine ⟨?_, ?_⟩ <;> by_contra hlt <;> push_neg at hlt
-  · -- c < liminf: get N where inf of tail > c, giving a real gap
-    have hlt' : (c : EReal) < a.liminf := hlt
-    -- find z in liminf set with c < z
-    simp only [liminf, lt_sSup_iff] at hlt'
-    obtain ⟨z, ⟨N, hN, rfl⟩, hcz⟩ := hlt'
-    -- z = lowerseq N = (a.from N).inf > c
-    -- find real r between c and (a.from N).inf
-    have hcz' : (c : EReal) < (a.from N).inf := hcz
-    -- there exists n₀ ≥ N and a(n₀) is real, so inf ≤ a(n₀) < ⊤, hence inf < ⊤
-    have hinf_lt_top : (a.from N).inf < ⊤ := by
-      calc (a.from N).inf ≤ ↑((a.from N) (max a.m N)) :=
-            ge_inf (by simp [Sequence.from])
-        _ < ⊤ := EReal.coe_lt_top _
-    -- so inf is a real number or ⊥; but inf > c so inf ≠ ⊥
-    have hinf_ne_bot : (a.from N).inf ≠ ⊥ := ne_bot_of_gt hcz'
-    -- extract the real value of inf
-    set r := ((a.from N).inf).toReal
-    have hr : (a.from N).inf = (r : EReal) := by
-      symm; exact EReal.coe_toReal (ne_top_of_lt hinf_lt_top) hinf_ne_bot
-    rw [hr, EReal.coe_lt_coe_iff] at hcz'
-    have hε : (r - c) / 2 > 0 := by linarith
-    obtain ⟨n, hn, hclose⟩ := h _ hε N hN
-    have hn' : n ≥ (a.from N).m := by simp [Sequence.from]; omega
-    have h_ge : (a n : EReal) ≥ (a.from N).inf := by
-      convert ge_inf hn' using 1; congr 1; exact (Sequence.from_eval _ hn).symm
-    rw [hr, ge_iff_le, EReal.coe_le_coe_iff] at h_ge
-    linarith [(abs_le.mp hclose).2]
-  · -- limsup < c
-    have hlt' : a.limsup < (c : EReal) := hlt
-    simp only [limsup, sInf_lt_iff] at hlt'
-    obtain ⟨z, ⟨N, hN, rfl⟩, hzc⟩ := hlt'
-    have hzc' : (a.from N).sup < (c : EReal) := hzc
-    have hsup_gt_bot : (a.from N).sup > ⊥ := by
-      calc ⊥ < ↑((a.from N) (max a.m N)) := EReal.bot_lt_coe _
-        _ ≤ (a.from N).sup := le_sup (by simp [Sequence.from])
-    have hsup_ne_top : (a.from N).sup ≠ ⊤ := ne_top_of_lt hzc'
-    set r := ((a.from N).sup).toReal
-    have hr : (a.from N).sup = (r : EReal) := by
-      symm; exact EReal.coe_toReal hsup_ne_top (ne_bot_of_gt hsup_gt_bot)
-    rw [hr, EReal.coe_lt_coe_iff] at hzc'
-    have hε : (c - r) / 2 > 0 := by linarith
-    obtain ⟨n, hn, hclose⟩ := h _ hε N hN
-    have hn' : n ≥ (a.from N).m := by simp [Sequence.from]; omega
-    have h_le : (a n : EReal) ≤ (a.from N).sup := by
-      convert le_sup hn' using 1; congr 1; exact (Sequence.from_eval _ hn).symm
-    rw [hr, EReal.coe_le_coe_iff] at h_le
-    linarith [(abs_le.mp hclose).1]
+  sorry
 
 /-- Proposition 6.4.12(e) / Exercise 6.4.3 -/
 theorem Sequence.limit_point_of_limsup {a:Sequence} {L_plus:ℝ} (h: a.limsup = L_plus) :
     a.LimitPoint L_plus := by
-  rw [limit_point_def]; intro ε hε N hN
-  have h1 : (L_plus + ε : EReal) > a.limsup := by
-    rw [h]; exact_mod_cast (by linarith : L_plus < L_plus + ε)
-  have h2 : (L_plus - ε : EReal) < a.limsup := by
-    rw [h]; exact_mod_cast (by linarith : L_plus - ε < L_plus)
-  obtain ⟨N₀, hN₀, hbound⟩ := gt_limsup_bounds h1
-  have hN' : max N N₀ ≥ a.m := by omega
-  obtain ⟨n, hn, hgt⟩ := lt_limsup_bounds h2 hN'
-  have hlt : (a n : EReal) < L_plus + ε := hbound n (by omega)
-  have hgt' : (a n : EReal) > L_plus - ε := hgt
-  refine ⟨n, by omega, ?_⟩
-  rw [abs_le]
-  have hlt' : a n ≤ L_plus + ε := by exact_mod_cast hlt.le
-  have hgt'' : a n ≥ L_plus - ε := by exact_mod_cast hgt'.le
-  constructor <;> linarith
+  sorry
 
 /-- Proposition 6.4.12(e) / Exercise 6.4.3 -/
 theorem Sequence.limit_point_of_liminf {a:Sequence} {L_minus:ℝ} (h: a.liminf = L_minus) :
     a.LimitPoint L_minus := by
-  rw [limit_point_def]; intro ε hε N hN
-  have h1 : (L_minus - ε : EReal) < a.liminf := by
-    rw [h]; exact_mod_cast (by linarith : L_minus - ε < L_minus)
-  have h2 : (L_minus + ε : EReal) > a.liminf := by
-    rw [h]; exact_mod_cast (by linarith : L_minus < L_minus + ε)
-  obtain ⟨N₀, hN₀, hbound⟩ := lt_liminf_bounds h1
-  have hN' : max N N₀ ≥ a.m := by omega
-  obtain ⟨n, hn, hlt⟩ := gt_liminf_bounds h2 hN'
-  have hgt : (a n : EReal) > L_minus - ε := hbound n (by omega)
-  refine ⟨n, by omega, ?_⟩
-  rw [abs_le]
-  have hlt' : a n ≤ L_minus + ε := by exact_mod_cast hlt.le
-  have hgt' : a n ≥ L_minus - ε := by exact_mod_cast hgt.le
-  constructor <;> linarith
+  sorry
 
 /-- Proposition 6.4.12(f) / Exercise 6.4.3 -/
 theorem Sequence.tendsTo_iff_eq_limsup_liminf {a:Sequence} (c:ℝ) :
   a.TendsTo c ↔ a.liminf = c ∧ a.limsup = c := by
-  constructor
-  · intro htends
-    rw [tendsTo_iff] at htends
-    -- Show limsup ≤ c and c ≤ liminf using upperseq/lowerseq bounds
-    have hls' : a.limsup ≤ c := by
-      apply le_of_forall_gt_imp_ge_of_dense; intro x hx
-      induction x with
-      | bot => simp at hx
-      | top => exact le_top
-      | coe r =>
-        have hx' : c < r := by exact_mod_cast hx
-        obtain ⟨N, hbound⟩ := htends (r - c) (by linarith)
-        have h1 : a.limsup ≤ a.upperseq (max a.m N) :=
-          sInf_le (by simp; use max a.m N, le_max_left _ _)
-        apply h1.trans
-        apply sup_le_upper; intro n hn
-        simp [Sequence.from] at hn
-        have heval : (a.from (max a.m N)).seq n = a.seq n := Sequence.from_eval _ (by omega)
-        rw [heval]; push_cast; rw [EReal.coe_le_coe_iff]
-        have := hbound n (by omega)
-        linarith [(abs_le.mp this).2]
-    have hli' : (c : EReal) ≤ a.liminf := by
-      apply le_of_forall_lt_imp_le_of_dense; intro x hx
-      induction x with
-      | bot => exact bot_le
-      | top => exact absurd hx (not_lt.mpr le_top)
-      | coe r =>
-        have hx' : r < c := by exact_mod_cast hx
-        obtain ⟨N, hbound⟩ := htends (c - r) (by linarith)
-        have h1 : a.lowerseq (max a.m N) ≤ a.liminf :=
-          le_sSup (by simp; use max a.m N, le_max_left _ _)
-        apply le_trans _ h1
-        apply inf_ge_lower; intro n hn
-        simp [Sequence.from] at hn
-        have heval : (a.from (max a.m N)).seq n = a.seq n := Sequence.from_eval _ (by omega)
-        rw [heval]; push_cast; rw [ge_iff_le, EReal.coe_le_coe_iff]
-        have := hbound n (by omega)
-        linarith [(abs_le.mp this).1]
-    have hlp := limit_point_of_limit (tendsTo_iff a c |>.mpr htends)
-    have ⟨hli, hls⟩ := limit_point_between_liminf_limsup hlp
-    constructor <;> exact le_antisymm (by assumption) (by assumption)
-  · intro ⟨hli, hls⟩
-    rw [tendsTo_iff]; intro ε hε
-    have h1 : (c + ε : EReal) > a.limsup := by
-      rw [hls]; exact_mod_cast (by linarith : c < c + ε)
-    have h2 : (c - ε : EReal) < a.liminf := by
-      rw [hli]; exact_mod_cast (by linarith : c - ε < c)
-    obtain ⟨N₁, hN₁, hbound₁⟩ := gt_limsup_bounds h1
-    obtain ⟨N₂, hN₂, hbound₂⟩ := lt_liminf_bounds h2
-    use max N₁ N₂; intro n hn
-    have h_lt : a n < c + ε := by exact_mod_cast hbound₁ n (by omega)
-    have h_gt : a n > c - ε := by exact_mod_cast hbound₂ n (by omega)
-    rw [abs_le]; constructor <;> linarith
+  sorry
 
 /-- Lemma 6.4.13 (Comparison principle) / Exercise 6.4.4 -/
 theorem Sequence.sup_mono {a b:Sequence} (hm: a.m = b.m) (hab: ∀ n ≥ a.m, a n ≤ b n) :
