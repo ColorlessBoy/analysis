@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分析学 I, 第6.6节：子序列 - Terence Tao</title>
+    <title>分析学 I, 第 6 章尾声：与 Mathlib 极限的联系 - Terence Tao</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -196,6 +196,8 @@ th { background: var(--tb-table-head-bg); font-weight: 600; }
 .highlighted { animation: highlight-flash 1.8s ease-out; }
 .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--tb-border); color: var(--tb-footer-text); font-size: 0.85em; }
 .icon { width: 1.1em; height: 1.1em; vertical-align: -0.15em; fill: currentColor; flex-shrink: 0; }
+.note { background: var(--tb-note-bg); border: 1px solid var(--tb-note-border); padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: var(--tb-note-text); border-radius: 4px; }
+.note::before { content: "注: "; font-weight: 600; }
 @media print { .progress-bar, .controls, .sidebar-toc, .section-nav, .copy-btn, .breadcrumb { display: none !important; } body { background: #fff; color: #000; } .definition, .proposition-box, .theorem-box, .example, .exercise, .supplement, .reflection { box-shadow: none; break-inside: avoid; } }
     </style>
     <script>MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] } };</script>
@@ -215,363 +217,269 @@ th { background: var(--tb-table-head-bg); font-weight: 600; }
 <div class="book-info">
     <em>分析学 I</em>, 第四版 (Terence Tao)<br>
     数学文献与读物, Hindustan Book Agency, 2022<br>
-    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+    <span style="color: var(--tb-text-faint);">(本节为补充材料 / supplementary material)</span>
 </div>
 
-<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span>·尾声</h1>
 
 <h2 class="section-title">
-    <span class="section-number">第6.6节</span>
-    <span class="t" data-zh="子序列" data-en="Subsequences"></span>
-    <span class="page-ref">第128–130页</span>
+    <span class="section-number">第 6 章尾声 (Epilogue)</span>
+    <span class="t" data-zh="与 Mathlib 极限的联系" data-en="Connections with Mathlib limits"></span>
+    <span class="page-ref">(本节为补充材料 / supplementary material)</span>
 </h2>
 
 <!-- ========== 目录 ========== -->
 <div class="toc inline-toc">
     <div class="toc-title">本节内容导航</div>
     <ol>
-        <li><a href="#s66-intro">引言：不收敛序列中的"收敛成分"</a></li>
-        <li><a href="#s66-def661"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</a></li>
-        <li><a href="#s66-example662"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</a></li>
-        <li><a href="#s66-lem664"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</a></li>
-        <li><a href="#s66-prop665"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</a></li>
-        <li><a href="#s66-prop666"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</a></li>
-        <li><a href="#s66-rem667"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</a></li>
-        <li><a href="#s66-thm668"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</a></li>
-        <li><a href="#s66-rem669"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</a></li>
-        <li><a href="#s66-supp">补充说明</a></li>
-        <li><a href="#s66-exercises">习题</a></li>
+        <li><a href="#s6epi-intro">引言：为什么要桥接两套框架？</a></li>
+        <li><a href="#s6epi-cauchy">Cauchy 序列的等价</a></li>
+        <li><a href="#s6epi-tendsto">收敛性的等价（滤语言）</a></li>
+        <li><a href="#s6epi-lim">极限的等价</a></li>
+        <li><a href="#s6epi-bounded">有界性的等价</a></li>
+        <li><a href="#s6epi-sup-inf">上确界/下确界的等价</a></li>
+        <li><a href="#s6epi-mono">单调性的等价</a></li>
+        <li><a href="#s6epi-limpt">极限点的等价</a></li>
+        <li><a href="#s6epi-supp">补充说明</a></li>
     </ol>
 </div>
 
 <!-- ========== 引言 ========== -->
-<div id="s66-intro">
+<div id="s6epi-intro">
 <div class="chapter-marker">— 引言 —</div>
 </div>
 
 <p>
-本章一直致力于研究实数序列 \((a_n)_{n=m}^\infty\) 及其极限。有些序列收敛到单一的极限，
-而另一些则有多个极限点。例如，序列
-\[
-1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
-\]
-有两个极限点 \(0\) 和 \(1\)（它们恰好也是下极限和上极限），
-但该序列实际上不收敛（因为上极限和下极限不相等）。
-然而，虽然这个序列不收敛，它似乎包含收敛的"成分"；
-它看起来是两个收敛子序列的混合，即
-\[
-1.1,\ 1.01,\ 1.001,\ \ldots
-\]
-和
-\[
-0.1,\ 0.01,\ 0.001,\ \ldots
-\]
-为了使这一概念精确化，我们需要子序列的概念。
+在这个技术性的尾声中，我们证明本章为"第 6 章"序列 <code>Chapter6.Sequence</code> 所定义的各种运算和性质，
+与 Mathlib 中的对应运算是<strong>等价</strong>的。需要注意的是，Mathlib 的运算在远比实值序列更一般的框架下定义，
+特别地使用了<strong><span class="t" data-zh="滤" data-en="filters"></span></strong>的语言。
 </p>
 
-<hr>
-
-<!-- ========== 定义 6.6.1 ========== -->
-<div id="s66-def661">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</h3>
-</div>
-
-<div class="definition">
-    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1（子序列）。</span>
-    设 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是实数序列。
-    称 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的<strong><span class="t" data-zh="子序列" data-en="subsequence"></span></strong>，
-    如果存在一个<strong>严格递增</strong>的函数 \(f: \mathbb{N} \to \mathbb{N}\)
-    （即对所有 \(n \in \mathbb{N}\) 有 \(f(n+1) > f(n)\)），使得
-    \[
-    b_n = a_{f(n)} \quad \text{对所有 } n \in \mathbb{N}.
-    \]
-    更一般地，称 \((b_n)_{n=m'}^\infty\) 是 \((a_n)_{n=m}^\infty\) 的子序列，
-    如果存在严格递增函数 \(f: \{n \in \mathbb{N} : n \geq m'\} \to \{n \in \mathbb{N} : n \geq m\}\)，
-    使得对所有 \(n \geq m'\) 有 \(b_n = a_{f(n)}\)。
-</div>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
-    <div class="code-block">
-/-- Definition 6.6.1: b is a subsequence of a -/
-abbrev Sequence.subseq (a b: ℕ → ℝ) : Prop :=
-  ∃ f : ℕ → ℕ, StrictMono f ∧ ∀ n, b n = a (f n)
-    </div>
-    <p>Lean 中用 <code>StrictMono f</code>（即 \(f(n+1) > f(n)\) 对所有 \(n\)）来编码"严格递增"。
-    注意教材中的子序列关系是定义在 <code>ℕ → ℝ</code> 上的谓词，
-    而非在 <code>Sequence</code> 类型上，这简化了与教材的对应。</p>
-</div>
-
-<hr>
-
-<!-- ========== 例子 6.6.2, 6.6.3 ========== -->
-<div id="s66-example662">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</h3>
-</div>
-
-<div class="example">
-    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.2。</span>
-    设 \((a_n)_{n=0}^\infty\) 是一个序列，则 \((a_{2n})_{n=0}^\infty\) 是它的子序列，
-    因为函数 \(f: \mathbb{N} \to \mathbb{N}\) 定义为 \(f(n) := 2n\) 是严格递增的。
-    注意我们不要求 \(f\) 是满射，虽然它必然是单射（为什么？）。
-    更非正式地说，序列
-    \[
-    a_0,\ a_2,\ a_4,\ a_6,\ \ldots
-    \]
-    是
-    \[
-    a_0,\ a_1,\ a_2,\ a_3,\ a_4,\ \ldots
-    \]
-    的子序列。
-</div>
-
-<div class="example">
-    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.3。</span>
-    前面提到的两个序列
-    \[
-    1.1,\ 1.01,\ 1.001,\ \ldots
-    \]
-    和
-    \[
-    0.1,\ 0.01,\ 0.001,\ \ldots
-    \]
-    都是
-    \[
-    1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
-    \]
-    的子序列。
-</div>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
-    <p>例 6.6.3 在 <code>Section_6_6.lean</code> 中被精确地形式化。原序列被定义为奇偶分支函数，
-    取偶数下标得到趋向 1 的子序列，取奇数下标得到趋向 0 的子序列：</p>
-    <div class="code-block">
--- 偶数项子序列 → 1 + 10^(-n-1)
-example :
-    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
-    (fun n ↦ 1 + (10:ℝ)^(-(n:ℤ)-1)) := by
-  refine ⟨fun n ↦ 2*n, ?_, λ n ↦ ?_⟩
-
--- 奇数项子序列 → 10^(-n-1)
-example :
-    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
-    (fun n ↦ (10:ℝ)^(-(n:ℤ)-1)) := by
-  refine ⟨fun n ↦ 2*n + 1, ?_, λ n ↦ ?_⟩
-    </div>
-</div>
-
-<hr>
-
-<!-- ========== 引理 6.6.4 ========== -->
-<div id="s66-lem664">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</h3>
-</div>
-
-<div class="lemma-box">
-    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4。</span>
-    设 \((a_n)_{n=0}^\infty\)、\((b_n)_{n=0}^\infty\)、\((c_n)_{n=0}^\infty\) 是实数序列。则
-    <ul>
-        <li>\((a_n)_{n=0}^\infty\) 是自身的子序列（<strong>自反性</strong>）；</li>
-        <li>若 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列，且 \((c_n)_{n=0}^\infty\) 是 \((b_n)_{n=0}^\infty\) 的子序列，则 \((c_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列（<strong>传递性</strong>）。</li>
-    </ul>
-    "是子序列"这一关系<strong>不是对称的</strong>。
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.1。</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Lemma 6.6.4 / Exercise 6.6.1: reflexivity -/
-theorem Sequence.subseq_self (a:ℕ → ℝ) : Sequence.subseq a a := by
-  refine ⟨id, strictMono_id, λ n ↦ rfl⟩
-
-/-- Lemma 6.6.4 / Exercise 6.6.1: transitivity -/
-theorem Sequence.subseq_trans {a b c:ℕ → ℝ}
-    (hab: Sequence.subseq a b) (hbc: Sequence.subseq b c) :
-    Sequence.subseq a c := by
-  rcases hab with ⟨f, hf, hab'⟩
-  rcases hbc with ⟨g, hg, hbc'⟩
-  refine ⟨f ∘ g, hf.comp hg, λ n ↦ ?_⟩
-  calc c n = b (g n) := hbc' n
-    _ = a (f (g n)) := hab' (g n)
-    </div>
-    <p>自反性用恒等函数 <code>id</code>，传递性用复合函数 <code>f ∘ g</code>，
-    严格递增函数的复合仍严格递增（<code>StrictMono.comp</code>）。</p>
-</div>
-
-<hr>
-
-<!-- ========== 命题 6.6.5 ========== -->
-<div id="s66-prop665">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</h3>
-</div>
-
-<div class="proposition-box">
-    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5（子序列与极限的关系）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题<strong>逻辑等价</strong>：
-    <ul>
-        <li>(a) 序列 \((a_n)_{n=0}^\infty\) 收敛到 \(L\)。</li>
-        <li>(b) \((a_n)_{n=0}^\infty\) 的每个子序列都收敛到 \(L\)。</li>
-    </ul>
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.4。（注意两个方向中有一个的证明非常短。）</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Proposition 6.6.5 / Exercise 6.6.4 -/
-theorem Sequence.convergent_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
-    (a:Sequence).TendsTo L ↔ ∀ b:ℕ → ℝ,
-      Sequence.subseq a b → (b:Sequence).TendsTo L
-    </div>
-    <p>(b) ⟹ (a) 的方向很短：序列是自身的子序列（引理 6.6.4），故直接代入即可。
-    (a) ⟹ (b) 的方向需要利用严格递增函数 \(f\) 满足 \(f(n) \geq n\)，
-    因此当 \(n\) 足够大时 \(f(n)\) 也足够大，使 \(a_{f(n)}\) 接近 \(L\)。</p>
-</div>
-
-<hr>
-
-<!-- ========== 命题 6.6.6 ========== -->
-<div id="s66-prop666">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</h3>
-</div>
-
-<div class="proposition-box">
-    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6（子序列与极限点的关系）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题逻辑等价：
-    <ul>
-        <li>(a) \(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。</li>
-        <li>(b) 存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛到 \(L\)。</li>
-    </ul>
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.5。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\)，定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，并解释为何集合 \(\{n > n_{j-1} : |a_n - L| \leq 1/j\}\) 非空。然后考虑序列 \(a_{n_j}\)。）</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Proposition 6.6.6 / Exercise 6.6.5 -/
-theorem Sequence.limit_point_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
-    (a:Sequence).LimitPoint L ↔
-      ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).TendsTo L
-    </div>
-    <p>(a) ⟹ (b) 的 Lean 证明使用 <code>Classical.choose</code> 递归构造下标函数 \(f\)：
-    对每个 \(k\)，在 \(\{n > f(k) : |a_n - L| \leq 1/(k+2)\}\) 中选取一个元素作为 \(f(k+1)\)。
-    由此构造的 \(b_n := a_{f(n)}\) 满足 \(|b_n - L| \leq 1/(n+1) \to 0\)，故收敛到 \(L\)。</p>
-</div>
-
-<hr>
-
-<!-- ========== 注 6.6.7 ========== -->
-<div id="s66-rem667">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</h3>
-</div>
-
-<div class="remark">
-    <strong>注 6.6.7。</strong>
-    上述两个命题给出了极限与极限点概念的鲜明对比。当序列有极限 \(L\) 时，
-    <strong>所有</strong>子序列也都收敛到 \(L\)。但当序列以 \(L\) 为极限点时，
-    只有<strong>某些</strong>子序列收敛到 \(L\)。
-</div>
-
-<hr>
-
-<!-- ========== 定理 6.6.8 ========== -->
-<div id="s66-thm668">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</h3>
+<div class="note">
+本节是一个<strong>技术性章节</strong> (technical chapter)。它不再引入新的数学概念，
+而是把"教材的 \(\varepsilon\)-\(N\) 框架"与"Mathlib 的滤框架"之间的等价关系严格化。
+原书中并无对应章节——这是 Lean 形式化项目独有的"桥接层"。
 </div>
 
 <p>
-我们现在可以证明实分析中的一个重要定理，它归功于 Bernard Bolzano（1781–1848）和 Karl Weierstrass（1815–1897）：
-每个有界序列都有收敛子序列。
+从第 6 章开始，本项目已从第 5 章的 <code>Chapter5.Real</code> 切换到 Mathlib 的 <code>ℝ</code>（参见第 5 章尾声的同构 <code>equivR</code>）。
+但本章中序列的概念（<code>Chapter6.Sequence</code>）、收敛（<code>TendsTo</code>）、Cauchy 性（<code>IsCauchy</code>）、
+有界性（<code>IsBounded</code>）等仍是项目自定义的，与 Mathlib 的 <code>CauSeq</code>、<code>Filter.Tendsto</code>、
+<code>Bornology.IsBounded</code> 等并行存在。本尾声的目的就是消除这种"双轨并行"——
+证明二者等价，从而后续章节可以直接调用 Mathlib 的丰富 API。
 </p>
 
-<div class="theorem-box">
-    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8（Bolzano–Weierstrass 定理）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是<strong>有界</strong>序列
-    （即存在实数 \(M > 0\) 使得对所有 \(n \in \mathbb{N}\) 有 \(|a_n| \leq M\)）。
-    则 \((a_n)_{n=0}^\infty\) 至少有一个收敛子序列。
+<hr>
+
+<!-- ========== Cauchy 序列的等价 ========== -->
+<div id="s6epi-cauchy">
+<div class="chapter-marker">— Cauchy 序列的等价 —</div>
 </div>
 
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">
-    <p style="text-indent:0">
-    令 \(L\) 为序列 \((a_n)_{n=0}^\infty\) 的上极限。由于对所有自然数 \(n\) 有 \(-M \leq a_n \leq M\)，
-    由比较原理（引理 6.4.13）得 \(-M \leq L \leq M\)。特别地，\(L\) 是实数（不是 \(+\infty\) 或 \(-\infty\)）。
-    由命题 6.4.12(e)，\(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。
-    再由命题 6.6.6，存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛（事实上，收敛到 \(L\)）。
-    </p>
-    </div>
-    <div class="qed">∎</div>
-</details>
-
 <p>
-注意，我们同样可以使用下极限代替上极限来完成上述论证。
+教材中 Cauchy 序列的定义使用 \(\varepsilon\)-\(N\) 语言：对每个 \(\varepsilon > 0\)，
+存在 \(N\) 使得对所有 \(n, m \geq N\) 有 \(|a_n - a_m| \leq \varepsilon\)。
+Mathlib 中 <code>IsCauSeq</code> 和 <code>CauchySeq</code> 用类似但稍有不同的方式表达同一概念。
 </p>
 
 <div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
     <div class="code-block">
-/-- Theorem 6.6.8 (Bolzano-Weierstrass theorem) -/
-theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
-    (ha: (a:Sequence).IsBounded) :
-    ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).Convergent
+/-- Cauchy ↔ Mathlib's IsCauSeq (abs version) -/
+theorem Chapter6.Sequence.isCauchy_iff_isCauSeq (a: ℕ → ℝ) :
+    (a:Sequence).IsCauchy ↔ IsCauSeq _root_.abs a
+
+/-- Cauchy ↔ Mathlib's CauchySeq -/
+theorem Chapter6.Sequence.Cauchy_iff_CauchySeq (a: ℕ → ℝ) :
+    (a:Sequence).IsCauchy ↔ CauchySeq a
     </div>
-    <p>Lean 证明忠实地遵循教材思路：先由有界性得出上极限有限（<code>finite_limsup_liminf_of_bounded</code>），
-    再由命题 6.4.12(e) 得上极限是极限点（<code>limit_point_of_limsup</code>），
-    最后由命题 6.6.6 将极限点转化为收敛子序列（<code>limit_point_iff_subseq</code>）。</p>
+    <p>证明的核心是将两边的 \(\varepsilon\)-\(N\) 量化展开后逐项对应。
+    <code>IsCauSeq</code> 用 \(\varepsilon/2\) 的技巧对接，<code>CauchySeq</code> 则通过
+    <code>isCauSeq_iff_cauchySeq</code> 转化。一个技术细节：<code>CauSeq.IsComplete ℝ</code>
+    在 Mathlib 中是对 <code>abs</code> 建立的，本尾声补充了对 <code>norm</code> 的实例：</p>
+    <div class="code-block">
+instance inst_real_complete : CauSeq.IsComplete ℝ norm := by convert Real.instIsCompleteAbs
+    </div>
 </div>
 
 <hr>
 
-<!-- ========== 注 6.6.9 ========== -->
-<div id="s66-rem669">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</h3>
+<!-- ========== 收敛性的等价 ========== -->
+<div id="s6epi-tendsto">
+<div class="chapter-marker">— 收敛性的等价（滤语言） —</div>
 </div>
 
-<div class="remark">
-    <strong>注 6.6.9。</strong>
-    Bolzano–Weierstrass 定理说明：如果一个序列有界，那么它最终"别无选择"只能在某些地方收敛；
-    它"没有空间"散开并阻止自己获得极限点。对无界序列这不成立；例如序列 \(1, 2, 3, \ldots\)
-    没有任何收敛子序列（为什么？）。用拓扑的语言来说，这意味着区间 \(\{x \in \mathbb{R} : -M \leq x \leq M\}\) 是
-    <strong><span class="t" data-zh="紧致的" data-en="compact"></span></strong>，
-    而无界集合如实数轴 \(\mathbb{R}\) 不是紧致的。紧致集与非紧致集的区分在后续章节中非常重要——
-    其重要性类似于有限集与无限集的区分。
+<p>
+教材中收敛的定义是：\((a_n)\) 收敛到 \(L\)，如果对每个 \(\varepsilon > 0\)，存在 \(N\) 使得对所有 \(n \geq N\) 有 \(|a_n - L| \leq \varepsilon\)。
+Mathlib 用<strong>滤</strong>语言表达：<code>atTop.Tendsto a (nhds L)</code>，即序列 \(a\) 沿 <code>atTop</code> 滤收敛到 \(L\) 的邻域。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- TendsTo ↔ Mathlib's Filter.Tendsto (function version) -/
+theorem Chapter6.Sequence.tendsto_iff_Tendsto (a: ℕ → ℝ) (L:ℝ) :
+    (a:Sequence).TendsTo L ↔ atTop.Tendsto a (nhds L)
+
+/-- TendsTo ↔ Mathlib's Filter.Tendsto (Sequence type version) -/
+theorem Chapter6.Sequence.tendsto_iff_Tendsto' (a: Sequence) (L:ℝ) :
+    a.TendsTo L ↔ atTop.Tendsto a.seq (nhds L)
+
+/-- Convergent ↔ ∃ L, Filter.Tendsto -/
+theorem Chapter6.Sequence.converges_iff_Tendsto (a: ℕ → ℝ) :
+    (a:Sequence).Convergent ↔ ∃ L, atTop.Tendsto a (nhds L)
+    </div>
+    <p>证明通过 <code>Metric.tendsto_atTop</code> 将滤语言翻译回 \(\varepsilon\)-\(N\) 语言，
+    然后与教材定义逐项对应。整数与自然数下标之间的转换（<code>Int.toNat</code> 等）是主要的技术细节。</p>
+</div>
+
+<hr>
+
+<!-- ========== 极限的等价 ========== -->
+<div id="s6epi-lim">
+<div class="chapter-marker">— 极限的等价 —</div>
+</div>
+
+<p>
+教材定义收敛序列的极限为 <code>Chapter6.lim</code>，而 Mathlib 有 <code>CauSeq.lim</code> 和 <code>limUnder</code>。
+本尾声证明它们给出相同的值。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- Chapter6.lim = CauSeq.lim -/
+theorem Chapter6.Sequence.lim_eq_CauSeq_lim (a:ℕ → ℝ) (ha: (a:Sequence).IsCauchy) :
+    Chapter6.lim (a:Sequence) = CauSeq.lim ⟨ a, (isCauchy_iff_isCauSeq a).mp ha⟩
+
+/-- Chapter6.lim = limUnder atTop -/
+theorem Chapter6.Sequence.lim_eq_limUnder (a:ℕ → ℝ) (ha: (a:Sequence).Convergent) :
+    Chapter6.lim (a:Sequence) = limUnder Filter.atTop a
+    </div>
+    <p><code>lim_eq_CauSeq_lim</code> 利用 <code>CauSeq.tendsto_limit</code> 和 <code>lim_def</code>
+    将两边都翻译成 <code>Tendsto</code>，再用收敛极限的唯一性（<code>tendsTo_unique</code>）。
+    <code>lim_eq_limUnder</code> 类似，利用 <code>tendsto_nhds_limUnder</code> 和滤极限唯一性。</p>
+</div>
+
+<hr>
+
+<!-- ========== 有界性的等价 ========== -->
+<div id="s6epi-bounded">
+<div class="chapter-marker">— 有界性的等价 —</div>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- IsBounded ↔ Bornology.IsBounded (range) -/
+theorem Chapter6.Sequence.isBounded_iff_isBounded_range (a:ℕ → ℝ):
+    (a:Sequence).IsBounded ↔ Bornology.IsBounded (Set.range a)
+    </div>
+    <p>教材的 <code>IsBounded</code> 定义为存在 \(M \geq 0\) 使所有 \(|a_n| \leq M\)
+    （通过 <code>boundedBy</code>）。Mathlib 的 <code>Bornology.IsBounded</code> 
+    定义为值域的直径有界。证明利用 \(|a_n - a_m| \leq |a_n| + |a_m| \leq 2M\)（正向），
+    以及 \(|a_n| \leq |a_n - a_0| + |a_0| \leq C + |a_0|\)（反向）。</p>
+</div>
+
+<hr>
+
+<!-- ========== 上确界/下确界的等价 ========== -->
+<div id="s6epi-sup-inf">
+<div class="chapter-marker">— 上确界/下确界的等价 —</div>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- sup = sSup (range as EReal) -/
+theorem Chapter6.Sequence.sup_eq_sSup (a:ℕ → ℝ):
+    (a:Sequence).sup = sSup (Set.range (fun n ↦ (a n:EReal)))
+
+/-- inf = sInf (range as EReal) -/
+theorem Chapter6.Sequence.inf_eq_sInf (a:ℕ → ℝ):
+    (a:Sequence).inf = sInf (Set.range (fun n ↦ (a n:EReal)))
+
+/-- BddAbove ↔ Mathlib's BddAbove -/
+theorem Chapter6.Sequence.bddAbove_iff (a:ℕ → ℝ):
+    (a:Sequence).BddAbove ↔ _root_.BddAbove (Set.range a)
+
+/-- BddBelow ↔ Mathlib's BddBelow -/
+theorem Chapter6.Sequence.bddBelow_iff (a:ℕ → ℝ):
+    (a:Sequence).BddBelow ↔ _root_.BddBelow (Set.range a)
+    </div>
+    <p>教材的 <code>Sequence.sup</code> 定义为拓展实数 <code>EReal</code> 中集合
+    \(\{a_n : n \geq m\}\) 的上确界。桥接定理将其与 Mathlib 的 <code>Set.range</code> 
+    的 <code>sSup</code> 等同。关键步骤是证明两个集合相等
+    （整数下标 vs 自然数下标，利用 <code>Int.toNat</code>）。</p>
+</div>
+
+<hr>
+
+<!-- ========== 单调性的等价 ========== -->
+<div id="s6epi-mono">
+<div class="chapter-marker">— 单调性的等价 —</div>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- IsMonotone ↔ Mathlib's Monotone -/
+theorem Chapter6.Sequence.Monotone_iff (a:ℕ → ℝ):
+    (a:Sequence).IsMonotone ↔ Monotone a
+
+/-- IsAntitone ↔ Mathlib's Antitone -/
+theorem Chapter6.Sequence.Antitone_iff (a:ℕ → ℝ):
+    (a:Sequence).IsAntitone ↔ Antitone a
+    </div>
+    <p>教材的 <code>IsMonotone</code> 定义为"对所有 \(n \geq m\) 有 \(a_{n+1} \geq a_n\)"（逐项递增），
+    而 Mathlib 的 <code>Monotone</code> 定义为"对所有 \(n \leq m\) 有 \(a_n \leq a_m\)"（全局单调）。
+    二者等价：逐项递增通过归纳法推出全局单调，反之取 \(m = n+1\) 即得逐项。
+    <code>IsAntitone</code> 与 <code>Antitone</code> 类似。</p>
+</div>
+
+<hr>
+
+<!-- ========== 极限点的等价 ========== -->
+<div id="s6epi-limpt">
+<div class="chapter-marker">— 极限点的等价 —</div>
+</div>
+
+<p>
+教材中极限点 \(L\) 的定义是：对每个 \(\varepsilon > 0\) 和每个 \(N\)，存在 \(n \geq N\) 使得 \(|a_n - L| \leq \varepsilon\)。
+Mathlib 中对应的概念是 <code>MapClusterPt L atTop a</code>——序列 \(a\) 沿 <code>atTop</code> 滤在 \(L\) 处聚簇。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的桥接定理</span>
+    <div class="code-block">
+/-- LimitPoint ↔ MapClusterPt -/
+theorem Chapter6.Sequence.limit_point_iff (a: ℕ → ℝ) (L:ℝ) :
+    (a:Sequence).LimitPoint L ↔ MapClusterPt L .atTop a
+    </div>
+    <p>证明将 <code>MapClusterPt</code> 展开为 <code>frequently</code>（"无穷经常"），
+    再展开为 <code>∃ᶠ n in atTop, P n</code>（"对任意 \(N\)，存在 \(n \geq N\) 使 \(P n\) 成立"），
+    这恰好就是教材中极限点的定义。邻域用 <code>Metric.ball L ε</code> 翻译。</p>
 </div>
 
 <hr>
 
 <!-- ========== 补充说明 ========== -->
-<div id="s66-supp">
+<div id="s6epi-supp">
 <div class="chapter-marker">— 补充说明 —</div>
 
 <div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节的概念结构</span>
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：桥接定理总览</span>
     <table>
-        <tr><th>概念</th><th>教材定义</th><th>Lean 对应</th></tr>
-        <tr><td>子序列</td><td>\(b_n = a_{f(n)}\)，\(f\) 严格递增</td><td><code>Sequence.subseq</code></td></tr>
-        <tr><td>自反性</td><td>序列是自身的子序列</td><td><code>subseq_self</code></td></tr>
-        <tr><td>传递性</td><td>子序列的子序列还是子序列</td><td><code>subseq_trans</code></td></tr>
-        <tr><td>收敛 ↔ 所有子序列收敛</td><td>命题 6.6.5</td><td><code>convergent_iff_subseq</code></td></tr>
-        <tr><td>极限点 ↔ 存在收敛子序列</td><td>命题 6.6.6</td><td><code>limit_point_iff_subseq</code></td></tr>
-        <tr><td>Bolzano–Weierstrass</td><td>有界序列有收敛子序列</td><td><code>convergent_of_subseq_of_bounded</code></td></tr>
-        <tr><td>无界序列的子序列</td><td>无界 → 存在子序列 \(1/b_n \to 0\)</td><td><code>subseq_of_unbounded</code></td></tr>
+        <tr><th>教材概念</th><th>Mathlib 对应</th><th>桥接定理</th></tr>
+        <tr><td><code>IsCauchy</code></td><td><code>IsCauSeq abs</code> / <code>CauchySeq</code></td><td><code>isCauchy_iff_isCauSeq</code> / <code>Cauchy_iff_CauchySeq</code></td></tr>
+        <tr><td><code>TendsTo L</code></td><td><code>atTop.Tendsto a (nhds L)</code></td><td><code>tendsto_iff_Tendsto</code></td></tr>
+        <tr><td><code>Convergent</code></td><td>\(\exists L,\) <code>Tendsto</code></td><td><code>converges_iff_Tendsto</code></td></tr>
+        <tr><td><code>lim</code></td><td><code>CauSeq.lim</code> / <code>limUnder</code></td><td><code>lim_eq_CauSeq_lim</code> / <code>lim_eq_limUnder</code></td></tr>
+        <tr><td><code>IsBounded</code></td><td><code>Bornology.IsBounded (range)</code></td><td><code>isBounded_iff_isBounded_range</code></td></tr>
+        <tr><td><code>sup</code> / <code>inf</code></td><td><code>sSup</code> / <code>sInf</code> (EReal range)</td><td><code>sup_eq_sSup</code> / <code>inf_eq_sInf</code></td></tr>
+        <tr><td><code>BddAbove</code> / <code>BddBelow</code></td><td><code>BddAbove</code> / <code>BddBelow</code> (range)</td><td><code>bddAbove_iff</code> / <code>bddBelow_iff</code></td></tr>
+        <tr><td><code>IsMonotone</code> / <code>IsAntitone</code></td><td><code>Monotone</code> / <code>Antitone</code></td><td><code>Monotone_iff</code> / <code>Antitone_iff</code></td></tr>
+        <tr><td><code>LimitPoint L</code></td><td><code>MapClusterPt L atTop</code></td><td><code>limit_point_iff</code></td></tr>
     </table>
 </div>
 
@@ -579,35 +487,57 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
     <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节形式化完成度</span>
     <table>
         <tr><th>内容</th><th>状态</th></tr>
-        <tr><td>定义 6.6.1（子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>例 6.6.2（偶数下标子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>例 6.6.3（奇偶子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>引理 6.6.4（自反性与传递性）</td><td>✅ 已完成</td></tr>
-        <tr><td>命题 6.6.5（收敛 ↔ 所有子序列收敛）</td><td>✅ 已完成</td></tr>
-        <tr><td>命题 6.6.6（极限点 ↔ 收敛子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>定理 6.6.8（Bolzano–Weierstrass）</td><td>✅ 已完成</td></tr>
-        <tr><td>习题 6.6.2（互为子序列的不同序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>习题 6.6.3（无界序列的子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>Cauchy ↔ IsCauSeq</td><td>✅ 已完成</td></tr>
+        <tr><td>Cauchy ↔ CauchySeq</td><td>✅ 已完成</td></tr>
+        <tr><td><code>CauSeq.IsComplete ℝ norm</code> 实例</td><td>✅ 已完成</td></tr>
+        <tr><td>TendsTo ↔ Filter.Tendsto（函数版）</td><td>✅ 已完成</td></tr>
+        <tr><td>TendsTo ↔ Filter.Tendsto（Sequence 版）</td><td>✅ 已完成</td></tr>
+        <tr><td>Convergent ↔ ∃ L, Tendsto</td><td>✅ 已完成</td></tr>
+        <tr><td>lim = CauSeq.lim</td><td>✅ 已完成</td></tr>
+        <tr><td>lim = limUnder</td><td>✅ 已完成</td></tr>
+        <tr><td>IsBounded ↔ Bornology.IsBounded</td><td>✅ 已完成</td></tr>
+        <tr><td>sup = sSup / inf = sInf</td><td>✅ 已完成</td></tr>
+        <tr><td>BddAbove ↔ BddAbove / BddBelow ↔ BddBelow</td><td>✅ 已完成</td></tr>
+        <tr><td>IsMonotone ↔ Monotone / IsAntitone ↔ Antitone</td><td>✅ 已完成</td></tr>
+        <tr><td>LimitPoint ↔ MapClusterPt</td><td>✅ 已完成</td></tr>
     </table>
 </div>
 
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：教材框架与 Mathlib 框架的对比</span>
+    <table>
+        <tr><th>层面</th><th>教材（\(\varepsilon\)-\(N\)）</th><th>Mathlib（滤/拓扑）</th></tr>
+        <tr><td>收敛</td><td>\(\forall \varepsilon, \exists N, \forall n \geq N, |a_n - L| \leq \varepsilon\)</td><td><code>atTop.Tendsto a (nhds L)</code></td></tr>
+        <tr><td>Cauchy</td><td>\(\forall \varepsilon, \exists N, \forall n,m \geq N, |a_n - a_m| \leq \varepsilon\)</td><td><code>CauchySeq a</code></td></tr>
+        <tr><td>极限点</td><td>\(\forall \varepsilon, \forall N, \exists n \geq N, |a_n - L| \leq \varepsilon\)</td><td><code>MapClusterPt L atTop a</code></td></tr>
+        <tr><td>有界</td><td>\(\exists M, \forall n, |a_n| \leq M\)</td><td><code>Bornology.IsBounded (range a)</code></td></tr>
+        <tr><td>上确界</td><td>\(\sup\{a_n : n \geq m\}\)（EReal）</td><td><code>sSup (range a)</code>（EReal）</td></tr>
+        <tr><td>单调</td><td>\(\forall n, a_{n+1} \geq a_n\)（逐项）</td><td><code>Monotone a</code>（全局）</td></tr>
+    </table>
+    <p>滤语言的优势在于它统一了"序列收敛"、"函数在一点连续"、"函数在无穷远处的行为"等看似不同的概念，
+    用同一个 <code>Tendsto</code> 谓词表达。教材的 \(\varepsilon\)-\(N\) 框架则更直观、更适合教学。
+    桥接定理让两种语言可以自由切换。</p>
+</div>
+
 <div class="reflection">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：Bolzano–Weierstrass 定理的深远意义</span>
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：桥接层的价值与代价</span>
     <p>
-    Bolzano–Weierstrass 定理是实分析中最基本的"存在性定理"之一：它不告诉你极限<strong>是什么</strong>，
-    只告诉你极限<strong>存在</strong>。这种"非构造性"的存在性证明，正是上极限/下极限框架的力量所在——
-    上极限天然是极限点，而有界性保证了它是有限实数，于是收敛子序列自动存在。
+    本尾声的存在反映了一个形式化项目中的核心张力：<strong>忠实教材</strong> vs <strong>利用标准库</strong>。
+    教材用 \(\varepsilon\)-\(N\) 语言定义一切，因为它面向人类读者，追求直观与可读性。
+    Mathlib 用滤和拓扑语言定义一切，因为它面向机器和一般性，追求统一与复用。
     </p>
     <p>
-    命题 6.6.6 的深刻之处在于：它把"极限点"这个用 \(\varepsilon\)-\(N\) 语言定义的、
-    看似静态的概念，与"存在收敛子序列"这个动态的、构造性的概念等价起来。
-    在 Lean 形式化中，这个等价定理的 (a) ⟹ (b) 方向需要用选择公理
-    （<code>Classical.choose</code>）递归地构造子序列的下标——
-    这体现了"从存在性到构造性"的转换在形式上需要非平凡的工作。
+    桥接定理的价值是双向的：一方面，它们让教材中证明的定理（如 Bolzano–Weierstrass、单调收敛等）
+    可以"免费"翻译成 Mathlib 的语言，被后续章节调用；另一方面，Mathlib 的丰富 API
+    （如 <code>tendsto_nhds_unique</code>、<code>continuousAt</code>、各种自动化的 <code>simp</code> 引理集）
+    也可以反过来辅助教材定理的证明——第 6.7 节中 <code>Real.rpow_eq_rpow</code> 的证明就是一个典型例子：
+    它利用了 Mathlib 的连续性定理来避免重新证明一遍"取极限"的技术细节。
     </p>
     <p>
-    注 6.6.9 中提到的"紧致性"将在后续章节（特别是关于连续性和度量空间的部分）发挥核心作用。
-    Bolzano–Weierstrass 定理正是实数轴上闭区间紧致性的序列刻画。
+    代价是：桥接定理本身需要写，而且往往涉及繁琐的类型转换（<code>ℕ → ℝ</code> vs <code>Sequence</code>，
+    整数下标 vs 自然数下标，<code>EReal</code> vs <code>ℝ</code>）。但这是一次性的投入——
+    一旦桥接完成，"两个世界"就合为一体。从第 7 章起，序列层面的工作可以直接调用 Mathlib 的拓扑 API，
+    而不必每次都回到 \(\varepsilon\)-\(N\) 的第一性原理。
     </p>
 </div>
 
@@ -615,60 +545,18 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
 
 <hr>
 
-<!-- ========== 习题 ========== -->
-<div id="s66-exercises">
-<h3 style="margin-top: 2em;">— 习题 —</h3>
+<div class="chapter-marker">— 第 6 章尾声·完 —</div>
 
-<div class="exercise" id="ex-6.6.1">
-    <span class="label">习题 6.6.1。</span>
-    证明引理 6.6.4。
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>subseq_self</code>、<code>subseq_trans</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.2">
-    <span class="label">习题 6.6.2。</span>
-    你能找到两个<strong>不相同</strong>的序列 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\)，
-    使得它们互为对方的子序列吗？
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>exist_subseq_of_subseq</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.3">
-    <span class="label">习题 6.6.3。</span>
-    （本题可使用良序原理，命题 8.1.4。）
-    设 \((a_n)_{n=0}^\infty\) 是无界序列。证明存在 \((a_n)_{n=0}^\infty\) 的子序列 \((b_n)_{n=0}^\infty\)，
-    使得 \(\lim_{n\to\infty} 1/b_n\) 存在且等于 0。
-    （提示：对每个自然数 \(j\)，递归地引入 \(n_j := \min\{n \in \mathbb{N} : |a_n| \geq j;\ n > n_{j-1}\}\)（当 \(j = 0\) 时省略条件 \(n > n_{j-1}\)），先解释为何集合非空。令 \(b_j := a_{n_j}\)。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>subseq_of_unbounded</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.4">
-    <span class="label">习题 6.6.4。</span>
-    证明命题 6.6.5。（注意两个方向中有一个的证明非常短。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>convergent_iff_subseq</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.5">
-    <span class="label">习题 6.6.5。</span>
-    证明命题 6.6.6。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\) 定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，解释为何集合非空。考虑序列 \(a_{n_j}\)。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>limit_point_iff_subseq</code>。
-    </p>
-</div>
-
-</div>
+<p>
+本章证明了第 6 章中为序列定义的各种概念——Cauchy 性、收敛、有界性、上确界/下确界、单调性、极限点——
+均与 Mathlib 的标准概念等价。结合第 6.7 节中实指数运算与 Mathlib 指数的同一性，
+第 6 章的工作已完全融入 Mathlib 的分析框架。从第 7 章起，我们将直接使用 Mathlib 的 API。
+</p>
 
 <div class="footer">
-    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.6 节的正文，
-    以及关于子序列、Bolzano–Weierstrass 定理等概念的补充说明。</p>
-    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_6.lean</code>。</p>
+    <p>本文档为 Terence Tao 所著《<em>分析学 I</em>》Lean 形式化项目的补充材料，
+    解释第 6 章尾声中关于"教材序列框架与 Mathlib 滤框架等价"的核心桥接定理。</p>
+    <p>相应的 Lean 形式化代码见 <code>Section_6_epilogue.lean</code>。</p>
 </div>
 
 </main>
@@ -677,18 +565,18 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
 <script>
 var SECTION_NAV = {
     chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
-    current: { num: '6.6', zh: '子序列', en: 'Subsequences' },
-    prev: { num: '6.5', file: 'section_6_5_textbook.html', zh: '一些标准极限', en: 'Some Standard Limits' },
-    next: { num: '6.7', file: 'section_6_7_textbook.html', zh: '实指数（第二部分）', en: 'Real Exponentiation, Part II' }
+    current: { num: '6 尾声', zh: '与 Mathlib 极限的联系', en: 'Connections with Mathlib limits' },
+    prev: { num: '6.7', file: 'section_6_7_textbook.html', zh: '实指数（第二部分）', en: 'Real Exponentiation, Part II' },
+    next: { num: 7, file: 'section_7_1_textbook.html', zh: '级数', en: 'Series' }
 };
 (function(){ var s=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(s);})();
-(function(){ var o='section66_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
+(function(){ var o='section6epi_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
 (function(){ var t=false;window.addEventListener('scroll',function(){if(!t){requestAnimationFrame(function(){var h=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('progressBar').style.width=(h>0?window.scrollY/h*100:0)+'%';t=false;});t=true;}});})();
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.toc a,.sidebar-toc a').forEach(function(a){a.addEventListener('click',function(){var h=this.getAttribute('href');if(!h||h[0]!=='#')return;var e=document.getElementById(h.slice(1));if(e){e.classList.remove('highlighted');void e.offsetWidth;e.classList.add('highlighted');}});});});
-document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s66-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
+document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s6epi-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.code-block').forEach(function(b){var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';btn.addEventListener('click',function(){var t='';b.childNodes.forEach(function(c){if(c!==btn)t+=c.textContent;});t=t.trim();if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){s(btn);});else{var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');s(btn);}catch(e){}document.body.removeChild(ta);}});b.appendChild(btn);});function s(b){b.textContent='Copied!';b.classList.add('copied');setTimeout(function(){b.textContent='Copy';b.classList.remove('copied');},2000);}});
 document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('sidebarToc'),i=document.querySelector('.toc.inline-toc');if(!s||!i)return;s.innerHTML='<div class="toc-title">目录</div>'+i.querySelector('ol').outerHTML;});
-document.addEventListener('DOMContentLoaded',function(){var n=SECTION_NAV,el=document.getElementById('sectionNav'),bc=document.getElementById('breadcrumb');if(bc)bc.innerHTML='<em>分析学 I</em><span class="sep">›</span>第 '+n.chapter.num+' 章<span class="sep">›</span><strong>§'+n.current.num+'</strong>';if(!el)return;var h='';if(n.prev)h+='<a href="'+n.prev.file+'"><span class="nav-label">← 上一节</span><span class="nav-title">§'+n.prev.num+' '+n.prev.zh+'</span></a>';else h+='<span></span>';h+='<span class="spacer"></span>';if(n.next)h+='<a href="'+n.next.file+'"><span class="nav-label">下一节 →</span><span class="nav-title">§'+n.next.num+' '+n.next.zh+'</span></a>';else h+='<span></span>';el.innerHTML=h;});
+document.addEventListener('DOMContentLoaded',function(){var n=SECTION_NAV,el=document.getElementById('sectionNav'),bc=document.getElementById('breadcrumb');if(bc)bc.innerHTML='<em>分析学 I</em><span class="sep">›</span>第 '+n.chapter.num+' 章<span class="sep">›</span><strong>§'+n.current.num+'</strong>';if(!el)return;var h='';if(n.prev)h+='<a href="'+n.prev.file+'"><span class="nav-label">← 上一节</span><span class="nav-title">§'+n.prev.num+' '+n.prev.zh+'</span></a>';else h+='<span></span>';h+='<span class="spacer"></span>';if(n.next)h+='<a href="'+n.next.file+'"><span class="nav-label">下一章 →</span><span class="nav-title">第 '+n.next.num+' 章 '+n.next.zh+'</span></a>';else h+='<span></span>';el.innerHTML=h;});
 document.addEventListener('DOMContentLoaded',function(){var r=[[/--.*$/gm,'comment'],[/\/--.*?-\//gs,'comment'],[/\b(sorry|admit)\b/g,'sorry'],[/\b(theorem|def|lemma|example|abbrev|noncomputable|instance|structure|inductive|class|where|match|with|if|then|else|let|have|by|do|return|import|open|namespace|section|variable|deriving|extends|private|protected|set_option|fun)\b/g,'keyword'],[/\b(simp|rfl|ring|omega|norm_cast|norm_num|tauto|exact|apply|intro|rw|calc|congr|symm|constructor|cases|induction|rcases|obtain|use|ext|funext|contradiction|absurd|push_neg|contrapose|revert|specialize|erw|left|right|exfalso|trivial|decide|aesop|linarith|positivity|field_simp|convert|grind)\b/g,'tactic'],[/\b(ℝ|ℤ|ℕ|ℚ|Prop|Type|Sort|Set|True|False|EReal|Real|Nat|Int|Bool|Sequence)\b/g,'type'],[/"[^"]*"/g,'string'],[/\b\d+\.?\d*\b/g,'number']];function e(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}document.querySelectorAll('.code-block').forEach(function(b){if(b.querySelector('.syn-keyword'))return;var t=b.textContent,tk=[];r.forEach(function(rl){var re=new RegExp(rl[0].source,rl[0].flags),m;while((m=re.exec(t))!==null)tk.push({start:m.index,end:m.index+m[0].length,cls:'syn-'+rl[1]});});if(!tk.length)return;tk.sort(function(a,b){return a.start-b.start||a.end-b.end;});var f=[tk[0]];for(var i=1;i<tk.length;i++)if(tk[i].start>=f[f.length-1].end)f.push(tk[i]);var h='',l=0;f.forEach(function(x){if(x.start>l)h+=e(t.slice(l,x.start));h+='<span class="'+x.cls+'">'+e(t.slice(x.start,x.end))+'</span>';l=x.end;});if(l<t.length)h+=e(t.slice(l));var cb=b.querySelector('.copy-btn');b.innerHTML=h;if(cb)b.appendChild(cb);});});
 </script>
 </body>

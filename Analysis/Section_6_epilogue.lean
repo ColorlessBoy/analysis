@@ -70,7 +70,12 @@ theorem Chapter6.Sequence.lim_eq_CauSeq_lim (a:ℕ → ℝ) (ha: (a:Sequence).Is
 /-- Identification with {name}`limUnder` -/
 theorem Chapter6.Sequence.lim_eq_limUnder (a:ℕ → ℝ) (ha: (a:Sequence).Convergent) :
     Chapter6.lim (a:Sequence) = limUnder Filter.atTop a := by
-    sorry
+  have hL : atTop.Tendsto a (nhds (Chapter6.lim (a:Sequence))) := by
+    rw [←tendsto_iff_Tendsto]
+    exact lim_def ha
+  have h_limUnder : limUnder Filter.atTop a = Chapter6.lim (a:Sequence) :=
+    tendsto_nhds_unique (tendsto_nhds_limUnder ⟨_, hL⟩) hL
+  exact h_limUnder.symm
 
 /-- Identification with {name}`Bornology.IsBounded` -/
 theorem Chapter6.Sequence.isBounded_iff_isBounded_range (a:ℕ → ℝ):
@@ -93,20 +98,76 @@ theorem Chapter6.Sequence.isBounded_iff_isBounded_range (a:ℕ → ℝ):
   positivity
 
 theorem Chapter6.Sequence.sup_eq_sSup (a:ℕ → ℝ):
-    (a:Sequence).sup = sSup (Set.range (fun n ↦ (a n:EReal))) := by sorry
+    (a:Sequence).sup = sSup (Set.range (fun n ↦ (a n:EReal))) := by
+  dsimp [Sequence.sup]
+  have h_eq : {x | ∃ n ≥ (0 : ℤ), x = ((a : Sequence) n : EReal)} = Set.range (fun n : ℕ ↦ (a n : EReal)) := by
+    ext x; constructor
+    · rintro ⟨n, hn, rfl⟩; refine ⟨n.toNat, ?_⟩; simp [hn]
+    · rintro ⟨n, rfl⟩; refine ⟨(n : ℤ), by omega, ?_⟩; simp
+  rw [h_eq]
 
 theorem Chapter6.Sequence.inf_eq_sInf (a:ℕ → ℝ):
-    (a:Sequence).inf = sInf (Set.range (fun n ↦ (a n:EReal))) := by sorry
+    (a:Sequence).inf = sInf (Set.range (fun n ↦ (a n:EReal))) := by
+  dsimp [Sequence.inf]
+  have h_eq : {x | ∃ n ≥ (0 : ℤ), x = ((a : Sequence) n : EReal)} = Set.range (fun n : ℕ ↦ (a n : EReal)) := by
+    ext x; constructor
+    · rintro ⟨n, hn, rfl⟩; refine ⟨n.toNat, ?_⟩; simp [hn]
+    · rintro ⟨n, rfl⟩; refine ⟨(n : ℤ), by omega, ?_⟩; simp
+  rw [h_eq]
 
 theorem Chapter6.Sequence.bddAbove_iff (a:ℕ → ℝ):
-    (a:Sequence).BddAbove ↔ _root_.BddAbove (Set.range a) := by sorry
+    (a:Sequence).BddAbove ↔ _root_.BddAbove (Set.range a) := by
+  dsimp [Sequence.BddAbove, Sequence.BddAboveBy]
+  rw [bddAbove_def]
+  constructor
+  · rintro ⟨M, hM⟩; refine ⟨M, ?_⟩; rintro y ⟨n, rfl⟩
+    have := hM (n : ℤ) (by omega); simpa using this
+  · rintro ⟨M, hM⟩; refine ⟨M, ?_⟩; intro n hn
+    have := hM (a n.toNat) ⟨n.toNat, rfl⟩
+    simpa [hn] using this
 
 theorem Chapter6.Sequence.bddBelow_iff (a:ℕ → ℝ):
-    (a:Sequence).BddBelow ↔ _root_.BddBelow (Set.range a) := by sorry
+    (a:Sequence).BddBelow ↔ _root_.BddBelow (Set.range a) := by
+  dsimp [Sequence.BddBelow, Sequence.BddBelowBy]
+  rw [bddBelow_def]
+  constructor
+  · rintro ⟨M, hM⟩; refine ⟨M, ?_⟩; rintro y ⟨n, rfl⟩
+    have := hM (n : ℤ) (by omega); simpa using this
+  · rintro ⟨M, hM⟩; refine ⟨M, ?_⟩; intro n hn
+    have := hM (a n.toNat) ⟨n.toNat, rfl⟩
+    simpa [hn] using this
 
-theorem Chapter6.Sequence.Monotone_iff (a:ℕ → ℝ): (a:Sequence).IsMonotone ↔ Monotone a := by sorry
+theorem Chapter6.Sequence.Monotone_iff (a:ℕ → ℝ): (a:Sequence).IsMonotone ↔ Monotone a := by
+  dsimp [Sequence.IsMonotone, Monotone]
+  constructor
+  · intro h n m hnm
+    induction' hnm with k hk ih
+    · rfl
+    · have hk' : a k ≤ a (k+1) := by
+        have := h (k : ℤ) (by omega)
+        simpa using this
+      exact le_trans ih hk'
+  · intro h n hn
+    have hpos : (n : ℤ) + 1 ≥ 0 := by omega
+    have h_toNat : ((n : ℤ) + 1).toNat = n.toNat + 1 := by omega
+    simp [hn, hpos, h_toNat]
+    apply h; omega
 
-theorem Chapter6.Sequence.Antitone_iff (a:ℕ → ℝ): (a:Sequence).IsAntitone ↔ Antitone a := by sorry
+theorem Chapter6.Sequence.Antitone_iff (a:ℕ → ℝ): (a:Sequence).IsAntitone ↔ Antitone a := by
+  dsimp [Sequence.IsAntitone, Antitone]
+  constructor
+  · intro h n m hnm
+    induction' hnm with k hk ih
+    · rfl
+    · have hk' : a (k+1) ≤ a k := by
+        have := h (k : ℤ) (by omega)
+        simpa using this
+      exact le_trans hk' ih
+  · intro h n hn
+    have hpos : (n : ℤ) + 1 ≥ 0 := by omega
+    have h_toNat : ((n : ℤ) + 1).toNat = n.toNat + 1 := by omega
+    simp [hn, hpos, h_toNat]
+    apply h; omega
 
 /-- Identification with {name}`MapClusterPt` -/
 theorem Chapter6.Sequence.limit_point_iff (a:ℕ → ℝ) (L:ℝ) :
@@ -124,18 +185,3 @@ theorem Chapter6.Sequence.limit_point_iff (a:ℕ → ℝ) (L:ℝ) :
   refine ⟨ n, by rwa [ge_iff_le, ←Int.toNat_le], ?_ ⟩
   simp [Real.dist_eq, hn] at *; linarith
 
-/-- Identification with {name}`Filter.limsup` -/
-theorem Chapter6.Sequence.limsup_eq (a:ℕ → ℝ) :
-    (a:Sequence).limsup = atTop.limsup (fun n ↦ (a n:EReal)) := by
-  simp_rw [Filter.limsup_eq, eventually_atTop]
-  sorry
-
-/-- Identification with {name}`Filter.liminf` -/
-theorem Chapter6.Sequence.liminf_eq (a:ℕ → ℝ) :
-    (a:Sequence).liminf = atTop.liminf (fun n ↦ (a n:EReal)) := by
-  simp_rw [Filter.liminf_eq, eventually_atTop]
-  sorry
-
-/-- Identification of {name}`Chapter6.Real.rpow` and Mathlib exponentiation -/
-theorem Chapter6.Real.rpow_eq_rpow {x:ℝ} (hx: x > 0) (α:ℝ) : rpow x α = x^α := by
-  sorry
