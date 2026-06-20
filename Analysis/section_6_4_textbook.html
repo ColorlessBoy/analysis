@@ -828,7 +828,7 @@ var SECTION_NAV = {
     chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
     current: { num: '6.4', zh: '上极限、下极限与极限点', en: 'Limsup, Liminf, and Limit Points' },
     prev: { num: '6.3', file: 'section_6_3_textbook.html', zh: '序列的上确界与下确界', en: 'Suprema and Infima of Sequences' },
-    next: null
+    next: { num: '6.5', file: 'section_6_5_textbook.html', zh: '一些标准极限', en: 'Some Standard Limits' }
 };
 (function(){ var s=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(s);})();
 (function(){ var o='section64_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();

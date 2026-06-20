@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分析学 I, 第6.6节：子序列 - Terence Tao</title>
+    <title>分析学 I, 第6.7节：实指数（第二部分） - Terence Tao</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -221,357 +221,306 @@ th { background: var(--tb-table-head-bg); font-weight: 600; }
 <h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
 
 <h2 class="section-title">
-    <span class="section-number">第6.6节</span>
-    <span class="t" data-zh="子序列" data-en="Subsequences"></span>
-    <span class="page-ref">第128–130页</span>
+    <span class="section-number">第6.7节</span>
+    <span class="t" data-zh="实指数（第二部分）" data-en="Real Exponentiation, Part II"></span>
+    <span class="page-ref">第131–134页</span>
 </h2>
 
 <!-- ========== 目录 ========== -->
 <div class="toc inline-toc">
     <div class="toc-title">本节内容导航</div>
     <ol>
-        <li><a href="#s66-intro">引言：不收敛序列中的"收敛成分"</a></li>
-        <li><a href="#s66-def661"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</a></li>
-        <li><a href="#s66-example662"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</a></li>
-        <li><a href="#s66-lem664"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</a></li>
-        <li><a href="#s66-prop665"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</a></li>
-        <li><a href="#s66-prop666"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</a></li>
-        <li><a href="#s66-rem667"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</a></li>
-        <li><a href="#s66-thm668"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</a></li>
-        <li><a href="#s66-rem669"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</a></li>
-        <li><a href="#s66-supp">补充说明</a></li>
-        <li><a href="#s66-exercises">习题</a></li>
+        <li><a href="#s67-intro">引言：从有理指数到实指数</a></li>
+        <li><a href="#s67-lem671"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.7.1：指数运算的连续性</a></li>
+        <li><a href="#s67-def672"><span class="t" data-zh="定义" data-en="Definition"></span> 6.7.2：实指数运算</a></li>
+        <li><a href="#s67-prop673"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.7.3：实指数的运算法则</a></li>
+        <li><a href="#s67-supp">补充说明</a></li>
+        <li><a href="#s67-exercises">习题</a></li>
     </ol>
 </div>
 
 <!-- ========== 引言 ========== -->
-<div id="s66-intro">
+<div id="s67-intro">
 <div class="chapter-marker">— 引言 —</div>
 </div>
 
 <p>
-本章一直致力于研究实数序列 \((a_n)_{n=m}^\infty\) 及其极限。有些序列收敛到单一的极限，
-而另一些则有多个极限点。例如，序列
-\[
-1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
-\]
-有两个极限点 \(0\) 和 \(1\)（它们恰好也是下极限和上极限），
-但该序列实际上不收敛（因为上极限和下极限不相等）。
-然而，虽然这个序列不收敛，它似乎包含收敛的"成分"；
-它看起来是两个收敛子序列的混合，即
-\[
-1.1,\ 1.01,\ 1.001,\ \ldots
-\]
-和
-\[
-0.1,\ 0.01,\ 0.001,\ \ldots
-\]
-为了使这一概念精确化，我们需要子序列的概念。
+我们终于回到第 5.6 节开始讨论的实数指数运算的话题。在那一节中我们对所有正实数 \(x\) 和有理数 \(q\) 定义了 \(x^q\)，
+但尚未定义 \(\alpha\) 为实数时的 \(x^\alpha\)。我们现在利用极限来弥补这一缺憾
+（类似于我们定义实数上其他标准运算的方式）。首先，我们需要一个引理。
 </p>
 
 <hr>
 
-<!-- ========== 定义 6.6.1 ========== -->
-<div id="s66-def661">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</h3>
-</div>
-
-<div class="definition">
-    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1（子序列）。</span>
-    设 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是实数序列。
-    称 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的<strong><span class="t" data-zh="子序列" data-en="subsequence"></span></strong>，
-    如果存在一个<strong>严格递增</strong>的函数 \(f: \mathbb{N} \to \mathbb{N}\)
-    （即对所有 \(n \in \mathbb{N}\) 有 \(f(n+1) > f(n)\)），使得
-    \[
-    b_n = a_{f(n)} \quad \text{对所有 } n \in \mathbb{N}.
-    \]
-    更一般地，称 \((b_n)_{n=m'}^\infty\) 是 \((a_n)_{n=m}^\infty\) 的子序列，
-    如果存在严格递增函数 \(f: \{n \in \mathbb{N} : n \geq m'\} \to \{n \in \mathbb{N} : n \geq m\}\)，
-    使得对所有 \(n \geq m'\) 有 \(b_n = a_{f(n)}\)。
-</div>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
-    <div class="code-block">
-/-- Definition 6.6.1: b is a subsequence of a -/
-abbrev Sequence.subseq (a b: ℕ → ℝ) : Prop :=
-  ∃ f : ℕ → ℕ, StrictMono f ∧ ∀ n, b n = a (f n)
-    </div>
-    <p>Lean 中用 <code>StrictMono f</code>（即 \(f(n+1) > f(n)\) 对所有 \(n\)）来编码"严格递增"。
-    注意教材中的子序列关系是定义在 <code>ℕ → ℝ</code> 上的谓词，
-    而非在 <code>Sequence</code> 类型上，这简化了与教材的对应。</p>
-</div>
-
-<hr>
-
-<!-- ========== 例子 6.6.2, 6.6.3 ========== -->
-<div id="s66-example662">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</h3>
-</div>
-
-<div class="example">
-    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.2。</span>
-    设 \((a_n)_{n=0}^\infty\) 是一个序列，则 \((a_{2n})_{n=0}^\infty\) 是它的子序列，
-    因为函数 \(f: \mathbb{N} \to \mathbb{N}\) 定义为 \(f(n) := 2n\) 是严格递增的。
-    注意我们不要求 \(f\) 是满射，虽然它必然是单射（为什么？）。
-    更非正式地说，序列
-    \[
-    a_0,\ a_2,\ a_4,\ a_6,\ \ldots
-    \]
-    是
-    \[
-    a_0,\ a_1,\ a_2,\ a_3,\ a_4,\ \ldots
-    \]
-    的子序列。
-</div>
-
-<div class="example">
-    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.3。</span>
-    前面提到的两个序列
-    \[
-    1.1,\ 1.01,\ 1.001,\ \ldots
-    \]
-    和
-    \[
-    0.1,\ 0.01,\ 0.001,\ \ldots
-    \]
-    都是
-    \[
-    1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
-    \]
-    的子序列。
-</div>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
-    <p>例 6.6.3 在 <code>Section_6_6.lean</code> 中被精确地形式化。原序列被定义为奇偶分支函数，
-    取偶数下标得到趋向 1 的子序列，取奇数下标得到趋向 0 的子序列：</p>
-    <div class="code-block">
--- 偶数项子序列 → 1 + 10^(-n-1)
-example :
-    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
-    (fun n ↦ 1 + (10:ℝ)^(-(n:ℤ)-1)) := by
-  refine ⟨fun n ↦ 2*n, ?_, λ n ↦ ?_⟩
-
--- 奇数项子序列 → 10^(-n-1)
-example :
-    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
-    (fun n ↦ (10:ℝ)^(-(n:ℤ)-1)) := by
-  refine ⟨fun n ↦ 2*n + 1, ?_, λ n ↦ ?_⟩
-    </div>
-</div>
-
-<hr>
-
-<!-- ========== 引理 6.6.4 ========== -->
-<div id="s66-lem664">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</h3>
+<!-- ========== 引理 6.7.1 ========== -->
+<div id="s67-lem671">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.7.1：指数运算的连续性</h3>
 </div>
 
 <div class="lemma-box">
-    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4。</span>
-    设 \((a_n)_{n=0}^\infty\)、\((b_n)_{n=0}^\infty\)、\((c_n)_{n=0}^\infty\) 是实数序列。则
-    <ul>
-        <li>\((a_n)_{n=0}^\infty\) 是自身的子序列（<strong>自反性</strong>）；</li>
-        <li>若 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列，且 \((c_n)_{n=0}^\infty\) 是 \((b_n)_{n=0}^\infty\) 的子序列，则 \((c_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列（<strong>传递性</strong>）。</li>
-    </ul>
-    "是子序列"这一关系<strong>不是对称的</strong>。
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.1。</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Lemma 6.6.4 / Exercise 6.6.1: reflexivity -/
-theorem Sequence.subseq_self (a:ℕ → ℝ) : Sequence.subseq a a := by
-  refine ⟨id, strictMono_id, λ n ↦ rfl⟩
-
-/-- Lemma 6.6.4 / Exercise 6.6.1: transitivity -/
-theorem Sequence.subseq_trans {a b c:ℕ → ℝ}
-    (hab: Sequence.subseq a b) (hbc: Sequence.subseq b c) :
-    Sequence.subseq a c := by
-  rcases hab with ⟨f, hf, hab'⟩
-  rcases hbc with ⟨g, hg, hbc'⟩
-  refine ⟨f ∘ g, hf.comp hg, λ n ↦ ?_⟩
-  calc c n = b (g n) := hbc' n
-    _ = a (f (g n)) := hab' (g n)
-    </div>
-    <p>自反性用恒等函数 <code>id</code>，传递性用复合函数 <code>f ∘ g</code>，
-    严格递增函数的复合仍严格递增（<code>StrictMono.comp</code>）。</p>
-</div>
-
-<hr>
-
-<!-- ========== 命题 6.6.5 ========== -->
-<div id="s66-prop665">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</h3>
-</div>
-
-<div class="proposition-box">
-    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5（子序列与极限的关系）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题<strong>逻辑等价</strong>：
-    <ul>
-        <li>(a) 序列 \((a_n)_{n=0}^\infty\) 收敛到 \(L\)。</li>
-        <li>(b) \((a_n)_{n=0}^\infty\) 的每个子序列都收敛到 \(L\)。</li>
-    </ul>
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.4。（注意两个方向中有一个的证明非常短。）</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Proposition 6.6.5 / Exercise 6.6.4 -/
-theorem Sequence.convergent_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
-    (a:Sequence).TendsTo L ↔ ∀ b:ℕ → ℝ,
-      Sequence.subseq a b → (b:Sequence).TendsTo L
-    </div>
-    <p>(b) ⟹ (a) 的方向很短：序列是自身的子序列（引理 6.6.4），故直接代入即可。
-    (a) ⟹ (b) 的方向需要利用严格递增函数 \(f\) 满足 \(f(n) \geq n\)，
-    因此当 \(n\) 足够大时 \(f(n)\) 也足够大，使 \(a_{f(n)}\) 接近 \(L\)。</p>
-</div>
-
-<hr>
-
-<!-- ========== 命题 6.6.6 ========== -->
-<div id="s66-prop666">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</h3>
-</div>
-
-<div class="proposition-box">
-    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6（子序列与极限点的关系）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题逻辑等价：
-    <ul>
-        <li>(a) \(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。</li>
-        <li>(b) 存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛到 \(L\)。</li>
-    </ul>
-</div>
-
-<details class="proof-collapsible" open>
-    <summary>证明.</summary>
-    <div class="proof-body">见习题 6.6.5。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\)，定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，并解释为何集合 \(\{n > n_{j-1} : |a_n - L| \leq 1/j\}\) 非空。然后考虑序列 \(a_{n_j}\)。）</div>
-    <div class="qed">∎</div>
-</details>
-
-<div class="supplement">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
-    <div class="code-block">
-/-- Proposition 6.6.6 / Exercise 6.6.5 -/
-theorem Sequence.limit_point_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
-    (a:Sequence).LimitPoint L ↔
-      ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).TendsTo L
-    </div>
-    <p>(a) ⟹ (b) 的 Lean 证明使用 <code>Classical.choose</code> 递归构造下标函数 \(f\)：
-    对每个 \(k\)，在 \(\{n > f(k) : |a_n - L| \leq 1/(k+2)\}\) 中选取一个元素作为 \(f(k+1)\)。
-    由此构造的 \(b_n := a_{f(n)}\) 满足 \(|b_n - L| \leq 1/(n+1) \to 0\)，故收敛到 \(L\)。</p>
-</div>
-
-<hr>
-
-<!-- ========== 注 6.6.7 ========== -->
-<div id="s66-rem667">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</h3>
-</div>
-
-<div class="remark">
-    <strong>注 6.6.7。</strong>
-    上述两个命题给出了极限与极限点概念的鲜明对比。当序列有极限 \(L\) 时，
-    <strong>所有</strong>子序列也都收敛到 \(L\)。但当序列以 \(L\) 为极限点时，
-    只有<strong>某些</strong>子序列收敛到 \(L\)。
-</div>
-
-<hr>
-
-<!-- ========== 定理 6.6.8 ========== -->
-<div id="s66-thm668">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</h3>
-</div>
-
-<p>
-我们现在可以证明实分析中的一个重要定理，它归功于 Bernard Bolzano（1781–1848）和 Karl Weierstrass（1815–1897）：
-每个有界序列都有收敛子序列。
-</p>
-
-<div class="theorem-box">
-    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8（Bolzano–Weierstrass 定理）。</span>
-    设 \((a_n)_{n=0}^\infty\) 是<strong>有界</strong>序列
-    （即存在实数 \(M > 0\) 使得对所有 \(n \in \mathbb{N}\) 有 \(|a_n| \leq M\)）。
-    则 \((a_n)_{n=0}^\infty\) 至少有一个收敛子序列。
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.7.1（指数运算的连续性）。</span>
+    设 \(x &gt; 0\)，\(\alpha\) 是实数。设 \((q_n)_{n=1}^\infty\) 是收敛到 \(\alpha\) 的<strong>有理数</strong>序列。
+    则 \((x^{q_n})_{n=1}^\infty\) 也是收敛序列。
+    此外，若 \((q'_n)_{n=1}^\infty\) 是任何其他收敛到 \(\alpha\) 的有理数序列，
+    则 \((x^{q'_n})_{n=1}^\infty\) 与 \((x^{q_n})_{n=1}^\infty\) 有相同的极限：
+    \[
+    \lim_{n\to\infty} x^{q_n} = \lim_{n\to\infty} x^{q'_n}.
+    \]
 </div>
 
 <details class="proof-collapsible" open>
     <summary>证明.</summary>
     <div class="proof-body">
     <p style="text-indent:0">
-    令 \(L\) 为序列 \((a_n)_{n=0}^\infty\) 的上极限。由于对所有自然数 \(n\) 有 \(-M \leq a_n \leq M\)，
-    由比较原理（引理 6.4.13）得 \(-M \leq L \leq M\)。特别地，\(L\) 是实数（不是 \(+\infty\) 或 \(-\infty\)）。
-    由命题 6.4.12(e)，\(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。
-    再由命题 6.6.6，存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛（事实上，收敛到 \(L\)）。
+    分三种情形：\(x &lt; 1\)、\(x = 1\)、\(x &gt; 1\)。\(x = 1\) 的情形很简单
+    （因为对所有有理数 \(q\) 有 \(x^q = 1\)）。我们只处理 \(x &gt; 1\) 的情形，
+    \(x &lt; 1\) 的情形非常类似，留给读者。
+    </p>
+    <p style="text-indent:0">
+    <strong>第一步：证明 \((x^{q_n})_{n=1}^\infty\) 收敛。</strong>
+    由命题 6.4.18，只需证明 \((x^{q_n})_{n=1}^\infty\) 是 Cauchy 序列。
+    为此需估计 \(x^{q_n}\) 与 \(x^{q_m}\) 的距离；暂设 \(q_n \geq q_m\)，则 \(x^{q_n} \geq x^{q_m}\)（因为 \(x &gt; 1\)）。我们有
+    \[
+    d(x^{q_n}, x^{q_m}) = x^{q_n} - x^{q_m} = x^{q_m}(x^{q_n - q_m} - 1).
+    \]
+    由于 \((q_n)_{n=1}^\infty\) 收敛，它有某个上界 \(M\)；因为 \(x &gt; 1\)，有 \(x^{q_m} \leq x^M\)。故
+    \[
+    d(x^{q_n}, x^{q_m}) = |x^{q_n} - x^{q_m}| \leq x^M (x^{q_n - q_m} - 1).
+    \]
+    </p>
+    <p style="text-indent:0">
+    令 \(\varepsilon &gt; 0\)。由引理 6.5.3 知序列 \((x^{1/k})_{k=1}^\infty\) 最终 \(\varepsilon x^{-M}\)-接近 1，
+    故存在 \(K \geq 1\) 使得 \(|x^{1/K} - 1| \leq \varepsilon x^{-M}\)。
+    </p>
+    <p style="text-indent:0">
+    由于 \((q_n)_{n=1}^\infty\) 收敛，它是 Cauchy 序列，故存在 \(N \geq 1\) 使得对所有 \(n, m \geq N\)，
+    \(q_n\) 与 \(q_m\) 是 \(1/K\)-接近的。于是
+    \[
+    d(x^{q_n}, x^{q_m}) \leq x^M (x^{q_n - q_m} - 1) \leq x^M (x^{1/K} - 1) \leq x^M \varepsilon x^{-M} = \varepsilon
+    \]
+    对所有 \(n, m \geq N\) 且 \(q_n \geq q_m\) 成立。由对称性，\(q_n \leq q_m\) 时也有同样估计。
+    因此 \((x^{q_n})_{n=N}^\infty\) 是 \(\varepsilon\)-稳定的，从而 \((x^{q_n})_{n=1}^\infty\) 对每个 \(\varepsilon &gt; 0\) 都是最终 \(\varepsilon\)-稳定的，
+    因而是 Cauchy 序列。这就证明了收敛性。
+    </p>
+    <p style="text-indent:0">
+    <strong>第二步：证明极限与序列选取无关。</strong>
+    只需证明 \(\lim_{n\to\infty} x^{q_n - q'_n} = 1\)，
+    则由极限定律（\(x^{q_n} = x^{q_n - q'_n} x^{q'_n}\)）即得结论。
+    令 \(r_n := q_n - q'_n\)；由极限定律知 \((r_n)_{n=1}^\infty\) 收敛到 0。
+    需证对每个 \(\varepsilon &gt; 0\)，\((x^{r_n})_{n=1}^\infty\) 最终 \(\varepsilon\)-接近 1。
+    由引理 6.5.3 知 \((x^{1/k})_{k=1}^\infty\) 最终 \(\varepsilon\)-接近 1，
+    且 \(\lim_{k\to\infty} x^{-1/k} = 1\) 也成立，故 \((x^{-1/k})_{k=1}^\infty\) 也最终 \(\varepsilon\)-接近 1。
+    从而可找到 \(K\) 使 \(x^{1/K}\) 和 \(x^{-1/K}\) 都 \(\varepsilon\)-接近 1。
+    而 \((r_n)_{n=1}^\infty\) 收敛到 0，故最终 \(1/K\)-接近 0，
+    即最终 \(-1/K \leq r_n \leq 1/K\)，从而 \(x^{-1/K} \leq x^{r_n} \leq x^{1/K}\)。
+    特别地，\(x^{r_n}\) 也最终 \(\varepsilon\)-接近 1（见命题 4.3.7(f)），得证。
     </p>
     </div>
     <div class="qed">∎</div>
 </details>
 
-<p>
-注意，我们同样可以使用下极限代替上极限来完成上述论证。
-</p>
-
 <div class="supplement">
     <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
+    <p>引理 6.7.1 在 <code>Section_6_7.lean</code> 中分两步实现。
+    首先是 \(x \geq 1\) 情形的辅助引理：</p>
     <div class="code-block">
-/-- Theorem 6.6.8 (Bolzano-Weierstrass theorem) -/
-theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
-    (ha: (a:Sequence).IsBounded) :
-    ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).Convergent
+/-- Helper lemma for Lemma 6.7.1 when x ≥ 1 -/
+lemma ratPow_continuous_ge_one {x α:ℝ} (hx: x > 0) (hx1: 1 < x) {q: ℕ → ℚ}
+   (hq: ((fun n ↦ (q n:ℝ)):Sequence).TendsTo α) :
+   ((fun n ↦ x^(q n:ℝ)):Sequence).Convergent
     </div>
-    <p>Lean 证明忠实地遵循教材思路：先由有界性得出上极限有限（<code>finite_limsup_liminf_of_bounded</code>），
-    再由命题 6.4.12(e) 得上极限是极限点（<code>limit_point_of_limsup</code>），
-    最后由命题 6.6.6 将极限点转化为收敛子序列（<code>limit_point_iff_subseq</code>）。</p>
+    <p>然后是完整引理（用 <code>lt_trichotomy</code> 分三种情形）：</p>
+    <div class="code-block">
+/-- Lemma 6.7.1 (Continuity of exponentiation) -/
+lemma ratPow_continuous {x α:ℝ} (hx: x > 0) {q: ℕ → ℚ}
+   (hq: ((fun n ↦ (q n:ℝ)):Sequence).TendsTo α) :
+   ((fun n ↦ x^(q n:ℝ)):Sequence).Convergent
+    </div>
+    <p>\(x &lt; 1\) 的情形通过取倒数转化为 \(1/x &gt; 1\) 的情形：
+    先证明 \((1/x)^{q_n}\) 收敛且极限非零，再用 <code>lim_inv</code> 取倒数。
+    极限唯一性由 <code>ratPow_lim_uniq</code> 给出，
+    核心思想正是教材第二步：证明 \(x^{r_n} \to 1\)。</p>
 </div>
 
 <hr>
 
-<!-- ========== 注 6.6.9 ========== -->
-<div id="s66-rem669">
-<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</h3>
+<!-- ========== 定义 6.7.2 ========== -->
+<div id="s67-def672">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.7.2：实指数运算</h3>
 </div>
 
-<div class="remark">
-    <strong>注 6.6.9。</strong>
-    Bolzano–Weierstrass 定理说明：如果一个序列有界，那么它最终"别无选择"只能在某些地方收敛；
-    它"没有空间"散开并阻止自己获得极限点。对无界序列这不成立；例如序列 \(1, 2, 3, \ldots\)
-    没有任何收敛子序列（为什么？）。用拓扑的语言来说，这意味着区间 \(\{x \in \mathbb{R} : -M \leq x \leq M\}\) 是
-    <strong><span class="t" data-zh="紧致的" data-en="compact"></span></strong>，
-    而无界集合如实数轴 \(\mathbb{R}\) 不是紧致的。紧致集与非紧致集的区分在后续章节中非常重要——
-    其重要性类似于有限集与无限集的区分。
+<p>
+我们现在可以做如下定义。
+</p>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.7.2（实数指数的指数运算）。</span>
+    设 \(x &gt; 0\) 为实数，\(\alpha\) 为实数。定义量 \(x^\alpha\) 为
+    \[
+    x^\alpha = \lim_{n\to\infty} x^{q_n},
+    \]
+    其中 \((q_n)_{n=1}^\infty\) 是收敛到 \(\alpha\) 的<strong>任意</strong>有理数序列。
+</div>
+
+<p>
+让我们验证这个定义是<strong>良定义</strong>的。首先，给定任意实数 \(\alpha\)，
+由实数的定义（和命题 6.1.15），我们总至少有一个收敛到 \(\alpha\) 的有理数序列 \((q_n)_{n=1}^\infty\)。
+其次，给定任何这样的序列，极限 \(\lim_{n\to\infty} x^{q_n}\) 由引理 6.7.1 存在。
+最后，虽然序列 \((q_n)_{n=1}^\infty\) 可以有多种选择，但由引理 6.7.1 它们都给出相同的极限。
+因此这个定义是良定义的。
+</p>
+
+<p>
+如果 \(\alpha\) 不仅是实数还是有理数，即 \(\alpha = q\) 为某有理数，
+则此定义原则上可能与第 5.6 节中早先的指数定义不一致。但此时 \(\alpha\) 显然是常数序列 \((q)_{n=1}^\infty\) 的极限，
+故由定义 \(x^\alpha = \lim_{n\to\infty} x^q = x^q\)。因此新的指数定义与旧定义<strong>一致</strong>。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
+    <p>由于第 5 章的实数已被弃用，改用 Mathlib 的实数，而 Mathlib 的实指数运算不需要先经过有理指数，
+    Lean 形式化采用了一种折中方案：先接受 Mathlib 的有理指数运算（及其全部 API），
+    再用它定义实指数运算，并在本章尾声中证明它与 Mathlib 运算一致。</p>
+    <div class="code-block">
+/-- 每个实数都是某有理数序列的极限 -/
+theorem Real.eq_lim_of_rat (α:ℝ) :
+    ∃ q: ℕ → ℚ, ((fun n ↦ (q n:ℝ)):Sequence).TendsTo α
+
+/-- Definition 6.7.2 (Exponentiation to a real exponent) -/
+noncomputable abbrev Real.rpow (x:ℝ) (α:ℝ) :ℝ :=
+  lim ((fun n ↦ x^((eq_lim_of_rat α).choose n:ℝ)):Sequence)
+    </div>
+    <p>关键辅助引理保证良定义性——不同的有理逼近序列给出相同极限：</p>
+    <div class="code-block">
+lemma Real.rpow_eq_lim_ratPow {x α:ℝ} (hx: x > 0) {q: ℕ → ℚ}
+   (hq: ((fun n ↦ (q n:ℝ)):Sequence).TendsTo α) :
+   rpow x α = lim ((fun n ↦ x^(q n:ℝ)):Sequence)
+    </div>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：与 Mathlib 指数运算的同一性</span>
+    <p>本节定义的 <code>Real.rpow</code> 最终被证明等于 Mathlib 的标准指数运算 <code>x ^ α</code>：</p>
+    <div class="code-block">
+/-- Bridge lemma: Chapter6's sequence convergence ↔ Mathlib's filter convergence -/
+lemma tendsto_iff_tendsto_nhds (a : ℕ → ℝ) (L : ℝ) :
+    ((a : Sequence).TendsTo L) ↔ atTop.Tendsto a (nhds L)
+
+/-- Identification with Mathlib exponentiation -/
+theorem Real.rpow_eq_rpow {x : ℝ} (hx : x > 0) (α : ℝ) : rpow x α = x ^ α
+    </div>
+    <p>证明利用 Mathlib 的连续性定理 <code>Real.continuousAt_const_rpow</code>：
+    由于 \(t \mapsto x^t\) 在 \(\alpha\) 处连续，而 \(q_n \to \alpha\)（在 Mathlib 的滤语言义下），
+    故 \(x^{q_n} \to x^\alpha\)。同时由定义 \(x^{q_n} \to \texttt{rpow}\, x\, \alpha\)。
+    由滤极限的唯一性（<code>tendsto_nhds_unique</code>），二者相等。</p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.7.3 ========== -->
+<div id="s67-prop673">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.7.3：实指数的运算法则</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.7.3。</span>
+    引理 5.6.9 中对有理数 \(q\) 和 \(r\) 成立的所有结果，对实数 \(q\) 和 \(r\) 继续成立。即对 \(x, y &gt; 0\) 和实数 \(q, r\)：
+    <ul>
+        <li>(a) \(x^q \geq 0\)；进一步，若 \(x \neq 0\) 则 \(x^q &gt; 0\)。</li>
+        <li>(b) \(x^{q+r} = x^q \cdot x^r\) 且 \((x^q)^r = x^{qr}\)；</li>
+        <li>(c) \(x^{-q} = 1 / x^q\)；</li>
+        <li>(d) 当 \(q &gt; 0\) 时，\(x &gt; y \iff x^q &gt; y^q\)；</li>
+        <li>(e) 当 \(x &gt; 1\) 时，\(x^q &gt; x^r \iff q &gt; r\)；当 \(0 &lt; x &lt; 1\) 时，\(x^q &gt; x^r \iff q &lt; r\)；</li>
+        <li>(f) \((xy)^q = x^q \cdot y^q\)。</li>
+    </ul>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    我们以恒等式 \(x^{q+r} = x^q x^r\)（即引理 5.6.9(b) 的第一部分）为例来演示；
+    其他部分类似，留给习题 6.7.1。核心思想是从有理数情形的引理 5.6.9 出发，取极限得到实数情形的对应结果。
+    </p>
+    <p style="text-indent:0">
+    设 \(q\) 和 \(r\) 是实数。由实数的定义（和命题 6.1.15），可以写出
+    \(q = \lim_{n\to\infty} q_n\) 和 \(r = \lim_{n\to\infty} r_n\)，
+    其中 \((q_n)_{n=1}^\infty\) 和 \((r_n)_{n=1}^\infty\) 是有理数序列。
+    由极限定律，\(q + r\) 是 \((q_n + r_n)_{n=1}^\infty\) 的极限。
+    由实指数的定义：
+    \[
+    x^{q+r} = \lim_{n\to\infty} x^{q_n + r_n}; \quad
+    x^q = \lim_{n\to\infty} x^{q_n}; \quad
+    x^r = \lim_{n\to\infty} x^{r_n}.
+    \]
+    但由引理 5.6.9(b)（应用于有理指数）有 \(x^{q_n + r_n} = x^{q_n} x^{r_n}\)。
+    再由极限定律得 \(x^{q+r} = x^q x^r\)，证毕。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <p>命题 6.7.3 的各部分在 <code>Section_6_7.lean</code> 中均有形式化。由于已经证明了
+    <code>Real.rpow_eq_rpow</code>（与 Mathlib 指数一致），大部分性质可直接归结为 Mathlib 已有定理：</p>
+    <div class="code-block">
+/-- (a) x^q ≥ 0 -/
+theorem Real.ratPow_nonneg {x:ℝ} (hx: x > 0) (q:ℝ) : rpow x q ≥ 0
+
+/-- (b) x^(q+r) = x^q * x^r -/
+theorem Real.ratPow_add {x:ℝ} (hx: x > 0) (q r:ℝ) :
+    rpow x (q+r) = rpow x q * rpow x r
+
+/-- (b) (x^q)^r = x^(q*r) -/
+theorem Real.ratPow_ratPow {x:ℝ} (hx: x > 0) (q r:ℝ) :
+    rpow (rpow x q) r = rpow x (q*r)
+
+/-- (c) x^(-q) = 1/x^q -/
+theorem Real.ratPow_neg {x:ℝ} (hx: x > 0) (q:ℝ) :
+    rpow x (-q) = 1 / rpow x q
+
+/-- (d) x > y ↔ x^q > y^q (q > 0) -/
+theorem Real.ratPow_mono {x y:ℝ} (hx: x > 0) (hy: y > 0) {q:ℝ} (h: q > 0) :
+    x > y ↔ rpow x q > rpow y q
+
+/-- (e) x > 1: x^q > x^r ↔ q > r -/
+theorem Real.ratPow_mono_of_gt_one {x:ℝ} (hx: x > 1) {q r:ℝ} :
+    rpow x q > rpow x r ↔ q > r
+
+/-- (e) 0 < x < 1: x^q > x^r ↔ q < r -/
+theorem Real.ratPow_mono_of_lt_one {x:ℝ} (hx0: 0 < x) (hx: x < 1) {q r:ℝ} :
+    rpow x q > rpow x r ↔ q < r
+
+/-- (f) (x*y)^q = x^q * y^q -/
+theorem Real.ratPow_mul {x y:ℝ} (hx: x > 0) (hy: y > 0) (q:ℝ) :
+    rpow (x*y) q = rpow x q * rpow y q
+    </div>
+    <p>注意 (b) 中 <code>ratPow_add</code> 忠实遵循教材的"取极限"策略：
+    分别取 \(q\) 和 \(r\) 的有理逼近序列，利用 <code>lim_mul</code> 和有理情形的引理 5.6.9 完成证明。</p>
 </div>
 
 <hr>
 
 <!-- ========== 补充说明 ========== -->
-<div id="s66-supp">
+<div id="s67-supp">
 <div class="chapter-marker">— 补充说明 —</div>
 
 <div class="supplement">
     <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节的概念结构</span>
     <table>
         <tr><th>概念</th><th>教材定义</th><th>Lean 对应</th></tr>
-        <tr><td>子序列</td><td>\(b_n = a_{f(n)}\)，\(f\) 严格递增</td><td><code>Sequence.subseq</code></td></tr>
-        <tr><td>自反性</td><td>序列是自身的子序列</td><td><code>subseq_self</code></td></tr>
-        <tr><td>传递性</td><td>子序列的子序列还是子序列</td><td><code>subseq_trans</code></td></tr>
-        <tr><td>收敛 ↔ 所有子序列收敛</td><td>命题 6.6.5</td><td><code>convergent_iff_subseq</code></td></tr>
-        <tr><td>极限点 ↔ 存在收敛子序列</td><td>命题 6.6.6</td><td><code>limit_point_iff_subseq</code></td></tr>
-        <tr><td>Bolzano–Weierstrass</td><td>有界序列有收敛子序列</td><td><code>convergent_of_subseq_of_bounded</code></td></tr>
-        <tr><td>无界序列的子序列</td><td>无界 → 存在子序列 \(1/b_n \to 0\)</td><td><code>subseq_of_unbounded</code></td></tr>
+        <tr><td>有理指数连续性</td><td>引理 6.7.1</td><td><code>ratPow_continuous</code></td></tr>
+        <tr><td>极限与序列无关</td><td>引理 6.7.1 第二部分</td><td><code>ratPow_lim_uniq</code></td></tr>
+        <tr><td>实数的有理逼近</td><td>\(\exists q_n \to \alpha\)</td><td><code>Real.eq_lim_of_rat</code></td></tr>
+        <tr><td>实指数 \(x^\alpha\)</td><td>\(\lim x^{q_n}\)</td><td><code>Real.rpow</code></td></tr>
+        <tr><td>与 Mathlib 一致</td><td>—</td><td><code>Real.rpow_eq_rpow</code></td></tr>
+        <tr><td>加法法则</td><td>\(x^{q+r} = x^q x^r\)</td><td><code>ratPow_add</code></td></tr>
+        <tr><td>幂的幂</td><td>\((x^q)^r = x^{qr}\)</td><td><code>ratPow_ratPow</code></td></tr>
+        <tr><td>负指数</td><td>\(x^{-q} = 1/x^q\)</td><td><code>ratPow_neg</code></td></tr>
+        <tr><td>单调性（底数）</td><td>\(x &gt; y \iff x^q &gt; y^q\)</td><td><code>ratPow_mono</code></td></tr>
+        <tr><td>单调性（指数）</td><td>\(x^q &gt; x^r \iff q &gt; r\)</td><td><code>ratPow_mono_of_gt_one</code></td></tr>
+        <tr><td>乘法分配</td><td>\((xy)^q = x^q y^q\)</td><td><code>ratPow_mul</code></td></tr>
     </table>
 </div>
 
@@ -579,35 +528,39 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
     <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节形式化完成度</span>
     <table>
         <tr><th>内容</th><th>状态</th></tr>
-        <tr><td>定义 6.6.1（子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>例 6.6.2（偶数下标子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>例 6.6.3（奇偶子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>引理 6.6.4（自反性与传递性）</td><td>✅ 已完成</td></tr>
-        <tr><td>命题 6.6.5（收敛 ↔ 所有子序列收敛）</td><td>✅ 已完成</td></tr>
-        <tr><td>命题 6.6.6（极限点 ↔ 收敛子序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>定理 6.6.8（Bolzano–Weierstrass）</td><td>✅ 已完成</td></tr>
-        <tr><td>习题 6.6.2（互为子序列的不同序列）</td><td>✅ 已完成</td></tr>
-        <tr><td>习题 6.6.3（无界序列的子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>引理 6.7.1（指数连续性，\(x &gt; 1\)）</td><td>✅ 已完成</td></tr>
+        <tr><td>引理 6.7.1（指数连续性，\(x = 1\)）</td><td>✅ 已完成</td></tr>
+        <tr><td>引理 6.7.1（指数连续性，\(x &lt; 1\)）</td><td>✅ 已完成</td></tr>
+        <tr><td>极限与序列选取无关（<code>ratPow_lim_uniq</code>）</td><td>✅ 已完成</td></tr>
+        <tr><td>实数的有理逼近（<code>eq_lim_of_rat</code>）</td><td>✅ 已完成</td></tr>
+        <tr><td>定义 6.7.2（<code>Real.rpow</code>）</td><td>✅ 已完成</td></tr>
+        <tr><td>与 Mathlib 指数同一（<code>rpow_eq_rpow</code>）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(a) 非负性</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(b) 加法法则与幂的幂</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(c) 负指数</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(d) 底数单调性</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(e) 指数单调性</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.7.3(f) 乘法分配</td><td>✅ 已完成</td></tr>
     </table>
 </div>
 
 <div class="reflection">
-    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：Bolzano–Weierstrass 定理的深远意义</span>
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟："取极限"作为定义的方法论</span>
     <p>
-    Bolzano–Weierstrass 定理是实分析中最基本的"存在性定理"之一：它不告诉你极限<strong>是什么</strong>，
-    只告诉你极限<strong>存在</strong>。这种"非构造性"的存在性证明，正是上极限/下极限框架的力量所在——
-    上极限天然是极限点，而有界性保证了它是有限实数，于是收敛子序列自动存在。
+    第 6.7 节展示了一种极其重要的数学方法论：<strong>用极限来扩展运算的定义域</strong>。
+    我们已经有有理指数 \(x^q\)，现在要定义实指数 \(x^\alpha\)。
+    方法是：取一列有理数 \(q_n \to \alpha\)，定义 \(x^\alpha := \lim x^{q_n}\)。
     </p>
     <p>
-    命题 6.6.6 的深刻之处在于：它把"极限点"这个用 \(\varepsilon\)-\(N\) 语言定义的、
-    看似静态的概念，与"存在收敛子序列"这个动态的、构造性的概念等价起来。
-    在 Lean 形式化中，这个等价定理的 (a) ⟹ (b) 方向需要用选择公理
-    （<code>Classical.choose</code>）递归地构造子序列的下标——
-    这体现了"从存在性到构造性"的转换在形式上需要非平凡的工作。
+    这个方法之所以可行，需要两个条件：(1) <strong>存在性</strong>——极限存在（引理 6.7.1 第一部分，
+    依赖 Cauchy 完备性 6.4.18 和引理 6.5.3）；(2) <strong>唯一性</strong>——不同的逼近序列给出相同的极限
+    （引理 6.7.1 第二部分）。这两个条件正是"良定义"的全部要求。
     </p>
     <p>
-    注 6.6.9 中提到的"紧致性"将在后续章节（特别是关于连续性和度量空间的部分）发挥核心作用。
-    Bolzano–Weierstrass 定理正是实数轴上闭区间紧致性的序列刻画。
+    在 Lean 形式化中，这套方法遇到了一个有趣的张力：Mathlib 的实指数 <code>x ^ α</code> 已经存在，
+    而且不需要先经过有理指数。教材的"从有理取极限"路径在 Mathlib 中并非标准做法。
+    形式化项目采取了折中：先定义教材版本的 <code>Real.rpow</code>，再证明它等于 Mathlib 的 <code>^</code>。
+    这种"先忠实翻译，再桥接标准库"的策略，既保留了教材的教学价值，又获得了 Mathlib 的全部 API。
     </p>
 </div>
 
@@ -616,59 +569,23 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
 <hr>
 
 <!-- ========== 习题 ========== -->
-<div id="s66-exercises">
+<div id="s67-exercises">
 <h3 style="margin-top: 2em;">— 习题 —</h3>
 
-<div class="exercise" id="ex-6.6.1">
-    <span class="label">习题 6.6.1。</span>
-    证明引理 6.6.4。
+<div class="exercise" id="ex-6.7.1">
+    <span class="label">习题 6.7.1。</span>
+    证明命题 6.7.3 的其余各部分（即除 \(x^{q+r} = x^q x^r\) 之外的部分）。
     <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>subseq_self</code>、<code>subseq_trans</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.2">
-    <span class="label">习题 6.6.2。</span>
-    你能找到两个<strong>不相同</strong>的序列 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\)，
-    使得它们互为对方的子序列吗？
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>exist_subseq_of_subseq</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.3">
-    <span class="label">习题 6.6.3。</span>
-    （本题可使用良序原理，命题 8.1.4。）
-    设 \((a_n)_{n=0}^\infty\) 是无界序列。证明存在 \((a_n)_{n=0}^\infty\) 的子序列 \((b_n)_{n=0}^\infty\)，
-    使得 \(\lim_{n\to\infty} 1/b_n\) 存在且等于 0。
-    （提示：对每个自然数 \(j\)，递归地引入 \(n_j := \min\{n \in \mathbb{N} : |a_n| \geq j;\ n > n_{j-1}\}\)（当 \(j = 0\) 时省略条件 \(n > n_{j-1}\)），先解释为何集合非空。令 \(b_j := a_{n_j}\)。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>subseq_of_unbounded</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.4">
-    <span class="label">习题 6.6.4。</span>
-    证明命题 6.6.5。（注意两个方向中有一个的证明非常短。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>convergent_iff_subseq</code>。
-    </p>
-</div>
-
-<div class="exercise" id="ex-6.6.5">
-    <span class="label">习题 6.6.5。</span>
-    证明命题 6.6.6。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\) 定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，解释为何集合非空。考虑序列 \(a_{n_j}\)。）
-    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
-        对应 Lean 目标：<code>limit_point_iff_subseq</code>。
+        对应 Lean 目标：<code>ratPow_nonneg</code>、<code>ratPow_ratPow</code>、<code>ratPow_neg</code>、<code>ratPow_mono</code>、<code>ratPow_mono_of_gt_one</code>、<code>ratPow_mono_of_lt_one</code>、<code>ratPow_mul</code>。
     </p>
 </div>
 
 </div>
 
 <div class="footer">
-    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.6 节的正文，
-    以及关于子序列、Bolzano–Weierstrass 定理等概念的补充说明。</p>
-    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_6.lean</code>。</p>
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.7 节的正文，
+    以及关于实指数运算的连续性、良定义性、运算法则等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_7.lean</code>。</p>
 </div>
 
 </main>
@@ -677,15 +594,15 @@ theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
 <script>
 var SECTION_NAV = {
     chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
-    current: { num: '6.6', zh: '子序列', en: 'Subsequences' },
-    prev: { num: '6.5', file: 'section_6_5_textbook.html', zh: '一些标准极限', en: 'Some Standard Limits' },
-    next: { num: '6.7', file: 'section_6_7_textbook.html', zh: '实指数（第二部分）', en: 'Real Exponentiation, Part II' }
+    current: { num: '6.7', zh: '实指数（第二部分）', en: 'Real Exponentiation, Part II' },
+    prev: { num: '6.6', file: 'section_6_6_textbook.html', zh: '子序列', en: 'Subsequences' },
+    next: { num: '6 尾声', file: 'section_6_7_epilogue_textbook.html', zh: '与 Mathlib 极限的联系', en: 'Connections with Mathlib limits' }
 };
 (function(){ var s=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(s);})();
-(function(){ var o='section66_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
+(function(){ var o='section67_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
 (function(){ var t=false;window.addEventListener('scroll',function(){if(!t){requestAnimationFrame(function(){var h=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('progressBar').style.width=(h>0?window.scrollY/h*100:0)+'%';t=false;});t=true;}});})();
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.toc a,.sidebar-toc a').forEach(function(a){a.addEventListener('click',function(){var h=this.getAttribute('href');if(!h||h[0]!=='#')return;var e=document.getElementById(h.slice(1));if(e){e.classList.remove('highlighted');void e.offsetWidth;e.classList.add('highlighted');}});});});
-document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s66-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
+document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s67-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.code-block').forEach(function(b){var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';btn.addEventListener('click',function(){var t='';b.childNodes.forEach(function(c){if(c!==btn)t+=c.textContent;});t=t.trim();if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){s(btn);});else{var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');s(btn);}catch(e){}document.body.removeChild(ta);}});b.appendChild(btn);});function s(b){b.textContent='Copied!';b.classList.add('copied');setTimeout(function(){b.textContent='Copy';b.classList.remove('copied');},2000);}});
 document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('sidebarToc'),i=document.querySelector('.toc.inline-toc');if(!s||!i)return;s.innerHTML='<div class="toc-title">目录</div>'+i.querySelector('ol').outerHTML;});
 document.addEventListener('DOMContentLoaded',function(){var n=SECTION_NAV,el=document.getElementById('sectionNav'),bc=document.getElementById('breadcrumb');if(bc)bc.innerHTML='<em>分析学 I</em><span class="sep">›</span>第 '+n.chapter.num+' 章<span class="sep">›</span><strong>§'+n.current.num+'</strong>';if(!el)return;var h='';if(n.prev)h+='<a href="'+n.prev.file+'"><span class="nav-label">← 上一节</span><span class="nav-title">§'+n.prev.num+' '+n.prev.zh+'</span></a>';else h+='<span></span>';h+='<span class="spacer"></span>';if(n.next)h+='<a href="'+n.next.file+'"><span class="nav-label">下一节 →</span><span class="nav-title">§'+n.next.num+' '+n.next.zh+'</span></a>';else h+='<span></span>';el.innerHTML=h;});
