@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第6.5节：若干标准极限 - Terence Tao</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --tb-bg: #fefefe; --tb-text: #333; --tb-text-secondary: #2c2c2c;
+    --tb-text-muted: #666; --tb-text-faint: #888; --tb-text-fainter: #999;
+    --tb-border: #eee; --tb-surface: #f8f9fa; --tb-link: #4a6fa5;
+    --tb-h1: #1a1a1a;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.09);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.13);
+    --tb-def-bg: #f8f9fa; --tb-def-border: #4a90d9; --tb-def-label: #2c5a8a;
+    --tb-prop-bg: #f0f7f0; --tb-prop-border: #5a9a5a; --tb-prop-label: #2d5a2d;
+    --tb-lem-bg: #f5f0f7; --tb-lem-border: #8a5a9a; --tb-lem-label: #5a2d6a;
+    --tb-thm-bg: #fff5f0; --tb-thm-border: #d97a5a; --tb-thm-label: #b04f2d;
+    --tb-ex-bg: #fffaf0; --tb-ex-border: #d9a85a; --tb-ex-label: #8a6620;
+    --tb-exer-bg: #f0f4f8; --tb-exer-border: #d0d8e0; --tb-exer-label: #3a6a9a;
+    --tb-supp-bg: #f0f7ff; --tb-supp-border: #e06090; --tb-supp-title: #b04060;
+    --tb-refl-bg: #fff5f5; --tb-refl-border: #c0392b; --tb-refl-title: #c0392b;
+    --tb-proof-bg: transparent; --tb-proof-label: #666; --tb-proof-qed: #999;
+    --tb-remark-border: #ddd; --tb-remark-text: #555;
+    --tb-note-bg: #fff8e7; --tb-note-border: #e0d8c0; --tb-note-text: #665;
+    --tb-code-bg: #f5f5f5; --tb-code-text: #333; --tb-code-border: #e8e8e8;
+    --tb-table-border: #ddd; --tb-table-head-bg: #f5f5f5;
+    --tb-toc-bg: #fafafa; --tb-toc-border: #e0e0e0; --tb-toc-link: #4a6fa5;
+    --tb-toc-active-bg: #eef4fb; --tb-toc-active-border: #4a90d9;
+    --tb-ctrl-bg: #fff; --tb-ctrl-border: #ccc; --tb-ctrl-text: #666;
+    --tb-ctrl-active-bg: #4a90d9; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #555; --tb-tooltip-text: #fff; --tb-t-border: #c0c0c0;
+    --tb-progress: #4a90d9; --tb-highlight: rgba(255, 236, 153, 0.5);
+    --tb-nav-bg: #f8f9fa; --tb-nav-border: #e0e0e0; --tb-nav-hover: #eef4fb;
+    --tb-syn-keyword: #8959a8; --tb-syn-tactic: #c82829; --tb-syn-type: #4271ae;
+    --tb-syn-comment: #8e908c; --tb-syn-string: #718c00; --tb-syn-number: #f5871f;
+    --tb-syn-sorry: #e74c3c;
+    --tb-copy-bg: rgba(0,0,0,0.05); --tb-copy-text: #666; --tb-copy-hover-bg: rgba(0,0,0,0.1);
+    --tb-copy-success: #27ae60; --tb-footer-text: #888;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+  }
+}
+[data-theme="dark"] {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    font-family:'Source Serif 4','Noto Serif CJK SC','Noto Serif SC',Georgia,'Times New Roman',serif;
+    font-size:17px;line-height:1.7;color:var(--tb-text);background:var(--tb-bg);
+    max-width:880px;margin:0 auto;padding:0 24px 60px;
+    -webkit-font-smoothing:antialiased
+}
+.lang-en body { font-family:'STIX Two Text','Source Serif 4',Georgia,'Times New Roman',serif; }
+h1{font-size:2em;font-weight:600;color:var(--tb-h1);margin:1.2em 0 0.3em;font-family:'STIX Two Text',Georgia,serif}
+h2.section-title{font-size:1.4em;font-weight:500;color:var(--tb-text-secondary);margin:0.6em 0 1.2em;padding-bottom:0.4em;border-bottom:2px solid var(--tb-border);font-family:'STIX Two Text',Georgia,serif}
+.section-number{font-weight:600;color:var(--tb-text)}
+.page-ref{font-size:0.7em;color:var(--tb-text-faint);margin-left:0.8em;white-space:nowrap}
+p{margin:0.8em 0;text-align:justify}
+a{color:var(--tb-link);text-decoration:none}
+a:hover{text-decoration:underline}
+.t{transition:all .2s}
+.lang-en .t[data-en]{display:none}.lang-en .t[data-en]:lang(en){display:inline}
+.lang-en .t[data-zh]{display:none}
+hr{border:none;border-top:1px solid var(--tb-border);margin:1.8em 0}
+.book-info{font-size:0.85em;color:var(--tb-text-faint);margin-bottom:0.5em;line-height:1.5}
+.controls{position:sticky;top:0;z-index:100;display:flex;gap:6px;justify-content:flex-end;padding:6px 0;background:var(--tb-bg)}
+.controls button{background:var(--tb-ctrl-bg);border:1px solid var(--tb-ctrl-border);color:var(--tb-ctrl-text);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:13px;line-height:1.6;transition:all .15s}
+.controls button.on{background:var(--tb-ctrl-active-bg);color:var(--tb-ctrl-active-text);border-color:var(--tb-ctrl-active-bg)}
+.controls button:hover{box-shadow:var(--tb-shadow-sm)}
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--tb-progress);z-index:200;width:0;transition:width 0.1s}
+.breadcrumb{font-size:0.85em;color:var(--tb-text-faint);margin:0.5em 0;padding:0.3em 0;border-bottom:1px solid var(--tb-border)}
+.toc{background:var(--tb-toc-bg);border:1px solid var(--tb-toc-border);border-radius:6px;padding:0.8em 1.2em;margin:1.2em 0}
+.toc-title{font-weight:600;font-size:0.9em;color:var(--tb-text-muted);margin-bottom:0.5em;text-transform:uppercase;letter-spacing:0.5px}
+.toc ol{list-style:none;counter-reset:item;padding-left:0}
+.toc li{counter-increment:item;padding:0.15em 0;font-size:0.92em}
+.toc li::before{content:counter(item) ". ";color:var(--tb-text-faint);margin-right:0.4em}
+.toc li a{color:var(--tb-toc-link)}
+.sidebar-toc{display:none}
+.chapter-marker{text-align:center;font-size:1.15em;font-weight:500;color:var(--tb-text-muted);letter-spacing:1.5px;margin:2em 0 1em;opacity:0.7;font-family:'STIX Two Text',Georgia,serif}
+.definition,.proposition-box,.lemma-box,.theorem-box,.example,.exercise-box,.remark,.supplement,.reflection-box,.note-box{
+    position:relative;margin:1em 0;padding:0.8em 1em;border-radius:6px;border-left:4px solid var(--tb-border);
+    background:var(--tb-bg);box-shadow:var(--tb-shadow-sm)
+}
+.definition{border-left-color:var(--tb-def-border);background:var(--tb-def-bg)}
+.definition .label{color:var(--tb-def-label);font-weight:600}
+.proposition-box{border-left-color:var(--tb-prop-border);background:var(--tb-prop-bg)}
+.proposition-box .label{color:var(--tb-prop-label);font-weight:600}
+.lemma-box{border-left-color:var(--tb-lem-border);background:var(--tb-lem-bg)}
+.lemma-box .label{color:var(--tb-lem-label);font-weight:600}
+.theorem-box{border-left-color:var(--tb-thm-border);background:var(--tb-thm-bg)}
+.theorem-box .label{color:var(--tb-thm-label);font-weight:600}
+.example{border-left-color:var(--tb-ex-border);background:var(--tb-ex-bg)}
+.example .label{color:var(--tb-ex-label);font-weight:600}
+.exercise-box{border-left-color:var(--tb-exer-border);background:var(--tb-exer-bg)}
+.exercise-box .label{color:var(--tb-exer-label);font-weight:600}
+.supplement{border-left-color:var(--tb-supp-border);background:var(--tb-supp-bg);padding-top:0.5em}
+.supplement .sup-title{color:var(--tb-supp-title);font-weight:600;font-size:0.9em;display:flex;align-items:center;gap:6px;margin-bottom:0.5em}
+.supplement .sup-title .icon{width:16px;height:16px;fill:currentColor}
+.remark{border-left-color:var(--tb-remark-border);background:transparent;color:var(--tb-remark-text);font-size:0.95em}
+.reflection-box{border-left-color:var(--tb-refl-border);background:var(--tb-refl-bg)}
+.reflection-box .reflection-title{color:var(--tb-refl-title);font-weight:600}
+.note-box{border-left-color:var(--tb-note-border);background:var(--tb-note-bg);color:var(--tb-note-text);font-size:0.92em}
+.code-block{background:var(--tb-code-bg);border:1px solid var(--tb-code-border);border-radius:4px;padding:0.8em 1em;margin:0.6em 0;overflow-x:auto;font-size:0.88em;line-height:1.5;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;color:var(--tb-code-text);position:relative}
+.code-block .kw{color:var(--tb-syn-keyword)}.code-block .tactic{color:var(--tb-syn-tactic)}.code-block .type{color:var(--tb-syn-type)}.code-block .comment{color:var(--tb-syn-comment)}.code-block .string{color:var(--tb-syn-string)}.code-block .num{color:var(--tb-syn-number)}.code-block .sorry-highlight{background:var(--tb-syn-sorry);color:#fff;padding:0 3px;border-radius:2px}
+.copy-btn{position:absolute;top:4px;right:4px;background:var(--tb-copy-bg);border:none;border-radius:3px;cursor:pointer;padding:2px 6px;font-size:11px;color:var(--tb-copy-text);transition:all .15s;line-height:1.5}
+.copy-btn:hover{background:var(--tb-copy-hover-bg)}
+.copy-btn.copied{background:var(--tb-copy-success);color:#fff}
+details.proof-collapsible{margin:0.5em 0 0.8em;border-left:2px solid var(--tb-border);padding-left:1em}
+details.proof-collapsible summary{cursor:pointer;color:var(--tb-proof-label);font-size:0.92em;font-style:italic;user-select:none;outline:none}
+details.proof-collapsible summary:hover{color:var(--tb-link)}
+details.proof-collapsible[open] summary{margin-bottom:0.5em}
+details.proof-collapsible .proof-body{font-size:0.95em;color:var(--tb-text-secondary)}
+details.proof-collapsible .qed{text-align:right;font-size:1.3em;color:var(--tb-proof-qed);margin-top:0.3em}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:0.92em}
+th,td{border:1px solid var(--tb-table-border);padding:0.4em 0.7em;text-align:left}
+th{background:var(--tb-table-head-bg);font-weight:600}
+@media (max-width:600px){body{padding:0 12px 40px;font-size:15px}.toc{padding:0.6em}}
+    </style>
+    <script>MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] } };</script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>(function(){ var t = localStorage.getItem('tb_theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); })();</script>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<aside class="sidebar-toc" id="sidebarToc"></aside>
+<nav class="breadcrumb" id="breadcrumb"></nav>
+<main class="content">
+<div class="controls">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+    <button id="themeBtn" onclick="toggleTheme()" title="切换深色/浅色模式">🌙</button>
+</div>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+</div>
+
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第6.5节</span>
+    <span class="t" data-zh="若干标准极限" data-en="Some Standard Limits"></span>
+    <span class="page-ref">第126–129页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc inline-toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s65-intro"><span class="t" data-zh="引言" data-en="Introduction"></span></a></li>
+        <li><a href="#s65-cor651"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.5.1：幂衰减序列的极限</a></li>
+        <li><a href="#s65-lem652"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.2：等比序列的极限</a></li>
+        <li><a href="#s65-lem653"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.3：根式序列的极限</a></li>
+        <li><a href="#s65-exercises">习题</a></li>
+        <li><a href="#s65-supp">补充说明：Lean 中的实现</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div id="s65-intro">
+<div class="chapter-marker">— 引言 —</div>
+</div>
+
+<p>
+在前几节中，我们建立了序列极限的一般理论，包括上极限、下极限和 Cauchy 判别法。现在，我们利用这些工具来计算一些重要的标准极限。
+这些极限在后续的分析学中频繁出现，掌握它们对于进一步学习微积分和实分析至关重要。
+</p>
+
+<p>
+具体来说，我们将证明以下结果：
+</p>
+
+<ul style="margin:0.8em 0 0.8em 1.8em">
+    <li><strong>幂衰减序列</strong>：$\displaystyle \lim_{n\to\infty} \frac{1}{(n+1)^{1/(k+1)}} = 0$（推论 6.5.1）</li>
+    <li><strong>等比序列</strong>：当 $|x|&lt;1$ 时 $\displaystyle \lim_{n\to\infty} x^n = 0$；当 $x=1$ 时 $\displaystyle \lim_{n\to\infty} x^n = 1$；
+        当 $x=-1$ 或 $|x|&gt;1$ 时序列发散（引理 6.5.2）</li>
+    <li><strong>根式序列</strong>：对任意 $x&gt;0$，$\displaystyle \lim_{n\to\infty} x^{1/(n+1)} = 1$（引理 6.5.3）</li>
+    <li><strong>有理幂序列</strong>：对任意 $q\in\mathbb{Q}^+$，$\displaystyle \frac{1}{(n+1)^q} \to 0$ 且 $(n+1)^q \to \infty$（习题 6.5.1）</li>
+</ul>
+
+<hr>
+
+<!-- ========== 推论 6.5.1 ========== -->
+<div id="s65-cor651">
+<h3 style="margin:1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.5.1：幂衰减序列的极限</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.5.1（幂衰减序列的极限）。</span>
+    设 $k \geq 0$ 是自然数。则序列
+    \[
+    a_n = \frac{1}{(n+1)^{1/(k+1)}}
+    \]
+    收敛到 $0$。
+</div>
+
+<p>
+<strong>证明思路。</strong> 注意到序列单调递减且有下界 $0$，因此收敛。
+设极限为 $L$。考虑 $a_n^{k+1}$ 子序列，利用极限的代数运算可得 $L^{k+1}=0$，从而 $L=0$。
+</p>
+
+<details class="proof-collapsible" open>
+    <summary><span class="t" data-zh="证明" data-en="Proof"></span>.</summary>
+    <div class="proof-body">
+        <p>令 $a_n = 1/(n+1)^{1/(k+1)}$。显然 $a_n > 0$，且 $a_n$ 随 $n$ 递减，故由单调有界定理可知 $\{a_n\}$ 收敛。设 $L = \lim_{n\to\infty} a_n$。</p>
+        <p>考虑 $a_n^{k+1} = 1/(n+1)$。由极限的代数运算可得 $L^{k+1} = \lim_{n\to\infty} a_n^{k+1} = \lim_{n\to\infty} 1/(n+1) = 0$，因此 $L = 0$。∎</p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的实现</span>
+    <div class="code-block">
+<span class="comment">/-- Corollary 6.5.1 -/</span>
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_power_decay</span> {k:<span class="type">ℕ</span>} :
+    ((fun (n:<span class="type">ℕ</span>) ↦ 1 / ((n:<span class="type">ℝ</span>)+1)^(1/(k+1:<span class="type">ℝ</span>))):<span class="type">Sequence</span>).<span class="type">TendsTo</span> 0 := <span class="kw">by</span>
+  <span class="comment">-- This proof is written to follow the structure of the original text.</span>
+  set a := ((fun (n:<span class="type">ℕ</span>) ↦ 1 / ((n:<span class="type">ℝ</span>)+1)^(1/(k+1:<span class="type">ℝ</span>))):<span class="type">Sequence</span>)
+  have ha : a.<span class="type">BddBelow</span> := <span class="kw">by</span> use 0; intro n _; simp [a]; positivity
+  have ha' : a.<span class="type">IsAntitone</span> := <span class="kw">by</span>
+    intro n hn; observe hn' : 0 ≤ n+1; simp [a, hn, hn']
+    rw [inv_le_inv₀, <span class="type">Real.rpow_le_rpow_iff</span>] &lt;;&gt; try positivity
+    simp
+  apply convergent_of_antitone ha at ha'
+  have hpow (n:<span class="type">ℕ</span>): (a^(n+1)).<span class="type">Convergent</span> ∧ lim (a^(n+1)) = (lim a)^(n+1) := <span class="kw">by</span>
+    induction' n with n ih
+    . simp [ha', -dite_pow]
+    rw [pow_succ]; convert lim_mul ih.1 ha' <span class="kw">using</span> 1; rw [ih.2]; grind
+  have hlim : (lim a)^(k+1) = 0 := <span class="kw">by</span>
+    rw [← (hpow k).2]; convert lim_harmonic.2; ext; rfl
+    simp <span class="kw">only</span> [<span class="type">HPow.hPow</span>, <span class="type">Pow.pow</span>, a]; split_ifs <span class="kw">with</span> h
+    . simp
+      rw [← <span class="type">Real.rpow_natCast</span>, ← <span class="type">Real.rpow_mul</span> (<span class="kw">by</span> positivity)]
+      convert <span class="type">Real.rpow_one</span> _; field_simp; push_cast; ring
+    . simp
+  simp [lim_eq, ha', eq_zero_of_pow_eq_zero hlim]
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 引理 6.5.2 ========== -->
+<div id="s65-lem652">
+<h3 style="margin:1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.2：等比序列的极限</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.2（等比序列的极限）。</span>
+    设 $x \in \mathbb{R}$。则
+    <ol style="margin:0.5em 0 0 1.8em">
+        <li>若 $|x| &lt; 1$，则 $\displaystyle \lim_{n\to\infty} x^n = 0$；</li>
+        <li>若 $x = 1$，则 $\displaystyle \lim_{n\to\infty} x^n = 1$；</li>
+        <li>若 $x = -1$ 或 $|x| &gt; 1$，则序列 $\{x^n\}$ 发散。</li>
+    </ol>
+</div>
+
+<p>
+<strong>证明思路。</strong>
+</p>
+<ol style="margin:0.8em 0 0.8em 1.8em">
+    <li>当 $|x| &lt; 1$ 时，令 $y = |x|$，则 $0 &lt; y &lt; 1$。由 Bernoulli 不等式或直接计算可得 $1/y &gt; 1$，从而 $(1/y)^n \to \infty$，即 $y^n \to 0$。</li>
+    <li>$x = 1$ 时，$1^n = 1$ 为常数列，显然收敛到 $1$。</li>
+    <li>$x = -1$ 时，$(-1)^n$ 在 $1$ 和 $-1$ 之间振荡，故发散。$|x| &gt; 1$ 时，$|x|^n \to \infty$，故发散。</li>
+</ol>
+
+<details class="proof-collapsible" open>
+    <summary><span class="t" data-zh="证明" data-en="Proof"></span>（要点）.</summary>
+    <div class="proof-body">
+        <p><strong>情形 1（$|x| &lt; 1$）。</strong> 令 $y = |x|$，则 $0 \le y &lt; 1$。取 $c = 1/y &gt; 1$。由推论 5.4.c（或引理 6.5.2 的标准形式），
+        $\lim_{n\to\infty} c^n = \infty$，等价于 $\lim_{n\to\infty} y^n = 0$。再由 $\big||x|^n - 0\big| = |x|^n$ 及极限定义即得结论。</p>
+        <p><strong>情形 2（$x = 1$）。</strong> 常数列 $1,1,1,\ldots$ 显然收敛到 $1$。</p>
+        <p><strong>情形 3（$x = -1$ 或 $|x| &gt; 1$）。</strong> 若 $x = -1$，则 $x^n = (-1)^n$ 在 $1$ 和 $-1$ 之间振荡，不满足 Cauchy 条件。若 $|x| &gt; 1$，则 $|x|^n$ 无界，故发散。</p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的实现</span>
+    <div class="code-block">
+<span class="comment">/-- Lemma 6.5.2 / Exercise 6.5.2 -/</span>
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_geometric</span> {x : <span class="type">ℝ</span>} (hx : |x| &lt; 1) :
+    ((fun (n : <span class="type">ℕ</span>) ↦ x ^ n) : <span class="type">Sequence</span>).<span class="type">TendsTo</span> 0 := <span class="kw">by</span>
+  <span class="comment">-- See exercise 6.5.2</span>
+  sorry
+
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_geometric'</span> {x : <span class="type">ℝ</span>} (hx : x = 1) :
+    ((fun (n : <span class="type">ℕ</span>) ↦ x ^ n) : <span class="type">Sequence</span>).<span class="type">TendsTo</span> 1 := <span class="kw">by</span>
+  subst x; simp
+
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_geometric''</span> {x : <span class="type">ℝ</span>} (hx : x = -1 ∨ |x| &gt; 1) :
+    ((fun (n : <span class="type">ℕ</span>) ↦ x ^ n) : <span class="type">Sequence</span>).<span class="type">Divergent</span> := <span class="kw">by</span>
+  <span class="comment">-- See exercise 6.5.2</span>
+  sorry
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 引理 6.5.3 ========== -->
+<div id="s65-lem653">
+<h3 style="margin:1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.3：根式序列的极限</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.5.3（根式序列的极限）。</span>
+    设 $x &gt; 0$。则
+    \[
+    \lim_{n\to\infty} x^{1/(n+1)} = 1.
+    \]
+</div>
+
+<p>
+<strong>证明思路。</strong> 将 $x$ 分为 $x \ge 1$ 和 $0 &lt; x &lt; 1$ 两种情况。当 $x \ge 1$ 时，$1 \le x^{1/(n+1)} \le x$，利用 Bernoulli 不等式即可得到 $x^{1/(n+1)} \to 1$。当 $0 &lt; x &lt; 1$ 时，考虑 $1/x &gt; 1$，利用前一情形。
+</p>
+
+<details class="proof-collapsible" open>
+    <summary><span class="t" data-zh="证明" data-en="Proof"></span>（要点）.</summary>
+    <div class="proof-body">
+        <p><strong>情形 1（$x \ge 1$）。</strong> 易见 $1 \le x^{1/(n+1)} \le x$。对任意 $\varepsilon &gt; 0$，存在 $N$ 使得 $(1+\varepsilon)^{n+1} &gt; x$（由 $1+\varepsilon &gt; 1$ 及指数增长），
+        从而 $x^{1/(n+1)} &lt; 1+\varepsilon$。因此对充分大的 $n$ 有 $|x^{1/(n+1)} - 1| \le \varepsilon$。</p>
+        <p><strong>情形 2（$0 &lt; x &lt; 1$）。</strong> 令 $y = 1/x &gt; 1$。由情形 1 知 $y^{1/(n+1)} \to 1$，故 $x^{1/(n+1)} = 1/(y^{1/(n+1)}) \to 1$。</p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的实现</span>
+    <div class="code-block">
+<span class="comment">/-- Lemma 6.5.3 / Exercise 6.5.3 -/</span>
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_roots</span> {x : <span class="type">ℝ</span>} (hx : x &gt; 0) :
+    ((fun (n : <span class="type">ℕ</span>) ↦ x ^ (1 / (n + 1 : <span class="type">ℝ</span>))) : <span class="type">Sequence</span>).<span class="type">TendsTo</span> 1 := <span class="kw">by</span>
+  <span class="comment">-- See exercise 6.5.3</span>
+  sorry
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 补充实现细节 ========== -->
+<div id="s65-supp">
+<h3 style="margin:1.5em 0 0.8em 0;"><span class="t" data-zh="补充说明" data-en="Supplementary Notes"></span></h3>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：序列的幂运算</span>
+    <p>在 Lean 的形式化中，我们为序列定义了幂运算 $\mathtt{a^k}$，其求值规则为 $(\mathtt{a^k})(n) = a(n)^k$（对 $n \ge a.m$）。</p>
+    <div class="code-block">
+<span class="kw">instance</span> <span class="type">Sequence.inst_pow</span> : <span class="type">Pow</span> <span class="type">Sequence</span> <span class="type">ℕ</span> <span class="kw">where</span>
+  pow a k := {
+    m := a.m
+    seq n := <span class="kw">if</span> n ≥ a.m <span class="kw">then</span> a n ^ k <span class="kw">else</span> 0
+    vanish := <span class="kw">by</span> grind
+  }
+
+@[simp]
+<span class="kw">lemma</span> <span class="type">Sequence.pow_eval</span> {a : <span class="type">Sequence</span>} {k : <span class="type">ℕ</span>} {n : <span class="type">ℤ</span>} (hn : n ≥ a.m) :
+    (a ^ k) n = a n ^ k := <span class="kw">by</span>
+  rw [<span class="type">HPow.hPow</span>, <span class="type">instHPow</span>, <span class="type">Pow.pow</span>, <span class="type">inst_pow</span>]
+  grind
+
+@[simp]
+<span class="kw">lemma</span> <span class="type">Sequence.pow_one</span> (a : <span class="type">Sequence</span>) : a ^ 1 = a := <span class="kw">by</span>
+  ext n; rfl; simp <span class="kw">only</span> [<span class="type">HPow.hPow</span>, <span class="type">Pow.pow</span>]
+  split_ifs <span class="kw">with</span> h; simp; simp [a.vanish n (<span class="kw">by</span> grind)]
+
+<span class="kw">lemma</span> <span class="type">Sequence.pow_succ</span> (a : <span class="type">Sequence</span>) (k : <span class="type">ℕ</span>) : a ^ (k+1) = a ^ k * a := <span class="kw">by</span>
+  ext x
+  . symm; exact <span class="type">Int.min_self</span> a.m
+  . simp <span class="kw">only</span> [mul_eval]
+    by_cases h : x ≥ a.m
+    . simp [pow_eval h]
+      rfl
+    . rw [a.vanish x (<span class="kw">by</span> grind), mul_zero]
+      exact vanish _ _ (<span class="kw">by</span> simp at h; exact h)
+    </div>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：常数列极限</span>
+    <p>常数列的极限就是它本身，这个看似平凡的性质是许多极限计算的起点。</p>
+    <div class="code-block">
+<span class="kw">theorem</span> <span class="type">Sequence.lim_of_const</span> (c : <span class="type">ℝ</span>) :
+    ((fun (_ : <span class="type">ℕ</span>) ↦ c) : <span class="type">Sequence</span>).<span class="type">TendsTo</span> c := <span class="kw">by</span>
+  <span class="comment">-- Exercise for the reader</span>
+  sorry
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s65-exercises">
+<h3 style="margin:1.5em 0 0.8em 0;"><span class="t" data-zh="习题" data-en="Exercises"></span></h3>
+</div>
+
+<div class="exercise-box">
+    <span class="label"><span class="t" data-zh="习题" data-en="Exercise"></span> 6.5.1（有理幂序列的极限）。</span>
+    设 $q \in \mathbb{Q} \cap (0,\infty)$。证明：
+    <ol style="margin:0.5em 0 0 1.8em">
+        <li>$\displaystyle \lim_{n\to\infty} \frac{1}{(n+1)^q} = 0$；</li>
+        <li>$\displaystyle \left\{\frac{1}{(n+1)^q}\right\}$ 是发散的（即趋向无穷）。</li>
+    </ol>
+</div>
+
+<div class="exercise-box">
+    <span class="label"><span class="t" data-zh="习题" data-en="Exercise"></span> 6.5.2（等比序列的极限）。</span>
+    完成引理 6.5.2 中三个极限的严格证明。
+</div>
+
+<div class="exercise-box">
+    <span class="label"><span class="t" data-zh="习题" data-en="Exercise"></span> 6.5.3（根式序列的极限）。</span>
+    完成引理 6.5.3 的严格证明。
+</div>
+
+<p>&nbsp;</p>
+<hr>
+<p style="text-align:center;color:var(--tb-footer-text);font-size:0.85em">
+    本页由 Lean 形式化项目自动生成 · <a href="https://github.com/your-org/analysis">GitHub</a>
+</p>
+
+</main>
+
+<script>
+(function(){ var t=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(t);})();
+(function(){ var o='section65_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
+(function(){ var t=false;window.addEventListener('scroll',function(){if(!t){requestAnimationFrame(function(){var h=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('progressBar').style.width=(h>0?window.scrollY/h*100:0)+'%';t=false;});t=true;}});})();
+document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('sidebarToc'),i=document.querySelector('.toc.inline-toc');if(!s||!i)return;s.innerHTML='<div class="toc-title">目录</div>'+i.querySelector('ol').outerHTML;});
+</script>
+
+</body>
+</html>
