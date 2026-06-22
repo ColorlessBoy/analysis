@@ -118,7 +118,7 @@ theorem SetTheory.Set.specify_exists (h: axiom_of_universal_specification) (A:Se
   Russell's paradox, or the replace operation.
 -/
 theorem SetTheory.Set.replace_exists (h: axiom_of_universal_specification) (A:Set)
-  (P: A → Object → Prop) (hP: ∀ x y y', P x y ∧ P x y' → y = y') :
+  (P: A → Object → Prop) (_hP: ∀ x y y', P x y ∧ P x y' → y = y') :
     ∃ (Z:Set), ∀ y, y ∈ Z ↔ ∃ a : A, P a y := by
   let P' := fun (z: Object) => ∃ a : A, P a z
   obtain ⟨Z, hZ⟩ := h P'
