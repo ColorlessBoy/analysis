@@ -144,38 +144,120 @@ theorem exist_tendsTo_sup_of_closed {E: Set ℝ} (hnon: E.Nonempty) (hbound: Bdd
 /-- Proposition 8.4.7 / Exercise 8.4.1 -/
 theorem exists_function {X Y : Type} {P : X → Y → Prop} (h: ∀ x, ∃ y, P x y) :
   ∃ f : X → Y, ∀ x, P x (f x) := by
-  sorry
+  refine ⟨fun x => (h x).choose, fun x => (h x).choose_spec⟩
 
 /-- Exercise 8.4.1.  The spirit of the question here is to establish this result directly
 from {name}`exists_function`, avoiding previous results that relied more explicitly
 on the axiom of choice. -/
 theorem axiom_of_choice_from_exists_function {I: Type} {X: I → Type} (h : ∀ i, Nonempty (X i)) :
   Nonempty (∀ i, X i) := by
-  sorry
+  set Y := Σ i : I, X i with hY
+  have h' : ∀ i, ∃ y : Y, y.1 = i := by
+    intro i
+    refine ⟨⟨i, (h i).some⟩, rfl⟩
+  rcases exists_function h' with ⟨f, hf⟩
+  refine ⟨fun i => ?_⟩
+  have hi : (f i).1 = i := hf i
+  have hx := (f i).2
+  rw [hi] at hx
+  exact hx
 
 /-- Exercise 8.4.2 -/
 theorem exists_set_singleton_intersect {I U:Type} {X: I → Set U} (h: Set.PairwiseDisjoint .univ X)
   (hnon: ∀ α, Nonempty (X α)) :
   ∃ Y : Set U, ∀ α, Nat.card (Y ∩ X α : Set U) = 1 := by
-  sorry
+  set f : I → U := fun α => (hnon α).some.val with hf
+  have hf_mem (α : I) : f α ∈ X α := (hnon α).some.property
+  set Y : Set U := Set.range f with hY
+  refine ⟨Y, fun α => ?_⟩
+  have h_eq : Y ∩ X α = {f α} := by
+    ext x; constructor
+    · intro hx
+      rcases hx with ⟨⟨β, hx'⟩, hxX⟩
+      subst hx'
+      have h_fβ_Xβ : f β ∈ X β := hf_mem β
+      by_cases h_eq : β = α
+      · subst h_eq; rfl
+      · have h_disjoint : Disjoint (X β) (X α) := h (by simp) (by simp) h_eq
+        rw [Set.disjoint_iff_inter_eq_empty] at h_disjoint
+        have h_contra : f β ∈ X β ∩ X α := ⟨h_fβ_Xβ, hxX⟩
+        rw [h_disjoint] at h_contra
+        exact h_contra.elim
+    · intro hx
+      have hx_eq : x = f α := by simpa using hx
+      subst hx_eq
+      exact ⟨⟨α, rfl⟩, hf_mem α⟩
+  simp [h_eq]
 
 /-- Exercise 8.4.2.  The spirit of the question here is to establish this result directly
 from {name}`exists_set_singleton_intersect`, avoiding previous results that relied more explicitly
 on the axiom of choice. -/
 theorem axiom_of_choice_from_exists_set_singleton_intersect {I: Type} {X: I → Type} (h : ∀ i, Nonempty (X i)) :
   Nonempty (∀ i, X i) := by
-  sorry
+  set U := Σ i : I, X i with hU
+  set X' : I → Set U := fun i => {y | y.1 = i} with hX'
+  have h_disjoint : Set.PairwiseDisjoint (.univ : Set I) X' := by
+    intro i hi j hj hne
+    have h_disjoint' : Disjoint (X' i) (X' j) := by
+      rw [Set.disjoint_iff_inter_eq_empty]
+      ext y
+      constructor
+      · intro hy
+        rcases hy with ⟨hyi, hyj⟩
+        have hi_eq : y.1 = i := hyi
+        have hj_eq : y.1 = j := hyj
+        have h_eq : i = j := hi_eq.symm.trans hj_eq
+        exact absurd h_eq hne
+      · intro hy
+        exact hy.elim
+    exact h_disjoint'
+  have h_nonempty' : ∀ i, Nonempty (X' i) := by
+    intro i
+    have hx : Nonempty (X i) := h i
+    refine ⟨⟨⟨i, hx.some⟩, ?_⟩⟩
+    rfl
+  rcases exists_set_singleton_intersect h_disjoint h_nonempty' with ⟨Y, hY⟩
+  have h_choice (i : I) : X i := by
+    have hpos : 0 < Nat.card (Y ∩ X' i : Set U) := by
+      have := hY i
+      omega
+    have h_nonempty_subtype : Nonempty (Subtype (Y ∩ X' i : Set U)) :=
+      ((Nat.card_pos_iff (α := Subtype (Y ∩ X' i : Set U))).mp hpos).1
+    let u_sub : Subtype (Y ∩ X' i : Set U) := Classical.choice h_nonempty_subtype
+    have hu_val : u_sub.val ∈ (Y ∩ X' i : Set U) := u_sub.property
+    rcases hu_val with ⟨huY, huX'⟩
+    have hi_eq : u_sub.val.1 = i := huX'
+    have hx := u_sub.val.2
+    rw [hi_eq] at hx
+    exact hx
+  exact ⟨h_choice⟩
 
 /-- Exercise 8.4.3 -/
 theorem Function.Injective.inv_surjective {A B:Type} {g: B → A} (hg: Function.Surjective g) :
   ∃ f : A → B, Function.Injective f ∧ Function.RightInverse f g := by
-  sorry
+  have h' : ∀ a, ∃ b, g b = a := hg
+  choose f hf using h'
+  refine ⟨f, ?_, hf⟩
+  intro x y h
+  calc
+    x = g (f x) := (hf x).symm
+    _ = g (f y) := by rw [h]
+    _ = y := hf y
 
 /-- Exercise 8.4.3.  The spirit of the question here is to establish this result directly
 from {name}`Function.Injective.inv_surjective`, avoiding previous results that relied more explicitly
 on the axiom of choice. -/
 theorem axiom_of_choice_from_function_injective_inv_surjective {I: Type} {X: I → Type} (h : ∀ i, Nonempty (X i)) :
   Nonempty (∀ i, X i) := by
-  sorry
+  set B := Σ i : I, X i with hB
+  have h_surj : Function.Surjective (fun (b : B) => b.1) := by
+    intro i
+    refine ⟨⟨i, (h i).some⟩, rfl⟩
+  rcases Function.Injective.inv_surjective h_surj with ⟨f, hf_inj, hf_right⟩
+  refine ⟨fun i => ?_⟩
+  have hi : (f i).1 = i := hf_right i
+  have hx := (f i).2
+  rw [hi] at hx
+  exact hx
 
 end Chapter8
