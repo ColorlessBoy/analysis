@@ -293,89 +293,150 @@ theorem Schroder_Bernstein_lemma {X: Type} {A B C: Set X} (hAB: A ⊆ B) (hBC: B
   -- Characterize membership in D 0
   have hD0 {x : A} : x ∈ D 0 ↔ ∃ (y : B), y.val ∉ A ∧ f ⟨y.val, hBC y.property⟩ = x := by
     dsimp [D]
-    simp [Set.mem_image, Set.mem_setOf_eq]
+    simp only [Set.mem_image, Set.mem_setOf_eq]
+    constructor
+    · rintro ⟨a, ⟨b, hb, h_eq⟩, ha⟩
+      rw [← h_eq] at ha
+      exact ⟨b, hb, ha⟩
+    · rintro ⟨y, hy, h⟩
+      refine ⟨(B.embeddingOfSubset C hBC) y, ⟨y, hy, rfl⟩, ?_⟩
+      simpa
   have hD_succ {n : ℕ} {x : A} : x ∈ D (n+1) ↔ ∃ (z : A), z ∈ D n ∧ f ⟨z.val, hBC (hAB z.property)⟩ = x := by
     dsimp [D]
-    simp [Set.mem_image, Set.mem_setOf_eq]
+    simp [Set.mem_image]
+    constructor
+    · intro h
+      rcases h with ⟨a, ha, h⟩
+      rcases h with ⟨h_ex, h_fa⟩
+      rcases h_ex with ⟨a₁, hb, h_inner⟩
+      rcases h_inner with ⟨h_inner', hb_eq⟩
+      rcases h_inner' with ⟨z, hz, h_inner''⟩
+      rcases h_inner'' with ⟨hz_D, hz_eq⟩
+      refine ⟨z, hz, hz_D, ?_⟩
+      calc
+        f ⟨z, hBC (hAB hz)⟩
+            = f ((B.embeddingOfSubset C hBC) ((A.embeddingOfSubset B hAB) ⟨z, hz⟩)) := rfl
+        _ = f ((B.embeddingOfSubset C hBC) ⟨a₁, hb⟩) := by rw [hz_eq]
+        _ = f ⟨a, ha⟩ := by rw [hb_eq]
+        _ = x := h_fa
+    · intro h
+      rcases h with ⟨z, hz, ⟨hz_D, h_fz⟩⟩
+      refine ⟨z, hBC (hAB hz), ⟨?_, h_fz⟩⟩
+      refine ⟨z, hAB hz, ⟨?_, rfl⟩⟩
+      refine ⟨z, hz, hz_D, rfl⟩
 
   -- All D n are subsets of A
   have hD_sub_A (n : ℕ) (x : A) (hx : x ∈ D n) : True := trivial
 
   -- D n are pairwise disjoint
-  have h_disjoint : Set.univ.PairwiseDisjoint D := by
-    intro i j hi hj hne
-    rw [Set.disjoint_iff_inter_eq_empty (s := D i) (t := D j)]
+  have h_disjoint' : ∀ n m, n < m → Disjoint (D n) (D m) := by
+    intro n
+    induction' n using Nat.strong_induction_on with n ih
+    intro m hlt
+    rw [Set.disjoint_iff_inter_eq_empty]
     ext x; constructor
     · intro hx
       exfalso
-      rcases hx with ⟨hxi, hxj⟩
-      wlog hlt : i < j generalizing i j
-      · apply this j i hj hi hne.symm hxj hxi; omega
-      induction' j with k ih generalizing i
-      · omega
-      · by_cases hik : i < k
-        · exact ih hik hxi hxj
-        · have heq : i = k := by omega
-          subst heq
-          -- Now we have x ∈ D i and x ∈ D (i+1) and need a contradiction
-          rcases hD_succ.mp hxj with ⟨z, hz, hz'⟩
-          rcases hD0.mp hxi with ⟨y, hy, hy'⟩
-          have hyz : y.val = z.val := by
-            apply f.injective
+      rcases hx with ⟨hxn, hxm⟩
+      by_cases hn0 : n = 0
+      · subst hn0
+        rcases hD0.mp hxn with ⟨y, hy, hy'⟩
+        have hm_succ : ∃ k, m = k+1 :=
+          Nat.exists_eq_succ_of_ne_zero (by omega : m ≠ 0)
+        rcases hm_succ with ⟨k, hm⟩
+        subst hm
+        rcases hD_succ.mp hxm with ⟨z, hz, hz'⟩
+        have hyz : y.val = z.val :=
+          congrArg (fun (x : C) => x.val) (f.injective (by
             calc
               f ⟨y.val, hBC y.property⟩ = x := hy'
-              _ = f ⟨z.val, hBC (hAB z.property)⟩ := hz'.symm
-          have hzA : z.val ∈ A := z.property
-          have hy_notA : y.val ∉ A := hy
-          rw [hyz] at hy_notA
-          exact hy_notA hzA
-    · intro hx; exact (Set.not_mem_empty x hx).elim
+              _ = f ⟨z.val, hBC (hAB z.property)⟩ := hz'.symm))
+        have hzA : z.val ∈ A := z.property
+        have hy_notA : y.val ∉ A := hy
+        rw [hyz] at hy_notA
+        exact hy_notA hzA
+      · have hn_succ : ∃ p, n = p+1 := Nat.exists_eq_succ_of_ne_zero hn0
+        rcases hn_succ with ⟨p, hn⟩
+        subst hn
+        rcases hD_succ.mp hxn with ⟨z, hz, hz'⟩
+        have hm_succ : ∃ q, m = q+1 :=
+          Nat.exists_eq_succ_of_ne_zero (by omega : m ≠ 0)
+        rcases hm_succ with ⟨q, hm⟩
+        subst hm
+        rcases hD_succ.mp hxm with ⟨w, hw, hw'⟩
+        have hzw : z.val = w.val :=
+          congrArg (fun (x : C) => x.val) (f.injective (by
+            calc
+              f ⟨z.val, hBC (hAB z.property)⟩ = x := hz'
+              _ = f ⟨w.val, hBC (hAB w.property)⟩ := hw'.symm))
+        have hzw_eq : z = w := Subtype.ext hzw
+        subst hzw_eq
+        have hp_lt_q : p < q := by omega
+        have h_disjoint_pq := ih p (by omega) q hp_lt_q
+        rw [Set.disjoint_iff_inter_eq_empty] at h_disjoint_pq
+        have hz_mem_inter : z ∈ (D p) ∩ (D q) := ⟨hz, hw⟩
+        rw [h_disjoint_pq] at hz_mem_inter
+        simp at hz_mem_inter
+    · intro hx; simp at hx
+
+  have h_disjoint : Set.univ.PairwiseDisjoint D := by
+    intro i hi j hj hne
+    rw [Function.onFun_apply]
+    by_cases h : i < j
+    · exact h_disjoint' i j h
+    · have h' : j < i := by omega
+      exact (h_disjoint' j i h').symm
 
   -- Forward lemma: if x ∈ D n, then ∃ y ∈ B, f(embed(y)) = x
   have h_fwd (n : ℕ) {x : A} (hx : x ∈ D n) : ∃ y : B, f ⟨y.val, hBC y.property⟩ = x := by
     induction' n with k ih generalizing x
     · rcases hD0.mp hx with ⟨y, hy, hy'⟩; exact ⟨y, hy'⟩
     · rcases hD_succ.mp hx with ⟨z, hz, hz'⟩
-      rcases ih hz with ⟨y, hy⟩
-      refine ⟨y, ?_⟩
-      calc
-        f ⟨y.val, hBC y.property⟩ = z := hy
-        _ = x := hz'.symm
+      refine ⟨⟨z.val, hAB z.property⟩, ?_⟩
+      simpa using hz'
 
   -- Key lemma for injectivity: if a₁ ∈ D k and f(embed(a₂)) = a₁ with a₂ ∈ A, then a₂ ∈ ⋃ D n
   have h_key {a₁ a₂ : A} (k : ℕ) (h₁ : a₁ ∈ D k) (h_eq : f ⟨a₂.val, hBC (hAB a₂.property)⟩ = a₁) :
     a₂ ∈ ⋃ n, D n := by
     induction' k with k ih generalizing a₁ a₂
     · rcases hD0.mp h₁ with ⟨y, hy, hy'⟩
-      have hyz : y = a₂ := by
-        apply f.injective
-        calc
-          f ⟨y.val, hBC y.property⟩ = a₁ := hy'
-          _ = f ⟨a₂.val, hBC (hAB a₂.property)⟩ := h_eq.symm
+      have h_c_eq : (⟨y.val, hBC y.property⟩ : C) = (⟨a₂.val, hBC (hAB a₂.property)⟩ : C) :=
+        f.injective (by
+          calc
+            f ⟨y.val, hBC y.property⟩ = a₁ := hy'
+            _ = f ⟨a₂.val, hBC (hAB a₂.property)⟩ := h_eq.symm)
       have hy_notA : y.val ∉ A := hy
       have ha₂A : a₂.val ∈ A := a₂.property
-      rw [hyz] at hy_notA
+      have h_eq_val : y.val = a₂.val := congrArg Subtype.val h_c_eq
+      rw [h_eq_val] at hy_notA
       exact (hy_notA ha₂A).elim
     · rcases hD_succ.mp h₁ with ⟨z, hz, hz'⟩
-      have hzy : z = a₂ := by
-        apply f.injective
-        calc
-          f ⟨z.val, hBC (hAB z.property)⟩ = a₁ := hz'
-          _ = f ⟨a₂.val, hBC (hAB a₂.property)⟩ := h_eq.symm
-      subst hzy
+      have h_c_eq : (⟨z.val, hBC (hAB z.property)⟩ : C) = (⟨a₂.val, hBC (hAB a₂.property)⟩ : C) :=
+        f.injective (by
+          calc
+            f ⟨z.val, hBC (hAB z.property)⟩ = a₁ := hz'
+            _ = f ⟨a₂.val, hBC (hAB a₂.property)⟩ := h_eq.symm)
+      have hz_eq_a₂ : z = a₂ := Subtype.ext (show z.val = a₂.val from congrArg (fun (x : C) => x.val) h_c_eq)
+      subst hz_eq_a₂
       exact Set.mem_iUnion.mpr ⟨k, hz⟩
+
+  -- Lemmas for rewriting dite with known condition
+  have dite_pos' {P : Prop} [Decidable P] {α : Type} {a : P → α} {b : ¬ P → α} (h : P) : dite P a b = a h := by
+    simp [h]
+  have dite_neg' {P : Prop} [Decidable P] {α : Type} {a : P → α} {b : ¬ P → α} (h : ¬ P) : dite P a b = b h := by
+    simp [h]
 
   -- Injectivity of g
   have h_inj : Function.Injective g := by
     intro a₁ a₂ h_eq
     by_cases h₁ : a₁ ∈ ⋃ n, D n
-    · rcases h₁ with ⟨k, hk⟩
+    · rcases (Set.mem_iUnion.mp h₁) with ⟨k, hk⟩
       have hy₁ : ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₁ := h_fwd k hk
       have h_and₁ : a₁ ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₁ := ⟨Set.mem_iUnion.mpr ⟨k, hk⟩, hy₁⟩
       have hg₁ : g a₁ = choose h_and₁.2 := by
         dsimp [g]; simp [h_and₁]
       by_cases h₂ : a₂ ∈ ⋃ n, D n
-      · rcases h₂ with ⟨l, hl⟩
+      · rcases (Set.mem_iUnion.mp h₂) with ⟨l, hl⟩
         have hy₂ : ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₂ := h_fwd l hl
         have h_and₂ : a₂ ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₂ := ⟨Set.mem_iUnion.mpr ⟨l, hl⟩, hy₂⟩
         have hg₂ : g a₂ = choose h_and₂.2 := by
@@ -395,18 +456,18 @@ theorem Schroder_Bernstein_lemma {X: Type} {A B C: Set X} (hAB: A ⊆ B) (hBC: B
           simp [g, h₂]
         have hy_eq_a₂ : (choose h_and₁.2 : B) = ⟨a₂.val, hAB a₂.property⟩ := by
           calc
-            (choose h_and₁.2 : B) = g a₁ := hg₁
+            (choose h_and₁.2 : B) = g a₁ := hg₁.symm
             _ = g a₂ := h_eq
             _ = ⟨a₂.val, hAB a₂.property⟩ := hg_a₂
         have ha₁_eq_f_a₂ : f ⟨a₂.val, hBC (hAB a₂.property)⟩ = a₁ := by
           calc
             f ⟨a₂.val, hBC (hAB a₂.property)⟩ = f ⟨(choose h_and₁.2).val, hBC (choose h_and₁.2).property⟩ := by
-              congr; exact Subtype.ext_iff.mp hy_eq_a₂
+              rw [hy_eq_a₂]
             _ = a₁ := choose_spec h_and₁.2
         have h_a₂_in_union : a₂ ∈ ⋃ n, D n := h_key k hk ha₁_eq_f_a₂
-        exact h₂ h_a₂_in_union
+        exfalso; exact h₂ h_a₂_in_union
     · by_cases h₂ : a₂ ∈ ⋃ n, D n
-      · rcases h₂ with ⟨l, hl⟩
+      · rcases (Set.mem_iUnion.mp h₂) with ⟨l, hl⟩
         have hy₂ : ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₂ := h_fwd l hl
         have h_and₂ : a₂ ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = a₂ := ⟨Set.mem_iUnion.mpr ⟨l, hl⟩, hy₂⟩
         have hg₂ : g a₂ = choose h_and₂.2 := by
@@ -415,16 +476,16 @@ theorem Schroder_Bernstein_lemma {X: Type} {A B C: Set X} (hAB: A ⊆ B) (hBC: B
           simp [g, h₁]
         have hy_eq_a₁ : (choose h_and₂.2 : B) = ⟨a₁.val, hAB a₁.property⟩ := by
           calc
-            (choose h_and₂.2 : B) = g a₂ := hg₂
+            (choose h_and₂.2 : B) = g a₂ := hg₂.symm
             _ = g a₁ := h_eq.symm
             _ = ⟨a₁.val, hAB a₁.property⟩ := hg_a₁
         have ha₂_eq_f_a₁ : f ⟨a₁.val, hBC (hAB a₁.property)⟩ = a₂ := by
           calc
             f ⟨a₁.val, hBC (hAB a₁.property)⟩ = f ⟨(choose h_and₂.2).val, hBC (choose h_and₂.2).property⟩ := by
-              congr; exact Subtype.ext_iff.mp hy_eq_a₁
+              rw [hy_eq_a₁]
             _ = a₂ := choose_spec h_and₂.2
         have h_a₁_in_union : a₁ ∈ ⋃ n, D n := h_key l hl ha₂_eq_f_a₁
-        exact h₁ h_a₁_in_union
+        exfalso; exact h₁ h_a₁_in_union
       · have hg₁ : g a₁ = ⟨a₁.val, hAB a₁.property⟩ := by
           simp [g, h₁]
         have hg₂ : g a₂ = ⟨a₂.val, hAB a₂.property⟩ := by
@@ -446,23 +507,41 @@ theorem Schroder_Bernstein_lemma {X: Type} {A B C: Set X} (hAB: A ⊆ B) (hBC: B
       · -- g(f(b)) = b
         let a' : A := f ⟨b.val, hBC b.property⟩
         have ha'_union : a' ∈ ⋃ n, D n := by
-          rcases hb_union with ⟨n, hn⟩
-          refine ⟨n+1, ?_⟩
-          apply hD_succ.mpr
-          exact ⟨a, hn, rfl⟩
+          rcases (Set.mem_iUnion.mp hb_union) with ⟨n, hn⟩
+          have ha'_D_succ : a' ∈ D (n+1) := by
+            apply hD_succ.mpr
+            refine ⟨a, hn, ?_⟩
+            calc
+              f ⟨a.val, hBC (hAB a.property)⟩ = f ⟨b.val, hBC (hAB hbA)⟩ := by
+                simp [a]
+              _ = f ⟨b.val, hBC b.property⟩ := by
+                apply congrArg f; apply Subtype.ext; rfl
+              _ = a' := rfl
+          apply Set.mem_iUnion.mpr
+          exact ⟨n+1, ha'_D_succ⟩
         have h_ex : ∃ y : B, f ⟨y.val, hBC y.property⟩ = a' := ⟨b, rfl⟩
         have h_and : a' ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = a' := ⟨ha'_union, h_ex⟩
         have hg_a' : g a' = b := by
-          dsimp [g, a']; simp [h_and]
-          apply Subtype.ext; apply f.injective
-          calc
-            f ⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ = a' := choose_spec h_and.2
-            _ = f ⟨b.val, hBC b.property⟩ := rfl
+          dsimp [g, a']
+          rw [dite_pos' h_and]
+          apply Subtype.ext
+          have hC_eq : (⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ : C) = (⟨b.val, hBC b.property⟩ : C) :=
+            f.injective (by
+              calc
+                f ⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ = a' := choose_spec h_and.2
+                _ = f ⟨b.val, hBC b.property⟩ := rfl)
+          exact congrArg (fun (x : C) => x.val) hC_eq
         exact ⟨a', hg_a'⟩
       · -- g(b) = b
         have hg_a : g a = b := by
-          dsimp [g, a]; simp [hb_union]
-          exact Subtype.ext rfl
+          calc
+            g a = ⟨b.val, hAB hbA⟩ := by
+              dsimp [g, a]
+              have h_cond : ¬ (⟨b.val, hbA⟩ ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = ⟨b.val, hbA⟩) := by
+                intro h; exact hb_union h.1
+              rw [dite_neg' h_cond]
+            _ = b := by
+              apply Subtype.ext; rfl
         exact ⟨a, hg_a⟩
     · -- b ∉ A, so b ∈ B \ A
       have hb_notA : b.val ∉ A := hbA
@@ -470,15 +549,19 @@ theorem Schroder_Bernstein_lemma {X: Type} {A B C: Set X} (hAB: A ⊆ B) (hBC: B
       have ha'_D0 : a' ∈ D 0 := by
         apply hD0.mpr
         exact ⟨b, hb_notA, rfl⟩
-      have ha'_union : a' ∈ ⋃ n, D n := ⟨0, ha'_D0⟩
+      have ha'_union : a' ∈ ⋃ n, D n := Set.mem_iUnion.mpr ⟨0, ha'_D0⟩
       have h_ex : ∃ y : B, f ⟨y.val, hBC y.property⟩ = a' := ⟨b, rfl⟩
       have h_and : a' ∈ ⋃ n, D n ∧ ∃ y : B, f ⟨y.val, hBC y.property⟩ = a' := ⟨ha'_union, h_ex⟩
       have hg_a' : g a' = b := by
-        dsimp [g, a']; simp [h_and]
-        apply Subtype.ext; apply f.injective
-        calc
-          f ⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ = a' := choose_spec h_and.2
-          _ = f ⟨b.val, hBC b.property⟩ := rfl
+        dsimp [g, a']
+        rw [dite_pos' h_and]
+        apply Subtype.ext
+        have hC_eq : (⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ : C) = (⟨b.val, hBC b.property⟩ : C) :=
+          f.injective (by
+            calc
+              f ⟨(choose h_and.2).val, hBC (choose h_and.2).property⟩ = a' := choose_spec h_and.2
+              _ = f ⟨b.val, hBC b.property⟩ := rfl)
+        exact congrArg (fun (x : C) => x.val) hC_eq
       exact ⟨a', hg_a'⟩
 
   exact ⟨h_disjoint, ⟨h_inj, h_surj⟩⟩
@@ -505,7 +588,7 @@ example {X:Type} : LtCard X (Set X) := by
     intro a b h; exact Set.singleton_injective h
   · intro h
     have := EqualCard.power_set_false X
-    exact this h.symm
+    exact this h
 
 example {A B C: Type} (hAB: LtCard A B) (hBC: LtCard B C) :
   LtCard A C := by
@@ -545,7 +628,15 @@ abbrev CardOrder : Preorder Type := {
     · intro ⟨hle, hng⟩; refine ⟨hle, ?_⟩
       intro heq; apply hng
       rcases heq with ⟨f, hf⟩
-      exact ⟨f, hf.injective⟩
+      let g : Y → X := fun y => (hf.surjective y).choose
+      have hg_spec : ∀ y, f (g y) = y := fun y => (hf.surjective y).choose_spec
+      have hg_inj : Function.Injective g := by
+        intro x y h
+        calc
+          x = f (g x) := (hg_spec x).symm
+          _ = f (g y) := by rw [h]
+          _ = y := hg_spec y
+      exact ⟨g, hg_inj⟩
 }
 
 /-- Exercise 8.3.5 -/
@@ -554,26 +645,27 @@ example (X:Type) : ¬ CountablyInfinite (Set X) := by
   have h_count_X : Countable (Set X) := CountablyInfinite.toCountable h
   have h_uncountable : Uncountable (Set ℕ) := Uncountable.power_set_nat
   have h_not_count_ℕ : ¬ Countable (Set ℕ) := by
-    rw [← AtMostCountable.iff, ← Uncountable.iff, not_not]
+    rw [← AtMostCountable.iff, ← Uncountable.iff]
     exact h_uncountable
   by_cases hX_inf : Infinite X
-  · have h_emb : ℕ ↪ X := by infer_instance
-    have h_set_emb : Set ℕ → Set X := fun s ↦ h_emb '' s
-    have h_inj : Function.Injective h_set_emb := by
-      intro s t h_eq
-      apply Set.image_injective h_emb.injective
-      exact h_eq
-    have h_count_ℕ : Countable (Set ℕ) :=
-      Countable.of_injective h_set_emb h_inj
+  · haveI : Infinite X := hX_inf
+    have h_emb : ℕ ↪ X := Infinite.natEmbedding X
+    have h_inj : Function.Injective (Set.image (h_emb : ℕ → X)) :=
+      (Set.image_injective (f := (h_emb : ℕ → X))).mpr h_emb.injective
+    have h_count_ℕ : Countable (Set ℕ) := by
+      haveI : Countable (Set X) := h_count_X
+      exact h_inj.countable
     exact h_not_count_ℕ h_count_ℕ
   · have h_fin_X : Finite X := by
       by_contra! h
-      apply hX_inf
-      rw [not_finite_iff_infinite] at h
-      exact h
-    have h_fin_set : Finite (Set X) := by infer_instance
+      exact hX_inf h
+    have h_fin_set : Finite (Set X) := by
+      haveI : Finite X := h_fin_X
+      infer_instance
     have h_inf_set : Infinite (Set X) := CountablyInfinite.toInfinite h
-    have : ¬ Finite (Set X) := by rwa [not_finite_iff_infinite]
+    have : ¬ Finite (Set X) := by
+      rw [not_finite_iff_infinite]
+      exact h_inf_set
     exact this h_fin_set
 
 end Chapter8
