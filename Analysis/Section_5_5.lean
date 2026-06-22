@@ -412,7 +412,11 @@ theorem Real.LIM_of_le' {x:Real} {a:ℕ → ℚ} (hcauchy: (a:Sequence).IsCauchy
       Sequence.IsCauchy.neg a' ha'_cauchy
     have h_all' : ∀ n, ((-a' : ℕ → ℚ) n : Real) ≥ -x := by
       intro n
-      simpa [ha', Pi.neg_apply] using h_neg_all n
+      have h : -(a' n : Real) ≥ -x := h_neg_all n
+      rw [ha'] at h ⊢
+      dsimp at h ⊢
+      rw [Real.neg_ratCast (a (n+N))] at h
+      exact h
     exact Real.LIM_of_ge h_cau h_all'
   rw [← Real.neg_LIM a' ha'_cauchy] at h_LIM_neg_ge
   have h_LIM_a'_le_x : LIM a' ≤ x := by linarith
