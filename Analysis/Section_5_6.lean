@@ -48,7 +48,7 @@ lemma Real.pow_succ (x: Real) (n:ℕ) : x ^ (n+1) = (x ^ n) * x := rfl
 
 lemma Real.pow_of_coe (q: ℚ) (n:ℕ) : (q:Real) ^ n = (q ^ n:ℚ) := by
   induction n with
-  | zero => simp; rfl
+  | zero => simp
   | succ k ih => rw [_root_.pow_succ, _root_.pow_succ, ih, Real.ratCast_mul]
 
 /- The claims below can be handled easily by existing Mathlib API (as `Real` already is known

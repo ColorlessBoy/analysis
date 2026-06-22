@@ -826,7 +826,7 @@ private theorem rat_between_pos_y {x y : Real} (hxy : x < y) (hypos : y > 0) :
     have h_eq_q : (q : Real) = (m : Real) / (M : Real) := by
       calc
         (q : Real) = ((m : ℚ) : Real) * ((M : ℚ)⁻¹ : Real) := by
-          simpa [q, Real.inv_ratCast] using (Real.ratCast_mul (m : ℚ) ((M : ℚ)⁻¹)).symm
+          simp [q]
         _ = ((m : ℚ) : Real) * (((M : ℚ) : Real)⁻¹) := by simp
         _ = (m : Real) * ((M : Real)⁻¹) := by
           calc
@@ -872,7 +872,7 @@ private lemma intCast_lt_real {a b : ℤ} (h : a < b) : (a : Real) < (b : Real) 
     calc
       (a : Real) - (b : Real) = ((a : ℚ) : Real) - ((b : ℚ) : Real) := rfl
       _ = ((a - b : ℚ) : Real) := by
-        simpa using Real.ratCast_sub (a : ℚ) (b : ℚ)
+        simp
   rw [heq]
   exact h_neg
 

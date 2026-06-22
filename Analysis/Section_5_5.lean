@@ -412,10 +412,7 @@ theorem Real.LIM_of_le' {x:Real} {a:ℕ → ℚ} (hcauchy: (a:Sequence).IsCauchy
       Sequence.IsCauchy.neg a' ha'_cauchy
     have h_all' : ∀ n, ((-a' : ℕ → ℚ) n : Real) ≥ -x := by
       intro n
-      have h : -(a' n : Real) ≥ -x := h_neg_all n
-      rw [ha'] at h ⊢
-      dsimp at h ⊢
-      simpa [Real.neg_ratCast] using h
+      simpa [ha', Pi.neg_apply] using h_neg_all n
     exact Real.LIM_of_ge h_cau h_all'
   rw [← Real.neg_LIM a' ha'_cauchy] at h_LIM_neg_ge
   have h_LIM_a'_le_x : LIM a' ≤ x := by linarith
@@ -592,7 +589,7 @@ theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): 
     intro n; simp [b]
 
   have hm1_eq (n : ℕ) : (a n : Real) = (m n : Real) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
-    simpa [a] using (Real.ratCast_mul (m n : ℚ) ((1 : ℚ) / ((n : ℚ) + 1))).symm
+    simp [a]
 
   have hm1 : ∀ (n : ℕ), (a n : Real) ∈ upperBounds E := by
     intro n
@@ -602,7 +599,7 @@ theorem Real.LUB_exist {E: Set Real} (hE: Set.Nonempty E) (hbound: BddAbove E): 
   have hm2_eq (n : ℕ) : ((a - b) n : Real) = ((m n : Real) - 1) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
     calc
       ((a - b) n : Real) = (a n : Real) - (b n : Real) := by
-        simp [a, b, Real.ratCast_sub]
+        simp [a, b]
       _ = ((m n : Real) * ((1 / ((n : ℚ) + 1) : ℚ) : Real)) - ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by
         rw [hm1_eq n, show (b n : Real) = ((1 / ((n : ℚ) + 1) : ℚ) : Real) from by simp [b]]
       _ = ((m n : Real) - 1) * ((1 / ((n : ℚ) + 1) : ℚ) : Real) := by ring
