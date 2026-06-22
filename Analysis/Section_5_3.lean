@@ -371,8 +371,7 @@ theorem Real.ratCast_inj (q r:ℚ) : (q:Real) = (r:Real) ↔ q = r := by
       refine abs_pos.mpr ?_
       exact sub_ne_zero.mpr hne
     rcases h (|q - r| / 2) (by nlinarith) with ⟨N, hN⟩
-    have hN0 : |q - r| ≤ |q - r| / 2 := by
-      simpa using hN N (le_refl N)
+    have hN0 : |q - r| ≤ |q - r| / 2 := hN N (le_refl N)
     nlinarith
   · intro h
     subst h
@@ -938,14 +937,58 @@ private lemma ratCast_def_aux (q : ℚ) : (q : Real) = (q.num : Real) / (q.den :
   calc
     (q : Real) = ((q.num / q.den : ℚ) : Real) := by rw [Rat.num_div_den q]
     _ = (q.num : Real) / (q.den : Real) := by
-      rw [show (q.num : Real) = ((q.num : ℚ) : Real) from rfl,
-          show (q.den : Real) = ((q.den : ℚ) : Real) from rfl,
-          div_eq_mul_inv, div_eq_mul_inv, Real.inv_ratCast, Real.ratCast_mul]
+      calc
+        ((q.num / q.den : ℚ) : Real) = ((q.num * ((q.den : ℚ)⁻¹) : ℚ) : Real) := by rw [div_eq_mul_inv]
+        _ = ((q.num : ℚ) : Real) * (((q.den : ℚ)⁻¹ : ℚ) : Real) :=
+          (Real.ratCast_mul (q.num : ℚ) ((q.den : ℚ)⁻¹)).symm
+        _ = ((q.num : ℚ) : Real) * (((q.den : ℚ) : Real)⁻¹) := by
+          rw [(Real.inv_ratCast (q.den : ℚ)).symm]
+        _ = (q.num : Real) * (q.den : Real)⁻¹ := by
+          calc
+            ((q.num : ℚ) : Real) * (((q.den : ℚ) : Real)⁻¹)
+                = (q.num : Real) * (((q.den : ℚ) : Real)⁻¹) := by
+                  have : ((q.num : ℚ) : Real) = (q.num : Real) := by
+                    dsimp; rfl
+                  rw [this]
+            _ = (q.num : Real) * (q.den : Real)⁻¹ := by
+              calc
+                (q.num : Real) * (((q.den : ℚ) : Real)⁻¹)
+                    = (q.num : Real) * (q.den : Real)⁻¹ := by
+                  have : ((q.den : ℚ) : Real) = (q.den : Real) := by
+                    dsimp; rfl
+                  rw [this]
+        _ = (q.num : Real) / (q.den : Real) := rfl
 
-private lemma nnratCast_def_aux (q : ℚ≥0) :
-    ((q : ℚ) : Real) = ((q : ℚ).num : Real) / ((q : ℚ).den : Real) :=
-  ratCast_def_aux (q : ℚ)
-
+noncomputable instance Real.instField : Field Real where
+  exists_pair_ne := by
+    refine ⟨0, 1, ?_⟩
+    intro h
+    have h' := (Real.ratCast_inj (0 : ℚ) (1 : ℚ)).mp h
+    norm_num at h'
+  mul_inv_cancel := fun a hx => Real.self_mul_inv hx
+  inv_zero := Real.inv_zero
+  ratCast_def := ratCast_def_aux
+  nnratCast_def := by
+    intro q
+    have h := ratCast_def_aux (q : ℚ)
+    -- h : ((q : ℚ) : Real) = ((q : ℚ).num : Real) / ((q : ℚ).den : Real)
+    -- Goal: (q : Real) = (q.num : Real) / (q.den : Real)
+    -- The problem is that (q : Real) and ((q : ℚ) : Real) are syntactically different
+    -- But NNRat.cast is defined as (q : ℚ), so they are equal by definition
+    -- Let`s use `show` to change the goal
+    show ((q : ℚ) : Real) = (q.num : Real) / (q.den : Real)
+    -- Now the goal matches h, except for num/den
+    calc
+      ((q : ℚ) : Real) = ((q : ℚ).num : Real) / ((q : ℚ).den : Real) := h
+      _ = (q.num : Real) / (q.den : Real) := by
+        have hnum : ((q : ℚ).num : Real) = (q.num : Real) := by
+          norm_cast
+        have hden : ((q : ℚ).den : Real) = (q.den : Real) := rfl
+        rw [hnum, hden]
+  qsmul := fun q x => (q : Real) * x
+  qsmul_def := fun q a => rfl
+  nnqsmul := fun q x => ((q : ℚ) : Real) * x
+  nnqsmul_def := fun q a => rfl
 
 theorem Real.mul_right_cancel₀ {x y z:Real} (hz: z ≠ 0) (h: x * z = y * z) : x = y := by
   have h_inv : z * z⁻¹ = 1 := Real.self_mul_inv hz
@@ -960,6 +1003,7 @@ theorem Real.mul_right_cancel₀ {x y z:Real} (hz: z ≠ 0) (h: x * z = y * z) :
   have h3 : y * (z * z⁻¹) = y := by
     rw [h_inv, h_one_mul y]
   exact (h1.trans h2).trans h3
+
 theorem Real.mul_right_nocancel : ¬ ∀ (x y z:Real), (hz: z = 0) → (x * z = y * z) → x = y := by
   intro h
   have h01 : (0 : Real) = (1 : Real) := h 0 1 0 rfl (by

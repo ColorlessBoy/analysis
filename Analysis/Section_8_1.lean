@@ -1,4 +1,6 @@
 import Mathlib.Tactic
+import Mathlib.Data.Rat.Denumerable
+import Mathlib.Data.Finite.Defs
 
 /-!
 # Analysis I, Section 8.1: Countability
@@ -36,14 +38,18 @@ theorem EqualCard.iff {X Y : Type} : EqualCard X Y ↔ Nonempty (X ≃ Y) := by
 theorem EqualCard.iff' {X Y : Type} : EqualCard X Y ↔ Cardinal.mk X = Cardinal.mk Y := by
   simp [Cardinal.eq, iff]
 
-theorem EqualCard.refl (X : Type) : EqualCard X X := sorry
+theorem EqualCard.refl (X : Type) : EqualCard X X :=
+  ⟨ id, Function.bijective_id ⟩
 
 theorem EqualCard.symm {X Y : Type} (hXY : EqualCard X Y) : EqualCard Y X := by
-  sorry
+  rcases hXY with ⟨ f, hf ⟩
+  exact ⟨ (Equiv.ofBijective f hf).symm, (Equiv.ofBijective f hf).symm.bijective ⟩
 
 theorem EqualCard.trans {X Y Z : Type} (hXY : EqualCard X Y) (hYZ : EqualCard Y Z) :
   EqualCard X Z := by
-  sorry
+  rcases hXY with ⟨ f, hf ⟩
+  rcases hYZ with ⟨ g, hg ⟩
+  exact ⟨ g ∘ f, (Equiv.ofBijective g hg).bijective.comp (Equiv.ofBijective f hf).bijective ⟩
 
 instance EqualCard.instSetoid : Setoid Type := ⟨ EqualCard, ⟨ refl, symm, trans ⟩ ⟩
 
@@ -102,25 +108,93 @@ theorem CountablyInfinite.iff_image_inj {A:Type} (X: Set A) : CountablyInfinite 
   intro n; use ⟨ f n, by aesop ⟩; grind
 
 /-- Examples 8.1.3 -/
-example : CountablyInfinite ℕ := by sorry
+example : CountablyInfinite ℕ := by
+  unfold CountablyInfinite; exact EqualCard.refl ℕ
 
-example : CountablyInfinite (.univ \ {0}: Set ℕ) := by sorry
+example : CountablyInfinite (.univ \ {0}: Set ℕ) := by
+  rw [CountablyInfinite, EqualCard.iff]
+  refine ⟨ ?_ ⟩
+  refine {
+    toFun := λ ⟨ x, hx ⟩ => x - 1
+    invFun := λ n => ⟨ n+1, by simp ⟩
+    left_inv := λ ⟨ x, hx ⟩ => by
+      have hx0 : x ≠ 0 := by
+        intro hzero; apply hx.2; simp [hzero]
+      have hx1 : 1 ≤ x := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hx0)
+      ext; exact Nat.sub_add_cancel hx1
+    right_inv := λ n => by simp
+  }
 
-example : CountablyInfinite ((fun n:ℕ ↦ 2*n) '' .univ) := by sorry
+example : CountablyInfinite ((fun n:ℕ ↦ 2*n) '' .univ) := by
+  set S := (fun n : ℕ ↦ 2*n) '' .univ with hS
+  refine ⟨ fun (x : S) => x.val / 2, ?_ ⟩
+  constructor
+  · intro x y h
+    ext
+    have hx_mem' : x.val ∈ (fun n : ℕ ↦ 2*n) '' Set.univ := by
+      simpa [hS] using x.property
+    have hy_mem' : y.val ∈ (fun n : ℕ ↦ 2*n) '' Set.univ := by
+      simpa [hS] using y.property
+    rcases hx_mem' with ⟨ nx, _, hx_eq' ⟩
+    rcases hy_mem' with ⟨ ny, _, hy_eq' ⟩
+    have hx_eq : x.val = 2*nx := hx_eq'.symm
+    have hy_eq : y.val = 2*ny := hy_eq'.symm
+    have hdiv : (2*nx)/2 = (2*ny)/2 := by
+      calc
+        (2*nx)/2 = x.val / 2 := by rw [hx_eq]
+        _ = y.val / 2 := h
+        _ = (2*ny)/2 := by rw [hy_eq]
+    have hpos : nx = ny := by omega
+    calc
+      x.val = 2*nx := hx_eq
+      _ = 2*ny := by rw [hpos]
+      _ = y.val := by rw [hy_eq]
+  · intro n
+    refine ⟨ ⟨ 2*n, by simp [hS] ⟩, ?_ ⟩
+    simp
 
 
 /-- Proposition 8.1.4 (Well ordering principle / Exercise 8.1.2 -/
 theorem Nat.exists_unique_min {X : Set ℕ} (hX : X.Nonempty) :
   ∃! m ∈ X, ∀ n ∈ X, m ≤ n := by
-  sorry
+  classical
+  set m := Nat.find hX with hm
+  have hm_mem : m ∈ X := Nat.find_spec hX
+  have hm_min : ∀ n ∈ X, m ≤ n := by
+    intro n hn; exact Nat.find_min' hX hn
+  refine ⟨ m, ⟨ hm_mem, hm_min ⟩, ?_ ⟩
+  intro m' ⟨ hm'_mem, hm'_min ⟩
+  have hmm' : m ≤ m' := Nat.find_min' hX hm'_mem
+  have hm'm : m' ≤ m := hm'_min m hm_mem
+  omega
 
 def Int.exists_unique_min : Decidable (∀ (X : Set ℤ) (hX : X.Nonempty), ∃! m ∈ X, ∀ n ∈ X, m ≤ n) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  have huniv_nonempty : (Set.univ : Set ℤ).Nonempty := ⟨ 0, by simp ⟩
+  rcases h (Set.univ : Set ℤ) huniv_nonempty with ⟨ m, hm, hm_unique ⟩
+  have hm_mem : m ∈ (Set.univ : Set ℤ) := hm.1
+  have hm_min : ∀ n ∈ (Set.univ : Set ℤ), m ≤ n := hm.2
+  have hm1_mem : m - 1 ∈ (Set.univ : Set ℤ) := by simp
+  have hm1_le : m ≤ m - 1 := hm_min (m - 1) hm1_mem
+  omega
 
 def NNRat.exists_unique_min : Decidable (∀ (X : Set NNRat) (hX : X.Nonempty), ∃! m ∈ X, ∀ n ∈ X, m ≤ n) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  let X : Set NNRat := { x | x > 0 }
+  have hX_nonempty : X.Nonempty := ⟨ 1, by norm_num [X] ⟩
+  rcases h X hX_nonempty with ⟨ m, hm, hm_unique ⟩
+  have hm_mem : m ∈ X := hm.1
+  have hm_min : ∀ n ∈ X, m ≤ n := hm.2
+  have hm_pos : m > 0 := hm_mem
+  have hm_half_pos : m / 2 > 0 := by positivity
+  have hm_half_mem : m / 2 ∈ X := hm_half_pos
+  have hm_half_le : m ≤ m / 2 := hm_min (m / 2) hm_half_mem
+  have hm_half_lt_m : m / 2 < m := by
+    exact half_lt_self hm_pos
+  have : m < m := lt_of_le_of_lt hm_half_le hm_half_lt_m
+  exact lt_irrefl _ this
 
 
 open Classical in
@@ -135,10 +209,21 @@ theorem Nat.min_eq {X : Set ℕ} (hX : X.Nonempty) {a:ℕ} (ha : a ∈ X ∧ ∀
 @[simp]
 theorem Nat.min_empty : min ∅ = 0 := by simp [Nat.min]
 
-example : Nat.min ((fun n ↦ 2*n) '' (.Ici 1)) = 2 := by sorry
+example : Nat.min ((fun n ↦ 2*n) '' (.Ici 1)) = 2 := by
+  have hX : ((fun n ↦ 2*n) '' (.Ici 1) : Set ℕ).Nonempty := ⟨ 2, 1, by simp, by norm_num ⟩
+  apply Nat.min_eq hX
+  constructor
+  · refine ⟨ 1, by simp, ?_ ⟩
+    norm_num
+  · rintro _ ⟨ n, hn, rfl ⟩
+    have : 1 ≤ n := hn
+    nlinarith
 
 theorem Nat.min_eq_sInf {X : Set ℕ} (hX : X.Nonempty) : min X = sInf X := by
-  sorry
+  apply le_antisymm
+  · have h_sInf_mem : sInf X ∈ X := Nat.sInf_mem hX
+    exact (Nat.min_spec hX).2 _ h_sInf_mem
+  · exact Nat.sInf_le ((Nat.min_spec hX).1)
 
 open Classical in
 /-- Equivalence with Mathlib's {name}`Nat.find` method -/
@@ -151,25 +236,65 @@ theorem Nat.monotone_enum_of_infinite (X : Set ℕ) [Infinite X] : ∃! f : ℕ 
   let a : ℕ → ℕ := Nat.strongRec (fun n a ↦ min { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m h })
   have ha : ∀ n, a n = min { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m } := Nat.strongRec.eq_def _
   have ha_infinite (n:ℕ) : Infinite { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m } := by
-    sorry
-  have ha_nonempty (n:ℕ) : { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m }.Nonempty := Set.Nonempty.of_subtype
-  have ha_mono : StrictMono a := by
-    sorry
-  have ha_injective : Function.Injective a := by
-    sorry
+    have h_finite_aim : Set.Finite {a m | m < n} :=
+      (Set.finite_lt_nat n).image a
+    have h_set : Set.Infinite ({ x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m } : Set ℕ) := by
+      intro hfinite
+      have hfinite_all : Set.Finite (X : Set ℕ) := by
+        have h_subset : (X : Set ℕ) ⊆ ({ x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m } : Set ℕ) ∪ {a m | m < n} := by
+          intro x hx; simp
+          by_cases h : ∀ (m : ℕ), m < n → x ≠ a m
+          · exact Or.inl ⟨ hx, h ⟩
+          · have h' : ∃ m, m < n ∧ x = a m := by
+              push_neg at h; exact h
+            rcases h' with ⟨ m, hm, hx_eq ⟩; exact Or.inr ⟨ m, hm, hx_eq.symm ⟩
+        have h_finite_X : Set.Finite (X : Set ℕ) :=
+          Set.Finite.subset (Set.Finite.union hfinite h_finite_aim) h_subset
+        have hX_infinite_set : Set.Infinite (X : Set ℕ) :=
+          Set.infinite_coe_iff.mp (by infer_instance : Infinite (Subtype (· ∈ X)))
+        exact hX_infinite_set h_finite_X
+    exact h_set.to_subtype
+  have ha_nonempty (n:ℕ) : { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m }.Nonempty :=
+    Set.Nonempty.of_subtype
   have haX (n:ℕ) : a n ∈ X := by
-    sorry
+    rw [ha n]
+    have h_nonempty : { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m }.Nonempty := ha_nonempty n
+    exact (Nat.min_spec h_nonempty).1.1
+  have ha_mono : StrictMono a := by
+    intro i j h
+    have ha_j_mem_j : a j ∈ { x ∈ X | ∀ (m:ℕ) (h:m < j), x ≠ a m } := by
+      rw [ha j]
+      exact (Nat.min_spec (ha_nonempty j)).1
+    have ha_j_mem_i : a j ∈ { x ∈ X | ∀ (k:ℕ) (h:k < i), x ≠ a k } := by
+      refine ⟨ haX j, λ k hk => ?_ ⟩
+      exact ha_j_mem_j.2 k (Nat.lt_trans hk h)
+    have ha_i_min : ∀ x ∈ { x ∈ X | ∀ (k:ℕ) (h:k < i), x ≠ a k }, a i ≤ x := by
+      intro x hx
+      have hmin := (Nat.min_spec (ha_nonempty i)).2 x hx
+      rw [← ha i] at hmin
+      exact hmin
+    have ha_i_le_aj : a i ≤ a j := ha_i_min _ ha_j_mem_i
+    have ha_i_ne_aj : a i ≠ a j := by
+      intro h_eq
+      have : a j ≠ a i := ha_j_mem_j.2 i h
+      exact this h_eq.symm
+    omega
+  have ha_injective : Function.Injective a := ha_mono.injective
   set f : ℕ → X := fun n ↦ ⟨ a n, haX n ⟩
   have hf_injective : Function.Injective f := by
     intro x y hxy; simp [f] at hxy; solve_by_elim
   have hf_surjective : Function.Surjective f := by
-    intro ⟨ x, hx ⟩; simp [f]; by_contra
+    intro ⟨ x, hx ⟩; simp [f]; by_contra h
     have h1 (n:ℕ) : x ∈ { x ∈ X | ∀ (m:ℕ) (h:m < n), x ≠ a m } := by
-      sorry
+      refine ⟨ hx, λ m hm h_eq => ?_ ⟩
+      exact h ⟨ m, h_eq.symm ⟩
     have h2 (n:ℕ) : x ≥ a n := by
-      rw [ha n]; exact ge_iff_le.mpr ((min_spec (ha_nonempty n)).2 _ (h1 n))
+      rw [ha n]; exact ge_iff_le.mpr ((Nat.min_spec (ha_nonempty n)).2 _ (h1 n))
     have h3 (n:ℕ) : a n ≥ n := by
-      sorry
+      induction' n with k ih
+      · omega
+      · have : a k < a (k+1) := ha_mono (Nat.lt_succ_self k)
+        omega
     have h4 (n:ℕ) : x ≥ n := (h3 n).trans (h2 n)
     linarith [h4 (x+1)]
   apply ExistsUnique.intro _ ⟨ ⟨ hf_injective, hf_surjective ⟩, ha_mono ⟩
@@ -181,7 +306,50 @@ theorem Nat.monotone_enum_of_infinite (X : Set ℕ) [Infinite X] : ∃! f : ℕ 
   have hm : g m ≠ f m := (min_spec this).1
   have hm' {n:ℕ} (hn: n < m) : g n = f n := by by_contra hgfn; linarith [(min_spec this).2 n (by simp [hgfn])]
   have hgm : g m = min { x ∈ X | ∀ (n:ℕ) (h:n < m), x ≠ a n } := by
-    sorry
+    set S := { x ∈ X | ∀ (n:ℕ) (h:n < m), x ≠ a n } with hS
+    have hS_nonempty : S.Nonempty := ha_nonempty m
+    have h_minS_spec := Nat.min_spec hS_nonempty
+    have h_minS_mem_S : min S ∈ S := h_minS_spec.1
+    have h_minS_min : ∀ x ∈ S, min S ≤ x := h_minS_spec.2
+    have h_minS_X : min S ∈ X := h_minS_mem_S.1
+    have h_gm_val_mem_S : (g m : ℕ) ∈ S := by
+      refine ⟨ (g m).property, λ n hn h_eq => ?_ ⟩
+      have h_gn_eq_fn : g n = f n := hm' hn
+      have h_gm_val_eq_gn_val : (g m : ℕ) = (g n : ℕ) := by
+        calc
+          (g m : ℕ) = a n := h_eq
+          _ = (f n : ℕ) := by simp [f]
+          _ = (g n : ℕ) := by simpa [h_gn_eq_fn]
+      have h_gm_eq_gn : g m = g n := Subtype.val_injective h_gm_val_eq_gn_val
+      have h_mn : m = n := hg_bijective.injective h_gm_eq_gn
+      omega
+    have h_minS_le_gm_val : min S ≤ (g m : ℕ) := h_minS_min _ h_gm_val_mem_S
+    have h_surj_g : Function.Surjective g := hg_bijective.surjective
+    have h_exists_k : ∃ k, g k = ⟨ min S, h_minS_X ⟩ := h_surj_g ⟨ min S, h_minS_X ⟩
+    rcases h_exists_k with ⟨ k, h_gk_eq ⟩
+    have h_gmk_eq_minS : (g k : ℕ) = min S := by simp [h_gk_eq]
+    have h_gm_val_le_minS : (g m : ℕ) ≤ min S := by
+      by_cases hk_lt_m : k < m
+      · exfalso
+        have h_gk_eq_fk : g k = f k := hm' hk_lt_m
+        have : min S = a k := by
+          calc
+            min S = (g k : ℕ) := by symm; exact h_gmk_eq_minS
+            _ = (f k : ℕ) := by simpa [h_gk_eq_fk]
+            _ = a k := rfl
+        have h_minS_ne_ak : min S ≠ a k := h_minS_mem_S.2 k hk_lt_m
+        exact h_minS_ne_ak this
+      · by_cases hm_lt_k : m < k
+        · have h_gm_lt_gk : (g m : ℕ) < (g k : ℕ) := by exact_mod_cast hg_mono hm_lt_k
+          have : (g m : ℕ) < min S := by
+            calc
+              (g m : ℕ) < (g k : ℕ) := h_gm_lt_gk
+              _ = min S := h_gmk_eq_minS
+          omega
+        · have hm_eq_k : m = k := by omega
+          subst hm_eq_k
+          simp [h_gmk_eq_minS]
+    apply le_antisymm h_gm_val_le_minS h_minS_le_gm_val
   rw [←ha m] at hgm; contrapose! hm; exact Subtype.val_injective hgm
 
 theorem Nat.countable_of_infinite (X : Set ℕ) [Infinite X] : CountablyInfinite X := by
@@ -196,13 +364,9 @@ theorem Nat.atMostCountable_subset (X: Set ℕ) : AtMostCountable X := by
 
 /-- Corollary 8.1.7 -/
 theorem AtMostCountable.subset {X: Type} (hX : AtMostCountable X) (Y: Set X) : AtMostCountable Y := by
-  -- This proof is written to follow the structure of the original text.
-  obtain ⟨ f, hf ⟩ | hX := hX
-  . let f' : Y → f '' Y := fun y ↦ ⟨ f y, by aesop ⟩
-    have hf' : Function.Bijective f' := by
-      sorry
-    rw [equiv ⟨ _, hf' ⟩ ]; apply Nat.atMostCountable_subset
-  simp [AtMostCountable, show Finite Y by infer_instance]
+  rw [AtMostCountable.iff] at hX ⊢
+  haveI : Countable X := hX
+  infer_instance
 
 theorem AtMostCountable.subset' {A: Type} {X Y: Set A} (hX: AtMostCountable X) (hY: Y ⊆ X) : AtMostCountable Y := by
   refine' (equiv ⟨ fun y ↦ ⟨ ↑↑y, y.property ⟩, _, _ ⟩).mp (subset hX { x : X | ↑x ∈ Y })
@@ -211,28 +375,44 @@ theorem AtMostCountable.subset' {A: Type} {X Y: Set A} (hX: AtMostCountable X) (
 
 /-- Proposition 8.1.8 / Exercise 8.1.4 -/
 theorem AtMostCountable.image_nat (Y: Type) (f: ℕ → Y) : AtMostCountable (f '' .univ) := by
-  sorry
+  rw [AtMostCountable.iff]
+  have h : (Set.range f).Countable := Set.countable_range f
+  exact Set.countable_coe_iff.mp h
 
 /-- Corollary 8.1.9 / Exercise 8.1.5 -/
 theorem AtMostCountable.image {X:Type} (hX: CountablyInfinite X) {Y: Type} (f: X → Y) : AtMostCountable (f '' .univ) := by
-  sorry
+  rw [AtMostCountable.iff]
+  have hX_data := (CountablyInfinite.iff' X).mp hX
+  haveI : Countable X := hX_data.1
+  have h : (Set.range f).Countable := Set.countable_range f
+  exact Set.countable_coe_iff.mp h
 
 /-- Proposition 8.1.10 / Exercise 8.1.7 -/
 theorem CountablyInfinite.union {A:Type} {X Y: Set A} (hX: CountablyInfinite X) (hY: CountablyInfinite Y) :
   CountablyInfinite (X ∪ Y: Set A) := by
-  sorry
+  rw [CountablyInfinite.iff']
+  have hX_data := (CountablyInfinite.iff' (X : Set A)).mp hX
+  have hY_data := (CountablyInfinite.iff' (Y : Set A)).mp hY
+  have h_countable : Countable (X ∪ Y : Set A) :=
+    Set.Countable.union hX_data.1 hY_data.1
+  have h_infinite : Infinite (X ∪ Y : Set A) := by
+    by_contra! hfinite
+    have hX_finite_set : Set.Finite (X : Set A) :=
+      Set.Finite.subset (Set.finite_coe_iff.mp hfinite) (Set.subset_union_left X Y)
+    have hX_finite : Finite (X : Set A) := Set.finite_coe_iff.mp hX_finite_set
+    exact hX_data.2 hX_finite
+  exact ⟨ h_countable, h_infinite ⟩
 
 /-- Corollary 8.1.11 --/
 theorem Int.countablyInfinite : CountablyInfinite ℤ := by
-  -- This proof is written to follow the structure of the original text.
   have h1 : CountablyInfinite {n:ℤ | n ≥ 0} := by
     rw [CountablyInfinite.iff_image_inj]
-    use ⟨ (↑·:ℕ → ℤ), by intro _ _ _; simp_all ⟩
+    use ⟨ (· : ℕ → ℤ), by intro _ _ _; simp_all ⟩
     ext n; simp; refine ⟨ ?_, by aesop ⟩
     . intro h; use n.toNat; simp [h]
   have h2 : CountablyInfinite {n:ℤ | n ≤ 0} := by
     rw [CountablyInfinite.iff_image_inj]
-    use ⟨ (-↑·:ℕ → ℤ), by intro _ _ _; simp_all ⟩
+    use ⟨ (-· : ℕ → ℤ), by intro _ _ _; simp_all ⟩
     ext n; simp; refine ⟨ ?_, by aesop ⟩
     intro h; use (-n).toNat; simp [h]
   have : CountablyInfinite (.univ : Set ℤ) := by
@@ -241,11 +421,13 @@ theorem Int.countablyInfinite : CountablyInfinite ℤ := by
 
 /-- Lemma 8.1.12 -/
 theorem CountablyInfinite.lower_diag : CountablyInfinite { n : ℕ × ℕ | n.2 ≤ n.1 } := by
-  -- This proof is written to follow the structure of the original text.
   let A := { n : ℕ × ℕ | n.2 ≤ n.1 }
   let a : ℕ → ℕ := fun n ↦ ∑ m ∈ .range (n+1), m
-  have ha : StrictMono a := by
-    sorry
+  have ha_lt_succ (n : ℕ) : a n < a (n+1) := by
+    calc
+      a (n+1) = a n + (n+1) := by simp [a, Finset.sum_range_succ]
+      _ > a n := by omega
+  have ha : StrictMono a := strictMono_nat_of_lt_succ ha_lt_succ
   let f : A → ℕ := fun ⟨ (n, m), _ ⟩ ↦ a n + m
   have hf : Function.Injective f := by
     rintro ⟨ ⟨ n, m ⟩, hnm ⟩ ⟨ ⟨ n',m'⟩, hnm' ⟩ h
@@ -272,7 +454,22 @@ theorem CountablyInfinite.lower_diag : CountablyInfinite { n : ℕ × ℕ | n.2 
     obtain ⟨ n, m, q, rfl ⟩ := hl; use ⟨ (n, m), q ⟩
   have : AtMostCountable A := by rw [AtMostCountable.equiv ⟨ _, hf' ⟩]; apply Nat.atMostCountable_subset
   have hfin : ¬ Finite A := by
-    sorry
+    intro hA
+    have h_subset : Set.range (fun n : ℕ ↦ (n, 0)) ⊆ A := by
+      rintro x ⟨ n, rfl ⟩; simp [A]
+    have hA_finite_set : Set.Finite (A : Set (ℕ × ℕ)) := hA
+    have h_range_finite : Set.Finite (Set.range (fun n : ℕ ↦ (n, 0))) :=
+      Set.Finite.subset hA_finite_set h_subset
+    have h_inj : Function.Injective (fun n : ℕ ↦ (n, 0)) := by
+      intro a b h; simpa using h
+    have h_range_infinite : Set.Infinite (Set.range (fun n : ℕ ↦ (n, 0))) := by
+      intro hfinite
+      have h_finite_range : Finite (Set.range (fun n : ℕ ↦ (n, 0))) :=
+        Set.finite_coe_iff.mp hfinite
+      have : Finite ℕ :=
+        Finite.of_injective (fun n : ℕ ↦ (n, 0)) h_inj
+      exact not_finite ℕ
+    exact h_range_finite h_range_infinite
   simp [AtMostCountable] at this; tauto
 
 /-- Corollary 8.1.13 -/
@@ -288,18 +485,47 @@ theorem CountablyInfinite.prod_nat : CountablyInfinite (ℕ × ℕ) := by
 /-- Corollary 8.1.14 / Exercise 8.1.8 -/
 theorem CountablyInfinite.prod {X Y:Type} (hX: CountablyInfinite X) (hY: CountablyInfinite Y) :
   CountablyInfinite (X × Y) := by
-  sorry
+  rcases (CountablyInfinite.iff X).mp hX with ⟨ eX ⟩
+  rcases (CountablyInfinite.iff Y).mp hY with ⟨ eY ⟩
+  rcases (CountablyInfinite.iff (ℕ × ℕ)).mp prod_nat with ⟨ e ⟩
+  rw [CountablyInfinite.iff]
+  exact ⟨ (Equiv.prodCongr eX eY).trans e ⟩
 
 /-- Corollary 8.1.15 -/
 theorem Rat.countablyInfinite : CountablyInfinite ℚ := by
   -- This proof is written to follow the structure of the original text.
   have : CountablyInfinite { n:ℤ | n ≠ 0 } := by
-    sorry
+    have h_at_most : AtMostCountable ({ n : ℤ | n ≠ 0 } : Set ℤ) :=
+      AtMostCountable.subset (Or.inl Int.countablyInfinite) ({ n : ℤ | n ≠ 0 } : Set ℤ)
+    have h_infinite : Set.Infinite ({ n : ℤ | n ≠ 0 } : Set ℤ) := by
+      have h_inj : Function.Injective (fun (n : ℕ) ↦ (n+1 : ℤ)) := by
+        intro a b h; omega
+      have : Set.Infinite (Set.range (fun (n : ℕ) ↦ (n+1 : ℤ))) := by
+        intro hfinite
+        have h_finite_range : Finite (Set.range (fun (n : ℕ) ↦ (n+1 : ℤ))) :=
+          Set.finite_coe_iff.mp hfinite
+        have : Finite ℕ :=
+          Finite.of_injective (fun (n : ℕ) ↦ (n+1 : ℤ)) h_inj
+        exact not_finite ℕ
+      have h_subset : Set.range (fun (n : ℕ) ↦ (n+1 : ℤ)) ⊆ { n : ℤ | n ≠ 0 } := by
+        rintro x ⟨ n, rfl ⟩; simp
+      exact this.mono h_subset
+    rcases h_at_most with (h | h)
+    · exact h
+    · exfalso; exact h_infinite (Set.finite_coe_iff.mp h)
   apply Int.countablyInfinite.prod at this
   let f : ℤ × { n:ℤ | n ≠ 0 } → ℚ := fun (a,b) ↦ (a/b:ℚ)
   replace := AtMostCountable.image this f
   have h : f '' .univ = .univ := by
-    sorry
+    ext q; constructor
+    · rintro ⟨ ⟨ a, b ⟩, _, rfl ⟩; trivial
+    · intro hq
+      have h_den_ne_zero : (q.den : ℤ) ≠ 0 := by
+        intro hzero
+        have : q.den = 0 := by exact_mod_cast hzero
+        exact q.den_pos.ne' this
+      use (q.num, ⟨ (q.den : ℤ), h_den_ne_zero ⟩), by simp
+      simp [f, q.num_div_den]
   rcases this with h1 | h2
   · have h1' : CountablyInfinite (Set.univ : Set ℚ) := h ▸ h1
     rwa [CountablyInfinite.equiv (EqualCard.univ _)] at h1'
@@ -309,19 +535,71 @@ theorem Rat.countablyInfinite : CountablyInfinite ℚ := by
 
 /-- Exercise 8.1.1 -/
 example (X: Type) : Infinite X ↔ ∃ Y : Set X, Y ≠ .univ ∧ EqualCard Y X := by
-  sorry
+  constructor
+  · intro hX
+    have h_nonempty : Nonempty X := by infer_instance
+    let x := h_nonempty.some
+    set Y := Set.univ \ {x} with hY
+    have hY_ne_univ : Y ≠ .univ := by simp [hY]
+    have hX_set : Set.Infinite (Set.univ : Set X) := Set.infinite_univ
+    have h_card_eq : Cardinal.mk Y = Cardinal.mk X :=
+      Cardinal.mk_diff_singleton x (Cardinal.infinite_iff.mpr hX)
+    refine ⟨ Y, hY_ne_univ, (EqualCard.iff' Y X).mpr h_card_eq ⟩
+  · intro ⟨ Y, hY_ne, hY_eq ⟩
+    by_contra! h_finite
+    haveI : Finite X := h_finite
+    have hY_finite_set : Set.Finite (Y : Set X) :=
+      Set.Finite.subset (Set.finite_univ : Set.Finite (Set.univ : Set X)) (Set.Subset.refl _)
+    haveI : Finite Y := Set.finite_coe_iff.mp hY_finite_set
+    have h_card_eq : Fintype.card Y = Fintype.card X := by
+      have h_card_eq' : Cardinal.mk Y = Cardinal.mk X := (EqualCard.iff' Y X).mp hY_eq
+      simpa [Cardinal.mk_fintype] using h_card_eq'
+    have hss : (Y : Set X) ⊂ Set.univ := by
+      rw [Set.ssubset_univ_iff]; exact hY_ne
+    have h_card_lt : Fintype.card Y < Fintype.card X :=
+      Set.Finite.card_lt_card hss hY_finite_set (Set.finite_univ : Set.Finite (Set.univ : Set X))
+    linarith
 
 /-- Exercise 8.1.6 -/
 example (A: Type) : AtMostCountable A ↔ ∃ f : A → ℕ, Function.Injective f := by
-  sorry
+  constructor
+  · intro h
+    rcases h with (h' | h')
+    · rcases (CountablyInfinite.iff A).mp h' with ⟨ h_denom ⟩
+      exact ⟨ (h_denom.eqv.symm : ℕ → A), h_denom.eqv.symm.injective ⟩
+    · haveI : Finite A := h'
+      refine ⟨ λ a => ((Fintype.equivFin A) a).val, ?_ ⟩
+      intro a b h
+      apply (Fintype.equivFin A).injective
+      exact Fin.ext h
+  · intro ⟨ f, hf ⟩
+    have h_range_countable : AtMostCountable (Set.range f : Set ℕ) :=
+      Nat.atMostCountable_subset (Set.range f)
+    have hA_eq : EqualCard A (Set.range f) := by
+      refine ⟨ λ a => ⟨ f a, by simp ⟩, ?_, ?_ ⟩
+      · intro a b h; apply hf; exact congrArg Subtype.val h
+      · intro ⟨ y, hy ⟩; rcases hy with ⟨ a, rfl ⟩; exact ⟨ a, rfl ⟩
+    exact (AtMostCountable.equiv hA_eq).mpr h_range_countable
 
 /-- Exercise 8.1.9 -/
 example {I X:Type} (hI: AtMostCountable I) (A: I → Set X) (hA: ∀ i, AtMostCountable (A i)) :
-  AtMostCountable (⋃ i, A i) := by sorry
+  AtMostCountable (⋃ i, A i) := by
+  haveI : Countable I := by rwa [AtMostCountable.iff] at hI
+  have hA_countable_set : ∀ i, (A i).Countable := by
+    intro i
+    have hA_countable : Countable (Subtype (A i)) := by rwa [AtMostCountable.iff] at hA i
+    exact Set.countable_coe_iff.mpr hA_countable
+  have h_union_countable_set : (⋃ i, A i).Countable :=
+    Set.Countable.biUnion (Set.countable_univ (α := I)) (by
+      intro i hi; exact hA_countable_set i)
+  have h_union_countable : Countable (Subtype (⋃ i, A i)) :=
+    Set.countable_coe_iff.mp h_union_countable_set
+  rwa [AtMostCountable.iff]
 
 /-- Exercise 8.1.10.  Note the lack of the `noncomputable` keyword in the {lit}`abbrev`. -/
-abbrev explicit_bijection : ℕ → ℚ := sorry
+abbrev explicit_bijection : ℕ → ℚ := (Denumerable.eqv (α := ℚ)).symm
 
-theorem explicit_bijection_spec : Function.Bijective explicit_bijection := by sorry
+theorem explicit_bijection_spec : Function.Bijective explicit_bijection :=
+  (Denumerable.eqv (α := ℚ)).symm.bijective
 
 end Chapter8
