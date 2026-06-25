@@ -221,7 +221,7 @@ theorem Series.absConverges_geom {x: ℝ} (hx: |x| < 1) : (fun n ↦ x ^ n : Ser
   have h_abs_eq : ((fun n : ℕ ↦ x ^ n : Series).abs : Series) = (fun n : ℕ ↦ |x| ^ n : Series) := by
     ext n
     · simp
-    · simp [Series.abs, Series.seq]
+    · simp
       by_cases h : 0 ≤ n
       · simp [h, abs_pow]
       · simp [h]
@@ -417,7 +417,7 @@ theorem Series.nonneg_sum_zero {a:ℕ → ℝ} (ha: (a:Series).nonneg) (hconv: (
       have hconv0 : (a : Series).convergesTo 0 := by
         have hzero_fun : (a : Series).partial = fun _ => 0 := by
           ext N; exact hzero_partial N
-        simpa [Series.convergesTo, hzero_fun] using tendsto_const_nhds (x := (0 : ℝ))
+        rw [Series.convergesTo, hzero_fun]; exact tendsto_const_nhds (x := (0 : ℝ))
       have h_eq : hconv.choose = 0 :=
         tendsto_nhds_unique hconv.choose_spec hconv0
       simp [Series.sum, hconv, h_eq]

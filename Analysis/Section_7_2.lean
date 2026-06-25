@@ -421,8 +421,7 @@ theorem Series.example_7_2_7' : ((fun n:ℕ ↦ (-1:ℝ)^n):Series).diverges := 
   have hMN : M ≥ N := le_max_left _ _
   have hM0 : M ≥ 0 := le_max_right _ _
   have hNM' : |((-1 : ℝ) ^ M.toNat)| < 1 := by
-    have := hN M hMN
-    simpa [hM0, Real.dist_eq, sub_zero] using this
+    simpa [hM0] using hN M hMN
   have h_abs : |((-1 : ℝ) ^ M.toNat)| = 1 := by
     have h_cases : ((-1 : ℝ) ^ M.toNat = 1) ∨ ((-1 : ℝ) ^ M.toNat = -1) := by
       induction' M.toNat with k ih
@@ -558,9 +557,9 @@ theorem Series.converges_of_alternating {m:ℤ} {a: { n // n ≥ m} → ℝ} (ha
       have hN3 : N + 2*(k : ℤ) + 3 ≥ m := by omega
       have hS_expr : S (N + 2*(k : ℤ) + 3) = S (N + 2*(k : ℤ) + 1) + (a ⟨N + 2*(k : ℤ) + 2, hN2⟩ - a ⟨N + 2*(k : ℤ) + 3, hN3⟩) := by
         calc
-          S (N + 2*(k : ℤ) + 3) = S ((N + 2*(k : ℤ) + 2) + 1) := by ring
+          S (N + 2*(k : ℤ) + 3) = S ((N + 2*(k : ℤ) + 2) + 1) := by ring_nf
           _ = S (N + 2*(k : ℤ) + 2) + (-1 : ℝ)^((N + 2*(k : ℤ) + 2) + 1 : ℤ) * a ⟨(N + 2*(k : ℤ) + 2) + 1, by omega⟩ := by rw [claim0 hN2]
-          _ = S ((N + 2*(k : ℤ) + 1) + 1) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by ring
+          _ = S ((N + 2*(k : ℤ) + 1) + 1) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by ring_nf
           _ = (S (N + 2*(k : ℤ) + 1) + (-1 : ℝ)^((N + 2*(k : ℤ) + 1) + 1 : ℤ) * a ⟨(N + 2*(k : ℤ) + 1) + 1, by omega⟩) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by
             rw [claim0 hN1]
           _ = (S (N + 2*(k : ℤ) + 1) + (-1 : ℝ)^(N + 2*(k : ℤ) + 2 : ℤ) * a ⟨N + 2*(k : ℤ) + 2, hN2⟩) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by
@@ -570,7 +569,7 @@ theorem Series.converges_of_alternating {m:ℤ} {a: { n // n ≥ m} → ℝ} (ha
             calc
               (S (N + 2*(k : ℤ) + 1) + (-1 : ℝ)^((N + 2*(k : ℤ) + 1) + 1 : ℤ) * a ⟨(N + 2*(k : ℤ) + 1) + 1, by omega⟩) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩
                   = (S (N + 2*(k : ℤ) + 1) + (-1 : ℝ)^(N + 2*(k : ℤ) + 2 : ℤ) * a ⟨(N + 2*(k : ℤ) + 1) + 1, by omega⟩) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by
-                    congr 2; ring
+                    congr 2; ring_nf
               _ = (S (N + 2*(k : ℤ) + 1) + (-1 : ℝ)^(N + 2*(k : ℤ) + 2 : ℤ) * a ⟨N + 2*(k : ℤ) + 2, hN2⟩) + (-1 : ℝ)^(N + 2*(k : ℤ) + 3 : ℤ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by
                 simp [h_sub]
           _ = S (N + 2*(k : ℤ) + 1) + (1 : ℝ) * a ⟨N + 2*(k : ℤ) + 2, hN2⟩ + (-1 : ℝ) * a ⟨N + 2*(k : ℤ) + 3, hN3⟩ := by
@@ -581,7 +580,7 @@ theorem Series.converges_of_alternating {m:ℤ} {a: { n // n ≥ m} → ℝ} (ha
           ha' (Subtype.mk_le_mk.mpr (by omega))
         linarith
       calc
-        S (N + 2*(k+1 : ℕ) + 1) = S (N + 2*(k : ℤ) + 3) := by push_cast; ring
+        S (N + 2*(k+1 : ℕ) + 1) = S (N + 2*(k : ℤ) + 3) := by push_cast; ring_nf
         _ = S (N + 2*(k : ℤ) + 1) + (a ⟨N + 2*(k : ℤ) + 2, hN2⟩ - a ⟨N + 2*(k : ℤ) + 3, hN3⟩) := by rw [hS_expr]
         _ ≥ S (N + 2*(k : ℤ) + 1) := by nlinarith
         _ ≥ S N - a ⟨N + 1, by grind⟩ := ih

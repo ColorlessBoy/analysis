@@ -111,8 +111,8 @@ theorem Series.zeta_2_converges : (fun n:ℕ ↦ 1/(n+1:ℝ)^2 : Series).converg
     · ext n
       by_cases hn : n ≥ 0
       · have hcast : (n.toNat : ℝ) = (n : ℝ) := by exact mod_cast Int.toNat_of_nonneg hn
-        simp [s, Series.mk', hn, hcast]
-      · simp [s, Series.mk', hn]
+        simp [s, hn, hcast]
+      · simp [s, hn]
   have h_convTo : (fun n : ℕ ↦ 1/(n+1:ℝ)^2 : Series).convergesTo s.sum := by
     rw [h_series_eq] at h_shifted
     exact h_shifted
@@ -295,7 +295,7 @@ theorem Series.absConverges_of_permute {a:ℕ → ℝ} (ha : (a:Series).absConve
     _ ≤ ε/2 + ε/2 := by
       gcongr; convert claim2
       simp [Series.partial, sum_eq_sum _ hM'_pos, sum_eq_sum _ hNpos]; grind
-    _ = ε := by ring
+    _ = ε := by ring_nf
 
 noncomputable abbrev Series.a_7_4_4 : ℕ → ℝ := fun n ↦ (-1:ℝ)^n / (n+2)
 
@@ -370,7 +370,7 @@ theorem Series.ex_7_4_4_conv : (a_7_4_4 : Series).converges := by
       calc
         (-1 : ℝ) ^ ((n : ℤ).toNat) / (((n : ℤ).toNat : ℝ) + 2) = (-1 : ℝ) ^ ((n : ℤ).toNat) / ((n : ℝ) + 2) := by simp [h_toNat_eq]
         _ = (-1 : ℝ) ^ (n : ℤ) / ((n : ℝ) + 2) := by rw [h_pow_eq]
-        _ = (-1 : ℝ) ^ (n : ℤ) * (1 / ((n : ℝ) + 2)) := by ring
+        _ = (-1 : ℝ) ^ (n : ℤ) * (1 / ((n : ℝ) + 2)) := by ring_nf
     · simp [h]
   rw [← h_eq] at h_alt
   exact h_alt
@@ -399,7 +399,7 @@ theorem Series.ex_7_4_4_sum : (a_7_4_4 : Series).sum > 0 := by
       s.seq (0 : ℤ) + s.seq (1 : ℤ) = (1/2 : ℝ) + (-1/3 : ℝ) := by
         dsimp [s, Series.a_7_4_4]
         norm_num
-      _ = 1/6 := by ring
+      _ = 1/6 := by ring_nf
     norm_num
   have hpos1 : s.partial (1 : ℤ) > 0 := by
     rw [hpartial1]; norm_num
@@ -451,24 +451,24 @@ theorem Series.ex_7_4_4_sum : (a_7_4_4 : Series).sum > 0 := by
     calc
       s.partial (2*(k:ℤ)+1 : ℤ) < s.partial (2*(k:ℤ)+1 : ℤ) + (s.seq (2*(k:ℤ)+2 : ℤ) + s.seq (2*(k:ℤ)+3 : ℤ)) := by
         nlinarith
-      _ = (s.partial (2*(k:ℤ)+1 : ℤ) + s.seq (2*(k:ℤ)+2 : ℤ)) + s.seq (2*(k:ℤ)+3 : ℤ) := by ring
+      _ = (s.partial (2*(k:ℤ)+1 : ℤ) + s.seq (2*(k:ℤ)+2 : ℤ)) + s.seq (2*(k:ℤ)+3 : ℤ) := by ring_nf
       _ = s.partial (2*(k:ℤ)+2 : ℤ) + s.seq (2*(k:ℤ)+3 : ℤ) := by
         have htemp : s.partial (2*(k:ℤ)+1 : ℤ) + s.seq (2*(k:ℤ)+2 : ℤ) = s.partial (2*(k:ℤ)+2 : ℤ) := by
-          have h_arg : (2*(k:ℤ)+2 : ℤ) = (((2*(k:ℤ)+1 : ℤ) + 1) : ℤ) := by ring
+          have h_arg : (2*(k:ℤ)+2 : ℤ) = (((2*(k:ℤ)+1 : ℤ) + 1) : ℤ) := by ring_nf
           calc
             s.partial (2*(k:ℤ)+1 : ℤ) + s.seq (2*(k:ℤ)+2 : ℤ)
                 = s.partial (2*(k:ℤ)+1 : ℤ) + s.seq (((2*(k:ℤ)+1 : ℤ) + 1) : ℤ) := by rw [h_arg]
             _ = s.partial (((2*(k:ℤ)+1 : ℤ) + 1) : ℤ) := by rw [← Series.partial_succ s hN1]
-            _ = s.partial (2*(k:ℤ)+2 : ℤ) := by ring
+            _ = s.partial (2*(k:ℤ)+2 : ℤ) := by ring_nf
         rw [htemp]
       _ = s.partial (2*(k:ℤ)+3 : ℤ) := by
         have htemp : s.partial (2*(k:ℤ)+2 : ℤ) + s.seq (2*(k:ℤ)+3 : ℤ) = s.partial (2*(k:ℤ)+3 : ℤ) := by
-          have h_arg : (2*(k:ℤ)+3 : ℤ) = (((2*(k:ℤ)+2 : ℤ) + 1) : ℤ) := by ring
+          have h_arg : (2*(k:ℤ)+3 : ℤ) = (((2*(k:ℤ)+2 : ℤ) + 1) : ℤ) := by ring_nf
           calc
             s.partial (2*(k:ℤ)+2 : ℤ) + s.seq (2*(k:ℤ)+3 : ℤ)
                 = s.partial (2*(k:ℤ)+2 : ℤ) + s.seq (((2*(k:ℤ)+2 : ℤ) + 1) : ℤ) := by rw [h_arg]
             _ = s.partial (((2*(k:ℤ)+2 : ℤ) + 1) : ℤ) := by rw [← Series.partial_succ s hN2]
-            _ = s.partial (2*(k:ℤ)+3 : ℤ) := by ring
+            _ = s.partial (2*(k:ℤ)+3 : ℤ) := by ring_nf
         rw [htemp]
   have h_odd_ge_first : ∀ (k : ℕ), s.partial (1 : ℤ) ≤ s.partial (2*(k:ℤ)+1 : ℤ) := by
     intro k
@@ -677,13 +677,13 @@ theorem Series.ex_7_4_4'_conv : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).converge
           _ = ((∑ n ∈ Finset.range ((3*M+3)+1), b n) + b ((3*M+3)+1)) + b ((3*M+3)+2) := by rw [Finset.sum_range_succ]
           _ = (((∑ n ∈ Finset.range (3*M+3), b n) + b (3*M+3)) + b (3*M+4)) + b (3*M+5) := by
             rw [Finset.sum_range_succ]
-          _ = (∑ n ∈ Finset.range (3*M+3), b n) + (b (3*M+3) + b (3*M+4) + b (3*M+5)) := by ring
+          _ = (∑ n ∈ Finset.range (3*M+3), b n) + (b (3*M+3) + b (3*M+4) + b (3*M+5)) := by ring_nf
       have h_T_M1 : T (M+1) = b (3*M+3) + b (3*M+4) + b (3*M+5) := by
         dsimp [T]
         have h1 : 3*(M+1 : ℕ) = 3*M+3 := by omega
         have h2 : 3*(M+1 : ℕ)+1 = 3*M+4 := by omega
         have h3 : 3*(M+1 : ℕ)+2 = 3*M+5 := by omega
-        simp [h1, h2, h3]
+        simp [h1]
       rw [h_expand, IH]
       have h_range_eq : Finset.range (M+2) = Finset.range ((M+1 : ℕ)+1) := by
         have h : M+2 = (M+1 : ℕ)+1 := by omega
@@ -861,7 +861,7 @@ theorem Series.ex_7_4_4'_conv : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).converge
     have h_mod3 : n' % 3 = 0 ∨ n' % 3 = 1 ∨ n' % 3 = 2 := by omega
     have h_abs_add (x y : ℝ) : |x + y| ≤ |x| + |y| := by
       calc
-        |x + y| = |x - (-y)| := by ring
+        |x + y| = |x - (-y)| := by ring_nf
         _ ≤ |x| + |-y| := abs_sub _ _
         _ = |x| + |y| := by simp
     have h_diff : |(b : Series).partial n - L| < ε := by
@@ -878,13 +878,13 @@ theorem Series.ex_7_4_4'_conv : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).converge
         have hb2 : |b (3*m+2)| < ε/3 := hM' (3*m+2) (by omega)
         calc
           |((T : Series).partial (m : ℤ) - L) - b (3*m+1) - b (3*m+2)|
-              = |((T : Series).partial (m : ℤ) - L) - (b (3*m+1) + b (3*m+2))| := by ring
+              = |((T : Series).partial (m : ℤ) - L) - (b (3*m+1) + b (3*m+2))| := by ring_nf
           _ ≤ |(T : Series).partial (m : ℤ) - L| + |b (3*m+1) + b (3*m+2)| := abs_sub _ _
           _ ≤ |(T : Series).partial (m : ℤ) - L| + (|b (3*m+1)| + |b (3*m+2)|) := by
             gcongr; exact h_abs_add (b (3*m+1)) (b (3*m+2))
-          _ = |(T : Series).partial (m : ℤ) - L| + |b (3*m+1)| + |b (3*m+2)| := by ring
+          _ = |(T : Series).partial (m : ℤ) - L| + |b (3*m+1)| + |b (3*m+2)| := by ring_nf
           _ < ε/3 + ε/3 + ε/3 := by nlinarith
-          _ = ε := by ring
+          _ = ε := by ring_nf
       · -- n' = 3*m+1
         have hn'_eq_mul : n' = 3*m+1 := by omega
         rw [hn'_eq_mul, show ((3*m+1 : ℕ) : ℤ) = (3 : ℤ) * (m : ℤ) + 1 by simp, h_eq_3m1]
@@ -947,7 +947,7 @@ theorem Series.ex_7_4_4'_sum : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).sum < 0 :
 
   have h_seq_simp (n : ℕ) : (b : Series).seq (n : ℤ) = b n := by
     have hn : (n : ℤ) ≥ 0 := by exact mod_cast (Nat.zero_le n)
-    simpa using h_seq (n : ℤ) hn
+    exact h_seq (n : ℤ) hn
 
   have h_partial_add (M : ℕ) : (b : Series).partial (3*M+5 : ℤ) = (b : Series).partial (3*M+2 : ℤ) + b (3*M+3) + b (3*M+4) + b (3*M+5) := by
     have hpos2 : (3*M+2 : ℤ) ≥ (b : Series).m - 1 := by
@@ -963,18 +963,18 @@ theorem Series.ex_7_4_4'_sum : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).sum < 0 :
     have h_sq5 : (b : Series).seq (3*M+5 : ℤ) = b (3*M+5) := by
       simpa using h_seq_simp (3*M+5)
     calc
-      (b : Series).partial (3*M+5 : ℤ) = (b : Series).partial (((3*M+4 : ℤ) + 1 : ℤ)) := by ring
+      (b : Series).partial (3*M+5 : ℤ) = (b : Series).partial (((3*M+4 : ℤ) + 1 : ℤ)) := by ring_nf
       _ = (b : Series).partial (3*M+4 : ℤ) + (b : Series).seq ((3*M+4 : ℤ) + 1) := Series.partial_succ (b : Series) hpos4
-      _ = (b : Series).partial (3*M+4 : ℤ) + (b : Series).seq (3*M+5 : ℤ) := by ring
-      _ = (b : Series).partial (((3*M+3 : ℤ) + 1 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring
+      _ = (b : Series).partial (3*M+4 : ℤ) + (b : Series).seq (3*M+5 : ℤ) := by ring_nf
+      _ = (b : Series).partial (((3*M+3 : ℤ) + 1 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring_nf
       _ = ((b : Series).partial (3*M+3 : ℤ) + (b : Series).seq ((3*M+3 : ℤ) + 1)) + (b : Series).seq (3*M+5 : ℤ) := by rw [Series.partial_succ (b : Series) hpos3]
-      _ = ((b : Series).partial (3*M+3 : ℤ) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring
-      _ = ((b : Series).partial (((3*M+2 : ℤ) + 1 : ℤ)) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring
+      _ = ((b : Series).partial (3*M+3 : ℤ) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring_nf
+      _ = ((b : Series).partial (((3*M+2 : ℤ) + 1 : ℤ)) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring_nf
       _ = (((b : Series).partial (3*M+2 : ℤ) + (b : Series).seq ((3*M+2 : ℤ) + 1)) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by rw [Series.partial_succ (b : Series) hpos2]
-      _ = (((b : Series).partial (3*M+2 : ℤ) + (b : Series).seq (3*M+3 : ℤ)) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring
-      _ = (b : Series).partial (3*M+2 : ℤ) + ((b : Series).seq (3*M+3 : ℤ) + (b : Series).seq (3*M+4 : ℤ) + (b : Series).seq (3*M+5 : ℤ)) := by ring
+      _ = (((b : Series).partial (3*M+2 : ℤ) + (b : Series).seq (3*M+3 : ℤ)) + (b : Series).seq (3*M+4 : ℤ)) + (b : Series).seq (3*M+5 : ℤ) := by ring_nf
+      _ = (b : Series).partial (3*M+2 : ℤ) + ((b : Series).seq (3*M+3 : ℤ) + (b : Series).seq (3*M+4 : ℤ) + (b : Series).seq (3*M+5 : ℤ)) := by ring_nf
       _ = (b : Series).partial (3*M+2 : ℤ) + (b (3*M+3) + b (3*M+4) + b (3*M+5)) := by rw [h_sq3, h_sq4, h_sq5]
-      _ = (b : Series).partial (3*M+2 : ℤ) + b (3*M+3) + b (3*M+4) + b (3*M+5) := by ring
+      _ = (b : Series).partial (3*M+2 : ℤ) + b (3*M+3) + b (3*M+4) + b (3*M+5) := by ring_nf
 
   have h_partial_neg (M : ℕ) : (b : Series).partial (3*M+2 : ℤ) < 0 := by
     induction' M with M ih
@@ -988,13 +988,13 @@ theorem Series.ex_7_4_4'_sum : (fun n ↦ a_7_4_4 (f_7_4_4 n) :Series).sum < 0 :
       have h0 : (3*↑0+2 : ℤ) = (2 : ℤ) := by norm_num
       simpa [h0, h_partial2] using h_block_neg 0
     · have h_target : (b : Series).partial (3*↑(M+1)+2 : ℤ) = (b : Series).partial (3*↑M+5 : ℤ) := by
-        push_cast; ring
+        push_cast; ring_nf
       rw [h_target, h_partial_add M]
       have h_next : b (3*M+3) + b (3*M+4) + b (3*M+5) < 0 := h_block_neg (M+1)
       nlinarith
 
   have h_partial_decr (M : ℕ) : (b : Series).partial (3*(M+1)+2 : ℤ) ≤ (b : Series).partial (3*M+2 : ℤ) := by
-    have h_eq : (b : Series).partial (3*(M+1)+2 : ℤ) = (b : Series).partial (3*M+5 : ℤ) := by ring
+    have h_eq : (b : Series).partial (3*(M+1)+2 : ℤ) = (b : Series).partial (3*M+5 : ℤ) := by ring_nf
     rw [h_eq, h_partial_add M]
     have h_next : b (3*M+3) + b (3*M+4) + b (3*M+5) < 0 := h_block_neg (M+1)
     nlinarith
