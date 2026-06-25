@@ -1,6 +1,5 @@
 import Mathlib.Tactic
 import Analysis.Section_7_3
-open scoped Topology
 
 namespace Chapter7
 
