@@ -138,34 +138,3 @@ example {x:ℝ} (h:x>0) (hsin: Real.sin x = 1) : x ≥ Real.pi / 2 := by
     apply Real.sin_lt_sin_of_lt_of_le_pi_div_two _ _ h' <;> linarith
   simp at h1 h2
   linarith
-
--- AUTO_AXIOM_CHECK_MARKER_DO_NOT_COMMIT
-#print axioms {X
-#print axioms {X
-#print axioms {X
-#print axioms {X
-#print axioms {X
-#print axioms example_A_2_1
-#print axioms example : (2:ℤ) = 2 → (2:ℤ)^2 = 4 := example_A_2_1 2
-#print axioms example : (3:ℤ) = 2 → (3:ℤ)^2 = 4 := example_A_2_1 3
-#print axioms example : (-2:ℤ) = 2 → (-2:ℤ)^2 = 4 := example_A_2_1 (-2)
-#print axioms example : ¬ ((2+2=4) → (4+4)=2) := by
-#print axioms {X
-#print axioms {X
-#print axioms {John_left_at_five
-#print axioms {Washington_capital_US
-#print axioms {NYC_capital_US
-#print axioms example : ((2+2:ℤ)=5) → (4=(10-4:ℤ)) := by
-#print axioms theorem_A_2_4
-#print axioms example :
-#print axioms example : ∀ x:ℝ, x = 2 → x^2 = 4 := by
-#print axioms example : ¬ ∀ x:ℝ, x^2 = 4 → x = 2 := by
-#print axioms {X
-#print axioms example (x:ℝ) : x = 2 ↔ 2*x = 4 := by
-#print axioms {X
-#print axioms example : (3 = 2) → (6 = 4) := by simp
-#print axioms example : ∃ (X Y:Prop), (X → Y) ≠ (Y → X) := by
-#print axioms contrapositive
-#print axioms imp_example
-#print axioms imp_contrapositive
-#print axioms {x
