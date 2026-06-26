@@ -312,35 +312,73 @@ theorem sum_of_sum_of_AbsConvergent {f:ℕ × ℕ → ℝ} (hf:AbsConvergent f) 
         _ = |fplus (n, n'.toNat) + (-fminus (n, n'.toNat))| := by ring
         _ ≤ |fplus (n, n'.toNat)| + |-fminus (n, n'.toNat)| := abs_add_le _ _
         _ = |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := by simp
-    have hsum_abs_conv : (((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series).converges := by
-      rcases h_plus_abs with ⟨L₁, hL₁⟩
-      rcases h_minus_abs with ⟨L₂, hL₂⟩
-      refine ⟨L₁ + L₂, ?_⟩
-      simpa using hL₁.add hL₂
-    have hsum_seq_eq (n' : ℤ) (hn_nonneg : 0 ≤ n') :
-      ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' =
-      |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := by
-      simp [Series.add_coe, Series.abs, hn_nonneg]
-    have hseq_ineq : ∀ (n' : ℤ) (hn' : n' ≥ ((fun m => (fplus - fminus) (n, m) : Series)).m),
-      |((fun m => (fplus - fminus) (n, m) : Series)).seq n'| ≤
-        ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' := by
-      intro n' hn'
-      have hn_nonneg : 0 ≤ (n' : ℤ) := by
-        simpa using hn'
-      have htemp : |(fplus - fminus) (n, n'.toNat)| ≤ |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| :=
-        hle n' hn_nonneg
+    have h_nonneg_abs : ((fun m => (fplus - fminus) (n, m) : Series)).abs.nonneg := by
+      intro n'; dsimp [Series.abs]; split_ifs <;> simp
+    rw [absConverges, converges_of_nonneg_iff h_nonneg_abs]
+    rcases h_plus_abs with ⟨L₁, hL₁⟩
+    rcases h_minus_abs with ⟨L₂, hL₂⟩
+    have h_nonneg_s1 : ((fun m => fplus (n, m) : Series)).abs.nonneg := by
+      intro n'; dsimp [Series.abs]; split_ifs <;> simp
+    have h_nonneg_s2 : ((fun m => fminus (n, m) : Series)).abs.nonneg := by
+      intro n'; dsimp [Series.abs]; split_ifs <;> simp
+    have h_conv_s1 : ((fun m => fplus (n, m) : Series)).abs.converges := ⟨L₁, hL₁⟩
+    have h_conv_s2 : ((fun m => fminus (n, m) : Series)).abs.converges := ⟨L₂, hL₂⟩
+    have h_sum_s1 : ((fun m => fplus (n, m) : Series)).abs.sum = L₁ :=
+      convergesTo_uniq (convergesTo_sum h_conv_s1) hL₁
+    have h_sum_s2 : ((fun m => fminus (n, m) : Series)).abs.sum = L₂ :=
+      convergesTo_uniq (convergesTo_sum h_conv_s2) hL₂
+    use L₁ + L₂
+    intro n'
+    have h_partial_plus : ((fun m => fplus (n, m) : Series)).abs.partial n' ≤ L₁ := by
       calc
-        |((fun m => (fplus - fminus) (n, m) : Series)).seq n'| = |(fplus - fminus) (n, n'.toNat)| := by
-          simp [hn_nonneg]
-        _ ≤ |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := htemp
-        _ = ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' := by
-          symm; apply hsum_seq_eq n' hn_nonneg
-    have h_abs_conv : ((fun m => (fplus - fminus) (n, m) : Series)).absConverges :=
-      (Series.converges_of_le
-        (s := (fun m => (fplus - fminus) (n, m) : Series))
-        (t := ((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs)
-        (by simp) hseq_ineq hsum_abs_conv).1
-    exact h_abs_conv
+        ((fun m => fplus (n, m) : Series)).abs.partial n' ≤ ((fun m => fplus (n, m) : Series)).abs.sum :=
+          partial_le_sum_of_nonneg h_nonneg_s1 h_conv_s1 n'
+        _ = L₁ := h_sum_s1
+    have h_partial_minus : ((fun m => fminus (n, m) : Series)).abs.partial n' ≤ L₂ := by
+      calc
+        ((fun m => fminus (n, m) : Series)).abs.partial n' ≤ ((fun m => fminus (n, m) : Series)).abs.sum :=
+          partial_le_sum_of_nonneg h_nonneg_s2 h_conv_s2 n'
+        _ = L₂ := h_sum_s2
+    have h_ineq : ((fun m => (fplus - fminus) (n, m) : Series)).abs.partial n' ≤
+      ((fun m => fplus (n, m) : Series)).abs.partial n' + ((fun m => fminus (n, m) : Series)).abs.partial n' := by
+      let partial_sum (s : Series) (N : ℤ) : ℝ := ∑ i ∈ Finset.Icc s.m N, s.seq i
+      have h_abs_seq (s : Series) (i : ℤ) : s.abs.seq i = |s.seq i| := by
+        dsimp [Series.abs, Series.mk']; split_ifs with h
+        · rfl
+        · have hi : i < s.m := by omega
+          simp [s.vanish i hi]
+      let s := (fun m => (fplus - fminus) (n, m) : Series)
+      let s1 := (fun m => fplus (n, m) : Series)
+      let s2 := (fun m => fminus (n, m) : Series)
+      have h_abs_seq_s : ∀ i, s.abs.seq i = |s.seq i| := h_abs_seq s
+      have h_abs_seq_s1 : ∀ i, s1.abs.seq i = |s1.seq i| := h_abs_seq s1
+      have h_abs_seq_s2 : ∀ i, s2.abs.seq i = |s2.seq i| := h_abs_seq s2
+      have hm_s : s.m = 0 := rfl
+      have hm_s_abs : s.abs.m = 0 := by simpa using hm_s
+      have hm_s1 : s1.abs.m = 0 := rfl
+      have hm_s2 : s2.abs.m = 0 := rfl
+      calc
+        s.abs.partial n' = ∑ i ∈ Finset.Icc s.abs.m n', s.abs.seq i := rfl
+        _ = ∑ i ∈ Finset.Icc 0 n', s.abs.seq i := by
+          rw [hm_s_abs]
+        _ = ∑ i ∈ Finset.Icc 0 n', |s.seq i| := by
+          refine Finset.sum_congr rfl (λ i hi => ?_)
+          rw [h_abs_seq_s i]
+        _ = ∑ i ∈ Finset.Icc 0 n', |(fplus - fminus) (n, Int.toNat i)| := by
+          refine Finset.sum_congr rfl (λ i hi => ?_)
+          have hi_nonneg : 0 ≤ i := (Finset.mem_Icc.mp hi).1
+          simp [hm_s, hi_nonneg]
+        _ ≤ ∑ i ∈ Finset.Icc 0 n', (|fplus (n, Int.toNat i)| + |fminus (n, Int.toNat i)|) := by
+          refine Finset.sum_le_sum (λ i hi => ?_)
+          have hi_nonneg : 0 ≤ i := (Finset.mem_Icc.mp hi).1
+          exact hle (i : ℤ) hi_nonneg
+        _ = (∑ i ∈ Finset.Icc 0 n', |fplus (n, Int.toNat i)|) + (∑ i ∈ Finset.Icc 0 n', |fminus (n, Int.toNat i)|) := by
+          simp [Finset.sum_add_distrib]
+        _ = (∑ i ∈ Finset.Icc 0 n', s1.abs.seq i) + (∑ i ∈ Finset.Icc 0 n', s2.abs.seq i) := by
+          simp [h_abs_seq_s1, h_abs_seq_s2]
+        _ = s1.abs.partial n' + s2.abs.partial n' := by
+          simp [Series.partial, hm_s1, hm_s2]
+    linarith
   convert convergesTo.sub hfplus_sum hfminus_sum using 1
   . -- encountered surprising difficulty with definitional equivalence here
     simp [hdiff]
@@ -384,7 +422,7 @@ theorem sum_comm {f:ℕ × ℕ → ℝ} (hf:AbsConvergent f) :
 /-- Lemma 8.2.3 / Exercise 8.2.1 -/
 theorem AbsConvergent.iff {X:Type} (hX:CountablyInfinite X) (f : X → ℝ) :
   AbsConvergent f ↔ BddAbove ( (fun A ↦ ∑ x ∈ A, |f x|) '' .univ ) := by
-    sorry
+  simpa [AbsConvergent'] using (AbsConvergent'.of_countable hX).symm
 
 abbrev AbsConvergent' {X:Type} (f: X → ℝ) : Prop := BddAbove ( (fun A ↦ ∑ x ∈ A, |f x|) '' .univ )
 
@@ -413,7 +451,38 @@ theorem AbsConvergent'.of_countable {X:Type} (hX:CountablyInfinite X) {f:X → �
 /-- Lemma 8.2.5 / Exercise 8.2.2-/
 theorem AbsConvergent'.countable_supp {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) :
   AtMostCountable { x | f x ≠ 0 } := by
-    sorry
+  let S (n : ℕ) : Set X := { x | |f x| > 1 / ((n : ℝ) + 1) }
+  have hS_finite (n : ℕ) : Set.Finite (S n) := by
+    by_contra! hinf
+    have hinfinite : Infinite (S n) := by
+      rw [Set.not_finite_iff_infinite]; exact hinf
+    have h_nonempty : Set.Nonempty (S n) := by
+      have : Nonempty (S n) := Set.infinite_nonempty (S n)
+      exact this
+    rcases hf with ⟨M, hM⟩
+    rcases h_nonempty with ⟨x, hx⟩
+    have hx_val : |f x| > 1 / ((n : ℝ) + 1) := hx
+    have h_contra : ∑ y ∈ ({x} : Finset X), |f y| > M := by
+      simp [hx_val]
+      linarith [hx_val]
+    have h_bound : ∑ y ∈ ({x} : Finset X), |f y| ≤ M := by
+      apply hM (∑ y ∈ ({x} : Finset X), |f y|)
+      refine ⟨{x}, ?_⟩
+      simp
+    linarith
+  have h_support : { x | f x ≠ 0 } = ⋃ n : ℕ, S n := by
+    ext x; simp [S]; constructor
+    · intro hfx
+      have h_abs_pos : |f x| > 0 := by
+        contrapose! hfx; simp at hfx; exact hfx
+      have ⟨n, hn⟩ := exists_nat_one_div_lt h_abs_pos
+      use n
+      simpa [div_eq_inv_mul] using hn
+    · rintro ⟨n, hn⟩; simp at hn; exact hn
+  rw [h_support]
+  refine Set.Countable.biUnion (Set.countable_univ : Set.Countable (Set.univ : Set ℕ)) ?_
+  intro n _
+  exact (hS_finite n).countable
 
 /-- Compare with Mathlib's {name}`Summable.subtype`-/
 theorem AbsConvergent'.subtype {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) (A: Set X) :
@@ -587,12 +656,29 @@ theorem Sum'.eq_tsum {X:Type} (f:X → ℝ) (h: AbsConvergent' f) :
 /-- Proposition 8.2.6 (a) (Absolutely convergent series laws) / Exercise 8.2.3 -/
 theorem Sum'.add {X:Type} {f g:X → ℝ} (hf: AbsConvergent' f) (hg: AbsConvergent' g) :
   AbsConvergent' (f+g) ∧ Sum' (f + g) = Sum' f + Sum' g := by
-  sorry
+  have hf_summable : Summable f := (AbsConvergent'.iff_Summable f).mp hf
+  have hg_summable : Summable g := (AbsConvergent'.iff_Summable g).mp hg
+  have hfg_summable : Summable (f + g) := hf_summable.add hg_summable
+  have hfg_conv : AbsConvergent' (f + g) := (AbsConvergent'.iff_Summable (f + g)).mpr hfg_summable
+  refine ⟨hfg_conv, ?_⟩
+  calc
+    Sum' (f + g) = ∑' x, (f + g) x := Sum'.eq_tsum (f + g) hfg_conv
+    _ = ∑' x, (f x + g x) := rfl
+    _ = (∑' x, f x) + (∑' x, g x) := tsum_add hf_summable hg_summable
+    _ = Sum' f + Sum' g := by rw [Sum'.eq_tsum f hf, Sum'.eq_tsum g hg]
 
 /-- Proposition 8.2.6 (b) (Absolutely convergent series laws) / Exercise 8.2.3 -/
 theorem Sum'.smul {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) (c: ℝ) :
   AbsConvergent' (c • f) ∧ Sum' (c • f) = c * Sum' f := by
-  sorry
+  have hf_summable : Summable f := (AbsConvergent'.iff_Summable f).mp hf
+  have hcf_summable : Summable (c • f) := hf_summable.const_smul c
+  have hcf_conv : AbsConvergent' (c • f) := (AbsConvergent'.iff_Summable (c • f)).mpr hcf_summable
+  refine ⟨hcf_conv, ?_⟩
+  calc
+    Sum' (c • f) = ∑' x, (c • f) x := Sum'.eq_tsum (c • f) hcf_conv
+    _ = ∑' x, c * f x := rfl
+    _ = c * (∑' x, f x) := tsum_mul_left
+    _ = c * Sum' f := by rw [Sum'.eq_tsum f hf]
 
 /-- This law is not explicitly stated in Proposition 8.2.6, but follows easily from parts (a) and (b).-/
 theorem Sum'.sub {X:Type} {f g:X → ℝ} (hf: AbsConvergent' f) (hg: AbsConvergent' g) :
@@ -604,20 +690,48 @@ theorem Sum'.sub {X:Type} {f g:X → ℝ} (hf: AbsConvergent' f) (hg: AbsConverg
 
 /-- Proposition 8.2.6 (c) (Absolutely convergent series laws) / Exercise 8.2.3.  The first
     part of this proposition has been moved to {lean}`AbsConvergent'.subtype`. -/
-theorem Sum'.of_disjoint_union {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) {X₁ X₂ : Set X} (hdisj: Disjoint X₁ X₂):
+ theorem Sum'.of_disjoint_union {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) {X₁ X₂ : Set X} (hdisj: Disjoint X₁ X₂):
   Sum' (fun x: (X₁ ∪ X₂: Set X) ↦ f x) = Sum' (fun x : X₁ ↦ f x) + Sum' (fun x : X₂ ↦ f x) := by
-  sorry
+  have hf_union : AbsConvergent' (fun x : (X₁ ∪ X₂ : Set X) ↦ f x) := hf.subtype (X₁ ∪ X₂)
+  have hf1 : AbsConvergent' (fun x : X₁ ↦ f x) := hf.subtype X₁
+  have hf2 : AbsConvergent' (fun x : X₂ ↦ f x) := hf.subtype X₂
+  calc
+    Sum' (fun x : (X₁ ∪ X₂ : Set X) ↦ f x) = ∑' (x : (X₁ ∪ X₂ : Set X)), f x := Sum'.eq_tsum _ hf_union
+    _ = (∑' (x : X₁), f x) + (∑' (x : X₂), f x) :=
+      tsum_union_disjoint hdisj (by simpa using (AbsConvergent'.iff_Summable _).mp hf1)
+        (by simpa using (AbsConvergent'.iff_Summable _).mp hf2)
+    _ = Sum' (fun x : X₁ ↦ f x) + Sum' (fun x : X₂ ↦ f x) := by rw [Sum'.eq_tsum _ hf1, Sum'.eq_tsum _ hf2]
 
 /-- This technical claim, the analogue of {name}`tsum_univ`, is required due to the way Mathlib handles
     sets.-/
 theorem Sum'.of_univ {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) :
   Sum' (fun x: (.univ : Set X) ↦ f x) = Sum' f := by
-  sorry
+  have hf_univ : AbsConvergent' (fun x : (Set.univ : Set X) ↦ f x) := hf.subtype Set.univ
+  calc
+    Sum' (fun x : (Set.univ : Set X) ↦ f x) = ∑' (x : (Set.univ : Set X)), f x := Sum'.eq_tsum _ hf_univ
+    _ = ∑' (x : X), f x := tsum_univ
+    _ = Sum' f := (Sum'.eq_tsum f hf).symm
 
 theorem Sum'.of_comp {X Y:Type} {f:X → ℝ} (hf: AbsConvergent' f) {φ: Y → X}
   (hφ: Function.Bijective φ) :
   AbsConvergent' (f ∘ φ) ∧ Sum' f = Sum' (f ∘ φ) := by
-  sorry
+  have hf_comp_conv : AbsConvergent' (f ∘ φ) := by
+    rw [AbsConvergent']
+    rcases hf with ⟨M, hM⟩
+    use M
+    intro y hy; simp at hy; rcases hy with ⟨A, rfl⟩
+    apply hM (A.image φ)
+    simp
+    calc
+      ∑ y ∈ A, |(f ∘ φ) y| = ∑ x ∈ A.image φ, |f x| := by
+        rw [Finset.sum_image]
+        intro x hx y hy h; exact hφ.1 h
+      _ ≤ M := hM (A.image φ) (by simp)
+  refine ⟨hf_comp_conv, ?_⟩
+  calc
+    Sum' f = ∑' x, f x := Sum'.eq_tsum f hf
+    _ = ∑' y, f (φ y) := by rw [(Equiv.ofBijective φ hφ).tsum_eq]
+    _ = Sum' (f ∘ φ) := (Sum'.eq_tsum (f ∘ φ) hf_comp_conv).symm
 
 /-- Lemma 8.2.7 / Exercise 8.2.4 -/
 theorem divergent_parts_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
