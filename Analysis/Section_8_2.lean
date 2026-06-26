@@ -93,7 +93,48 @@ theorem sum_of_sum_of_AbsConvergent_nonneg {f:ℕ × ℕ → ℝ} (hf:AbsConverg
   set a : ℕ → Series := fun n ↦ ((fun m ↦ f (n, m)):Series)
   have hLpos : 0 ≤ L := by
     simp [L, Sum, hf]; apply sum_of_nonneg; intro n; by_cases h: n ≥ 0 <;> simp [h]; grind
-  have hfinsum (X: Finset (ℕ × ℕ)) : ∑ p ∈ X, f p ≤ L := by sorry
+  have hfinsum (X: Finset (ℕ × ℕ)) : ∑ p ∈ X, f p ≤ L := by
+    rcases hf with ⟨g, hg, hconv⟩
+    have hconvL : (f ∘ g:Series).convergesTo L := Sum.eq hg hconv
+    have hpos_g : (f ∘ g:Series).nonneg := by
+      intro n; simp; split_ifs; exact hpos _ _; simp
+    have hconv_g : (f ∘ g:Series).converges := converges_of_absConverges hconv
+    have hsum_g : (f ∘ g:Series).sum = L :=
+      convergesTo_uniq (convergesTo_sum hconv_g) hconvL
+    have hbound (n : ℤ) : (f ∘ g:Series).partial n ≤ L := by
+      by_cases hn : n ≥ 0
+      · lift n to ℕ using hn
+        calc
+          (f ∘ g:Series).partial (n : ℤ) ≤ (f ∘ g:Series).sum :=
+            partial_le_sum_of_nonneg hpos_g hconv_g (n : ℤ)
+          _ = L := hsum_g
+      · have hn' : n < 0 := by linarith
+        rw [partial_of_lt hn']
+        exact hLpos
+    by_cases hX : X.Nonempty
+    · choose f' hf' using hg.2
+      let preX : Finset ℕ := X.image (λ p => f' p)
+      have hpreX_nonempty : preX.Nonempty := by
+        rcases hX with ⟨p, hp⟩
+        refine ⟨f' p, Finset.mem_image.mpr ⟨p, hp, rfl⟩⟩
+      let N := Finset.max' preX hpreX_nonempty
+      have hX_sub_image : X ⊆ Finset.image g (Finset.Icc 0 N) := by
+        intro p hp
+        have hnp : g (f' p) = p := hf' p
+        have hn_mem : f' p ∈ preX := Finset.mem_image.mpr ⟨p, hp, rfl⟩
+        have hn_le_N : f' p ≤ N := Finset.le_max' preX (f' p) hn_mem
+        have hn_Icc : f' p ∈ Finset.Icc 0 N := Finset.mem_Icc.mpr ⟨Nat.zero_le _, hn_le_N⟩
+        apply Finset.mem_image.mpr
+        exact ⟨f' p, hn_Icc, hnp⟩
+      calc
+        ∑ p ∈ X, f p ≤ ∑ p ∈ Finset.image g (Finset.Icc 0 N), f p :=
+          Finset.sum_le_sum_of_subset_of_nonneg hX_sub_image (by
+            intro p hp hnp; exact hpos p.1 p.2)
+        _ = ∑ n ∈ Finset.Icc 0 N, f (g n) := Finset.sum_image (λ a ha b hb h => hg.1 h)
+        _ = (f ∘ g:Series).partial (N : ℤ) := by simp [Series.partial]
+        _ ≤ L := hbound (N : ℤ)
+    · have : X = ∅ := Finset.not_nonempty_iff_eq_empty.mp hX
+      subst this; simp [hLpos]
   have hfinsum' (n M:ℕ) : (a n).partial M ≤ L := by
     simp [a, Series.partial, Finset.Icc_eq_cast]
     convert_to ∑ x ∈ .map (Embedding.sectR n ℕ) (.Icc 0 M), f x ≤ L
@@ -133,10 +174,46 @@ theorem sum_of_sum_of_AbsConvergent_nonneg {f:ℕ × ℕ → ℝ} (hf:AbsConverg
   replace : (fun n ↦ (a n).sum:Series).sum = L := by
     apply le_antisymm this (le_of_forall_sub_le _); intro ε hε
     replace : ∃ X, ∑ p ∈ X, f p ≥ L - ε := by
-      sorry
+      rcases hf with ⟨g, hg, hconv⟩
+      have hconvL : (f ∘ g:Series).convergesTo L := Sum.eq hg hconv
+      have hlim_nat : Filter.Tendsto (λ (n : ℕ) => (f ∘ g:Series).partial (n : ℤ)) Filter.atTop (nhds L) :=
+        hconvL.comp (tendsto_natCast_atTop_atTop : Filter.Tendsto (Nat.cast : ℕ → ℤ) Filter.atTop Filter.atTop)
+      have hpos_g : (f ∘ g:Series).nonneg := by
+        intro n; simp; split_ifs; exact hpos _ _; simp
+      have hmetric := (Metric.tendsto_atTop (u := λ (n : ℕ) => (f ∘ g:Series).partial (n : ℤ)) (a := L)).mp hlim_nat
+      rcases hmetric ε (by linarith) with ⟨N, hN⟩
+      have hN_dist : dist ((f ∘ g:Series).partial (N : ℤ)) L < ε := hN N (le_refl N)
+      have hN_bound : (f ∘ g:Series).partial (N : ℤ) ≥ L - ε := by
+        rw [Real.dist_eq] at hN_dist
+        have h := abs_lt.mp hN_dist
+        linarith
+      refine ⟨Finset.image g (Finset.Icc 0 N), ?_⟩
+      calc
+        ∑ p ∈ Finset.image g (Finset.Icc 0 N), f p = ∑ n ∈ Finset.Icc 0 N, f (g n) :=
+          Finset.sum_image (λ a ha b hb h => hg.1 h)
+        _ = (f ∘ g:Series).partial (N : ℤ) := by simp [Series.partial]
+        _ ≥ L - ε := hN_bound
+    
     choose X hX using this
     have : ∃ N, ∃ M, X ⊆ (Icc 0 N) ×ˢ (Icc 0 M) := by
-      sorry
+      by_cases hX_nonempty : X.Nonempty
+      · let N := Finset.max' (X.image Prod.fst) (by
+          rcases hX_nonempty with ⟨p, hp⟩
+          refine ⟨p.1, Finset.mem_image.mpr ⟨p, hp, rfl⟩⟩)
+        let M := Finset.max' (X.image Prod.snd) (by
+          rcases hX_nonempty with ⟨p, hp⟩
+          refine ⟨p.2, Finset.mem_image.mpr ⟨p, hp, rfl⟩⟩)
+        refine ⟨N, M, ?_⟩
+        intro p hp
+        have hfst : p.1 ≤ N :=
+          Finset.le_max' (X.image Prod.fst) p.1 (Finset.mem_image.mpr ⟨p, hp, rfl⟩)
+        have hsnd : p.2 ≤ M :=
+          Finset.le_max' (X.image Prod.snd) p.2 (Finset.mem_image.mpr ⟨p, hp, rfl⟩)
+        exact Finset.mem_product.mpr
+          ⟨Finset.mem_Icc.mpr ⟨Nat.zero_le _, hfst⟩, Finset.mem_Icc.mpr ⟨Nat.zero_le _, hsnd⟩⟩
+      · refine ⟨0, 0, ?_⟩
+        have : X = ∅ := Finset.not_nonempty_iff_eq_empty.mp hX_nonempty
+        subst this; simp
     choose N M hX' using this
     calc
       _ ≤ ∑ p ∈ X, f p := hX
@@ -158,14 +235,112 @@ theorem sum_of_sum_of_AbsConvergent {f:ℕ × ℕ → ℝ} (hf:AbsConvergent f) 
   set fminus := max (-f) 0
   have hfplus_nonneg : ∀ n m, 0 ≤ fplus (n, m) := by intro n m; simp [fplus]
   have hfminus_nonneg : ∀ n m, 0 ≤ fminus (n, m) := by intro n m; simp [fminus]
-  have hdiff : f = fplus - fminus := by sorry
-  have hfplus_conv : AbsConvergent fplus := by sorry
-  have hfminus_conv : AbsConvergent fminus := by sorry
+  have hdiff : f = fplus - fminus := by
+    ext p; simp [fplus, fminus]; by_cases h : 0 ≤ f p <;> simp [h]
+  have hfplus_conv : AbsConvergent fplus := by
+    rcases hf with ⟨g, hg, hconv⟩
+    refine ⟨g, hg, ?_⟩
+    have hle : ∀ n : ℕ, |fplus (g n)| ≤ |f (g n)| := by
+      intro n; dsimp [fplus]; have := le_total (f (g n)) 0; rcases this with (h | h)
+      · simp [h]
+      · simp [h]
+    have hle' : ∀ (n : ℤ), 0 ≤ n → |(fplus ∘ g : Series).seq n| ≤ ((f ∘ g : Series).abs).seq n := by
+      intro n hn
+      have hnpos : (n.toNat : ℤ) = n := Int.toNat_of_nonneg hn
+      simp [Series.abs, Series.seq, hle (n.toNat), hnpos, hn]
+    have h_conv_abs : ((f ∘ g : Series).abs).converges := hconv
+    have h := Series.converges_of_le (s := (fplus ∘ g : Series)) (t := (f ∘ g : Series).abs)
+      (by simp) (by
+      intro n hn
+      have hn0 : 0 ≤ (n : ℤ) := hn
+      have hcomp := hle' (n : ℤ) hn0
+      simpa using hcomp) h_conv_abs
+    simpa [absConverges] using h.1
+  have hfminus_conv : AbsConvergent fminus := by
+    rcases hf with ⟨g, hg, hconv⟩
+    refine ⟨g, hg, ?_⟩
+    have hle : ∀ n : ℕ, |fminus (g n)| ≤ |f (g n)| := by
+      intro n; dsimp [fminus]; have h := le_total (f (g n)) 0
+      rcases h with (h | h)
+      · simp [h]
+      · simp [h]
+    have hle' : ∀ (n : ℤ), 0 ≤ n → |(fminus ∘ g : Series).seq n| ≤ ((f ∘ g : Series).abs).seq n := by
+      intro n hn
+      have hnpos : (n.toNat : ℤ) = n := Int.toNat_of_nonneg hn
+      simp [Series.abs, Series.seq, hle (n.toNat), hnpos, hn]
+    have h_conv_abs : ((f ∘ g : Series).abs).converges := hconv
+    have h := Series.converges_of_le (s := (fminus ∘ g : Series)) (t := (f ∘ g : Series).abs)
+      (by simp) (by
+      intro n hn
+      have hn0 : 0 ≤ (n : ℤ) := hn
+      have hcomp := hle' (n : ℤ) hn0
+      simpa using hcomp) h_conv_abs
+    simpa [absConverges] using h.1
   choose hfplus_conv' hfplus_sum using sum_of_sum_of_AbsConvergent_nonneg hfplus_conv hfplus_nonneg
   choose hfminus_conv' hfminus_sum using sum_of_sum_of_AbsConvergent_nonneg hfminus_conv hfminus_nonneg
   split_ands
   . intro n
-    sorry
+    have h_plus_conv : ((fun m => fplus (n, m) : Series)).converges := hfplus_conv' n
+    have h_minus_conv : ((fun m => fminus (n, m) : Series)).converges := hfminus_conv' n
+    have h_plus_abs : (((fun m => fplus (n, m) : Series)).abs).converges := by
+      rcases h_plus_conv with ⟨L, hL⟩
+      have h_partial_eq : (((fun m => fplus (n, m) : Series)).abs).partial =
+        ((fun m => fplus (n, m) : Series)).partial := by
+        ext n'
+        simp [Series.partial, Series.abs]
+        refine Finset.sum_congr rfl (λ i hi => ?_)
+        have hi_nonneg : 0 ≤ i := (Finset.mem_Icc.mp hi).1
+        simp [abs_of_nonneg (hfplus_nonneg n (Int.toNat i)), hi_nonneg]
+      refine ⟨L, ?_⟩
+      simpa [convergesTo, h_partial_eq] using hL
+    have h_minus_abs : (((fun m => fminus (n, m) : Series)).abs).converges := by
+      rcases h_minus_conv with ⟨L, hL⟩
+      have h_partial_eq : (((fun m => fminus (n, m) : Series)).abs).partial =
+        ((fun m => fminus (n, m) : Series)).partial := by
+        ext n'
+        simp [Series.partial, Series.abs]
+        refine Finset.sum_congr rfl (λ i hi => ?_)
+        have hi_nonneg : 0 ≤ i := (Finset.mem_Icc.mp hi).1
+        simp [abs_of_nonneg (hfminus_nonneg n (Int.toNat i)), hi_nonneg]
+      refine ⟨L, ?_⟩
+      simpa [convergesTo, h_partial_eq] using hL
+    rw [hdiff]
+    have hle : ∀ (n' : ℤ), 0 ≤ n' → |(fplus - fminus) (n, n'.toNat)| ≤ |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := by
+      intro n' hn'
+      calc
+        |(fplus - fminus) (n, n'.toNat)| = |fplus (n, n'.toNat) - fminus (n, n'.toNat)| := rfl
+        _ = |fplus (n, n'.toNat) + (-fminus (n, n'.toNat))| := by ring
+        _ ≤ |fplus (n, n'.toNat)| + |-fminus (n, n'.toNat)| := abs_add_le _ _
+        _ = |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := by simp
+    have hsum_abs_conv : (((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series).converges := by
+      rcases h_plus_abs with ⟨L₁, hL₁⟩
+      rcases h_minus_abs with ⟨L₂, hL₂⟩
+      refine ⟨L₁ + L₂, ?_⟩
+      simpa using hL₁.add hL₂
+    have hsum_seq_eq (n' : ℤ) (hn_nonneg : 0 ≤ n') :
+      ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' =
+      |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := by
+      simp [Series.add_coe, Series.abs, hn_nonneg]
+    have hseq_ineq : ∀ (n' : ℤ) (hn' : n' ≥ ((fun m => (fplus - fminus) (n, m) : Series)).m),
+      |((fun m => (fplus - fminus) (n, m) : Series)).seq n'| ≤
+        ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' := by
+      intro n' hn'
+      have hn_nonneg : 0 ≤ (n' : ℤ) := by
+        simpa using hn'
+      have htemp : |(fplus - fminus) (n, n'.toNat)| ≤ |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| :=
+        hle n' hn_nonneg
+      calc
+        |((fun m => (fplus - fminus) (n, m) : Series)).seq n'| = |(fplus - fminus) (n, n'.toNat)| := by
+          simp [hn_nonneg]
+        _ ≤ |fplus (n, n'.toNat)| + |fminus (n, n'.toNat)| := htemp
+        _ = ((((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs : Series)).seq n' := by
+          symm; apply hsum_seq_eq n' hn_nonneg
+    have h_abs_conv : ((fun m => (fplus - fminus) (n, m) : Series)).absConverges :=
+      (Series.converges_of_le
+        (s := (fun m => (fplus - fminus) (n, m) : Series))
+        (t := ((fun m => fplus (n, m) : Series)).abs + ((fun m => fminus (n, m) : Series)).abs)
+        (by simp) hseq_ineq hsum_abs_conv).1
+    exact h_abs_conv
   convert convergesTo.sub hfplus_sum hfminus_sum using 1
   . -- encountered surprising difficulty with definitional equivalence here
     simp [hdiff]
