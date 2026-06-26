@@ -18,7 +18,7 @@
   "mcp": {
     "lean-lsp": {
       "type": "local",
-      "command": ["uvx", "lean-lsp-mcp"],
+      "command": ["uvx", "lean-lsp-mcp", "--lean-project-path", "/Users/penglingwei/Documents/lean/analysis"],
       "enabled": true,
       "timeout": 120000
     }
