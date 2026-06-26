@@ -419,11 +419,6 @@ theorem sum_comm {f:ℕ × ℕ → ℝ} (hf:AbsConvergent f) :
   simp [sum_of_converges (sum_of_sum_of_AbsConvergent hf).2,
         sum_of_converges (sum_of_sum_of_AbsConvergent' hf).2]
 
-/-- Lemma 8.2.3 / Exercise 8.2.1 -/
-theorem AbsConvergent.iff {X:Type} (hX:CountablyInfinite X) (f : X → ℝ) :
-  AbsConvergent f ↔ BddAbove ( (fun A ↦ ∑ x ∈ A, |f x|) '' .univ ) := by
-  simpa [AbsConvergent'] using (AbsConvergent'.of_countable hX).symm
-
 abbrev AbsConvergent' {X:Type} (f: X → ℝ) : Prop := BddAbove ( (fun A ↦ ∑ x ∈ A, |f x|) '' .univ )
 
 theorem AbsConvergent'.of_finite {X:Type} [Finite X] (f:X → ℝ) : AbsConvergent' f := by
@@ -446,7 +441,59 @@ theorem AbsConvergent'.of_countable {X:Type} (hX:CountablyInfinite X) {f:X → �
       simp; apply partial_of_lt; grind
     simp [nonneg]
     intro n; by_cases h: n ≥ 0 <;> simp [h]
-  intro hf; rwa [AbsConvergent.iff hX f] at hf
+  intro hf; rcases hf with ⟨g, hg, hconv⟩
+  rw [AbsConvergent', bddAbove_def]
+  have hpos_g : ((f ∘ g : Series).abs).nonneg := by
+    intro n
+    calc
+      ((f ∘ g : Series).abs).seq n = |(f ∘ g : Series).seq n| := by
+        simp
+      _ ≥ 0 := abs_nonneg _
+  rw [absConverges] at hconv
+  rcases hconv with ⟨L, hL⟩
+  use L
+  intro y hy; simp at hy; rcases hy with ⟨A, rfl⟩
+  have hpos_L : 0 ≤ L := by
+    have hpos_0 : 0 ≤ ((f ∘ g : Series).abs).partial 0 := hpos_g 0
+    have hbound_0 : ((f ∘ g : Series).abs).partial 0 ≤ L := by
+      have hconv' : ((f ∘ g : Series).abs).converges := ⟨L, hL⟩
+      calc
+        ((f ∘ g : Series).abs).partial 0 ≤ ((f ∘ g : Series).abs).sum :=
+          partial_le_sum_of_nonneg hpos_g hconv' 0
+        _ = L := convergesTo_uniq (convergesTo_sum hconv') hL
+    linarith
+  by_cases hA : A.Nonempty
+  · classical
+    choose f' hf' using hg.2
+    let preA : Finset ℕ := A.image (λ x => f' x)
+    have hpreA_nonempty : preA.Nonempty := by
+      rcases hA with ⟨x, hx⟩
+      refine ⟨f' x, Finset.mem_image.mpr ⟨x, hx, rfl⟩⟩
+    let N := Finset.max' preA hpreA_nonempty
+    have h_sub : A ⊆ Finset.image g (Finset.Icc 0 N) := by
+      intro x hx
+      have hgx : g (f' x) = x := hf' x
+      have hmem : f' x ∈ preA := Finset.mem_image.mpr ⟨x, hx, rfl⟩
+      have hNle : f' x ≤ N := Finset.le_max' preA (f' x) hmem
+      have hIcc : f' x ∈ Finset.Icc (0 : ℕ) N := Finset.mem_Icc.mpr ⟨Nat.zero_le _, hNle⟩
+      apply Finset.mem_image.mpr
+      exact ⟨f' x, hIcc, hgx⟩
+    have hconv' : ((f ∘ g : Series).abs).converges := ⟨L, hL⟩
+    calc
+      ∑ x ∈ A, |f x| ≤ ∑ x ∈ Finset.image g (Finset.Icc 0 N), |f x| :=
+        Finset.sum_le_sum_of_subset_of_nonneg h_sub (by
+          intro x hx hx'; exact abs_nonneg _)
+      _ = ∑ n ∈ Finset.Icc 0 N, |f (g n)| := by
+        rw [Finset.sum_image (λ a ha b hb h => hg.1 h)]
+      _ = ((f ∘ g : Series).abs).partial (N : ℤ) := by simp [Series.partial]
+      _ ≤ ((f ∘ g : Series).abs).sum := partial_le_sum_of_nonneg hpos_g hconv' (N : ℤ)
+      _ = L := convergesTo_uniq (convergesTo_sum hconv') hL
+  · simp [hA, hpos_L]
+
+/-- Lemma 8.2.3 / Exercise 8.2.1 -/
+theorem AbsConvergent.iff {X:Type} (hX:CountablyInfinite X) (f : X → ℝ) :
+  AbsConvergent f ↔ BddAbove ( (fun A ↦ ∑ x ∈ A, |f x|) '' .univ ) := by
+  simpa [AbsConvergent'] using (AbsConvergent'.of_countable hX).symm
 
 /-- Lemma 8.2.5 / Exercise 8.2.2-/
 theorem AbsConvergent'.countable_supp {X:Type} {f:X → ℝ} (hf: AbsConvergent' f) :
