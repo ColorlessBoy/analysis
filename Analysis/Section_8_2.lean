@@ -449,7 +449,302 @@ theorem divergent_parts_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
   (ha': ¬ (a:Series).absConverges) :
   ¬ AbsConvergent (fun n : {n | a n ≥ 0} ↦ a n) ∧ ¬ AbsConvergent (fun n : {n | a n < 0} ↦ a n)
   := by
-  sorry
+  classical
+  set a_plus := (fun n : ℕ => max (a n) 0) with ha_plus
+  set a_minus := (fun n : ℕ => max (-(a n)) 0) with ha_minus
+  have h_sub_eq : (a_plus : Series) - (a : Series) = (a_minus : Series) := by
+    have hm : ((a_plus : Series) - (a : Series)).m = (a_minus : Series).m := by
+      calc
+        ((a_plus : Series) - (a : Series)).m = min ((a_plus : Series).m) ((a : Series).m) := rfl
+        _ = min 0 0 := by simp
+        _ = 0 := by simp
+        _ = (a_minus : Series).m := by simp
+    have hseq : ∀ n : ℤ, ((a_plus : Series) - (a : Series)).seq n = (a_minus : Series).seq n := by
+      intro n
+      by_cases hn : n ≥ 0
+      · have h1 : ((a_plus : Series) - (a : Series)).seq n = max (a n.toNat) 0 - a n.toNat := by
+          calc
+            ((a_plus : Series) - (a : Series)).seq n = ((a_plus : Series).seq n) - ((a : Series).seq n) := by
+              rfl
+            _ = max (a n.toNat) 0 - a n.toNat := by simp [a_plus, hn]
+        have h2 : (a_minus : Series).seq n = max (-(a n.toNat)) 0 := by
+          simp [a_minus, hn]
+        rw [h1, h2]
+        by_cases hx_nonneg : a n.toNat ≥ 0
+        · rw [max_eq_left hx_nonneg, max_eq_right (show -(a n.toNat) ≤ 0 from by linarith), sub_self]
+        · rw [max_eq_right (show a n.toNat ≤ 0 from by linarith), max_eq_left (show -(a n.toNat) ≥ 0 from by linarith)]
+          simp
+      · have hzero : ((a_plus : Series) - (a : Series)).seq n = 0 := by
+          calc
+            ((a_plus : Series) - (a : Series)).seq n = ((a_plus : Series).seq n) - ((a : Series).seq n) := rfl
+            _ = 0 - 0 := by simp [hn]
+            _ = 0 := by simp
+        simp [hzero, hn]
+    exact Series.ext hm (funext hseq)
+  have h_add_eq : (a : Series).abs = (a_plus : Series) + (a_minus : Series) := by
+    have hm : ((a : Series).abs).m = ((a_plus : Series) + (a_minus : Series)).m := by
+      calc
+        ((a : Series).abs).m = 0 := by simp [Series.abs, Series.mk']
+        _ = min 0 0 := by simp
+        _ = min ((a_plus : Series).m) ((a_minus : Series).m) := by simp
+        _ = ((a_plus : Series) + (a_minus : Series)).m := rfl
+    have hseq : ∀ n : ℤ, ((a : Series).abs).seq n = ((a_plus : Series) + (a_minus : Series)).seq n := by
+      intro n
+      by_cases hn : n ≥ 0
+      · have h1 : ((a : Series).abs).seq n = |a n.toNat| := by
+          unfold Series.abs
+          simp [hn]
+        have h2 : ((a_plus : Series) + (a_minus : Series)).seq n = max (a n.toNat) 0 + max (-(a n.toNat)) 0 := by
+          calc
+            ((a_plus : Series) + (a_minus : Series)).seq n = ((a_plus : Series).seq n) + ((a_minus : Series).seq n) := rfl
+            _ = max (a n.toNat) 0 + max (-(a n.toNat)) 0 := by simp [a_plus, a_minus, hn]
+        rw [h1, h2]
+        by_cases hx_nonneg : a n.toNat ≥ 0
+        · simp [hx_nonneg]
+        · simp [hx_nonneg]
+      · have hzero : ((a : Series).abs).seq n = 0 := by
+          unfold Series.abs; simp [hn]
+        have hzero' : ((a_plus : Series) + (a_minus : Series)).seq n = 0 := by
+          calc
+            ((a_plus : Series) + (a_minus : Series)).seq n = ((a_plus : Series).seq n) + ((a_minus : Series).seq n) := rfl
+            _ = 0 + 0 := by simp [hn]
+            _ = 0 := by simp
+        simp [hzero, hzero', hn]
+    exact Series.ext hm (funext hseq)
+  have hIcc_range (N : ℕ) : Finset.Icc (0 : ℤ) (N : ℤ) = (Finset.range (N+1)).map Nat.castEmbedding := by
+    calc
+      Finset.Icc (0 : ℤ) (N : ℤ) = (Finset.Icc (0 : ℕ) N).map Nat.castEmbedding := by simp
+      _ = (Finset.range (N+1)).map Nat.castEmbedding := by
+        have h_eq : (Finset.Icc (0 : ℕ) N : Finset ℕ) = Finset.range (N+1) := by
+          ext x; simp [Finset.mem_Icc, Finset.mem_range]
+        rw [h_eq]
+  have h_partial_range (b : ℕ → ℝ) (M : ℕ) : (b : Series).partial (M : ℤ) = ∑ k ∈ Finset.range (M+1), b k := by
+    unfold Series.partial
+    have hm : (b : Series).m = 0 := rfl
+    calc
+      ∑ n ∈ Finset.Icc (0 : ℤ) (M : ℤ), ((b : Series).seq n) = ∑ n ∈ Finset.Icc (0 : ℤ) (M : ℤ), b n.toNat := by
+        refine Finset.sum_congr rfl (λ n hn => ?_)
+        have hn0 : (0 : ℤ) ≤ n := (Finset.mem_Icc.mp hn).1
+        simp [hm, hn0]
+      _ = ∑ n ∈ (Finset.range (M+1)).map Nat.castEmbedding, b (Int.toNat n) := by
+        rw [hIcc_range M]
+      _ = ∑ k ∈ Finset.range (M+1), b (Int.toNat (Nat.castEmbedding k)) := by
+        simp [Finset.sum_map]
+      _ = ∑ k ∈ Finset.range (M+1), b k := by simp
+  have h_plus_conv (hpos : AbsConvergent (fun n : {n | a n ≥ 0} ↦ a n)) : (a_plus : Series).converges := by
+    by_cases hfin : Finite {n | a n ≥ 0}
+    · rcases hpos with ⟨g, hg_bij, hg_conv⟩
+      have hfinite_ℕ : Finite ℕ := Finite.of_injective g hg_bij.1
+      have hinfinite_ℕ : Infinite ℕ := by infer_instance
+      exfalso; exact hinfinite_ℕ.not_finite hfinite_ℕ
+    · have h_inf : Infinite {n | a n ≥ 0} := not_finite_iff_infinite.mp hfin
+      have h_countably_inf : CountablyInfinite {n | a n ≥ 0} := Nat.countable_of_infinite {n | a n ≥ 0}
+      have hpos' : AbsConvergent' (fun n : {n | a n ≥ 0} ↦ a n) :=
+        ((AbsConvergent'.of_countable h_countably_inf).mpr hpos)
+      rcases hpos' with ⟨M, hM⟩
+      have hM_nonneg : 0 ≤ M := by
+        have hzero_sum : ∑ x ∈ (∅ : Finset {n | a n ≥ 0}), |a (x : ℕ)| = (0 : ℝ) := by
+          simpa using (Finset.sum_empty (f := λ (x : {n | a n ≥ 0}) => |a (x : ℕ)|))
+        have hzero_mem : (0 : ℝ) ∈ (fun A : Finset {n | a n ≥ 0} ↦ ∑ x ∈ A, |(fun n : {n | a n ≥ 0} ↦ a n) x|) '' Set.univ := by
+          refine ⟨(∅ : Finset {n | a n ≥ 0}), Set.mem_univ ∅, ?_⟩
+          calc
+            (fun A : Finset {n | a n ≥ 0} ↦ ∑ x ∈ A, |(fun n : {n | a n ≥ 0} ↦ a n) x|) ∅
+                = ∑ x ∈ (∅ : Finset {n | a n ≥ 0}), |a (x : ℕ)| := by
+                  simp
+            _ = (0 : ℝ) := hzero_sum
+        exact hM hzero_mem
+      have h_max_bound (N : ℕ) : ∑ k ∈ Finset.range (N+1), a_plus k ≤ M := by
+        set F : Finset {n | a n ≥ 0} := (Finset.range (N+1)).subtype (λ n => 0 ≤ a n) with hF
+        have hF_nonneg (n' : {n | a n ≥ 0}) (hn' : n' ∈ F) : a n'.val ≥ 0 := n'.property
+        have hF_sum_map : ∑ n' ∈ F, a n'.val = ∑ k ∈ (Finset.range (N+1)).filter (λ n => 0 ≤ a n), a k := by
+          calc
+            ∑ n' ∈ F, a n'.val = ∑ k ∈ F.map (Embedding.subtype (λ n => 0 ≤ a n)), a k := by
+              simp [Finset.sum_map]
+            _ = ∑ k ∈ (Finset.range (N+1)).filter (λ n => 0 ≤ a n), a k := by
+              simp [hF, Finset.subtype_map]
+        have hF_bound : ∑ n' ∈ F, a n'.val ≤ M := by
+          have htemp : ∑ n' ∈ F, a n'.val = ∑ n' ∈ F, |(fun (n : {n | a n ≥ 0}) ↦ a n.val) n'| := by
+            refine Finset.sum_congr rfl (λ n' hn' => ?_)
+            have hn_nonneg : a n'.val ≥ 0 := hF_nonneg n' hn'
+            rw [abs_of_nonneg hn_nonneg]
+          have htemp' : (∑ n' ∈ F, |(fun (n : {n | a n ≥ 0}) ↦ a n.val) n'|) ≤ M :=
+            hM ⟨F, Set.mem_univ F, rfl⟩
+          linarith
+        have h_max_eq_filter : ∑ k ∈ Finset.range (N+1), a_plus k = ∑ k ∈ (Finset.range (N+1)).filter (λ n => 0 ≤ a n), a k := by
+          calc
+            ∑ k ∈ Finset.range (N+1), a_plus k = ∑ k ∈ Finset.range (N+1), (if 0 ≤ a k then a k else 0) := by
+              refine Finset.sum_congr rfl (λ k hk => ?_)
+              by_cases h : 0 ≤ a k
+              · simp [a_plus, h]
+              · simp [a_plus, show max (a k) 0 = 0 from max_eq_right (by linarith), h]
+            _ = ∑ k ∈ (Finset.range (N+1)).filter (λ n => 0 ≤ a n), a k := by
+              rw [← Finset.sum_filter]
+        calc
+          ∑ k ∈ Finset.range (N+1), a_plus k = ∑ k ∈ (Finset.range (N+1)).filter (λ n => 0 ≤ a n), a k := h_max_eq_filter
+          _ = ∑ n' ∈ F, a n'.val := by symm; exact hF_sum_map
+          _ ≤ M := hF_bound
+      have h_nonneg_plus : (a_plus : Series).nonneg := by
+        intro n
+        by_cases hn : n ≥ 0
+        · simp [a_plus, hn]
+        · simp [a_plus, hn]
+      have h_partial_bound (N : ℤ) : (a_plus : Series).partial N ≤ M := by
+        by_cases hN : N ≥ 0
+        · calc
+            (a_plus : Series).partial N = (a_plus : Series).partial ((Int.toNat N : ℤ)) := by
+              simp [Int.toNat_of_nonneg hN]
+            _ = ∑ k ∈ Finset.range ((Int.toNat N) + 1), a_plus k := h_partial_range a_plus (Int.toNat N)
+            _ ≤ M := h_max_bound (Int.toNat N)
+        · have hm : (a_plus : Series).m = 0 := rfl
+          have h_lt : N < 0 := by omega
+          have h_zero : (a_plus : Series).partial N = 0 := Series.partial_of_lt (by rw [hm]; exact h_lt)
+          rw [h_zero]
+          exact hM_nonneg
+      exact ((Series.converges_of_nonneg_iff h_nonneg_plus).mpr ⟨M, h_partial_bound⟩)
+  have h_minus_conv (hneg : AbsConvergent (fun n : {n | a n < 0} ↦ a n)) : (a_minus : Series).converges := by
+    by_cases hfin : Finite {n | a n < 0}
+    · rcases hneg with ⟨g, hg_bij, hg_conv⟩
+      have hfinite_ℕ : Finite ℕ := Finite.of_injective g hg_bij.1
+      have hinfinite_ℕ : Infinite ℕ := by infer_instance
+      exfalso; exact hinfinite_ℕ.not_finite hfinite_ℕ
+    · have h_inf : Infinite {n | a n < 0} := not_finite_iff_infinite.mp hfin
+      have h_countably_inf : CountablyInfinite {n | a n < 0} := Nat.countable_of_infinite {n | a n < 0}
+      have hneg' : AbsConvergent' (fun n : {n | a n < 0} ↦ -(a n)) := by
+        have h_smul := Sum'.smul
+          (((AbsConvergent'.of_countable h_countably_inf).mpr hneg) : AbsConvergent' (fun n : {n | a n < 0} ↦ a n)) (-1)
+        have : (-1 : ℝ) • (fun n : {n | a n < 0} ↦ a n) = (fun n : {n | a n < 0} ↦ -(a n)) := by
+          ext n; rw [Pi.smul_apply, smul_eq_mul]; simp
+        rw [this] at h_smul
+        exact h_smul.1
+      rcases hneg' with ⟨M, hM⟩
+      have hM_nonneg : 0 ≤ M := by
+        have hzero_sum : ∑ x ∈ (∅ : Finset {n | a n < 0}), |a (x : ℕ)| = (0 : ℝ) := by
+          simpa using (Finset.sum_empty (f := λ (x : {n | a n < 0}) => |a (x : ℕ)|))
+        have hzero_mem : (0 : ℝ) ∈ (fun A : Finset {n | a n < 0} ↦ ∑ x ∈ A, |(fun n : {n | a n < 0} ↦ -(a n)) x|) '' Set.univ := by
+          refine ⟨(∅ : Finset {n | a n < 0}), Set.mem_univ ∅, ?_⟩
+          calc
+            (fun A : Finset {n | a n < 0} ↦ ∑ x ∈ A, |(fun n : {n | a n < 0} ↦ -(a n)) x|) ∅
+                = ∑ x ∈ (∅ : Finset {n | a n < 0}), |a (x : ℕ)| := by
+                  simp
+            _ = (0 : ℝ) := hzero_sum
+        exact hM hzero_mem
+      have h_max_bound (N : ℕ) : ∑ k ∈ Finset.range (N+1), a_minus k ≤ M := by
+        set F : Finset {n | a n < 0} := (Finset.range (N+1)).subtype (λ n => a n < 0) with hF
+        have hF_nonneg (n' : {n | a n < 0}) (hn' : n' ∈ F) : -(a n'.val) ≥ 0 := by
+          have : a n'.val < 0 := n'.property; linarith
+        have hF_sum_map : ∑ n' ∈ F, (-(a n'.val)) = ∑ k ∈ (Finset.range (N+1)).filter (λ n => a n < 0), (-(a k)) := by
+          calc
+            ∑ n' ∈ F, (-(a n'.val)) = ∑ k ∈ F.map (Embedding.subtype (λ n => a n < 0)), (-(a k)) := by
+              simp [Finset.sum_map]
+            _ = ∑ k ∈ (Finset.range (N+1)).filter (λ n => a n < 0), (-(a k)) := by
+              simp [hF, Finset.subtype_map]
+        have hF_bound : ∑ n' ∈ F, (-(a n'.val)) ≤ M := by
+          have htemp : ∑ n' ∈ F, (-(a n'.val)) = ∑ n' ∈ F, |(fun (n : {n | a n < 0}) ↦ -(a n.val)) n'| := by
+            refine Finset.sum_congr rfl (λ n' hn' => ?_)
+            have hn_nonneg : -(a n'.val) ≥ 0 := hF_nonneg n' hn'
+            rw [abs_of_nonneg hn_nonneg]
+          have htemp' : (∑ n' ∈ F, |(fun (n : {n | a n < 0}) ↦ -(a n.val)) n'|) ≤ M :=
+            hM ⟨F, Set.mem_univ F, rfl⟩
+          linarith
+        have h_max_eq_filter : ∑ k ∈ Finset.range (N+1), a_minus k = ∑ k ∈ (Finset.range (N+1)).filter (λ n => a n < 0), (-(a k)) := by
+          calc
+            ∑ k ∈ Finset.range (N+1), a_minus k = ∑ k ∈ Finset.range (N+1), (if 0 ≤ -(a k) then -(a k) else 0) := by
+              refine Finset.sum_congr rfl (λ k hk => ?_)
+              by_cases h : 0 ≤ -(a k)
+              · simp [a_minus, h]
+              · have h' : a k ≥ 0 := by linarith
+                simp [a_minus, h, h']
+            _ = ∑ k ∈ Finset.range (N+1), (if a k < 0 then -(a k) else 0) := by
+              refine Finset.sum_congr rfl (λ k hk => ?_)
+              by_cases h : a k < 0
+              · have : 0 ≤ -(a k) := by linarith
+                simp [h, this]
+              · by_cases hpos : 0 ≤ -(a k)
+                · have h_eq : a k = 0 := by linarith
+                  simp [h, hpos, h_eq]
+                · simp [h, hpos]
+            _ = ∑ k ∈ (Finset.range (N+1)).filter (λ n => a n < 0), (-(a k)) := by
+              rw [← Finset.sum_filter]
+        calc
+          ∑ k ∈ Finset.range (N+1), a_minus k = ∑ k ∈ (Finset.range (N+1)).filter (λ n => a n < 0), (-(a k)) := h_max_eq_filter
+          _ = ∑ n' ∈ F, (-(a n'.val)) := by symm; exact hF_sum_map
+          _ ≤ M := hF_bound
+      have h_nonneg_minus : (a_minus : Series).nonneg := by
+        intro n
+        by_cases hn : n ≥ 0
+        · simp [a_minus, hn]
+        · simp [a_minus, hn]
+      have h_partial_bound (N : ℤ) : (a_minus : Series).partial N ≤ M := by
+        by_cases hN : N ≥ 0
+        · calc
+            (a_minus : Series).partial N = (a_minus : Series).partial ((Int.toNat N : ℤ)) := by
+              simp [Int.toNat_of_nonneg hN]
+            _ = ∑ k ∈ Finset.range ((Int.toNat N) + 1), a_minus k := h_partial_range a_minus (Int.toNat N)
+            _ ≤ M := h_max_bound (Int.toNat N)
+        · have hm : (a_minus : Series).m = 0 := rfl
+          have h_lt : N < 0 := by omega
+          have h_zero : (a_minus : Series).partial N = 0 := Series.partial_of_lt (by rw [hm]; exact h_lt)
+          rw [h_zero]
+          exact hM_nonneg
+      exact ((Series.converges_of_nonneg_iff h_nonneg_minus).mpr ⟨M, h_partial_bound⟩)
+  have hpos_not : ¬ AbsConvergent (fun n : {n | a n ≥ 0} ↦ a n) := by
+    intro hpos
+    have h_plus : (a_plus : Series).converges := h_plus_conv hpos
+    have h_neg : (a_minus : Series).converges := by
+      have h_sub : ((a_plus : Series) - (a : Series)).converges :=
+        (Series.sub h_plus ha).1
+      simpa [h_sub_eq] using h_sub
+    have h_abs_conv : (a : Series).absConverges := by
+      have h_add_conv : ((a_plus : Series) + (a_minus : Series)).converges := (Series.add h_plus h_neg).1
+      unfold Series.absConverges
+      rw [h_add_eq]
+      exact h_add_conv
+    exact ha' h_abs_conv
+  have hneg_not : ¬ AbsConvergent (fun n : {n | a n < 0} ↦ a n) := by
+    intro hneg
+    have h_neg : (a_minus : Series).converges := h_minus_conv hneg
+    have h_plus : (a_plus : Series).converges := by
+      have h_add : ((a : Series) + (a_minus : Series)).converges :=
+        (Series.add ha h_neg).1
+      have h_identity : (a : Series) + (a_minus : Series) = (a_plus : Series) := by
+        have hm : ((a : Series) + (a_minus : Series)).m = (a_plus : Series).m := by
+          calc
+            ((a : Series) + (a_minus : Series)).m = min ((a : Series).m) ((a_minus : Series).m) := rfl
+            _ = min 0 0 := by simp
+            _ = 0 := by simp
+            _ = (a_plus : Series).m := by simp
+        have hseq : ∀ n : ℤ, ((a : Series) + (a_minus : Series)).seq n = (a_plus : Series).seq n := by
+          intro n
+          by_cases hn : n ≥ 0
+          · have h1 : ((a : Series) + (a_minus : Series)).seq n = a n.toNat + max (-(a n.toNat)) 0 := by
+              calc
+                ((a : Series) + (a_minus : Series)).seq n = ((a : Series).seq n) + ((a_minus : Series).seq n) := rfl
+                _ = a n.toNat + max (-(a n.toNat)) 0 := by simp [a_minus, hn]
+            have h2 : (a_plus : Series).seq n = max (a n.toNat) 0 := by
+              simp [a_plus, hn]
+            rw [h1, h2]
+            by_cases hx_nonneg : a n.toNat ≥ 0
+            · simp [hx_nonneg, show max (-(a n.toNat)) 0 = 0 from max_eq_right (by linarith)]
+            · simp [hx_nonneg, show max (a n.toNat) 0 = 0 from max_eq_right (by linarith),
+                show max (-(a n.toNat)) 0 = -(a n.toNat) from max_eq_left (by linarith)]
+          · have hzero : ((a : Series) + (a_minus : Series)).seq n = 0 := by
+              calc
+                ((a : Series) + (a_minus : Series)).seq n = ((a : Series).seq n) + ((a_minus : Series).seq n) := rfl
+                _ = 0 + 0 := by simp [hn]
+                _ = 0 := by simp
+            have hzero' : (a_plus : Series).seq n = 0 := by
+              simp [hn]
+            simp [hzero, hzero', hn]
+        exact Series.ext hm (funext hseq)
+      rw [h_identity] at h_add
+      exact h_add
+    have h_abs_conv : (a : Series).absConverges := by
+      have h_add_conv : ((a_plus : Series) + (a_minus : Series)).converges := (Series.add h_plus h_neg).1
+      unfold Series.absConverges
+      rw [h_add_eq]
+      exact h_add_conv
+    exact ha' h_abs_conv
+  exact ⟨hpos_not, hneg_not⟩
 
 /-- Theorem 8.2.8 (Riemann rearrangement theorem) / Exercise 8.2.5 -/
 theorem permute_convergesTo_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
