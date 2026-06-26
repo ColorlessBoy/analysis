@@ -994,7 +994,10 @@ lemma SetTheory.Set.pow_fun_eq_iff {A B : Set} (x y : ↑(A ^ B)) : x = y ↔ po
   rw [←pow_fun_equiv.apply_eq_iff_eq]
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 theorem SetTheory.Set.pow_prod_pow_EqualCard_pow_union (A B C:Set) (hd: Disjoint B C) :
     EqualCard ((A ^ B) ×ˢ (A ^ C)) (A ^ (B ∪ C)) := by
   classical
@@ -1171,6 +1174,9 @@ theorem SetTheory.Set.card_pow {X Y:Set} (hY: Y.finite) (hX: X.finite) :
         exact ⟨Y.card ^ k.succ, ((EquivCard_to_has_card_eq h_pow_union).mp h_has_card_prod)⟩
       exact ⟨h_fin_pow_S, h_card_pow_S⟩
   exact h_main X.card X (by intro _ h; exact h) hXc
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 /-- Exercise 3.6.5. You might find {name}`SetTheory.Set.prod_commutator` useful. -/
@@ -1209,6 +1215,7 @@ theorem SetTheory.Set.pow_pow_eq_pow_mul (a b c:ℕ): (a^b)^c = a^(b*c) := by
   · simp
   · rw [Nat.pow_succ, ih, mul_add, pow_add, mul_one]
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 theorem SetTheory.Set.pow_prod_pow_EqualCard_pow_union (A B C:Set) (hd: Disjoint B C) :
     EqualCard ((A ^ B) ×ˢ (A ^ C)) (A ^ (B ∪ C)) := by
@@ -1267,6 +1274,8 @@ theorem SetTheory.Set.pow_prod_pow_EqualCard_pow_union (A B C:Set) (hd: Disjoint
   }
   let e := prod_equiv.trans (pow_equiv.trans (union_equiv.trans (pow_fun_equiv (A := A) (B := BUC)).symm))
   use e; exact e.bijective
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 
@@ -1456,13 +1465,19 @@ theorem SetTheory.Set.pigeonhole_principle {n:ℕ} {A: Fin n → Set}
   by_contra h_all
   push_neg at h_all
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   have h_all_le_one : ∀ i, (A i).card ≤ 1 := by
     intro i; have hi := h_all i; omega
 =======
+=======
+>>>>>>> Stashed changes
   -- h_all: ∀ i, (A i).card < 2, i.e., (A i).card ≤ 1
   have h_all_le_one : ∀ i, (A i).card ≤ 1 := by
     intro i; have hi := h_all i; omega
   -- Prove: for any m and family B, if each B i has card ≤ 1, then iUnion B has card ≤ m
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   have h_union_bound : ∀ (m : ℕ) (B : Fin m → Set), (∀ i, (B i).finite) → (∀ i, (B i).card ≤ 1) →
       ((Fin m).iUnion B).finite ∧ ((Fin m).iUnion B).card ≤ m := by
@@ -1474,15 +1489,21 @@ theorem SetTheory.Set.pigeonhole_principle {n:ℕ} {A: Fin n → Set}
         have hlt := Fin.toNat_lt i; omega
       rw [h_empty]; simp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     · let castSucc (x : Fin m) : Fin m.succ :=
         Fin_embed m m.succ (Nat.le_succ _) x
       let last : Fin m.succ := Fin_mk m.succ m (Nat.lt_succ_self _)
 =======
+=======
+>>>>>>> Stashed changes
     · -- Define castSucc and last inline using Fin_embed and Fin_mk
       let castSucc (x : Fin m) : Fin m.succ :=
         Fin_embed m m.succ (Nat.le_succ _) x
       let last : Fin m.succ :=
         Fin_mk m.succ m (Nat.lt_succ_self _)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
       let B' : Fin m → Set := fun i => B (castSucc i)
       have hB'_fin : ∀ i, (B' i).finite := fun i => hB_fin (castSucc i)
@@ -1500,13 +1521,19 @@ theorem SetTheory.Set.pigeonhole_principle {n:ℕ} {A: Fin n → Set}
               have hlast_val : (last : ℕ) = m := by simp [last, Fin_mk]
               have hi_val_ne_m : (i : ℕ) ≠ m := by
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 intro heq; apply hi_last
                 apply (Fin.coe_inj (n := m.succ)).mpr; simpa [hlast_val] using heq
 =======
+=======
+>>>>>>> Stashed changes
                 intro heq
                 apply hi_last
                 apply (Fin.coe_inj (n := m.succ)).mpr
                 simpa [hlast_val] using heq
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
               omega
             let j : Fin m := Fin_mk m (i : ℕ) hi_val_lt_m
@@ -1540,6 +1567,7 @@ theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective 
       let ι : S → X := fun x => ⟨x.val, hS_sub x.val x.property⟩
       let g : S → image f S := fun x => ⟨f (ι x), by
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         rw [mem_image]; refine ⟨ι x, x.property, rfl⟩⟩
       use g
       constructor
@@ -1557,6 +1585,8 @@ theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective 
         apply Subtype.val_inj.mp
         simpa [g, ι] using hx_eq
 =======
+=======
+>>>>>>> Stashed changes
         rw [mem_image]; refine ⟨ι x, ?_, rfl⟩; simp [ι]; exact x.property⟩
       refine ⟨g, ?_, ?_⟩
       · intro a b h
@@ -1575,12 +1605,16 @@ theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective 
           (g ⟨x.val, hx⟩).val = (f (ι ⟨x.val, hx⟩) : Object) := rfl
           _ = (f x : Object) := by rw [hx_eq]
           _ = y.val := h
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     rw [(EquivCard_to_card_eq h_equiv).symm]; exact hS_card
   · intro h
     by_contra h_not_inj
     rw [Function.Injective] at h_not_inj
     push_neg at h_not_inj
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     rcases h_not_inj with ⟨a, b, hfeq_val, h_ne⟩
     have ha_val_ne_b_val : a.val ≠ b.val := by
@@ -1617,6 +1651,8 @@ theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective 
         · rw [mem_singleton, mem_image]; intro hy; subst hy
           refine ⟨a, ?_, rfl⟩; dsimp [S]; simp
 =======
+=======
+>>>>>>> Stashed changes
     obtain ⟨a, b, hfeq_val, hneq_val⟩ := h_not_inj
     have ha_val_ne_b_val : a.val ≠ b.val := by
       intro h_eq; apply hneq_val; exact Subtype.val_inj.mp h_eq
@@ -1655,6 +1691,9 @@ theorem SetTheory.Set.two_to_two_iff {X Y:Set} (f: X → Y): Function.Injective 
         · rw [mem_singleton, mem_image]; intro hy; subst hy
           refine ⟨a, ?_, rfl⟩
           rw [hS, mem_insert, mem_singleton]; simp
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
       rw [h_img_singleton]; exact has_card_to_card (Example_3_6_7a (f a))
     have h_contra : (image f S).card = 2 := h S hS_sub hS_card
@@ -2054,7 +2093,11 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
     -- Hint: you might find `perm_equiv_equiv`, `Fin.succAbove`, and `Fin.predAbove` useful.
     have equiv : S i ≃ Permutations n := by
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       classical
+=======
+      -- Restrict: from Equiv on Fin(n+1) with e(last)=i, get Equiv on Fin n
+>>>>>>> Stashed changes
 =======
       -- Restrict: from Equiv on Fin(n+1) with e(last)=i, get Equiv on Fin n
 >>>>>>> Stashed changes
@@ -2079,6 +2122,10 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
         right_inv := by intro y; simp
       }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+      -- Extend: add mapping last→i to an Equiv on Fin n, get Equiv on Fin(n+1)
+>>>>>>> Stashed changes
 =======
       -- Extend: add mapping last→i to an Equiv on Fin n, get Equiv on Fin(n+1)
 >>>>>>> Stashed changes
@@ -2091,6 +2138,7 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
           else Fin.succAbove (Fin.last n) (e'.symm (Fin.predAbove i z h_eq))
         left_inv := by
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           intro y; by_cases hy : y = Fin.last n
           · subst y; simp
           · have h_ne : Fin.succAbove i (e' (Fin.predAbove (Fin.last n) y hy)) ≠ i := Fin.succAbove_ne i _
@@ -2100,6 +2148,8 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
           · subst z; simp
           · have h_ne : Fin.succAbove (Fin.last n) (e'.symm (Fin.predAbove i z hz)) ≠ Fin.last n := Fin.succAbove_ne (Fin.last n) _
 =======
+=======
+>>>>>>> Stashed changes
           intro y
           by_cases hy : y = Fin.last n
           · subst y; simp
@@ -2112,13 +2162,21 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
           · subst z; simp
           · have h_ne : Fin.succAbove (Fin.last n) (e'.symm (Fin.predAbove i z hz)) ≠ Fin.last n :=
               Fin.succAbove_ne (Fin.last n) _
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             simp [hz, h_ne]
       }
       have h_extend_last (e' : Fin n ≃ Fin n) : (extend e') (Fin.last n) = i := by
         dsimp [extend]; simp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       let f (ps : (S i).toSubtype) : (Permutations n).toSubtype :=
+=======
+      -- The equivalence S i ≃ Permutations n
+      let toFun_aux (ps : (S i).toSubtype) : (Permutations n).toSubtype :=
+>>>>>>> Stashed changes
 =======
       -- The equivalence S i ≃ Permutations n
       let toFun_aux (ps : (S i).toSubtype) : (Permutations n).toSubtype :=
@@ -2130,6 +2188,7 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
         let e := perm_equiv_equiv ⟨ps.val, hp_mem⟩
         (perm_equiv_equiv (n := n)).symm (restrict e hp_cond)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       let g (q : (Permutations n).toSubtype) : (S i).toSubtype :=
         let e' := perm_equiv_equiv q
         let p_perm := (perm_equiv_equiv (n := n+1)).symm (extend e')
@@ -2138,6 +2197,8 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
           calc
             perm_equiv_equiv p_perm (Fin.last n) = (extend e') (Fin.last n) := by simp [p_perm]
 =======
+=======
+>>>>>>> Stashed changes
       let invFun_aux (q : (Permutations n).toSubtype) : (S i).toSubtype :=
         let e' := perm_equiv_equiv q
         let p_perm := (perm_equiv_equiv (n := n+1)).symm (extend e')
@@ -2147,6 +2208,9 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
             perm_equiv_equiv ⟨p_perm.val, hp_mem⟩ (Fin.last n) =
                 perm_equiv_equiv p_perm (Fin.last n) := by simp
             _ = (extend e') (Fin.last n) := by simp [p_perm]
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             _ = i := h_extend_last e'
         have h_mem_S : p_perm.val ∈ S i := by
@@ -2155,6 +2219,7 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
             (P := fun p ↦ perm_equiv_equiv p (Fin.last n) = i)).mpr
           exact ⟨hp_mem, hp_spec⟩
         ⟨p_perm.val, h_mem_S⟩
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
       have h_left_inv : ∀ ps, g (f ps) = ps := by
         intro ps
@@ -2180,6 +2245,8 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
         apply Subtype.ext; dsimp [f, g]; simp; rw [h_res_e]; simp [e']
       exact { toFun := f, invFun := g, left_inv := h_left_inv, right_inv := h_right_inv }
 =======
+=======
+>>>>>>> Stashed changes
       exact Equiv.mk toFun_aux invFun_aux (by
           intro ps
           let hps := (specification_axiom'' (x := ps.val) (A := Permutations (n+1))
@@ -2202,6 +2269,9 @@ theorem SetTheory.Set.Permutations_ih (n: ℕ):
             _ = _ := ?_ -- need ps here, but toFun_aux ps = (perm_equiv_equiv n).symm (restrict e hp_cond)
             )
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     use equiv, equiv.injective, equiv.surjective
 
