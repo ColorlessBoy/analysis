@@ -494,6 +494,48 @@ theorem permute_convergesTo_of_divergent {a: ℕ → ℝ} (ha: (a:Series).conver
 theorem permute_diverges_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
   (ha': ¬ (a:Series).absConverges)  :
   ∃ f : ℕ → ℕ,  Bijective f ∧ atTop.Tendsto (fun N ↦ ((a ∘ f:Series).partial N : EReal)) (nhds ⊤) := by
+  have hA_plus_inf : Infinite {n | a n ≥ 0} := by
+    by_contra! hfin
+    have hfin_set : Set.Finite {n | a n ≥ 0} := Set.finite_coe_iff.mpr hfin
+    have hbdd : BddAbove {n | a n ≥ 0} := hfin_set.bddAbove
+    rcases hbdd with ⟨B, hB⟩
+    have ha_pos_seq_zero (n : ℤ) (hn : n > (B : ℤ)) : ((fun n => if a n ≥ 0 then a n else 0) : Series).seq n = 0 := by
+      simp
+      intro h
+      apply hB n (by
+        have : (Int.toNat n : ℕ) > B := by
+          have hn_nonneg : n ≥ 0 := by omega
+          have hn_nat : (Int.toNat n : ℤ) = n := Int.toNat_of_nonneg hn_nonneg
+          have hn_gt_int : (Int.toNat n : ℤ) > (B : ℤ) := by
+            simpa [hn_nat] using hn
+          exact_mod_cast hn_gt_int
+        have h_nonneg : a (Int.toNat n) ≥ 0 := h
+        exact h_nonneg)
+    sorry
+  have hA_minus_inf : Infinite {n | a n < 0} := by
+    sorry
+  set A_plus := { n | a n ≥ 0 } with hA_plus
+  set A_minus := { n | a n < 0 } with hA_minus
+  obtain ⟨ a_plus, ha_plus_bij, ha_plus_mono ⟩ := (Nat.monotone_enum_of_infinite A_plus).exists
+  obtain ⟨ a_minus, ha_minus_bij, ha_minus_mono ⟩ := (Nat.monotone_enum_of_infinite A_minus).exists
+  have ha_plus_nonneg (i : ℕ) : a (a_plus i : ℕ) ≥ 0 := (a_plus i).property
+  have ha_minus_neg (i : ℕ) : a (a_minus i : ℕ) < 0 := (a_minus i).property
+  -- Construct F that avoids consecutive negatives and ensures S ≥ neg_count + 1 before each negative
+  let F : (n : ℕ) → ((m : ℕ) → m < n → ℕ) → ℕ :=
+    fun j n' ↦
+      let S := ∑ i : Fin j, a (n' i (by simp))
+      let neg_count : ℕ := (Finset.filter (λ (i : Fin j) => a (n' i (by simp)) < 0) Finset.univ).card
+      match j with
+      | 0 =>
+        if S < (neg_count.succ : ℝ) then (a_plus 0 : ℕ) else (a_minus 0 : ℕ)
+      | j'+1 =>
+        if a (n' j' (by omega)) < 0 then
+          (a_plus ((Finset.filter (λ (i : Fin (j'+1)) => a (n' i (by simp)) ≥ 0) Finset.univ).card) : ℕ)
+        else if (S : ℝ) < (neg_count.succ : ℝ) then
+          (a_plus ((Finset.filter (λ (i : Fin (j'+1)) => a (n' i (by simp)) ≥ 0) Finset.univ).card) : ℕ)
+        else
+          (a_minus ((Finset.filter (λ (i : Fin (j'+1)) => a (n' i (by simp)) < 0) Finset.univ).card - 1) : ℕ)
+  let f : ℕ → ℕ := Nat.strongRec F
   sorry
 
 theorem permute_diverges_of_divergent' {a: ℕ → ℝ} (ha: (a:Series).converges)
