@@ -1199,54 +1199,862 @@ theorem divergent_parts_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
 
   exact ⟨h_not_abs_conv_plus, h_not_abs_conv_minus⟩
 
+/-
+If a series converges but not absolutely, the set of indices with nonnegative terms is
+infinite.
+-/
+theorem nonneg_infinite {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    Infinite {n | a n ≥ 0} := by
+      refine' Set.infinite_coe_iff.mpr _;
+      by_contra h_finite;
+      obtain ⟨g, hg⟩ : ∃ g : ℕ → ℝ, g = (fun n => max (a n) 0) ∧ (g: Series).converges := by
+        refine' ⟨ _, rfl, _ ⟩;
+        obtain ⟨ N, hN ⟩ := Set.Finite.bddAbove ( Classical.not_not.mp h_finite );
+        refine' ⟨ _, _ ⟩;
+        exact ∑ n ∈ Finset.range ( N + 1 ), max ( a n ) 0;
+        refine' Metric.tendsto_atTop.mpr _;
+        intro ε hε; use N + 1; intro n hn; simp_all +decide [ Series.partial ] ;
+        rw [ show ( Icc 0 n : Finset ℤ ) = Finset.image ( fun x : ℕ => x : ℕ → ℤ ) ( Finset.range ( n.toNat + 1 ) ) from ?_, Finset.sum_image ] <;> norm_num;
+        · rw [ dist_eq_norm, Finset.sum_subset ( Finset.range_mono ( by linarith [ Int.toNat_of_nonneg ( by linarith : 0 ≤ n ) ] : N + 1 ≤ n.toNat + 1 ) ) ] <;> norm_num;
+          · linarith;
+          · exact fun x hx₁ hx₂ => not_lt.1 fun hx₃ => not_lt_of_ge ( hN hx₃.le ) hx₂;
+        · ext ( _ | i ) <;> simp +decide [ Int.toNat_of_nonneg ];
+          grind;
+      obtain ⟨t, ht⟩ : ∃ t : ℕ → ℝ, t = (fun n => -a n + 2 * max (a n) 0) ∧ (t: Series).converges := by
+        have := Series.add ( show ( fun n => -a n : Series ).converges from ?_ ) ( show ( fun n => 2 * g n : Series ).converges from ?_ );
+        · simp_all +decide [ Series.add ];
+          convert this.1 using 1;
+          congr with n ; aesop;
+        · obtain ⟨ L, hL ⟩ := ha;
+          use -L;
+          convert hL.neg using 1;
+          ext; simp [Series.partial];
+          rw [ ← Finset.sum_neg_distrib ] ; congr ; ext ; split_ifs <;> ring;
+        · obtain ⟨ l, hl ⟩ := hg.2;
+          use 2 * l;
+          convert hl.const_mul 2 using 1;
+          ext; simp [Series.partial];
+          rw [ Finset.mul_sum _ _ _ ] ; exact Finset.sum_congr rfl fun _ _ => by split_ifs <;> ring;
+      refine' ha' _;
+      have := Series.converges_of_le ( show ( { m := 0, seq := fun n => if n ≥ 0 then a n.toNat else 0, vanish := by aesop } : Series ).m = ( { m := 0, seq := fun n => if n ≥ 0 then t n.toNat else 0, vanish := by aesop } : Series ).m from rfl ) ( fun n hn => ?_ ) ht.2;
+      · exact this.1;
+      · grind +qlia
+
+/-
+If a series converges but not absolutely, the set of indices with negative terms is
+infinite.
+-/
+theorem neg_infinite {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    Infinite {n | a n < 0} := by
+      contrapose! ha';
+      have h_abs_conv : ∃ M, ∀ N, ∑ n ∈ Finset.Icc 0 N, |a n| ≤ M := by
+        obtain ⟨M, hM⟩ : ∃ M, ∀ N, ∑ n ∈ Finset.Icc 0 N, max (-a n) 0 ≤ M := by
+          have h_finite_neg : Set.Finite {n | a n < 0} := by
+            exact Set.finite_coe_iff.mp ha';
+          use ∑ n ∈ h_finite_neg.toFinset, |a n|;
+          intro N;
+          refine' le_trans _ ( Finset.sum_le_sum_of_subset_of_nonneg ( show Finset.filter ( fun n => a n < 0 ) ( Finset.Icc 0 N ) ⊆ h_finite_neg.toFinset from fun x hx => by aesop ) fun _ _ _ => abs_nonneg _ );
+          rw [ Finset.sum_filter ] ; exact Finset.sum_le_sum fun i hi => by split_ifs <;> cases abs_cases ( a i ) <;> cases max_cases ( -a i ) 0 <;> linarith;
+        have h_abs_conv : ∃ M, ∀ N, ∑ n ∈ Finset.Icc 0 N, a n ≤ M := by
+          obtain ⟨ M, hM ⟩ := ha;
+          obtain ⟨ N, hN ⟩ := Metric.tendsto_atTop.mp hM 1 zero_lt_one;
+          use Max.max ( ∑ n ∈ Finset.Icc 0 ( Int.toNat N ), |a n| ) ( M + 1 );
+          intro n; by_cases hn : n ≤ Int.toNat N <;> simp_all +decide [ dist_eq_norm ] ;
+          · exact Or.inl ( le_trans ( Finset.sum_le_sum fun _ _ => le_abs_self _ ) ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.Icc_subset_Icc_right hn ) fun _ _ _ => abs_nonneg _ ) );
+          · have := hN n ( by linarith [ Int.self_le_toNat N ] ) ; simp_all +decide [ abs_lt, Series.partial ] ;
+            exact Or.inr ( by linarith );
+        obtain ⟨ M', hM' ⟩ := h_abs_conv;
+        use M' + 2 * M;
+        intro N; specialize hM N; specialize hM' N; simp_all +decide [ Finset.sum_add_distrib, two_mul, abs_of_nonneg ] ;
+        exact le_trans ( Finset.sum_le_sum fun i hi => show |a i| ≤ a i + 2 * max ( -a i ) 0 by cases max_cases ( -a i ) 0 <;> cases abs_cases ( a i ) <;> linarith ) ( by simpa [ Finset.sum_add_distrib, two_mul, Finset.mul_sum _ _ _ ] using add_le_add hM' ( add_le_add hM hM ) );
+      convert Chapter7.Series.converges_of_nonneg_iff _ |>.2 ⟨ h_abs_conv.choose, fun N => ?_ ⟩;
+      · intro n; aesop;
+      · by_cases hN : 0 ≤ N;
+        · convert h_abs_conv.choose_spec ( Int.toNat N ) using 1;
+          convert Chapter7.partial_abs_eq_range ( fun n => |a n| ) ( Int.toNat N ) using 1;
+          · grind;
+          · rw [ Finset.range_eq_Ico ] ; norm_num [ abs_of_nonneg ];
+            rcongr n ; aesop;
+        · convert le_trans _ ( h_abs_conv.choose_spec 0 ) using 1;
+          unfold Chapter7.Series.partial; aesop;
+
+open Classical in
+/-- The recursion functional driving the Riemann rearrangement construction:
+given the indices `n'` already chosen for steps `< j`, pick the least not-yet-used index
+from the nonnegative-term set when the current partial sum is `< L`, and from the
+negative-term set otherwise. -/
+noncomputable def rrF (a : ℕ → ℝ) (L : ℝ) : (n : ℕ) → ((m : ℕ) → m < n → ℕ) → ℕ :=
+  fun j n' ↦ if ∑ i:Fin j, a (n' i (by simp)) < L then
+      Nat.min { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ n' i (by simp) }
+    else
+      Nat.min { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ n' i (by simp) }
+
+/-- The Riemann rearrangement permutation associated to `a` and target value `L`. -/
+noncomputable def rr (a : ℕ → ℝ) (L : ℝ) : ℕ → ℕ := Nat.strongRec (rrF a L)
+
+/-- Unfolding equation for the Riemann rearrangement permutation. -/
+theorem rr_eq (a : ℕ → ℝ) (L : ℝ) (j:ℕ) :
+    rr a L j = if ∑ i:Fin j, a (rr a L i) < L then
+      Nat.min { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ rr a L i }
+    else
+      Nat.min { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ rr a L i }
+  := Nat.strongRec.eq_def _ j
+
+/-
+At each step, the candidate nonnegative indices not yet chosen form an infinite set.
+-/
+theorem rr_plus_inf (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n ≥ 0}] (j:ℕ) :
+    Infinite { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ rr a L i } := by
+      refine Set.infinite_coe_iff.mpr ?_;
+      convert Set.Infinite.diff ( Set.infinite_coe_iff.mp ‹_› ) ( Set.toFinite ( Set.range fun i : Fin j => rr a L i ) ) using 1;
+      grind
+
+/-
+At each step, the candidate negative indices not yet chosen form an infinite set.
+-/
+theorem rr_minus_inf (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n < 0}] (j:ℕ) :
+    Infinite { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ rr a L i } := by
+      refine Set.infinite_coe_iff.mpr ?_;
+      convert Set.Infinite.diff ( Set.infinite_coe_iff.mp ‹_› ) ( Set.toFinite ( Set.range fun i : Fin j => rr a L i ) ) using 1;
+      grind
+
+/-
+The Riemann rearrangement permutation is injective.
+-/
+theorem rr_inj (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n ≥ 0}] [Infinite {n | a n < 0}] :
+    Injective (rr a L) := by
+      -- For every `j` and every `i : Fin j`, `rr a L j ≠ rr a L i`.
+      have h_ne (j : ℕ) (i : Fin j) : rr a L j ≠ rr a L i := by
+        rw [ rr_eq ];
+        split_ifs;
+        · have := Nat.min_spec ( show { n | n ∈ { n | a n ≥ 0 } ∧ ∀ i : Fin j, n ≠ rr a L i }.Nonempty from ?_ );
+          · exact this.1.2 i;
+          · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_plus_inf a L j ) ) using 1;
+        · have := Nat.min_spec ( show { n ∈ { n | a n < 0 } | ∀ i : Fin j, n ≠ rr a L i }.Nonempty from ?_ ) ; aesop;
+          convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_minus_inf a L j ) ) using 1;
+      intro j₁ j₂ h; rcases lt_trichotomy j₁ j₂ with ( H | rfl | H ) <;> simp_all +decide [ Function.Injective ] ;
+      · exact False.elim <| h_ne j₂ ⟨ j₁, H ⟩ h.symm;
+      · exact False.elim <| h_ne j₁ ⟨ j₂, H ⟩ h
+
+/-
+The positive part of a conditionally convergent series diverges.
+-/
+theorem pos_series_diverges {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    ¬ ((fun n ↦ max (a n) 0):Series).converges := by
+      contrapose! ha';
+      -- The series `((fun n ↦ max (-(a n)) 0):Series)` converges. Indeed it converges because it is the difference of the (assumed) convergent series `((fun n ↦ max (a n) 0):Series)` and `(a:Series)`: by `Series.sub` the difference converges, and pointwise `max (a n) 0 - a n = max (-(a n)) 0` (case split on `0 ≤ a n`). Use `Series.ext` (both series have `m = 0`, and `seq` agree for `n ≥ 0` by `Series.eval_coe`) to identify the difference series with `((fun n ↦ max (-(a n)) 0):Series)`.
+      have h_neg_converge : ((fun n ↦ max (-(a n)) 0):Series).converges := by
+        convert ( Series.sub ha' ha ).left using 1;
+        congr with n ; by_cases hn : 0 ≤ n <;> simp +decide [ hn ];
+        cases max_cases ( -a n.toNat ) 0 <;> cases max_cases ( a n.toNat ) 0 <;> linarith;
+      obtain ⟨ L₁, hL₁ ⟩ := ha
+      obtain ⟨ L₂, hL₂ ⟩ := ha'
+      obtain ⟨ L₃, hL₃ ⟩ := h_neg_converge
+      use L₂ + L₃;
+      convert Metric.tendsto_atTop.mpr _ using 1;
+      · exact ⟨ 0 ⟩;
+      · intro ε hε; obtain ⟨ N₁, hN₁ ⟩ := Metric.tendsto_atTop.mp hL₂ ( ε / 2 ) ( half_pos hε ) ; obtain ⟨ N₂, hN₂ ⟩ := Metric.tendsto_atTop.mp hL₃ ( ε / 2 ) ( half_pos hε ) ; use Max.max N₁ N₂; intro n hn; simp_all +decide [ dist_eq_norm, Series.partial ] ;
+        rw [ show ( ∑ x ∈ Icc 0 n, if 0 ≤ x then |a x.toNat| else 0 ) = ( ∑ x ∈ Icc 0 n, if 0 ≤ x then max ( a x.toNat ) 0 else 0 ) + ( ∑ x ∈ Icc 0 n, if 0 ≤ x then max ( -a x.toNat ) 0 else 0 ) from ?_ ];
+        · grind +qlia;
+        · rw [ ← Finset.sum_add_distrib ] ; congr ; ext x ; split_ifs <;> cases max_cases ( a x.toNat ) 0 <;> cases max_cases ( -a x.toNat ) 0 <;> cases abs_cases ( a x.toNat ) <;> linarith;
+
+/-
+The negative part of a conditionally convergent series diverges.
+-/
+theorem neg_series_diverges {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    ¬ ((fun n ↦ max (-(a n)) 0):Series).converges := by
+      contrapose! ha';
+      -- By definition of `Series.absConverges`, we need to show that the series `((fun n ↦ max (a n) 0):Series)` converges.
+      have h_pos_conv : ((fun n ↦ max (a n) 0):Series).converges := by
+        obtain ⟨ L₁, hL₁ ⟩ := ha
+        obtain ⟨ L₂, hL₂ ⟩ := ha';
+        use L₁ + L₂;
+        convert hL₁.add hL₂ using 1;
+        congr with n ; by_cases hn : 0 ≤ n <;> simp +decide [ hn ];
+        cases max_cases ( a n.toNat ) 0 <;> cases max_cases ( -a n.toNat ) 0 <;> linarith;
+      have h_abs_conv : ((fun n ↦ max (a n) 0 + max (-(a n)) 0):Series).converges := by
+        convert Series.add h_pos_conv ha' |>.1 using 1;
+        congr with n ; aesop;
+      obtain ⟨ L, hL ⟩ := h_abs_conv;
+      refine' ⟨ L, _ ⟩;
+      grind +revert
+
+/-
+Finite subsets of the nonnegative-term indices, disjoint from any given finite set,
+have arbitrarily large sums.
+-/
+theorem pos_unbounded {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges)
+    (U : Finset ℕ) (M:ℝ) :
+    ∃ F : Finset ℕ, (↑F ⊆ {n | a n ≥ 0}) ∧ Disjoint F U ∧ M < ∑ n ∈ F, a n := by
+      have h_pos_div : ¬ ((fun n ↦ max (a n) 0):Series).converges := by
+        convert pos_series_diverges ha ha' using 1;
+      -- By `Series.converges_of_nonneg_iff`, since `(g:Series).nonneg` (each `max (a n) 0 ≥ 0`, check via `Series.eval_coe`/coe `seq`),
+      -- it is NOT the case that `∃ B, ∀ N, (g:Series).partial N ≤ B`. Hence for every bound `B` there exists `N` with `B < (g:Series).partial N`.
+      obtain ⟨N, hN⟩ : ∃ N : ℕ, M + ∑ n ∈ U, max (a n) 0 < ∑ n ∈ Finset.range (N + 1), max (a n) 0 := by
+        contrapose! h_pos_div;
+        convert Chapter7.Series.converges_of_nonneg_iff _ |>.2 ⟨ M + ∑ n ∈ U, max ( a n ) 0, fun N => ?_ ⟩ using 1;
+        · intro n; aesop;
+        · by_cases hN : N < 0 <;> simp_all +decide [ Chapter7.Series.partial ];
+          · exact le_trans ( Finset.sum_nonneg fun _ _ => le_max_right _ _ ) ( h_pos_div 0 );
+          · convert h_pos_div ( Int.toNat N ) using 1;
+            refine' Finset.sum_bij ( fun x hx => Int.toNat x ) _ _ _ _ <;> simp_all +decide [ Int.toNat_of_nonneg ];
+            · grind;
+            · exact fun n hn => ⟨ n, ⟨ Nat.cast_nonneg _, hn ⟩, rfl ⟩;
+      refine' ⟨ Finset.filter ( fun n => 0 ≤ a n ) ( Finset.range ( N + 1 ) ) \ U, _, _, _ ⟩ <;> simp_all +decide [ Finset.disjoint_left ];
+      · exact fun x hx => hx.1.2;
+      · have h_sum_filter : ∑ n ∈ Finset.filter (fun n => 0 ≤ a n) (Finset.range (N + 1)) \ U, a n = ∑ n ∈ Finset.filter (fun n => 0 ≤ a n) (Finset.range (N + 1)), max (a n) 0 - ∑ n ∈ Finset.filter (fun n => 0 ≤ a n) (Finset.range (N + 1)) ∩ U, max (a n) 0 := by
+          rw [ ← Finset.sum_sdiff ( show { n ∈ range ( N + 1 ) | 0 ≤ a n } ∩ U ⊆ { n ∈ range ( N + 1 ) | 0 ≤ a n } from Finset.inter_subset_left ) ];
+          simp +decide [ Finset.sdiff_inter_self_left ];
+          exact Finset.sum_congr rfl fun x hx => by rw [ max_eq_left ( Finset.mem_filter.mp ( Finset.mem_sdiff.mp hx |>.1 ) |>.2 ) ] ;
+        have h_sum_filter : ∑ n ∈ Finset.filter (fun n => 0 ≤ a n) (Finset.range (N + 1)) ∩ U, max (a n) 0 ≤ ∑ n ∈ U, max (a n) 0 := by
+          exact Finset.sum_le_sum_of_subset_of_nonneg ( Finset.inter_subset_right ) fun _ _ _ => le_max_right _ _;
+        rw [ Finset.sum_filter ] at *;
+        grind +locals
+
+/-
+Finite subsets of the negative-term indices, disjoint from any given finite set,
+have arbitrarily small (negative) sums.
+-/
+theorem neg_unbounded {a:ℕ→ℝ} (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges)
+    (U : Finset ℕ) (M:ℝ) :
+    ∃ F : Finset ℕ, (↑F ⊆ {n | a n < 0}) ∧ Disjoint F U ∧ ∑ n ∈ F, a n < M := by
+      obtain ⟨N, hN⟩ : ∃ N : ℕ, -M + ∑ n ∈ U, max (-(a n)) 0 < ∑ n ∈ Finset.range (N + 1), max (-(a n)) 0 := by
+        have h_neg_div : ¬ ((fun n ↦ max (-(a n)) 0):Series).converges := by
+          convert neg_series_diverges ha ha' using 1;
+        contrapose! h_neg_div;
+        convert Chapter7.Series.converges_of_nonneg_iff _ |>.2 ⟨ -M + ∑ n ∈ U, max ( -a n ) 0, fun N => ?_ ⟩ using 1;
+        · grind;
+        · by_cases hN : N < 0 <;> simp_all +decide [ Chapter7.Series.partial ];
+          · exact le_trans ( le_add_of_nonneg_right <| Finset.sum_nonneg fun _ _ => le_max_right _ _ ) ( h_neg_div 0 );
+          · convert h_neg_div ( Int.toNat N ) using 1;
+            refine' congr rfl ( Finset.sum_bij ( fun x hx => Int.toNat x ) _ _ _ _ ) <;> simp +decide [ Int.toNat_of_nonneg ];
+            · exact fun _ _ _ => Or.inl ‹_›;
+            · grind;
+            · exact fun b hb => ⟨ b, ⟨ Nat.cast_nonneg _, by linarith [ Int.toNat_of_nonneg hN ] ⟩, rfl ⟩;
+            · grind;
+      refine' ⟨ Finset.filter ( fun n => a n < 0 ) ( Finset.range ( N + 1 ) ) \ U, _, _, _ ⟩ <;> norm_num [ Finset.subset_iff ];
+      · exact fun x hx => hx.1.2;
+      · exact Finset.sdiff_disjoint;
+      · have h_sum_filter : ∑ n ∈ Finset.filter (fun n => a n < 0) (Finset.range (N + 1)) \ U, a n = -∑ n ∈ Finset.filter (fun n => a n < 0) (Finset.range (N + 1)), max (-(a n)) 0 + ∑ n ∈ Finset.filter (fun n => a n < 0) (Finset.range (N + 1)) ∩ U, max (-(a n)) 0 := by
+          rw [ ← Finset.sum_sdiff <| show { n ∈ range ( N + 1 ) | a n < 0 } ∩ U ⊆ { n ∈ range ( N + 1 ) | a n < 0 } from Finset.inter_subset_left ];
+          simp +decide [ Finset.sdiff_inter_self_left ];
+          rw [ ← Finset.sum_neg_distrib ] ; exact Finset.sum_congr rfl fun x hx => by rw [ max_eq_left ( by linarith [ Finset.mem_filter.mp ( Finset.mem_sdiff.mp hx |>.1 ) |>.2 ] ) ] ; ring;
+        have h_sum_filter : ∑ n ∈ Finset.filter (fun n => a n < 0) (Finset.range (N + 1)), max (-(a n)) 0 = ∑ n ∈ Finset.range (N + 1), max (-(a n)) 0 := by
+          rw [ Finset.sum_filter_of_ne ] ; aesop;
+        linarith [ show ∑ n ∈ Finset.filter ( fun n => a n < 0 ) ( Finset.range ( N + 1 ) ) ∩ U, max ( -a n ) 0 ≤ ∑ n ∈ U, max ( -a n ) 0 from Finset.sum_le_sum_of_subset_of_nonneg ( Finset.inter_subset_right ) fun _ _ _ => le_max_right _ _ ]
+
+/-
+At a step where the partial sum is `< L`, the chosen index is a nonnegative-term index,
+and it is the least available such index.
+-/
+theorem rr_pick_pos (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n ≥ 0}] (j:ℕ)
+    (h: ∑ i:Fin j, a (rr a L i) < L) :
+    0 ≤ a (rr a L j) ∧ ∀ x, 0 ≤ a x → (∀ i:Fin j, x ≠ rr a L i) → rr a L j ≤ x := by
+      rw [ rr_eq];
+      split_ifs;
+      have := Nat.min_spec ( show { n | n ∈ { n | a n ≥ 0 } ∧ ∀ i : Fin j, n ≠ rr a L i }.Nonempty from ?_ );
+      · exact ⟨ this.1.1, fun x hx hx' => this.2 x ⟨ hx, hx' ⟩ ⟩;
+      · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_plus_inf a L j ) ) using 1
+
+/-
+At a step where the partial sum is `≥ L`, the chosen index is a negative-term index,
+and it is the least available such index.
+-/
+theorem rr_pick_neg (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n < 0}] (j:ℕ)
+    (h: ¬ (∑ i:Fin j, a (rr a L i) < L)) :
+    a (rr a L j) < 0 ∧ ∀ x, a x < 0 → (∀ i:Fin j, x ≠ rr a L i) → rr a L j ≤ x := by
+      rw [ rr_eq];
+      convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_minus_inf a L j ) ) using 1;
+      constructor;
+      · exact fun h => Set.infinite_coe_iff.mp ( rr_minus_inf a L j ) |> Set.Infinite.nonempty;
+      · grind
+
+/-
+If from step `J` on the partial sum stays `< L` (so only nonnegative-term indices are chosen),
+then every nonnegative-term index is eventually chosen.
+-/
+theorem rr_exhaust_pos (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n ≥ 0}] (J:ℕ)
+    (hJ : ∀ j, J ≤ j → ∑ i:Fin j, a (rr a L i) < L) :
+    ∀ x, 0 ≤ a x → ∃ j, rr a L j = x := by
+      intro x hx
+      by_contra h_contra;
+      have h_bound : ∀ j ≥ J, rr a L j ≤ x := by
+        intros j hj
+        have h_le : rr a L j ≤ x := by
+          have := rr_pick_pos a L j (hJ j hj)
+          exact this.2 x hx fun i => fun hi => h_contra ⟨ i, hi.symm ⟩
+        exact h_le;
+      have h_inj : Set.InjOn (rr a L) (Set.Ici J) := by
+        intros j hj k hk h_eq
+        have h_ne : ∀ j₁ j₂, j₁ < j₂ → j₁ ≥ J → j₂ ≥ J → rr a L j₂ ≠ rr a L j₁ := by
+          intros j₁ j₂ hj₁₂ hj₁ hj₂
+          have h_ne : rr a L j₂ ≠ rr a L j₁ := by
+            have h_pick : rr a L j₂ = Nat.min { n ∈ { n | a n ≥ 0 } | ∀ i : Fin j₂, n ≠ rr a L i } := by
+              rw [ rr_eq ] ; aesop
+            have := Nat.min_spec ( show { n | n ∈ { n | a n ≥ 0 } ∧ ∀ i : Fin j₂, n ≠ rr a L i }.Nonempty from ?_ );
+            · exact h_pick.symm ▸ this.1.2 ⟨ j₁, by linarith ⟩;
+            · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_plus_inf a L j₂ ) ) using 1;
+          exact h_ne;
+        grind +qlia;
+      exact absurd ( Set.Infinite.image ( show Set.InjOn ( rr a L ) ( Set.Ici J ) from h_inj ) ( Set.Ici_infinite J ) ) ( Set.not_infinite.mpr <| Set.finite_iff_bddAbove.mpr ⟨ x, fun y hy => by aesop ⟩ )
+
+/-
+If from step `J` on the partial sum stays `≥ L` (so only negative-term indices are chosen),
+then every negative-term index is eventually chosen.
+-/
+theorem rr_exhaust_neg (a : ℕ → ℝ) (L : ℝ) [Infinite {n | a n < 0}] (J:ℕ)
+    (hJ : ∀ j, J ≤ j → L ≤ ∑ i:Fin j, a (rr a L i)) :
+    ∀ x, a x < 0 → ∃ j, rr a L j = x := by
+      intro x hx_neg
+      by_contra h_contra
+      push_neg at h_contra
+      have h_le : ∀ j ≥ J, rr a L j ≤ x := by
+        intros j hj
+        have h_le : rr a L j ≤ x := by
+          have := rr_pick_neg a L j (by
+          exact not_lt_of_ge ( hJ j hj ))
+          exact this.2 x hx_neg (fun i => fun hi => h_contra i hi.symm)
+        exact h_le;
+      have h_inj : Set.InjOn (rr a L) (Set.Ici J) := by
+        intros j hj k hk h_eq
+        have h_ne : ∀ j₁ j₂, j₁ < j₂ → j₁ ≥ J → j₂ ≥ J → rr a L j₂ ≠ rr a L j₁ := by
+          intros j₁ j₂ hj₁₂ hj₁ hj₂
+          have h_pick : rr a L j₂ = Nat.min { n ∈ { n | a n < 0 } | ∀ i : Fin j₂, n ≠ rr a L i } := by
+            rw [ rr_eq ] ; aesop;
+          have := Nat.min_spec ( show { n | n ∈ { n | a n < 0 } ∧ ∀ i : Fin j₂, n ≠ rr a L i }.Nonempty from ?_ );
+          · exact h_pick.symm ▸ this.1.2 ⟨ j₁, by linarith ⟩;
+          · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rr_minus_inf a L j₂ ) ) using 1
+        grind;
+      exact absurd ( Set.Infinite.image ( show Set.InjOn ( rr a L ) ( Set.Ici J ) from h_inj ) ( Set.Ici_infinite J ) ) ( Set.not_infinite.mpr <| Set.finite_iff_bddAbove.mpr ⟨ x, fun y hy => by aesop ⟩ )
+
+/-
+The partial sum drops below `L` infinitely often.
+-/
+theorem rr_case_I (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    Infinite { j | ∑ i:Fin j, a (rr a L i) < L } := by
+      -- Assume for contradiction that there exists $J$ such that $\forall j \geq J, L \leq \sum_{i=0}^{j-1} a_{\text{rr}(a, L, i)}$.
+      by_contra h_contra
+      obtain ⟨J, hJ⟩ : ∃ J, ∀ j ≥ J, L ≤ ∑ i : Fin j, a (rr a L i) := by
+        simp +zetaDelta at *;
+        exact Set.finite_iff_bddAbove.mp ( Set.finite_coe_iff.mp h_contra ) |> fun ⟨ J, hJ ⟩ => ⟨ J + 1, fun j hj => not_lt.1 fun contra => not_lt_of_ge ( hJ contra ) hj ⟩;
+      haveI := nonneg_infinite ha ha'; haveI := neg_infinite ha ha';
+      obtain ⟨ F, hF₁, hF₂, hF₃ ⟩ := neg_unbounded ha ha' ( Finset.image ( rr a L ) ( Finset.range J ) ) ( L - ∑ i : Fin J, a ( rr a L i ) );
+      obtain ⟨ K, hK ⟩ : ∃ K ≥ J, ∀ x ∈ F, ∃ i ∈ Finset.Ico J K, rr a L i = x := by
+        obtain ⟨ K, hK ⟩ : ∃ K ≥ J, ∀ x ∈ F, ∃ i < K, rr a L i = x := by
+          have hK : ∀ x ∈ F, ∃ i, rr a L i = x := by
+            exact fun x hx => rr_exhaust_neg a L J hJ x ( hF₁ hx );
+          choose! f hf using hK;
+          exact ⟨ Finset.sup F f + J + 1, by linarith, fun x hx => ⟨ f x, by linarith [ Finset.le_sup ( f := f ) hx ], hf x hx ⟩ ⟩;
+        use K; simp_all +decide [ Finset.disjoint_left ] ;
+        exact fun x hx => by obtain ⟨ i, hi, hi' ⟩ := hK.2 x hx; exact ⟨ i, ⟨ le_of_not_gt fun hi'' => hF₂ hx i hi'' hi', hi ⟩, hi' ⟩ ;
+      have h_sum_le : ∑ n ∈ Finset.image (rr a L) (Finset.Ico J K), a n ≤ ∑ n ∈ F, a n := by
+        have h_sum_le : ∑ n ∈ Finset.image (rr a L) (Finset.Ico J K), -a n ≥ ∑ n ∈ F, -a n := by
+          apply Finset.sum_le_sum_of_subset_of_nonneg;
+          · exact fun x hx => by obtain ⟨ i, hi, rfl ⟩ := hK.2 x hx; exact Finset.mem_image_of_mem _ hi;
+          · grind +suggestions;
+        aesop;
+      rw [ Finset.sum_image ] at h_sum_le;
+      · have := hJ K hK.1;
+        rw [ Finset.sum_Ico_eq_sub _ hK.1 ] at h_sum_le;
+        linarith! [ show ∑ i : Fin K, a ( rr a L i ) = ∑ i ∈ Finset.range K, a ( rr a L i ) from by rw [ Finset.sum_range ], show ∑ i : Fin J, a ( rr a L i ) = ∑ i ∈ Finset.range J, a ( rr a L i ) from by rw [ Finset.sum_range ] ];
+      · exact fun x hx y hy hxy => by have := rr_inj a L; exact this hxy;
+
+/-
+The partial sum is at least `L` infinitely often.
+-/
+theorem rr_case_II (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    Infinite { j | ∑ i:Fin j, a (rr a L i) ≥ L } := by
+      by_contra h;
+      -- By assumption `{ j | L ≤ S j }` is finite. By `Set.Finite.bddAbove`, it is bounded above.
+      obtain ⟨J, hJ⟩ : ∃ J : ℕ, ∀ j ≥ J, ¬(∑ i : Fin j, a (rr a L i)) ≥ L := by
+        simp +zetaDelta at *;
+        exact Set.Finite.bddAbove ( Set.finite_coe_iff.mp h ) |> fun ⟨ J, hJ ⟩ => ⟨ J + 1, fun j hj => lt_of_not_ge fun h' => not_lt_of_ge ( hJ h' ) hj ⟩;
+      have h_pos_inf : Infinite {n | a n ≥ 0} := by
+        convert nonneg_infinite ha ha' using 1
+      have h_neg_inf : Infinite {n | a n < 0} := by
+        convert neg_infinite ha ha' using 1;
+      obtain ⟨ F, hF₁, hF₂, hF₃ ⟩ := pos_unbounded ha ha' ( Finset.image ( rr a L ) ( Finset.range J ) ) ( L - ∑ i : Fin J, a ( rr a L i ) );
+      obtain ⟨ K, hK ⟩ : ∃ K : ℕ, ∀ x ∈ F, ∃ k ∈ Finset.Ico J K, rr a L k = x := by
+        have hK : ∀ x ∈ F, ∃ k ≥ J, rr a L k = x := by
+          intros x hx
+          obtain ⟨ k, hk ⟩ := rr_exhaust_pos a L J (fun j hj => by
+            exact lt_of_not_ge ( hJ j hj )) x (hF₁ hx);
+          exact ⟨ k, le_of_not_gt fun hk' => Finset.disjoint_left.mp hF₂ hx <| hk ▸ Finset.mem_image.mpr ⟨ k, Finset.mem_range.mpr hk', rfl ⟩, hk ⟩;
+        choose! k hk₁ hk₂ using hK;
+        exact ⟨ Finset.sup F k + 1, fun x hx => ⟨ k x, Finset.mem_Ico.mpr ⟨ hk₁ x hx, Nat.lt_succ_of_le ( Finset.le_sup ( f := k ) hx ) ⟩, hk₂ x hx ⟩ ⟩;
+      have h_sum_le : ∑ n ∈ F, a n ≤ ∑ n ∈ Finset.image (rr a L) (Finset.Ico J K), a n := by
+        apply Finset.sum_le_sum_of_subset_of_nonneg;
+        · exact fun x hx => by obtain ⟨ k, hk₁, hk₂ ⟩ := hK x hx; exact hk₂ ▸ Finset.mem_image_of_mem _ hk₁;
+        · intros i hi hni;
+          obtain ⟨ k, hk₁, rfl ⟩ := Finset.mem_image.mp hi;
+          exact rr_pick_pos a L k ( not_le.mp ( hJ k ( Finset.mem_Ico.mp hk₁ |>.1 ) ) ) |>.1;
+      have h_sum_eq : ∑ n ∈ Finset.image (rr a L) (Finset.Ico J K), a n = ∑ i ∈ Finset.Ico J K, a (rr a L i) := by
+        apply Finset.sum_image;
+        exact fun x hx y hy hxy => by have := rr_inj a L; have := @this x y; aesop;
+      have h_sum_eq : ∑ i ∈ Finset.Ico J K, a (rr a L i) = ∑ i : Fin K, a (rr a L i) - ∑ i : Fin J, a (rr a L i) := by
+        cases le_total J K <;> simp_all +decide [ Finset.sum_Ico_eq_sub _ ];
+        · simp +decide [ Finset.sum_range, Fin.sum_univ_castSucc ];
+        · linarith [ hJ J le_rfl ];
+      linarith [ hJ K ( by
+        by_cases hF_empty : F = ∅;
+        · grind +splitImp;
+        · obtain ⟨ x, hx ⟩ := Finset.nonempty_of_ne_empty hF_empty; obtain ⟨ k, hk₁, hk₂ ⟩ := hK x hx; linarith [ Finset.mem_Ico.mp hk₁ ] ; ) ]
+
+/-
+The Riemann rearrangement permutation is surjective.
+-/
+theorem rr_surj (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    Surjective (rr a L) := by
+      have h_nonneg_infinite : Infinite {n | a n ≥ 0} := by
+        convert nonneg_infinite ha ha' using 1
+      have h_neg_infinite : Infinite {n | a n < 0} := by
+        convert neg_infinite _ _;
+        · exact ha;
+        · convert ha' using 1;
+      intro x
+      by_contra h_contra
+      push_neg at h_contra;
+      by_cases hx : 0 ≤ a x;
+      · have := rr_case_I a L ha ha';
+        have h_image : Set.Infinite (Set.image (rr a L) {j | ∑ i : Fin j, a (rr a L i) < L}) := by
+          exact Set.Infinite.image ( fun j => by have := rr_inj a L; aesop ) ( Set.infinite_coe_iff.mp this );
+        exact h_image ( Set.Finite.subset ( Set.finite_le_nat x ) <| Set.image_subset_iff.mpr fun j hj => by have := rr_pick_pos a L j hj; exact this.2 x hx fun i => fun hi => h_contra i hi.symm );
+      · have := rr_case_II a L ha ha';
+        have h_image : Set.Infinite (Set.image (rr a L) {j | ∑ i : Fin j, a (rr a L i) ≥ L}) := by
+          exact Set.Infinite.image ( fun j => by have := rr_inj a L; aesop ) ( Set.infinite_coe_iff.mp this );
+        exact h_image ( Set.finite_iff_bddAbove.mpr ⟨ x, by rintro y ⟨ j, hj, rfl ⟩ ; exact Nat.le_of_not_lt fun h => by have := rr_pick_neg a L j ( by aesop ) ; exact not_lt_of_ge ( this.2 x ( by aesop ) ( fun i hi => h_contra _ hi.symm ) ) h ⟩ )
+
+/-- The rearranged terms tend to zero. -/
+theorem rr_conv (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (a ∘ rr a L) (nhds 0) := by
+      -- Let's show that the function `rr a L` tends to infinity.
+      have h_rr_inf : Filter.Tendsto (rr a L) Filter.atTop Filter.atTop := by
+        -- By definition of `rr`, we know that it is injective.
+        have h_inj : Function.Injective (rr a L) := by
+          convert rr_inj a L;
+          · convert nonneg_infinite ha ha' using 1;
+          · convert neg_infinite ha ha' using 1;
+        exact Injective.nat_tendsto_atTop h_inj;
+      refine' Filter.Tendsto.comp _ h_rr_inf;
+      have := Series.decay_of_converges ha;
+      convert this.comp tendsto_natCast_atTop_atTop using 1
+
+/-
+The natural-indexed partial sums of the rearranged series tend to `L`.
+-/
+theorem rr_partial_tendsto (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (fun n:ℕ ↦ ∑ i:Fin n, a (rr a L i)) (nhds L) := by
+      -- Define the partial sums of the rearranged series.
+      set T : ℕ → ℝ := fun n => ∑ i : Fin n, a (rr a L i);
+      -- By definition of $T$, we know that for any $\epsilon > 0$, there exists an $N$ such that for all $n \geq N$, $|T n - L| < \epsilon$.
+      have h_tendsto : ∀ ε > 0, ∃ N, ∀ n ≥ N, |T n - L| < ε := by
+        intro ε hε_pos
+        obtain ⟨D, hD⟩ : ∃ D, ∀ k ≥ D, |a (rr a L k)| < ε := by
+          have := rr_conv a L ha ha';
+          simpa using Metric.tendsto_atTop.mp this ε hε_pos |> fun ⟨ D, hD ⟩ => ⟨ D, fun k hk => by simpa using hD k hk ⟩
+        obtain ⟨D0, hD0⟩ : ∃ D0, D0 ≥ D ∧ T D0 < L := by
+          have := rr_case_I a L ha ha';
+          exact Exists.elim ( Set.Infinite.exists_gt ( Set.infinite_coe_iff.mp this ) D ) fun x hx => ⟨ x, hx.2.le, hx.1 ⟩
+        obtain ⟨p, hp⟩ : ∃ p, D0 < p ∧ L ≤ T p ∧ ∀ j, D0 < j → j < p → T j < L := by
+          have h_exists_p : ∃ p, D0 < p ∧ L ≤ T p := by
+            have h_exists_p : Set.Infinite {j | L ≤ T j} := by
+              convert rr_case_II a L _ _ using 1;
+              · exact Iff.symm Set.infinite_coe_iff;
+              · convert ha using 1;
+              · convert ha' using 1;
+            exact Exists.elim ( h_exists_p.exists_gt D0 ) fun p hp => ⟨ p, hp.2, hp.1 ⟩;
+          exact ⟨ Nat.find h_exists_p, Nat.find_spec h_exists_p |>.1, Nat.find_spec h_exists_p |>.2, fun j hj₁ hj₂ => not_le.1 fun hj₃ => Nat.find_min h_exists_p hj₂ ⟨ hj₁, hj₃ ⟩ ⟩
+        use p
+        intro n hn
+        induction' n, hn using Nat.le_induction with n hn ih;
+        · have hTp : T p = T (p - 1) + a (rr a L (p - 1)) := by
+            rcases p <;> simp_all +decide [ Fin.sum_univ_castSucc ];
+            exact Fin.sum_univ_castSucc fun i => a (rr a L ↑i);
+          by_cases h_cases : p - 1 = D0;
+          · simp_all +decide [ abs_lt ];
+            constructor <;> linarith [ hD D0 hD0.1 ];
+          · grind +revert;
+        · have h_sign : (T n < L → 0 ≤ a (rr a L n)) ∧ (L ≤ T n → a (rr a L n) < 0) := by
+            have h_sign : (T n < L → 0 ≤ a (rr a L n)) ∧ (L ≤ T n → a (rr a L n) < 0) := by
+              have h_nonneg : Infinite {n | a n ≥ 0} := by
+                convert nonneg_infinite _ _ using 1;
+                · convert ha using 1;
+                · convert ha' using 1
+              have h_neg : Infinite {n | a n < 0} := by
+                convert neg_infinite _ _;
+                · convert ha using 1;
+                · convert ha' using 1
+              exact ⟨fun h => (rr_pick_pos a L n h).left, fun h => (rr_pick_neg a L n (by
+              linarith!)).left⟩;
+            exact h_sign;
+          have h_telescope : T (n + 1) = T n + a (rr a L n) := by
+            convert Fin.sum_univ_castSucc _ using 1;
+          grind +qlia;
+      exact Metric.tendsto_atTop.mpr h_tendsto
+
+/-
+The rearranged series converges to `L`.
+-/
+theorem rr_sum (a : ℕ → ℝ) (L : ℝ) (ha: (a:Series).converges)
+    (ha': ¬ (a:Series).absConverges) :
+    (a ∘ rr a L:Series).convergesTo L := by
+      have h_partial : Filter.Tendsto (fun n : ℕ => ∑ i : Fin (n + 1), a (rr a L i)) Filter.atTop (nhds L) := by
+        have h_partial : Filter.Tendsto (fun n : ℕ => ∑ i : Fin n, a (rr a L i)) Filter.atTop (nhds L) := by
+          exact rr_partial_tendsto a L ha ha';
+        exact h_partial.comp ( Filter.tendsto_add_atTop_nat 1 );
+      refine' Metric.tendsto_atTop.mpr _;
+      intro ε hε; rcases Metric.tendsto_atTop.mp h_partial ε hε with ⟨ N, hN ⟩ ; use N; intros n hn; simp_all +decide [ Finset.sum_range, Fin.sum_univ_succ ] ;
+      rcases n with ( _ | n ) <;> norm_cast at *;
+      · convert hN _ ( Nat.cast_le.mp hn ) using 1;
+        simp +decide [ Series.partial, Finset.sum_range, Fin.sum_univ_succ ];
+        erw [ Finset.sum_Ico_eq_sub _ _ ] <;> norm_num [ Finset.sum_range, Fin.sum_univ_succ ];
+      · linarith [ Int.negSucc_lt_zero n ]
+
 /-- Theorem 8.2.8 (Riemann rearrangement theorem) / Exercise 8.2.5 -/
 theorem permute_convergesTo_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
   (ha': ¬ (a:Series).absConverges) (L:ℝ) :
   ∃ f : ℕ → ℕ, Bijective f ∧ (a ∘ f:Series).convergesTo L
   := by
-  -- This proof is written to follow the structure of the original text.
-  choose h1 h2 using divergent_parts_of_divergent ha ha'
-  set A_plus := { n | a n ≥ 0 }
-  set A_minus := {n | a n < 0 }
-  have hdisj : Disjoint A_plus A_minus := by
-    rw [Set.disjoint_iff_inter_eq_empty]; ext; simp [A_plus, A_minus]
-  have hunion : A_plus ∪ A_minus = .univ := by
-    ext; simp [A_plus, A_minus]; grind
-  have hA_plus_inf : Infinite A_plus := sorry
-  have hA_minus_inf : Infinite A_minus := sorry
-  obtain ⟨ a_plus, ha_plus_bij, ha_plus_mono ⟩ := (Nat.monotone_enum_of_infinite A_plus).exists
-  obtain ⟨ a_minus, ha_minus_bij, ha_minus_mono ⟩ := (Nat.monotone_enum_of_infinite A_minus).exists
-  let F : (n : ℕ) → ((m : ℕ) → m < n → ℕ) → ℕ :=
-    fun j n' ↦ if ∑ i:Fin j, a (n' i (by simp)) < L then
-      Nat.min { n ∈ A_plus | ∀ i:Fin j, n ≠ n' i (by simp) }
+  haveI : Infinite {n | a n ≥ 0} := nonneg_infinite ha ha'
+  haveI : Infinite {n | a n < 0} := neg_infinite ha ha'
+  exact ⟨rr a L, ⟨rr_inj a L, rr_surj a L ha ha'⟩, rr_sum a L ha ha'⟩
+
+open Classical in
+/-- Recursion functional for the divergent (to `+∞`) rearrangement: pick the least unused
+nonnegative-term index while the partial sum is below `(number of negative terms used so far) + 1`,
+and otherwise pick the least unused negative-term index. -/
+noncomputable def rrTopF (a : ℕ → ℝ) : (n : ℕ) → ((m : ℕ) → m < n → ℕ) → ℕ :=
+  fun j n' ↦
+    if ∑ i:Fin j, a (n' i (by simp))
+        < ((Finset.univ.filter (fun i : Fin j => a (n' i (by simp)) < 0)).card : ℝ) + 1 then
+      Nat.min { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ n' i (by simp) }
     else
-      Nat.min { n ∈ A_minus | ∀ i:Fin j, n ≠ n' i (by simp) }
-  let n' : ℕ → ℕ := Nat.strongRec F
-  have hn' (j:ℕ) : n' j = if ∑ i:Fin j, a (n' i) < L then
-      Nat.min { n ∈ A_plus | ∀ i:Fin j, n ≠ n' i }
+      Nat.min { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ n' i (by simp) }
+
+/-- The divergent (to `+∞`) rearrangement permutation. -/
+noncomputable def rrTop (a : ℕ → ℝ) : ℕ → ℕ := Nat.strongRec (rrTopF a)
+
+/-- Unfolding equation for `rrTop`. -/
+theorem rrTop_eq (a : ℕ → ℝ) (j:ℕ) :
+    rrTop a j = if ∑ i:Fin j, a (rrTop a i)
+        < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1 then
+      Nat.min { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ rrTop a i }
     else
-      Nat.min { n ∈ A_minus | ∀ i:Fin j, n ≠ n' i }
-    := Nat.strongRec.eq_def _ j
-  have hn'_plus_inf (j:ℕ) : Infinite { n ∈ A_plus | ∀ i:Fin j, n ≠ n' i } := by sorry
-  have hn'_minus_inf (j:ℕ) : Infinite { n ∈ A_minus | ∀ i:Fin j, n ≠ n' i } := by sorry
-  have hn'_inj : Injective n' := by sorry
-  have h_case_I : Infinite { j | ∑ i:Fin j, a (n' i) < L } := by sorry
-  have h_case_II : Infinite { j | ∑ i:Fin j, a (n' i) ≥ L } := by sorry
-  have hn'_surj : Surjective n' := by sorry
-  have hconv : atTop.Tendsto (a ∘ n') (nhds 0) := by sorry
-  have hsum : (a ∘ n':Series).convergesTo L := by sorry
-  use n'
-  refine ⟨ ⟨ hn'_inj, hn'_surj ⟩, ?_ ⟩; convert hsum
+      Nat.min { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ rrTop a i }
+  := Nat.strongRec.eq_def _ j
+
+/-
+At each step, the candidate unused nonnegative indices form an infinite set.
+-/
+theorem rrTop_plus_inf (a : ℕ → ℝ) [Infinite {n | a n ≥ 0}] (j:ℕ) :
+    Infinite { n ∈ {n | a n ≥ 0} | ∀ i:Fin j, n ≠ rrTop a i } := by
+      refine Set.infinite_coe_iff.mpr ?_;
+      convert Set.Infinite.diff ( Set.infinite_coe_iff.mp ‹_› ) ( Set.toFinite ( Set.range fun i : Fin j => rrTop a i ) ) using 1;
+      grind
+
+/-
+At each step, the candidate unused negative indices form an infinite set.
+-/
+theorem rrTop_minus_inf (a : ℕ → ℝ) [Infinite {n | a n < 0}] (j:ℕ) :
+    Infinite { n ∈ {n | a n < 0} | ∀ i:Fin j, n ≠ rrTop a i } := by
+      refine Set.infinite_coe_iff.mpr ?_;
+      convert Set.Infinite.diff ( Set.infinite_coe_iff.mp ‹_› ) ( Set.toFinite ( Finset.image ( fun i : Fin j => rrTop a i ) Finset.univ ) ) using 1;
+      grind
+
+/-
+`rrTop` is injective.
+-/
+theorem rrTop_inj (a : ℕ → ℝ) [Infinite {n | a n ≥ 0}] [Infinite {n | a n < 0}] :
+    Injective (rrTop a) := by
+      intro x y hxy;
+      -- By definition of `rrTop`, we know that for any `j`, `rrTop a j` is distinct from `rrTop a i` for all `i < j`.
+      have h_distinct : ∀ j i : ℕ, i < j → rrTop a j ≠ rrTop a i := by
+        intros j i hij
+        rw [rrTop_eq a j];
+        split_ifs;
+        · have := Nat.min_spec ( show { n | n ∈ { n | a n ≥ 0 } ∧ ∀ i : Fin j, n ≠ rrTop a i }.Nonempty from ?_ );
+          · exact this.1.2 ⟨ i, hij ⟩;
+          · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rrTop_plus_inf a j ) ) using 1;
+        · have := Nat.min_spec ( show { n | n ∈ { n | a n < 0 } ∧ ∀ i : Fin j, n ≠ rrTop a i }.Nonempty from ?_ );
+          · exact this.1.2 ⟨ i, hij ⟩;
+          · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rrTop_minus_inf a j ) ) using 1;
+      grind
+
+/-
+When the threshold condition holds, the chosen index is the least available nonnegative-term index.
+-/
+theorem rrTop_pick_pos (a : ℕ → ℝ) [Infinite {n | a n ≥ 0}] (j:ℕ)
+    (h: ∑ i:Fin j, a (rrTop a i)
+        < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) :
+    0 ≤ a (rrTop a j) ∧ ∀ x, 0 ≤ a x → (∀ i:Fin j, x ≠ rrTop a i) → rrTop a j ≤ x := by
+      rw [rrTop_eq] at *;
+      have := Nat.min_spec ( show { n | n ∈ { n | 0 ≤ a n } ∧ ∀ i : Fin j, n ≠ rrTop a i }.Nonempty from ?_ );
+      · grind;
+      · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rrTop_plus_inf a j ) ) using 1
+
+/-
+When the threshold condition fails, the chosen index is the least available negative-term index.
+-/
+theorem rrTop_pick_neg (a : ℕ → ℝ) [Infinite {n | a n < 0}] (j:ℕ)
+    (h: ¬ (∑ i:Fin j, a (rrTop a i)
+        < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1)) :
+    a (rrTop a j) < 0 ∧ ∀ x, a x < 0 → (∀ i:Fin j, x ≠ rrTop a i) → rrTop a j ≤ x := by
+      convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rrTop_minus_inf a j ) ) using 1;
+      constructor <;> intro h;
+      · convert Set.Infinite.nonempty ( Set.infinite_coe_iff.mp ( rrTop_minus_inf a j ) ) using 1;
+      · grind +suggestions
+
+set_option maxHeartbeats 1000000 in
+/-- Infinitely many steps pick a negative-term index. -/
+theorem rrTop_neg_inf (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    Infinite { j | ¬ (∑ i:Fin j, a (rrTop a i)
+        < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) } := by
+          haveI := nonneg_infinite ha ha'
+          haveI := neg_infinite ha ha';
+          by_contra h_contra
+          obtain ⟨J, hJ⟩ : ∃ J, ∀ j ≥ J, ∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1 := by
+            simp +zetaDelta at *;
+            obtain ⟨ J, hJ ⟩ := Set.Finite.bddAbove ( Set.finite_coe_iff.mp h_contra ) ; exact ⟨ J + 1, fun j hj => lt_of_not_ge fun h => not_lt_of_ge ( hJ h ) hj ⟩ ;
+          -- Claim `C j = C J` for all `j ≥ J`: for any `i ≥ J`, `S i < (C i)+1`, so `rrTop_pick_pos a i` gives `0 ≤ a (rrTop a i)`, hence `¬ (a (rrTop a i) < 0)`. Therefore no index `i ∈ [J, j)` is counted by the filter, so `C j = C J` (prove by `Nat.le_induction`: `C (j+1) = C j` using `Finset.range_succ`/`Finset.filter_insert` and `¬ (a (rrTop a j) < 0)`). In particular for `j ≥ J`, `S j < (C J : ℝ) + 1`.
+          have hC_const : ∀ j ≥ J, ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) = ((Finset.univ.filter (fun i : Fin J => a (rrTop a i) < 0)).card : ℝ) := by
+            intro j hj
+            induction' hj with j hj ih;
+            · rfl;
+            · have := rrTop_pick_pos a j ( hJ j hj );
+              rw [ Finset.card_filter, Finset.card_filter ] at *;
+              rw [ Fin.sum_univ_castSucc ] ; aesop;
+          -- Exhaustion: every `x` with `0 ≤ a x` is eventually chosen. Suppose not: `∀ j, rrTop a j ≠ x`. For `j ≥ J`, `S j < (C j)+1` holds, so `rrTop_pick_pos a j` applies; at `x` (using `0 ≤ a x` and `∀ i:Fin j, x ≠ rrTop a i`) it gives `rrTop a j ≤ x`. The values `rrTop a j` for distinct `j ≥ J` are distinct (`rrTop` injective via `rrTop_inj a`), giving an injection of the infinite `Set.Ici J` into `Finset.range (x+1)` — contradiction (`Set.infinite_Ici`).
+          have h_exhaust : ∀ x, 0 ≤ a x → ∃ j, rrTop a j = x := by
+            intro x hx_nonneg
+            by_contra h_contra
+            push_neg at h_contra
+            have h_le : ∀ j ≥ J, rrTop a j ≤ x := by
+              intros j hj
+              have := rrTop_pick_pos a j (hJ j hj)
+              exact this.2 x hx_nonneg (fun i => fun hi => h_contra i hi.symm)
+            have h_inj : Set.InjOn (rrTop a) (Set.Ici J) := by
+              exact fun i hi j hj hij => by have := rrTop_inj a; aesop;
+            exact absurd ( Set.Infinite.image ( show Set.InjOn ( rrTop a ) ( Set.Ici J ) from h_inj ) ( Set.Ici_infinite J ) ) ( Set.not_infinite.mpr <| Set.finite_iff_bddAbove.mpr ⟨ x, fun y hy => by aesop ⟩ );
+          -- Apply `pos_unbounded` to get a finite `F ⊆ {n | a n ≥ 0}`, disjoint from `Finset.image (rrTop a) (Finset.range J)`, with `(C J : ℝ) + 1 - S J < ∑ n ∈ F, a n`.
+          obtain ⟨ F, hF₁, hF₂, hF₃ ⟩ := pos_unbounded ha ha' ( Finset.image (rrTop a) (Finset.range J) ) ( ( (Finset.univ.filter (fun i : Fin J => a (rrTop a i) < 0)).card : ℝ) + 1 - ∑ i : Fin J, a (rrTop a i) );
+          -- By exhaustion each `x ∈ F` is `rrTop a (g x)` for some `g x`, and `g x ≥ J` (else `x ∈ image (rrTop a) (range J)`, contradicting disjointness). Let `K := (F.sup g) + 1 ⊔ J`.
+          obtain ⟨ K, hK ⟩ : ∃ K ≥ J, ∀ x ∈ F, ∃ k ∈ Finset.Ico J K, rrTop a k = x := by
+            have hK : ∀ x ∈ F, ∃ k ≥ J, rrTop a k = x := by
+              intro x hx; obtain ⟨ k, hk ⟩ := h_exhaust x ( hF₁ hx ) ; use k; simp_all +decide [ Finset.disjoint_left ] ;
+              exact le_of_not_gt fun hk' => hF₂ hx k hk' hk;
+            choose! k hk₁ hk₂ using hK;
+            exact ⟨ Finset.sup F k + J + 1, by linarith, fun x hx => ⟨ k x, Finset.mem_Ico.mpr ⟨ hk₁ x hx, by linarith [ Finset.le_sup ( f := k ) hx ] ⟩, hk₂ x hx ⟩ ⟩;
+          have h_sum_le : ∑ n ∈ F, a n ≤ ∑ n ∈ Finset.image (rrTop a) (Finset.Ico J K), a n := by
+            apply Finset.sum_le_sum_of_subset_of_nonneg;
+            · exact fun x hx => by obtain ⟨ k, hk₁, hk₂ ⟩ := hK.2 x hx; exact hk₂ ▸ Finset.mem_image_of_mem _ hk₁;
+            · grind +suggestions;
+          rw [ Finset.sum_image ] at h_sum_le;
+          · rw [ Finset.sum_Ico_eq_sub _ hK.1 ] at h_sum_le;
+            linarith! [ hJ K hK.1, hC_const K hK.1, show ∑ k ∈ Finset.range K, a ( rrTop a k ) = ∑ i : Fin K, a ( rrTop a i ) from by rw [ Finset.sum_range ], show ∑ k ∈ Finset.range J, a ( rrTop a k ) = ∑ i : Fin J, a ( rrTop a i ) from by rw [ Finset.sum_range ] ];
+          · exact fun x hx y hy hxy => by have := rrTop_inj a; have := @this x y; aesop;
+
+set_option maxHeartbeats 1000000 in
+/-- Infinitely many steps pick a nonnegative-term index. -/
+theorem rrTop_pos_inf (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    Infinite { j | ∑ i:Fin j, a (rrTop a i)
+        < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1 } := by
+          convert Set.infinite_coe_iff.mpr _;
+          by_contra h_contra;
+          -- Obtain instances `Infinite {n|a n≥0}`, `Infinite {n|a n<0}` via `nonneg_infinite ha ha'`, `neg_infinite ha ha'` (haveI).
+          haveI := nonneg_infinite ha ha'
+          haveI := neg_infinite ha ha';
+          obtain ⟨J, hJ⟩ : ∃ J, ∀ j ≥ J, ¬(∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) := by
+            exact Set.finite_iff_bddAbove.mp ( Classical.not_not.mp h_contra ) |> fun ⟨ J, hJ ⟩ => ⟨ J + 1, fun j hj hj' => not_lt_of_ge ( hJ hj' ) hj ⟩;
+          -- By `rrTop_pick_neg a j` (its hypothesis is exactly `¬ (S j < C j + 1)`), `a (rrTop a j) < 0` for all `j ≥ J`.
+          have h_neg : ∀ j ≥ J, a (rrTop a j) < 0 := by
+            intro j hj; specialize hJ j hj; exact (rrTop_pick_neg a j hJ).left;
+          -- By induction, we have $S j \leq S J$ for all $j \geq J$.
+          have h_le : ∀ j ≥ J, ∑ i : Fin j, a (rrTop a i) ≤ ∑ i : Fin J, a (rrTop a i) := by
+            intro j hj; induction hj <;> simp_all +decide [ Fin.sum_univ_castSucc ] ;
+            linarith [ h_neg _ ‹_› ];
+          -- By induction, we have $C j = C J + (j - J)$ for all $j \geq J$.
+          have h_card : ∀ j ≥ J, ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) = ((Finset.univ.filter (fun i : Fin J => a (rrTop a i) < 0)).card : ℝ) + (j - J) := by
+            intro j hj; induction hj <;> simp_all +decide [ Fin.sum_univ_castSucc, Finset.sum_range_succ ] ;
+            rw [ Finset.card_filter, Finset.card_filter ] at *;
+            rw [ Fin.sum_univ_castSucc ] ; simp_all +decide [ Fin.sum_univ_succ ] ; ring;
+          -- Choose $j$ such that $C J + (j - J) > S J - 1$.
+          obtain ⟨j, hj⟩ : ∃ j ≥ J, ((Finset.univ.filter (fun i : Fin J => a (rrTop a i) < 0)).card : ℝ) + (j - J) > (∑ i : Fin J, a (rrTop a i)) - 1 := by
+            exact ⟨ ⌊ ( ∑ i : Fin J, a ( rrTop a i ) ) - 1 - ( Finset.card ( Finset.filter ( fun i : Fin J => a ( rrTop a i ) < 0 ) Finset.univ ) : ℝ ) + J⌋₊ + J + 1, by linarith, by push_cast; linarith [ Nat.lt_floor_add_one ( ( ∑ i : Fin J, a ( rrTop a i ) ) - 1 - ( Finset.card ( Finset.filter ( fun i : Fin J => a ( rrTop a i ) < 0 ) Finset.univ ) : ℝ ) + J ) ] ⟩;
+          linarith [ hJ j hj.1, h_le j hj.1, h_card j hj.1 ]
+
+/-
+`rrTop` is surjective.
+-/
+theorem rrTop_surj (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    Surjective (rrTop a) := by
+      intro x;
+      by_contra h_contra;
+      -- By `rrTop_pos_inf a ha ha'`, the set `P := { j | ∑ i:Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1 }` is infinite.
+      have hP_inf : Set.Infinite { j | ∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1 } := by
+        convert rrTop_pos_inf a ha ha' using 1;
+        exact Set.infinite_coe_iff.symm;
+      -- By `rrTop_neg_inf a ha ha'`, the set `Q := { j | ¬ (∑ i:Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) }` is infinite.
+      have hQ_inf : Set.Infinite { j | ¬ (∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) } := by
+        convert rrTop_neg_inf a _ _ using 1;
+        · rw [ Set.infinite_coe_iff ];
+        · exact ha;
+        · convert ha' using 1;
+      have h_nonneg_infinite : Infinite {n | a n ≥ 0} := by
+        convert nonneg_infinite ha ha' using 1
+      have h_neg_infinite : Infinite {n | a n < 0} := by
+        convert neg_infinite _ _ using 1;
+        · convert ha using 1;
+        · convert ha' using 1;
+      by_cases hx : 0 ≤ a x;
+      · have h_image : Set.Infinite (Set.image (rrTop a) {j | ∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1}) := by
+          exact Set.Infinite.image ( fun j => by have := rrTop_inj a; aesop ) hP_inf;
+        exact h_image ( Set.Finite.subset ( Set.finite_le_nat x ) <| Set.image_subset_iff.mpr fun j hj => by have := rrTop_pick_pos a j hj; exact this.2 x hx fun i => fun hi => by aesop );
+      · have h_image : Set.Infinite (Set.image (rrTop a) {j | ¬ (∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1)}) := by
+          exact Set.Infinite.image ( fun j => by have := rrTop_inj a; aesop ) hQ_inf;
+        exact h_image ( Set.Finite.subset ( Set.finite_le_nat x ) <| Set.image_subset_iff.mpr fun j hj => Nat.le_of_not_lt fun h => by have := rrTop_pick_neg a j hj; exact not_lt_of_ge ( this.2 x ( by linarith ) ( fun i hi => by aesop ) ) h )
+
+/-
+The `rrTop`-rearranged terms tend to zero.
+-/
+theorem rrTop_conv (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (a ∘ rrTop a) (nhds 0) := by
+      have h_tendsto : Filter.Tendsto (fun n => a n) Filter.atTop (nhds 0) := by
+        have := Series.decay_of_converges ha;
+        convert this.comp tendsto_natCast_atTop_atTop using 1;
+      refine' h_tendsto.comp _;
+      have h_inj : Function.Injective (rrTop a) := by
+        convert rrTop_inj a;
+        · convert nonneg_infinite _ _ using 1;
+          · exact ha;
+          · convert ha' using 1;
+        · exact neg_infinite ha ha';
+      exact Injective.nat_tendsto_atTop h_inj
+
+/-
+The count of negative-term picks increases by one exactly when the current pick is negative.
+-/
+theorem rrTop_count_succ (a : ℕ → ℝ) (n : ℕ) :
+    (Finset.univ.filter (fun i : Fin (n+1) => a (rrTop a i) < 0)).card
+      = (Finset.univ.filter (fun i : Fin n => a (rrTop a i) < 0)).card
+          + (if a (rrTop a n) < 0 then 1 else 0) := by
+            rw [ Finset.card_filter, Finset.card_filter ];
+            convert Fin.sum_univ_castSucc _ using 1
+
+set_option maxHeartbeats 1000000 in
+/-- Lower bound: past some point, the partial sum is at least (negative-count) − 1. -/
+theorem rrTop_lower (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    ∃ d, ∀ n, d ≤ n →
+      ((Finset.univ.filter (fun i : Fin n => a (rrTop a i) < 0)).card : ℝ) - 1
+        ≤ ∑ i:Fin n, a (rrTop a i) := by
+          obtain ⟨D, hD⟩ : ∃ D, ∀ k ≥ D, |a (rrTop a k)| < 1 := by
+            have := Metric.tendsto_atTop.mp ( rrTop_conv a ha ha' ) 1 zero_lt_one; aesop;
+          obtain ⟨ dd, hdd ⟩ : ∃ dd, dd ≥ D ∧ ¬(∑ i : Fin dd, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin dd => a (rrTop a i) < 0)).card : ℝ) + 1) ∧ a (rrTop a dd) < 0 := by
+            have h_neg_inf : Set.Infinite { j | ¬ (∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1) } := by
+              convert rrTop_neg_inf a _ _ using 1;
+              · rw [ Set.infinite_coe_iff ];
+              · convert ha using 1;
+              · convert ha' using 1;
+            obtain ⟨ dd, hdd₁, hdd₂ ⟩ := h_neg_inf.exists_gt D;
+            haveI := nonneg_infinite ha ha'
+            haveI := neg_infinite ha ha'
+            exact ⟨ dd, hdd₂.le, hdd₁, (rrTop_pick_neg a dd hdd₁).left ⟩;
+          refine' ⟨ dd + 1, fun n hn => _ ⟩;
+          induction' hn with n hn ih <;> simp_all +decide [ Fin.sum_univ_castSucc, Finset.sum_range_succ ];
+          · have := rrTop_count_succ a dd;
+            simp_all +decide [ Fin.sum_univ_castSucc ];
+            linarith [ abs_lt.mp ( hD dd hdd.1 ) ];
+          · by_cases h_neg : a (rrTop a n) < 0;
+            · have h_card : (Finset.univ.filter (fun i : Fin n => a (rrTop a i) < 0)).card + 1 ≤ ∑ i : Fin n, a (rrTop a i) := by
+                contrapose! h_neg;
+                convert rrTop_pick_pos a n h_neg |>.1 using 1;
+                convert nonneg_infinite ha ( by
+                  grind ) using 1;
+              have := rrTop_count_succ a n; simp_all +decide [ Finset.sum_range, Fin.sum_univ_castSucc ] ; linarith [ abs_lt.mp ( hD n ( by linarith ) ) ] ;
+            · linarith! [ show ( Finset.card ( Finset.filter ( fun i : Fin ( n + 1 ) => a ( rrTop a i ) < 0 ) Finset.univ ) : ℝ ) = Finset.card ( Finset.filter ( fun i : Fin n => a ( rrTop a i ) < 0 ) Finset.univ ) from mod_cast by rw [ Finset.card_filter, Finset.card_filter ] ; rw [ Fin.sum_univ_castSucc ] ; aesop ]
+
+/-
+The count of negative-term picks tends to `+∞`.
+-/
+theorem rrTop_count_tendsto (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (fun n:ℕ ↦ ((Finset.univ.filter (fun i : Fin n => a (rrTop a i) < 0)).card : ℝ)) atTop := by
+      have h_neg_inf : Set.Infinite {j | a (rrTop a j) < 0} := by
+        have := @rrTop_neg_inf a ha ha';
+        have h_neg_inf : ∀ j ∈ {j | ¬(∑ i : Fin j, a (rrTop a i) < ((Finset.univ.filter (fun i : Fin j => a (rrTop a i) < 0)).card : ℝ) + 1)}, a (rrTop a j) < 0 := by
+          haveI := neg_infinite ha ha'
+          haveI := nonneg_infinite ha ha'
+          exact fun j hj => (rrTop_pick_neg a j hj).left;
+        exact Set.Infinite.mono h_neg_inf ( Set.infinite_coe_iff.mp this );
+      refine' tendsto_natCast_atTop_atTop.comp ( Filter.tendsto_atTop_atTop.mpr _ );
+      intro b
+      obtain ⟨s, hs⟩ : ∃ s : Finset ℕ, s.card = b ∧ ∀ j ∈ s, a (rrTop a j) < 0 := by
+        have := h_neg_inf.exists_subset_card_eq b; tauto;
+      use s.sup id + 1;
+      intro n hn
+      have h_subset : s ⊆ Finset.image (fun i : Fin n => i.val) (Finset.filter (fun i : Fin n => a (rrTop a i) < 0) Finset.univ) := by
+        intro j hj; specialize hs; have := hs.2 j hj; exact Finset.mem_image.mpr ⟨ ⟨ j, by linarith [ show j ≤ s.sup id from Finset.le_sup ( f := id ) hj ] ⟩, by aesop ⟩ ;
+      have := Finset.card_le_card h_subset; simp_all +decide [ Finset.card_image_of_injective, Function.Injective ] ;
+      exact this.trans ( Finset.card_image_le )
+
+/-
+The natural-indexed partial sums of the `rrTop`-rearranged series tend to `+∞`.
+-/
+theorem rrTop_partial_tendsto (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (fun n:ℕ ↦ ∑ i:Fin n, a (rrTop a i)) atTop := by
+      obtain ⟨ d, hd ⟩ := rrTop_lower a ha ha';
+      -- From `rrTop_count_tendsto a ha ha'`, `atTop.Tendsto (fun n ↦ ((... count ...) : ℝ)) atTop`, hence also
+      -- `atTop.Tendsto (fun n ↦ ((... count ...) : ℝ) - 1) atTop` (subtracting a constant: `Filter.Tendsto.atTop_add` /
+      -- `tendsto_atTop_add_const_right`).
+      have h_count_tendsto : Filter.Tendsto (fun n => ((Finset.univ.filter (fun i : Fin n => a (rrTop a i) < 0)).card : ℝ) - 1) Filter.atTop Filter.atTop := by
+        convert Filter.tendsto_atTop_add_const_right _ _ ( rrTop_count_tendsto a ( by simpa using ha ) ha' ) using 1;
+      exact Filter.tendsto_atTop_mono' Filter.atTop ( Filter.eventually_atTop.mpr ⟨ d, hd ⟩ ) h_count_tendsto
+
+/-
+The `rrTop`-rearranged series has partial sums diverging to `⊤` in `EReal`.
+-/
+theorem rrTop_sum (a : ℕ → ℝ) (ha: (a:Series).converges) (ha': ¬ (a:Series).absConverges) :
+    atTop.Tendsto (fun N ↦ ((a ∘ rrTop a:Series).partial N : EReal)) (nhds ⊤) := by
+      refine' EReal.tendsto_nhds_top_iff_real.mpr _;
+      intro x
+      have h_real : Filter.Tendsto (fun n : ℕ => ∑ i : Fin (n + 1), a (rrTop a i)) Filter.atTop Filter.atTop := by
+        convert rrTop_partial_tendsto a ( by simpa using ha ) ha' |> Filter.Tendsto.comp <| Filter.tendsto_add_atTop_nat 1 using 1;
+      have h_real : ∀ᶠ n : ℤ in Filter.atTop, ∃ m : ℕ, n = m ∧ x < ∑ i : Fin (m + 1), a (rrTop a i) := by
+        have := h_real.eventually_gt_atTop x; simp_all +decide [ Filter.eventually_atTop ] ;
+        obtain ⟨ N, hN ⟩ := this; exact ⟨ N, fun n hn => ⟨ Int.toNat n, by rw [ Int.toNat_of_nonneg ( by linarith ) ], hN _ ( by linarith [ Int.self_le_toNat n ] ) ⟩ ⟩ ;
+      filter_upwards [ h_real, Filter.eventually_ge_atTop 0 ] with n hn hn' ; obtain ⟨ m, rfl, hm ⟩ := hn ; simp_all +decide [ Series.partial ] ;
+      convert hm using 1;
+      refine' Finset.sum_bij ( fun i hi => ⟨ i, by linarith [ Finset.mem_Icc.mp hi ] ⟩ ) _ _ _ _ <;> simp +decide;
+      exact fun b => ⟨ b, Fin.is_le b, rfl ⟩
 
 /-- Exercise 8.2.6 -/
 theorem permute_diverges_of_divergent {a: ℕ → ℝ} (ha: (a:Series).converges)
   (ha': ¬ (a:Series).absConverges)  :
   ∃ f : ℕ → ℕ,  Bijective f ∧ atTop.Tendsto (fun N ↦ ((a ∘ f:Series).partial N : EReal)) (nhds ⊤) := by
-  sorry
+  haveI : Infinite {n | a n ≥ 0} := nonneg_infinite ha ha'
+  haveI : Infinite {n | a n < 0} := neg_infinite ha ha'
+  exact ⟨rrTop a, ⟨rrTop_inj a, rrTop_surj a ha ha'⟩, rrTop_sum a ha ha'⟩
 
 theorem permute_diverges_of_divergent' {a: ℕ → ℝ} (ha: (a:Series).converges)
   (ha': ¬ (a:Series).absConverges)  :
   ∃ f : ℕ → ℕ,  Bijective f ∧ atTop.Tendsto (fun N ↦ ((a ∘ f:Series).partial N : EReal)) (nhds ⊥) := by
-  sorry
+  obtain ⟨f, hf⟩ : ∃ f : ℕ → ℕ, Bijective f ∧ Tendsto (fun N => ((fun n => -a n) ∘ f:Series).partial N : ℤ → EReal) atTop (nhds ⊤) := by
+    apply permute_diverges_of_divergent;
+    · obtain ⟨ L, hL ⟩ := ha;
+      refine' ⟨ -L, _ ⟩
+      generalize_proofs at *;
+      convert hL.neg using 1;
+      ext; simp [Series.partial];
+      rw [ ← Finset.sum_neg_distrib ] ; exact Finset.sum_congr rfl fun _ _ => by split_ifs <;> ring;
+    · convert ha' using 1;
+      simp +decide [ Series.absConverges, Series.abs ];
+      unfold Series.mk'; aesop;
+  generalize_proofs at *;
+  use f;
+  norm_num [ Series.partial ] at *;
+  simp_all +decide [ Finset.sum_ite ]
 
 end Chapter8
