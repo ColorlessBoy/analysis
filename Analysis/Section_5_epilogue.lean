@@ -807,7 +807,7 @@ theorem Real.ratPow_of_equivR (x:Real) (q:ℚ) (hx : x > 0): equivR (x^q) = (equ
   rw [h_root_eq,
     (Real.rpow_intCast ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) q.num).symm,
     (Real.rpow_mul hy_nonneg ((1 : ℝ) / (q.den : ℝ)) ((q.num : ℤ) : ℝ)).symm]
-  push_cast; ring
+  push_cast; ring_nf
 
 
 end Chapter5

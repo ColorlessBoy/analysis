@@ -542,8 +542,7 @@ theorem Nat.strong_induction {m₀:Nat} {P: Nat → Prop}
       exfalso
       have hm'_zero : m' = 0 := ge_antisymm (zero_le _) (le_of_lt hm')
       exact ne_of_lt _ _ hm' hm'_zero
-    · intro n ih
-      intro k hk hm
+    · intro n ih k hk hm
       rcases (le_iff_lt_or_eq _ _).mp hk with (hlt | heq)
       · have hk_le_n : k ≤ n := by
           have h_succ_le : k++ ≤ n++ := (lt_iff_succ_le _ _).mp hlt
@@ -602,8 +601,7 @@ theorem Nat.induction_from {n:Nat} {P: Nat → Prop} (hind: ∀ m, P m → P (m+
     · intro k hk Pk
       have hk0 : k = 0 := (ge_antisymm (a := 0) (b := k) hk (zero_le _)).symm
       subst hk0; exact Pk
-    · intro m ih
-      intro k hk Pk
+    · intro m ih k hk Pk
       rcases (le_iff_lt_or_eq _ _).mp hk with (hlt | heq)
       · have hk_le_m : k ≤ m := by
           have h_succ_le : k++ ≤ m++ := (lt_iff_succ_le _ _).mp hlt
