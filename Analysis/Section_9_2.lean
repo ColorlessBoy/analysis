@@ -54,19 +54,26 @@ example : g_9_2_2 ∘ f_9_2_2 = fun x ↦ 2*x^2 := by grind
 /- Exercise 9.2.1.  -/
 
 def Exercise_9_2_1a : Decidable (∀ (f g h : ℝ → ℝ), (f+g) ∘ h = f ∘ h + g ∘ h) := by
-  -- The first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro f g h; ext x; simp
 
 def Exercise_9_2_1b : Decidable (∀ (f g h : ℝ → ℝ), f ∘ (g + h) = f ∘ g + f ∘ h) := by
-  -- The first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  set f := fun x : ℝ ↦ x^2 with hf
+  set g := fun x : ℝ ↦ x with hg
+  set k := fun x : ℝ ↦ x with hk
+  have h_eq := h f g k
+  have hx := congr_fun h_eq 1
+  simp [hf, hg, hk] at hx
+  nlinarith
 
 def Exercise_9_2_1c : Decidable (∀ (f g h : ℝ → ℝ), (f+g) * h = f * h + g * h) := by
-  -- The first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro f g h; ext x; simp; exact add_mul (f x) (g x) (h x)
 
 def Exercise_9_2_1d : Decidable (∀ (f g h : ℝ → ℝ), f * (g+h) = f * g + f * h) := by
-  -- The first line of this construction should be `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro f g h; ext x; simp; exact mul_add (f x) (g x) (h x)
 
 end Chapter9
