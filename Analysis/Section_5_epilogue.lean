@@ -357,7 +357,7 @@ theorem Sequence.Equiv_iff_LimZero {a b: ℕ → ℚ} (ha: IsCauchy a) (hb: IsCa
 ----
 -- We create some cauchy sequences with useful properties
 
-/-- Cast respects `≤`. -/
+/-- Cast respects {lit}`≤`. -/
 private lemma Real.le_of_coe (q r : ℚ) : q ≤ r ↔ (q:Real) ≤ (r:Real) := by
   constructor
   · intro h
@@ -412,8 +412,8 @@ theorem Sequence.difference_approaches_zero {a: ℕ → ℚ} (ha: Sequence.IsCau
       rw [hsum] at hcoe; linarith
     linarith
 
-/-- Helper: if `q n` is eventually within ε of `LIM a` (for every ε > 0), then
-`q` is itself Cauchy and equivalent to `a`. -/
+/-- Helper: if {lit}`q n` is eventually within ε of {lit}`LIM a` (for every ε > 0), then
+{lit}`q` is itself Cauchy and equivalent to {lit}`a`. -/
 private lemma cauchy_equiv_of_close {a q : ℕ → ℚ} (ha: Sequence.IsCauchy a)
   (hq_close : ∀ε > (0:ℚ), ∃N, ∀n ≥ N, |LIM a - q n| ≤ (ε:ℚ))
   : Sequence.IsCauchy q ∧ Sequence.Equiv a q := by
@@ -702,13 +702,12 @@ theorem Real.equivR_map_pos {x: Real} : 0 < x ↔ 0 < equivR x := by
       (equivR_ordered_ring.map_le_map_iff'.mp h.le)
       (fun heq => h.ne' (congrArg equivR heq.symm))
 
-theorem Real.equivR_map_nonneg {x: Real} : 0 ≤ x ↔ 0 ≤ equivR x := by
+theorem Real.equivR_map_nonneg {x: Real} : (0 : Real) ≤ x ↔ (0 : ℝ) ≤ equivR x := by
   have h0 : equivR (0:Real) = (0:ℝ) := by
     have := @Real.equivR_ratCast 0
     simpa using this
-  rw [show (0:ℝ) = equivR (0:Real) from h0.symm]
-  exact ⟨fun h => equivR_ordered_ring.map_le_map_iff'.mpr h,
-    fun h => equivR_ordered_ring.map_le_map_iff'.mp h⟩
+  rw [← h0]
+  exact equivR_ordered_ring.map_le_map_iff'.symm
 
 
 -- Showing equivalence of the different pows
@@ -734,8 +733,81 @@ theorem Real.zpow_of_equivR (x:Real) (n:ℤ) : equivR (x^n) = (equivR x)^n := by
     congr 1
     exact pow_of_equivR x (m+1)
 
+private lemma pow_inj_nonneg {n : ℕ} (hn : 0 < n) {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp : a ^ n = b ^ n) : a = b := by
+  by_cases ha0 : a = 0
+  · have h_pow_zero : b ^ n = 0 := by
+      calc
+        b ^ n = a ^ n := hp.symm
+        _ = 0 := by simp [ha0, hn.ne.symm]
+    have hb0 : b = 0 := eq_zero_of_pow_eq_zero h_pow_zero
+    rw [ha0, hb0]
+  · have ha_pos : 0 < a := lt_of_le_of_ne ha (Ne.symm ha0)
+    by_cases hb0 : b = 0
+    · have ha_pow_zero : a ^ n = 0 := by
+        calc
+          a ^ n = b ^ n := hp
+          _ = 0 := by simp [hb0, hn.ne.symm]
+      have ha0' : a = 0 := eq_zero_of_pow_eq_zero ha_pow_zero
+      exact absurd ha0' ha0
+    · have hb_pos : 0 < b := lt_of_le_of_ne hb (Ne.symm hb0)
+      have hn_ne_zero : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne.symm
+      have h_exp : (1 : ℝ) = ((n : ℕ) : ℝ) * (1 / ((n : ℕ) : ℝ)) := by
+        field_simp [hn_ne_zero]
+      have hL : a ^ (1 : ℝ) = a ^ (((n : ℕ) : ℝ) * (1 / ((n : ℕ) : ℝ))) :=
+        congrArg (fun t : ℝ => a ^ t) h_exp
+      have hR : b ^ (((n : ℕ) : ℝ) * (1 / ((n : ℕ) : ℝ))) = b ^ (1 : ℝ) :=
+        congrArg (fun t : ℝ => b ^ t) h_exp.symm
+      calc
+        a = a ^ (1 : ℝ) := by rw [Real.rpow_one]
+        _ = a ^ (((n : ℕ) : ℝ) * (1 / ((n : ℕ) : ℝ))) := hL
+        _ = (a ^ ((n : ℕ) : ℝ)) ^ (1 / ((n : ℕ) : ℝ)) := Real.rpow_mul ha ((n : ℕ) : ℝ) (1 / ((n : ℕ) : ℝ))
+        _ = (a ^ n) ^ (1 / ((n : ℕ) : ℝ)) := by rw [Real.rpow_natCast a n]
+        _ = (b ^ n) ^ (1 / ((n : ℕ) : ℝ)) := by rw [hp]
+        _ = (b ^ ((n : ℕ) : ℝ)) ^ (1 / ((n : ℕ) : ℝ)) := by rw [Real.rpow_natCast b n]
+        _ = b ^ (((n : ℕ) : ℝ) * (1 / ((n : ℕ) : ℝ))) := (Real.rpow_mul hb ((n : ℕ) : ℝ) (1 / ((n : ℕ) : ℝ))).symm
+        _ = b ^ (1 : ℝ) := hR
+        _ = b := by rw [Real.rpow_one]
+
 theorem Real.ratPow_of_equivR (x:Real) (q:ℚ) (hx : x > 0): equivR (x^q) = (equivR x)^(q:ℝ) := by
-  sorry
+  have hq_eq : (q : ℚ) = ((q.num : ℚ) / (q.den : ℚ)) := (Rat.num_div_den q).symm
+  have hb_pos : q.den > 0 := q.den_pos
+  rw [hq_eq]
+  rw [Real.ratPow_def hx q.num hb_pos]
+  rw [zpow_of_equivR]
+  have hy_nonneg : (0 : ℝ) ≤ equivR x :=
+    (Real.equivR_map_nonneg (x := x)).1 hx.le
+  have hy_pos : equivR x > 0 := (Real.equivR_map_pos.1 hx)
+  have h_den_ge_one : q.den ≥ 1 := by omega
+  have h_root_nonneg : x.root q.den ≥ 0 := Real.root_nonneg (hx.le) h_den_ge_one
+  have h_root_pos : x.root q.den > 0 := ((Real.root_pos (hx.le) h_den_ge_one).mpr hx)
+  have hz_nonneg : (0 : ℝ) ≤ equivR (x.root q.den) :=
+    (Real.equivR_map_nonneg (x := x.root q.den)).1 h_root_nonneg
+  have hz_pos : equivR (x.root q.den) > 0 :=
+    (Real.equivR_map_pos (x := x.root q.den)).1 h_root_pos
+  have hq_div : ((q.num : ℝ) / (q.den : ℝ)) = (q : ℝ) := by
+    simpa using congrArg (fun (x : ℚ) => (x : ℝ)) (Rat.num_div_den q)
+  have hz_pow : (equivR (x.root q.den)) ^ (q.den : ℕ) = equivR x := by
+    calc
+      (equivR (x.root q.den)) ^ (q.den : ℕ) = equivR ((x.root q.den) ^ (q.den : ℕ)) :=
+        (pow_of_equivR (x.root q.den) q.den).symm
+      _ = equivR x := by rw [Real.pow_of_root (hx.le) h_den_ge_one]
+  have hw_pow : ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) ^ (q.den : ℕ) = equivR x := by
+    calc
+      ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) ^ (q.den : ℕ) =
+          ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) ^ ((q.den : ℕ) : ℝ) := by rw [Real.rpow_natCast]
+      _ = (equivR x) ^ (((1 : ℝ) / (q.den : ℝ)) * ((q.den : ℕ) : ℝ)) := by
+        rw [(Real.rpow_mul hy_nonneg ((1 : ℝ) / (q.den : ℝ)) ((q.den : ℕ) : ℝ)).symm]
+      _ = (equivR x) ^ (1 : ℝ) := by
+        field_simp [show (q.den : ℝ) ≠ 0 from by exact_mod_cast hb_pos.ne.symm]
+      _ = equivR x := by rw [Real.rpow_one]
+  have h_both_pow : (equivR (x.root q.den)) ^ (q.den : ℕ) = ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) ^ (q.den : ℕ) := by
+    rw [hz_pow, hw_pow]
+  have h_root_eq : equivR (x.root q.den) = (equivR x) ^ ((1 : ℝ) / (q.den : ℝ)) :=
+    pow_inj_nonneg hb_pos hz_nonneg (Real.rpow_nonneg hy_nonneg _) h_both_pow
+  rw [h_root_eq,
+    (Real.rpow_intCast ((equivR x) ^ ((1 : ℝ) / (q.den : ℝ))) q.num).symm,
+    (Real.rpow_mul hy_nonneg ((1 : ℝ) / (q.den : ℝ)) ((q.num : ℤ) : ℝ)).symm]
+  push_cast; ring
 
 
 end Chapter5
