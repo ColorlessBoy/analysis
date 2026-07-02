@@ -30,7 +30,7 @@ theorem _root_.Filter.Tendsto.of_div {X: Set ℝ} {f g: ℝ → ℝ} {x₀ f'x�
   sorry
 
 /-- Proposition 10.5.2 (L'Hôpital's rule, II) -/
-theorem _root_.Filter.Tendsto.of_div' {a b L:ℝ} (hab: a < b) {f g f' g': ℝ → ℝ}
+theorem _root_.Filter.Tendsto.of_div' {a b L:ℝ} (_hab: a < b) {f g f' g': ℝ → ℝ}
   (hf: DifferentiableOn ℝ f (.Icc a b)) (hg: DifferentiableOn ℝ g (.Icc a b))
   (hf': f' = derivWithin f (.Icc a b)) (hg': g' = derivWithin g (.Icc a b))
   (hfa: f a = 0) (hga: g a = 0) (hgnon: ∀ x ∈ Set.Icc a b, g' x ≠ 0)
