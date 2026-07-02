@@ -22,10 +22,39 @@ open Chapter6 Filter
 namespace Chapter9
 
 example : ContinuousOn (fun x:ℝ ↦ 1/x) (.Ioo 0 2) := by
-  sorry
+  refine (continuousOn_const.div continuousOn_id ?_)
+  intro x hx; exact ne_of_gt hx.1
 
 example : ¬ BddOn (fun x:ℝ ↦ 1/x) (.Ioo 0 2) := by
-  sorry
+  intro h; rcases h with ⟨M, hM⟩
+  have hmax_pos : 0 < max M 1 := lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
+  set x := 1 / (2 * max M 1) with hx
+  have hx_mem : x ∈ Set.Ioo (0 : ℝ) 2 := by
+    dsimp [x]
+    have hpos : 2 * max M 1 > 0 := mul_pos (by norm_num) hmax_pos
+    have h_lt : 2 * max M 1 > 1 := by
+      have : max M 1 ≥ 1 := le_max_right _ _
+      nlinarith
+    constructor
+    · positivity
+    · calc
+        1 / (2 * max M 1) < 1 / 1 := by
+          refine (one_div_lt_one_div (by positivity) (by positivity)).mpr ?_
+          nlinarith
+        _ = 1 := by norm_num
+        _ < 2 := by norm_num
+  have h_val : |1 / x| = 2 * max M 1 := by
+    dsimp [x]
+    have hpos' : 2 * max M 1 > 0 := mul_pos (by norm_num) hmax_pos
+    calc
+      |1 / (1 / (2 * max M 1))| = |2 * max M 1| := by field_simp; ring
+      _ = 2 * max M 1 := abs_of_pos hpos'
+  have h_contra := hM x hx_mem
+  rw [h_val] at h_contra
+  have : 2 * max M 1 > M := by
+    have hmax_ge_M : max M 1 ≥ M := le_max_left _ _
+    nlinarith
+  nlinarith
 
 /-- Example 9.9.1 -/
 example (x : ℝ) :
@@ -121,11 +150,29 @@ theorem Chapter6.Sequence.equiv_const (x₀: ℝ) (x:ℕ → ℝ) : atTop.Tendst
 /-- Example 9.9.10 -/
 noncomputable abbrev f_9_9_10 : ℝ → ℝ := fun x ↦ 1/x
 
-example : (fun n:ℕ ↦ 1/(n+1:ℝ):Sequence).equiv (fun n:ℕ ↦ 1/(2*(n+1):ℝ):Sequence) := by sorry
+example : (fun n:ℕ ↦ 1/(n+1:ℝ):Sequence).equiv (fun n:ℕ ↦ 1/(2*(n+1):ℝ):Sequence) := by
+  rw [Sequence.equiv_iff]
+  have h1 : atTop.Tendsto (fun n : ℕ ↦ 1/((n:ℝ)+1)) (nhds (0 : ℝ)) := by
+    simpa using (tendsto_one_div_atTop_nhds_zero_nat (1 : ℝ))
+  have h2 : atTop.Tendsto (fun n : ℕ ↦ 1/(2*((n:ℝ)+1))) (nhds (0 : ℝ)) := by
+    simpa [mul_comm] using (tendsto_one_div_atTop_nhds_zero_nat (2 : ℝ))
+  simpa [sub_eq_zero] using (h1.sub h2)
 
-example (n:ℕ) : 1/(n+1:ℝ) ∈ Set.Ioo 0 2 := by sorry
+example (n:ℕ) : 1/(n+1:ℝ) ∈ Set.Ioo 0 2 := by
+  have hpos : (0 : ℝ) < n+1 := by exact_mod_cast (Nat.succ_pos n)
+  constructor
+  · positivity
+  · have : (n+1 : ℝ) > 1/2 := by
+      push_cast; nlinarith
+    nlinarith [one_div_pos.mpr hpos]
 
-example (n:ℕ) : 1/(2*(n+1):ℝ) ∈ Set.Ioo 0 2 := by sorry
+example (n:ℕ) : 1/(2*(n+1):ℝ) ∈ Set.Ioo 0 2 := by
+  have hpos : (0 : ℝ) < 2*(n+1) := by positivity
+  constructor
+  · positivity
+  · have : 2*(n+1 : ℝ) > 1/2 := by
+      push_cast; nlinarith
+    nlinarith [one_div_pos.mpr hpos]
 
 example : ¬ (fun n:ℕ ↦ f_9_9_10 (1/(n+1:ℝ)):Sequence).equiv (fun n:ℕ ↦ f_9_9_10 (1/(2*(n+1):ℝ)):Sequence) := by sorry
 
