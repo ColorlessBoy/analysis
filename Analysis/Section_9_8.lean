@@ -73,8 +73,6 @@ example (X:Set ℝ) : MonotoneOn (fun _:ℝ ↦ (6:ℝ)) X := by
 example (X:Set ℝ) : AntitoneOn (fun _:ℝ ↦ (6:ℝ)) X := by
   intro a ha b hb hab; simp
 
-#check nontrivial_iff
-
 example {X:Set ℝ} (hX : Set.Nontrivial X) : ¬ StrictMonoOn (fun _:ℝ ↦ (6:ℝ)) X := by
   rcases hX with ⟨x, hx, y, hy, hne⟩
   have hxy : x < y ∨ y < x := by
@@ -828,7 +826,7 @@ theorem ContinuousAt.of_f_9_8_5' (r:ℚ) : ¬ ContinuousAt f_9_8_5 r := by
             · exfalso; exact hq'_not_union h
             · rw [if_neg h]
           rw [hL]
-          exact Set.indicator_nonneg (fun a ha => (hpos_all' a).le) q' 
+          exact Set.indicator_nonneg (fun a ha => (hpos_all' a).le) q'
     have h_ineq_val : (∑' q' : ℚ, Set.indicator A g_9_8_5 q' + g_9_8_5 r) ≤ ∑' q' : ℚ, Set.indicator B g_9_8_5 q' :=
       hasSum_le h_pointwise h_hasSum_union h_hasSum_B
     have h_tsum_union_eq : ∑' q' : ℚ, Set.indicator (A ∪ {r}) g_9_8_5 q' = ∑' q' : ℚ, Set.indicator A g_9_8_5 q' + g_9_8_5 r := by
@@ -867,46 +865,6 @@ theorem ContinuousAt.of_f_9_8_5' (r:ℚ) : ¬ ContinuousAt f_9_8_5 r := by
   nlinarith
 
 /-- Exercise 9.8.5(c) -/
-theorem ContinuousAt.of_f_9_8_5 {x:ℝ} (hx: ¬ ∃ r:ℚ, x = r) : ContinuousAt f_9_8_5 x := by
-  have h_strict_mono : StrictMonoOn f_9_8_5 .univ := StrictMonoOn.of_f_9_8_5
-  have h_discontinuous_at_rational (r : ℚ) : ¬ ContinuousAt f_9_8_5 r := ContinuousAt.of_f_9_8_5' r
-  -- Since f is strictly increasing and has countably many discontinuities (all rationals),
-  -- f must be continuous at any irrational x.
-  -- The epsilon-delta proof follows from the tail sum bound of the geometric series,
-  -- exactly as in StrictMonoOn.of_f_9_8_5.
-  have hpos (r : ℚ) : g_9_8_5 r > 0 := by
-    dsimp [g_9_8_5]
-    have h := Real.rpow_pos_of_pos (by norm_num : (0 : ℝ) < 2) ((-q_9_8_5.symm r : ℤ) : ℝ)
-    rw [Real.rpow_intCast] at h
-    exact h
-  have h_summable_g : Summable g_9_8_5 := by
-    have h_summable_h : Summable (fun (n : ℕ) => ((1/2 : ℝ) ^ n : ℝ)) :=
-      summable_geometric_of_abs_lt_one (by norm_num : |(1/2 : ℝ)| < 1)
-    have h_eq : g_9_8_5 = (fun (n : ℕ) => ((1/2 : ℝ) ^ n : ℝ)) ∘ q_9_8_5.symm :=
-      by ext r; dsimp [g_9_8_5]; simp
-    rw [h_eq]
-    exact h_summable_h.comp_injective q_9_8_5.symm.injective
-  rw [Metric.continuousAt_iff]
-  intro ε hε
-  -- Choose N such that (1/2)^N * 2 < ε (tail of geometric series, as in part (a))
-  have h_tendsto : Filter.Tendsto (fun (N : ℕ) => (1/2 : ℝ)^N * 2) Filter.atTop (nhds (0 : ℝ)) := by
-    have h0 : (0 : ℝ) ≤ 1/2 := by norm_num
-    have h1 : (1/2 : ℝ) < 1 := by norm_num
-    have h_tendsto' : Filter.Tendsto (fun (N : ℕ) => ((1/2 : ℝ) ^ N : ℝ)) Filter.atTop (nhds (0 : ℝ)) :=
-      tendsto_pow_atTop_nhds_zero_of_lt_one h0 h1
-    simpa [mul_comm] using h_tendsto'.const_mul (2 : ℝ)
-  rcases Metric.tendsto_atTop.mp h_tendsto ε hε with ⟨N, hN⟩
-  have h_tail_small : (1/2 : ℝ)^N * 2 < ε := by
-    have h_pos : 0 < (1/2 : ℝ)^N * 2 := by positivity
-    have h_dist : |(1/2 : ℝ)^N * 2| < ε := by
-      have h := hN N (le_refl N)
-      rw [Real.dist_eq, sub_zero] at h
-      exact h
-    have h_eq_abs : (1/2 : ℝ)^N * 2 = |(1/2 : ℝ)^N * 2| := (abs_of_pos h_pos).symm
-    rw [h_eq_abs]; exact h_dist
-  -- The proof proceeds by choosing δ small enough to avoid the first N rationals.
-  -- Then for |y-x| < δ, all rationals between x and y have index ≥ N,
-  -- so |f(y)-f(x)| ≤ ∑_{q_9_8_5.symm r ≥ N} g(r) = (1/2)^N * 2 < ε.
-  sorry
+theorem ContinuousAt.of_f_9_8_5 {x:ℝ} (hx: ¬ ∃ r:ℚ, x = r) : ContinuousAt f_9_8_5 x := by sorry
 
 end Chapter9
