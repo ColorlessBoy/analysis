@@ -864,7 +864,124 @@ theorem ContinuousAt.of_f_9_8_5' (r:ℚ) : ¬ ContinuousAt f_9_8_5 r := by
   rw [abs_of_nonneg h_nonneg_diff] at hfx_mem_dist
   nlinarith
 
+
+/-- {name}`g_9_8_5` is strictly positive. -/
+lemma g_9_8_5_pos (r : ℚ) : g_9_8_5 r > 0 := by
+  dsimp [g_9_8_5]
+  have h := Real.rpow_pos_of_pos (by norm_num : (0 : ℝ) < 2) ((-q_9_8_5.symm r : ℤ) : ℝ)
+  rw [Real.rpow_intCast] at h
+  exact h
+
+/-- {name}`g_9_8_5` is summable. -/
+lemma summable_g_9_8_5 : Summable g_9_8_5 := by
+  have h_summable_h : Summable (fun (n : ℕ) => ((1/2 : ℝ) ^ n : ℝ)) :=
+    summable_geometric_of_abs_lt_one (by norm_num : |(1/2 : ℝ)| < 1)
+  have h_eq : g_9_8_5 = (fun (n : ℕ) => ((1/2 : ℝ) ^ n : ℝ)) ∘ q_9_8_5.symm := by
+    ext r; dsimp [g_9_8_5]; simp
+  rw [h_eq]
+  exact h_summable_h.comp_injective q_9_8_5.symm.injective
+
+/-
+The difference formula: for `a ≤ b`, `f(b) - f(a)` is the sum of `g` over the rationals
+in `[a, b)`.
+-/
+lemma f_9_8_5_sub (a b : ℝ) (hab : a ≤ b) :
+    f_9_8_5 b - f_9_8_5 a
+      = ∑' r : ℚ, Set.indicator {q : ℚ | a ≤ (q:ℝ) ∧ (q:ℝ) < b} g_9_8_5 r := by
+  convert Summable.tsum_sub ( show Summable fun r : ℚ => Set.indicator ( { q : ℚ | ( q : ℝ ) < b } ) ( fun q => g_9_8_5 q ) r from ?_ ) ( show Summable fun r : ℚ => Set.indicator ( { q : ℚ | ( q : ℝ ) < a } ) ( fun q => g_9_8_5 q ) r from ?_ ) using 1;
+  · rw [ Summable.tsum_sub ];
+    · congr! 1;
+      · convert tsum_subtype ( { q : ℚ | ( q : ℝ ) < b } ) ( fun q => g_9_8_5 q ) using 1;
+      · convert tsum_subtype _ _;
+    · refine' Summable.of_nonneg_of_le ( fun q => _ ) ( fun q => _ ) ( summable_g_9_8_5 );
+      · rw [ Set.indicator_apply ] ; aesop;
+      · by_cases h : ( q : ℝ ) < b <;> simp +decide [ h ];
+    · exact Summable.indicator ( summable_g_9_8_5 ) _;
+  · rw [ ← Summable.tsum_sub ];
+    · congr with x ; by_cases hx : ( x : ℝ ) < a <;> by_cases hx' : ( x : ℝ ) < b <;> simp +decide [ hx, hx' ];
+      · linarith;
+      · rw [ Set.indicator_of_mem ] ; aesop;
+        exact ⟨ le_of_not_gt hx, hx' ⟩;
+    · exact Summable.indicator ( summable_g_9_8_5 ) _;
+    · exact Summable.of_nonneg_of_le ( fun _ => by rw [ Set.indicator_apply ] ; split_ifs <;> first | positivity | unreachable! ) ( fun _ => by rw [ Set.indicator_apply ] ; split_ifs <;> first | positivity | rfl ) ( summable_g_9_8_5 );
+  · convert summable_g_9_8_5.indicator _ using 1;
+  · refine' Summable.indicator _ _;
+    convert summable_g_9_8_5
+
+/-
+Given `ε > 0`, there is a finite set `T` of rationals such that the sum of `g` over the
+complement of `T` is less than `ε`.
+-/
+lemma tail_small_9_8_5 (ε : ℝ) (hε : 0 < ε) :
+    ∃ T : Finset ℚ, ∑' r : ℚ, Set.indicator {q : ℚ | q ∉ T} g_9_8_5 r < ε := by
+  -- Let `S := ∑' r, g_9_8_5 r`. Since `g_9_8_5` is summable (`summable_g_9_8_5`), we have `HasSum g_9_8_5 S`.
+  set S := ∑' r, g_9_8_5 r
+  have hS : HasSum g_9_8_5 S := by
+    exact Summable.hasSum ( summable_g_9_8_5 );
+  -- By `HasSum`, there exists a finite set `T` such that `|S - ∑ i ∈ T, g_9_8_5 i| < ε`.
+  obtain ⟨T, hT⟩ : ∃ T : Finset ℚ, |S - ∑ i ∈ T, g_9_8_5 i| < ε := by
+    have := hS.eventually ( Metric.ball_mem_nhds _ hε );
+    exact Exists.elim ( this.exists ) fun T hT => ⟨ T, by rwa [ abs_sub_comm ] ⟩;
+  have h_sum_compl : ∑' (r : ℚ), (Set.indicator {q : ℚ | q ∉ T} g_9_8_5) r = S - ∑ i ∈ T, g_9_8_5 i := by
+    have h_sum_compl : ∑' (r : ℚ), (Set.indicator {q : ℚ | q ∉ T} g_9_8_5) r = ∑' (r : ℚ), g_9_8_5 r - ∑' (r : ℚ), (Set.indicator {q : ℚ | q ∈ T} g_9_8_5) r := by
+      rw [ ← Summable.tsum_sub ] ; congr ; ext r ; by_cases hr : r ∈ T <;> simp +decide [ hr ] ;
+      · exact hS.summable;
+      · exact Summable.indicator ( hS.summable ) _;
+    convert h_sum_compl using 2;
+    rw [ tsum_eq_sum ];
+    exacts [ Finset.sum_congr rfl fun x hx => by rw [ Set.indicator_of_mem ] ; simpa using hx, fun x hx => by rw [ Set.indicator_of_notMem ] ; simpa using hx ];
+  exact ⟨ T, h_sum_compl ▸ lt_of_le_of_lt ( le_abs_self _ ) hT ⟩
+
+/-
+If `x₀` is irrational and `T` is a finite set of rationals, there is a positive `δ` such that
+every rational in `T` is at distance at least `δ` from `x₀`.
+-/
+lemma exists_delta_avoid_9_8_5 (x₀ : ℝ) (hx : ¬ ∃ r : ℚ, x₀ = r) (T : Finset ℚ) :
+    ∃ δ > 0, ∀ r ∈ T, δ ≤ |(r : ℝ) - x₀| := by
+  by_contra h_contra;
+  obtain ⟨r₁, hr₁⟩ : ∃ r₁ ∈ T, ∀ r ∈ T, |(r₁ : ℝ) - x₀| ≤ |(r : ℝ) - x₀| := by
+    exact Finset.exists_min_image _ _ ( Finset.nonempty_of_ne_empty ( by rintro rfl; exact h_contra ⟨ 1, by norm_num, by norm_num ⟩ ) );
+  exact h_contra ⟨ |↑r₁ - x₀|, abs_pos.mpr ( sub_ne_zero.mpr <| by aesop ), fun r hr => hr₁.2 r hr ⟩
+
+/-
+The key bound: if no rational of `T` lies in the interval `[min x₀ x', max x₀ x')`, then
+`|f(x') - f(x₀)|` is bounded by the tail sum over the complement of `T`.
+-/
+lemma abs_f_9_8_5_sub_le (x₀ x' : ℝ) (T : Finset ℚ)
+    (hcond : ∀ r ∈ T, ¬ (min x₀ x' ≤ (r : ℝ) ∧ (r : ℝ) < max x₀ x')) :
+    |f_9_8_5 x' - f_9_8_5 x₀|
+      ≤ ∑' r : ℚ, Set.indicator {q : ℚ | q ∉ T} g_9_8_5 r := by
+  have h_max_min : f_9_8_5 (max x₀ x') - f_9_8_5 (min x₀ x') ≤ ∑' r : ℚ, Set.indicator {q : ℚ | q ∉ T} g_9_8_5 r := by
+    rw [ f_9_8_5_sub _ _ ( min_le_max ) ];
+    refine' Summable.tsum_le_tsum _ _ _;
+    · intro q; by_cases hq : q ∈ T <;> simp_all +decide [ Set.indicator ] ;
+      · grind;
+      · split_ifs <;> norm_num;
+    · exact Summable.indicator ( summable_g_9_8_5 ) _;
+    · exact Summable.indicator ( summable_g_9_8_5 ) _;
+  cases le_total x₀ x' <;> simp_all +decide;
+  · rw [ abs_of_nonneg ];
+    · linarith;
+    · rw [ f_9_8_5_sub ];
+      · exact tsum_nonneg fun _ => Set.indicator_nonneg ( fun _ _ => le_of_lt ( g_9_8_5_pos _ ) ) _;
+      · linarith;
+  · rw [ abs_of_nonpos ];
+    · linarith;
+    · have h_monotone : ∀ x y : ℝ, x ≤ y → f_9_8_5 x ≤ f_9_8_5 y := by
+        intros x y hxy
+        have h_monotone : f_9_8_5 y - f_9_8_5 x = ∑' r : ℚ, Set.indicator {q : ℚ | x ≤ (q : ℝ) ∧ (q : ℝ) < y} g_9_8_5 r := by
+          convert f_9_8_5_sub x y hxy using 1;
+        exact le_of_sub_nonneg ( h_monotone.symm ▸ tsum_nonneg fun _ => Set.indicator_nonneg ( fun _ _ => le_of_lt ( g_9_8_5_pos _ ) ) _ );
+      linarith [ h_monotone _ _ ‹_› ]
+
 /-- Exercise 9.8.5(c) -/
-theorem ContinuousAt.of_f_9_8_5 {x:ℝ} (hx: ¬ ∃ r:ℚ, x = r) : ContinuousAt f_9_8_5 x := by sorry
+theorem ContinuousAt.of_f_9_8_5 {x:ℝ} (hx: ¬ ∃ r:ℚ, x = r) : ContinuousAt f_9_8_5 x := by
+  rw [ Metric.continuousAt_iff ];
+  intro ε hε
+  obtain ⟨T, hT⟩ := tail_small_9_8_5 ε hε
+  obtain ⟨δ, hδ_pos, hδ⟩ := exists_delta_avoid_9_8_5 x hx T;
+  refine' ⟨ δ, hδ_pos, fun y hy => _ ⟩;
+  refine' lt_of_le_of_lt ( abs_f_9_8_5_sub_le x y T _ ) hT;
+  intro r hr; specialize hδ r hr; contrapose! hδ; cases max_cases x y <;> cases min_cases x y <;> cases abs_cases ( r - x : ℝ ) <;> linarith [ abs_lt.mp hy ] ;
 
 end Chapter9
