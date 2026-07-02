@@ -65,7 +65,7 @@ theorem BddOn.iff' (f:ℝ → ℝ) (X:Set ℝ) :  BddOn f X ↔ Bornology.IsBoun
       rw [Real.dist_eq] at hdist
       have hx_bound : |f x| ≤ |f x - f x₀| + |f x₀| := by
         calc
-          |f x| = |(f x - f x₀) + f x₀| := by ring
+          |f x| = |(f x - f x₀) + f x₀| := by ring_nf
           _ ≤ |f x - f x₀| + |f x₀| := abs_add_le _ _
       nlinarith
     · use 0
