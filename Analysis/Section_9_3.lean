@@ -135,7 +135,7 @@ example: Convergesto (.Icc 1 3) (fun x ↦ x^2) 4 2 := by
   have hx_plus_2_le_5 : x + 2 ≤ 5 := by nlinarith
   have hx_sq_diff_eq : |x^2 - 4| = |x - 2| * (x + 2) := by
     calc
-      |x^2 - 4| = |(x - 2) * (x + 2)| := by ring
+      |x^2 - 4| = |(x - 2) * (x + 2)| := by ring_nf
       _ = |x - 2| * |x + 2| := abs_mul _ _
       _ = |x - 2| * (x + 2) := by rw [abs_of_nonneg hx_plus_2_nonneg]
   rw [hx_sq_diff_eq]
@@ -310,7 +310,7 @@ theorem Convergesto.sign_right : Convergesto (.Ioi 0) Real.sign 1 0 := by
     have hpos_n : a n > 0 := hpos n
     have h_not_neg : ¬ a n < 0 := by linarith
     rw [Real.sign_def, if_neg h_not_neg, if_pos hpos_n]
-  simpa [hsign] using tendsto_const_nhds (x := (1 : ℝ))
+  simp [hsign]
 
 /-- Example 9.3.16 -/
 theorem Convergesto.sign_left : Convergesto (.Iio 0) Real.sign (-1) 0 := by
@@ -320,7 +320,7 @@ theorem Convergesto.sign_left : Convergesto (.Iio 0) Real.sign (-1) 0 := by
   have hsign : ∀ n, Real.sign (a n) = -1 := by
     intro n
     rw [Real.sign_def, if_pos (hneg n)]
-  simpa [hsign] using tendsto_const_nhds (x := (-1 : ℝ))
+  simp [hsign]
 
 /-- Example 9.3.16 -/
 theorem Convergesto.sign_all : ¬ ∃ L, Convergesto Set.univ Real.sign L 0 := by
@@ -364,7 +364,7 @@ theorem Convergesto.f_9_3_17_remove : Convergesto (Set.univ \ {0}) f_9_3_17 0 0 
     exact this.2
   have h_f (n : ℕ) : f_9_3_17 (a n) = 0 := by
     simp [f_9_3_17, ha_ne_0 n]
-  simpa [h_f] using tendsto_const_nhds (x := (0 : ℝ))
+  simp [h_f]
 
 theorem Convergesto.f_9_3_17_all : ¬ ∃ L, Convergesto Set.univ f_9_3_17 L 0 := by
   intro h; rcases h with ⟨L, hL⟩
@@ -422,7 +422,19 @@ example : Convergesto Set.univ (fun x ↦ (x+2)/(x+1)) (4/3:ℝ) 2 := by
 
 /-- Example 9.3.20 -/
 example : Convergesto (Set.univ \ {1}) (fun x ↦ (x^2-1)/(x-1)) 2 1 := by
-  sorry
+  rw [Convergesto.iff_conv (fun x ↦ (x^2-1)/(x-1)) 2]
+  intro a ha hconv
+  have ha_ne_one (n : ℕ) : a n ≠ 1 := by
+    have : a n ∈ Set.univ \ {1} := ha n
+    exact this.2
+  have h_simp (n : ℕ) : (a n ^ 2 - 1) / (a n - 1) = a n + 1 := by
+    have h_denom_ne_zero : a n - 1 ≠ 0 := sub_ne_zero.mpr (ha_ne_one n)
+    field_simp [h_denom_ne_zero]
+    ring
+  have h_simp_seq : (fun n : ℕ ↦ (a n ^ 2 - 1) / (a n - 1)) = (fun n : ℕ ↦ a n + 1) := by
+    ext n; exact h_simp n
+  rw [h_simp_seq]
+  simpa [show (1 : ℝ) + 1 = (2 : ℝ) by norm_num] using hconv.add (tendsto_const_nhds (x := (1 : ℝ)))
 
 open Classical in
 /-- Example 9.3.21 -/
@@ -483,7 +495,8 @@ example : ¬ ∃ L, Convergesto Set.univ f_9_3_21 L 0 := by
           push_cast
           field_simp [hn_nonzero] at hq ⊢
           nlinarith
-        sorry
+        apply irrational_sqrt_two
+        simpa using h_sqrt2_rational
       rw [if_neg h_not_rational]
     have h_symm : (fun _ : ℕ ↦ (0 : ℝ)) =ᶠ[Filter.atTop] (fun (n : ℕ) ↦ f_9_3_21 ((Real.sqrt 2)/((n:ℝ)))) :=
       h_eventually.symm
