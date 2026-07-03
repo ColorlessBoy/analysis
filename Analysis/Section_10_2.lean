@@ -337,13 +337,101 @@ theorem _root_.UniformContinuousOn.of_lipschitz {f:ℝ → ℝ}
   (hlip: BddOn (deriv f) .univ) :
   UniformContinuousOn f (.univ) := by
   obtain ⟨M, hM⟩ := hlip
-  -- Show that f is Lipschitz continuous with constant M
-  have : ∀ x y : ℝ, |f x - f y| ≤ M * |x - y| := by
-    intro x y
-    by_cases h : x = y
-    · simp [h]
-    · sorry  -- This requires extending lipschitz_bound to the whole real line
-  sorry
+  have hM_nonneg : 0 ≤ M := by
+    have h0 := hM 0 (Set.mem_univ 0)
+    have h_nonneg_abs : 0 ≤ |deriv f 0| := abs_nonneg _
+    linarith
+  by_cases hMpos : M > 0
+  · have h_lipschitz : ∀ x y : ℝ, |f x - f y| ≤ M * |x - y| := by
+      intro x y
+      by_cases h_eq : x = y
+      · simp [h_eq]
+      · have h_ne : x ≠ y := h_eq
+        set a := min x y - 1 with ha
+        set b := max x y + 1 with hb
+        have ha_lt_b : a < b := by
+          dsimp [a, b]
+          by_cases hxy : x ≤ y
+          · rw [min_eq_left hxy, max_eq_right hxy]
+            nlinarith
+          · have hyx : y ≤ x := by linarith
+            rw [min_eq_right hyx, max_eq_left hyx]
+            nlinarith
+        have hxIoo : x ∈ Set.Ioo a b := by
+          dsimp [a, b]
+          by_cases hxy : x ≤ y
+          · rw [min_eq_left hxy, max_eq_right hxy]
+            constructor <;> nlinarith
+          · have hyx : y ≤ x := by linarith
+            rw [min_eq_right hyx, max_eq_left hyx]
+            constructor <;> nlinarith
+        have hyIoo : y ∈ Set.Ioo a b := by
+          dsimp [a, b]
+          by_cases hxy : x ≤ y
+          · rw [min_eq_left hxy, max_eq_right hxy]
+            constructor <;> nlinarith
+          · have hyx : y ≤ x := by linarith
+            rw [min_eq_right hyx, max_eq_left hyx]
+            constructor <;> nlinarith
+        have hcont' : ContinuousOn f (.Icc a b) :=
+          hcont.mono (Set.subset_univ _)
+        have hderiv' : DifferentiableOn ℝ f (.Ioo a b) :=
+          hderiv.mono (Set.subset_univ _)
+        have hlip' : ∀ z ∈ Set.Ioo a b, |derivWithin f (.Ioo a b) z| ≤ M := by
+          intro z hz
+          have hmem : Set.Ioo a b ∈ nhds z := isOpen_Ioo.mem_nhds hz
+          have h_eq' : derivWithin f (.Ioo a b) z = deriv f z :=
+            derivWithin_of_mem_nhds hmem
+          rw [h_eq']
+          exact hM z (Set.mem_univ z)
+        exact lipschitz_bound hMpos ha_lt_b hcont' hderiv' hlip' hxIoo hyIoo
+    rw [Metric.uniformContinuousOn_iff]
+    intro ε hε
+    refine ⟨ε / M, div_pos hε hMpos, ?_⟩
+    intro x hx y hy hdist
+    have h_bound := h_lipschitz x y
+    calc
+      |f x - f y| ≤ M * |x - y| := h_bound
+      _ < M * (ε / M) := mul_lt_mul_of_pos_left hdist hMpos
+      _ = ε := by field_simp [hMpos.ne']
+  · have hMzero : M = 0 := by linarith
+    subst hMzero
+    have hderiv_zero : ∀ x : ℝ, deriv f x = 0 := by
+      intro x
+      have hxbound := hM x (Set.mem_univ x)
+      have h_nonneg_abs : 0 ≤ |deriv f x| := abs_nonneg _
+      have hzero : |deriv f x| = 0 := by linarith
+      exact abs_eq_zero.mp hzero
+    have hconst : ∀ x y : ℝ, f x = f y := by
+      intro x y
+      by_cases hxy : x < y
+      · have hmvt := exists_deriv_eq_slope f hxy
+          (hcont.mono (Set.subset_univ _))
+          (hderiv.mono (Set.subset_univ _))
+        rcases hmvt with ⟨c, hc, hmvt'⟩
+        rw [hderiv_zero c] at hmvt'
+        have hyx_ne_zero : y - x ≠ 0 := sub_ne_zero.mpr hxy.ne'
+        rcases (div_eq_zero_iff.mp hmvt'.symm) with (h | h)
+        · linarith
+        · exfalso; exact hyx_ne_zero h
+      · by_cases hyx : y < x
+        · have hmvt := exists_deriv_eq_slope f hyx
+            (hcont.mono (Set.subset_univ _))
+            (hderiv.mono (Set.subset_univ _))
+          rcases hmvt with ⟨c, hc, hmvt'⟩
+          rw [hderiv_zero c] at hmvt'
+          have hxy_ne_zero : x - y ≠ 0 := sub_ne_zero.mpr hyx.ne'
+          rcases (div_eq_zero_iff.mp hmvt'.symm) with (h | h)
+          · linarith
+          · exfalso; exact hxy_ne_zero h
+        · have hx_eq_y : x = y := by linarith
+          subst hx_eq_y; rfl
+    rw [Metric.uniformContinuousOn_iff]
+    intro ε hε
+    refine ⟨1, by norm_num, ?_⟩
+    intro x hx y hy hdist
+    have h_eq_val : f x = f y := hconst x y
+    simpa [Real.dist_eq, h_eq_val] using hε
 
 
 end Chapter10
