@@ -2183,8 +2183,217 @@ private def rest_of (I J : BoundedInterval) : BoundedInterval :=
   | Ioo _ c, Ioo _ _ => Ico J.b c
   | _, _ => Ioo 0 0
 
+/- Decomposition of a non-degenerate partition: extract a rightmost interval K
+   and a complementary interval L with `I.joins L K`, together with a partition
+   P' of L whose intervals are `P.intervals.erase K`.  This is the combinatorial
+   core of `Partition.sum_of_length`, factored out for reuse. -/
+theorem partition_join_erase {I: BoundedInterval} (P: Partition I)
+    (h : ¬ Subsingleton (I:Set ℝ)) :
+    ∃ (K L : BoundedInterval), K ∈ P ∧ I.joins L K ∧
+      ∃ P' : Partition L, P'.intervals = P.intervals.erase K := by
+  simp [length_of_subsingleton, length, -Set.subsingleton_coe] at h
+  have hex : ∃ K L : BoundedInterval, K ∈ P ∧ I.joins L K := by
+    by_cases hI' : I.b ∈ I
+    . choose K hK hbK using (P.exists_unique I.b hI').exists
+      observe hKI : K ⊆ I
+      by_cases hsub : Subsingleton (K:Set ℝ)
+      . simp_all [mem_iff]
+        apply hsub.eq_singleton_of_mem at hbK
+        have : K = Icc (I.b) (I.b) := by
+          have hK_set_eq : (K : Set ℝ) = {I.b} := hbK
+          have hmem : I.b ∈ (K : Set ℝ) := by
+            simp [hK_set_eq]
+          cases K with
+          | Ioo a b =>
+            rcases Set.mem_Ioo.mp hmem with ⟨ha_lt_Ib, hIb_lt_b⟩
+            have ha_lt_b : a < b := lt_trans ha_lt_Ib hIb_lt_b
+            have hsub_set : (Ioo a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ioo a b : Set ℝ) := by
+              apply Set.mem_Ioo.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ioo a b : Set ℝ) := by
+              apply Set.mem_Ioo.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+          | Icc a b =>
+            have ha_le_Ib : a ≤ I.b := (Set.mem_Icc.mp hmem).1
+            have hIb_le_b : I.b ≤ b := (Set.mem_Icc.mp hmem).2
+            have hsub_set : (Icc a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hb_le_a : b ≤ a := by
+              have : (Set.Icc a b).Subsingleton := by simpa using hsub_set
+              rw [Set.subsingleton_Icc_iff] at this
+              exact this
+            have ha_eq_Ib : a = I.b := by nlinarith
+            have hb_eq_Ib : b = I.b := by nlinarith
+            simp [ha_eq_Ib, hb_eq_Ib]
+          | Ioc a b =>
+            rcases Set.mem_Ioc.mp hmem with ⟨ha_lt_Ib, hIb_le_b⟩
+            have ha_lt_b : a < b := lt_of_lt_of_le ha_lt_Ib hIb_le_b
+            have hsub_set : (Ioc a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ioc a b : Set ℝ) := by
+              apply Set.mem_Ioc.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ioc a b : Set ℝ) := by
+              apply Set.mem_Ioc.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+          | Ico a b =>
+            rcases Set.mem_Ico.mp hmem with ⟨ha_le_Ib, hIb_lt_b⟩
+            have ha_lt_b : a < b := lt_of_le_of_lt ha_le_Ib hIb_lt_b
+            have hsub_set : (Ico a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ico a b : Set ℝ) := by
+              apply Set.mem_Ico.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ico a b : Set ℝ) := by
+              apply Set.mem_Ico.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+        subst this
+        cases I with
+        | Ioo _ _ => simp at hI'
+        | Icc a b => use (Icc b b), hK, Ico a b; apply join_Ico_Icc <;> order
+        | Ioc a b => use (Icc b b), hK, Ioo a b; apply join_Ioo_Icc <;> order
+        | Ico _ _ => simp at hI'
+      simp [length_of_subsingleton, -Set.subsingleton_coe] at hsub
+      have hKI' := (K.Ioo_subset.trans hKI).trans I.subset_Icc
+      simp only [subset_iff] at hKI'
+      have hKb : K.b = I.b := by
+        rw [le_antisymm_iff]; split_ands
+        . apply csSup_le_csSup bddAbove_Icc (by simp [hsub]) at hKI'
+          simp_all [csSup_Ioo hsub, csSup_Icc (le_of_lt h)]
+        have := K.subset_Icc _ hbK; simp [mem_iff] at this; exact this.2
+      have hKA : I.a ≤ K.a := by
+        apply csInf_le_csInf bddBelow_Icc (by simp [hsub]) at hKI'
+        simp_all [csInf_Icc (le_of_lt h), csInf_Ioo]
+      cases I with
+      | Ioo _ _ => simp [mem_iff] at hI'
+      | Icc a₁ b₁ =>
+        use K; cases K with
+        | Ioo _ _ => simp [mem_iff, subset_iff] at *; grind
+        | Icc c₂ b₂ => use Ico a₁ c₂, hK; simp_all; apply join_Ico_Icc <;> order
+        | Ioc c₂ b₂ => use Icc a₁ c₂, hK; simp_all; apply join_Icc_Ioc <;> order
+        | Ico _ _ => simp [mem_iff] at *; grind
+      | Ioc a₁ b₁ =>
+        use K; cases K with
+        | Ioo _ _ => simp_all [mem_iff]
+        | Icc c₂ b₂ =>
+          use Ioo a₁ c₂, hK
+          simp_all [subset_iff]
+          have : c₂ ∈ Set.Icc c₂ b₁ := by grind
+          apply hKI at this; grind [join_Ioo_Icc]
+        | Ioc c₂ b₂ => use Ioc a₁ c₂, hK; simp_all; apply join_Ioc_Ioc <;> order
+        | Ico _ _ => simp [mem_iff, subset_iff] at *; grind
+      | Ico _ _ => simp [mem_iff] at hI'
+    choose c hc hK using P.exist_right h hI'
+    cases I with
+    | Ioo a₁ b₁ =>
+      obtain hK | hK := hK <;> simp_all [mem_iff]
+      . use Ioo c b₁, hK, Ioc a₁ c; apply join_Ioc_Ioo <;> tauto
+      use Ico c b₁, hK, Ioo a₁ c
+      apply P.contains at hK; simp [subset_iff] at hK
+      have : c ∈ Set.Ico c b₁ := by grind
+      grind [join_Ioo_Ico]
+    | Icc _ _ => simp [mem_iff] at hI' h; order
+    | Ioc _ _ => simp [mem_iff] at hI' h; order
+    | Ico a₁ b₁ =>
+      obtain hK | hK := hK <;> simp_all [mem_iff]
+      . use Ioo c b₁, hK, Icc a₁ c; grind [join_Icc_Ioo]
+      use Ico c b₁, hK, Ico a₁ c; grind [join_Ico_Ico]
+  obtain ⟨ K, L, hK, ⟨ h1, h2, h3 ⟩ ⟩ := hex
+  have hP'ex : ∃ P' : Partition L, P'.intervals = P.intervals.erase K := by
+    refine ⟨{
+      intervals := P.intervals.erase K
+      exists_unique := by
+        intro x hxL
+        have hxI : x ∈ (I : Set ℝ) := by
+          rw [h2]
+          exact Set.mem_union_left (K : Set ℝ) hxL
+        rcases P.exists_unique x hxI with ⟨J, ⟨hJmem, hxJ⟩, huniq⟩
+        have hx_not_K : x ∉ (K : Set ℝ) := by
+          intro hxK
+          have : x ∈ (L : Set ℝ) ∩ (K : Set ℝ) := Set.mem_inter hxL hxK
+          rw [h1] at this
+          simp at this
+        have hJ_ne_K : J ≠ K := by
+          intro h_eq
+          subst h_eq
+          apply hx_not_K
+          simpa [mem_iff] using hxJ
+        have hJ_mem_erase : J ∈ P.intervals.erase K :=
+          Finset.mem_erase.mpr ⟨hJ_ne_K, hJmem⟩
+        refine ⟨J, ⟨hJ_mem_erase, hxJ⟩, ?_⟩
+        intro J' ⟨hJ'_mem_erase, hxJ'⟩
+        have hJ'_mem : J' ∈ P.intervals := (Finset.mem_erase.mp hJ'_mem_erase).2
+        exact huniq J' ⟨hJ'_mem, hxJ'⟩
+      contains := by
+        intro J hJ_erase
+        have hJmem : J ∈ P.intervals := (Finset.mem_erase.mp hJ_erase).2
+        have hJ_ne_K : J ≠ K := (Finset.mem_erase.mp hJ_erase).1
+        intro x hxJ
+        have hxI : x ∈ (I : Set ℝ) := (P.contains J hJmem) x hxJ
+        rw [h2] at hxI
+        rcases hxI with (hxL | hxK)
+        · simpa [mem_iff] using hxL
+        · exfalso
+          have hxI' : x ∈ (I : Set ℝ) := by
+            rw [h2]
+            exact Set.mem_union_right (L : Set ℝ) hxK
+          rcases P.exists_unique x hxI' with ⟨J', ⟨hJ'mem, hxJ'⟩, huniq⟩
+          have hJ_eq_K : J = K :=
+            (huniq J ⟨hJmem, hxJ⟩).trans (huniq K ⟨hK, by
+              simpa [mem_iff] using hxK⟩).symm
+          exact hJ_ne_K hJ_eq_K
+    }, rfl⟩
+  obtain ⟨ P', hP' ⟩ := hP'ex
+  exact ⟨K, L, hK, ⟨h1, h2, h3⟩, P', hP'⟩
+
 /-- Exercise 11.4.2 -/
 theorem IntegrableOn.split {I: BoundedInterval} {f: ℝ → ℝ} (hf: IntegrableOn f I) (P: Partition I) :
-  integ f I = ∑ J ∈ P.intervals, integ f J := by sorry
+  integ f I = ∑ J ∈ P.intervals, integ f J := by
+  generalize hcard : P.intervals.card = n
+  revert I; induction' n with n hn <;> intro I hf P hcard
+  · -- No intervals: `I` must be empty, so both sides vanish.
+    rw [Finset.card_eq_zero] at hcard
+    have hIempty : (I : Set ℝ) = ∅ := by
+      by_contra! hne
+      rcases hne with ⟨x, hx⟩
+      rcases P.exists_unique x hx with ⟨J, ⟨hJmem, _⟩, _⟩
+      rw [hcard] at hJmem; simp at hJmem
+    have hlen0 : |I|ₗ = 0 := BoundedInterval.length_of_empty hIempty
+    rw [hcard, Finset.sum_empty]
+    exact (integ_on_subsingleton hlen0).2
+  by_cases h : Subsingleton (I : Set ℝ)
+  · -- `I` is a single point: every interval of the partition is a point, all integrals vanish.
+    have hIsub : ∀ J ∈ P.intervals, integ f J = 0 := by
+      intro J hJ
+      have hJsub : Subsingleton (J : Set ℝ) := by
+        apply Subsingleton.intro
+        intro a b
+        apply Subtype.ext
+        have haI : a.val ∈ (I : Set ℝ) := (P.contains J hJ a.val) a.property
+        have hbI : b.val ∈ (I : Set ℝ) := (P.contains J hJ b.val) b.property
+        have h_eq : (⟨a.val, haI⟩ : (I : Set ℝ)) = (⟨b.val, hbI⟩ : (I : Set ℝ)) :=
+          Subsingleton.elim _ _
+        injection h_eq
+      have hJlen : |J|ₗ = 0 := BoundedInterval.length_of_subsingleton.mp hJsub
+      exact (integ_on_subsingleton hJlen).2
+    have hIlen : |I|ₗ = 0 := BoundedInterval.length_of_subsingleton.mp h
+    rw [(integ_on_subsingleton hIlen).2, Finset.sum_eq_zero hIsub]
+  · -- Peel off a rightmost interval `K` with complement `L`; apply the inductive hypothesis to `L`.
+    obtain ⟨K, L, hK, hjoin, P', hP'⟩ := partition_join_erase P h
+    obtain ⟨hfL, hfK, hIeq⟩ := hf.join hjoin
+    have hcardP' : P'.intervals.card = n := by
+      rw [hP', Finset.card_erase_of_mem hK, hcard]
+      omega
+    have hLsum : integ f L = ∑ J ∈ P'.intervals, integ f J := hn hfL P' hcardP'
+    rw [hIeq, ← Finset.add_sum_erase _ _ hK, ← hP', ← hLsum]
+    exact add_comm _ _
 
 end Chapter11
