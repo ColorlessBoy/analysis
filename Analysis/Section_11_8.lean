@@ -267,9 +267,310 @@ theorem BoundedInterval.join_Ioo_Icc' {a b c:ℝ} (hab: a < b) (hbc: b ≤ c) : 
 theorem BoundedInterval.join_Ioo_Ico' {a b c:ℝ} (hab: a < b) (hbc: b ≤ c) : (Ioo a c).joins' (Ioo a b) (Ico b c) := ⟨ join_Ioo_Ico hab hbc,
   by simp [α_length, show a < b by grind, show b ≤ c by grind, show a < c by grind] ⟩
 
+lemma set_singleton_imp_Icc {I : BoundedInterval} {x : ℝ} (h : (I : Set ℝ) = {x}) : I = Icc x x := by
+  have hx_mem : x ∈ (I : Set ℝ) := by rw [h]; simp
+  induction I with
+  | Icc a b =>
+    have hx : x ∈ Set.Icc a b := by simpa using hx_mem
+    rcases hx with ⟨ha_x, hx_b⟩
+    have hb_le_a : b ≤ a := by
+      by_contra! h_lt
+      have ha_mem : a ∈ (Icc a b : Set ℝ) := by
+        have : a ∈ Set.Icc a b := ⟨by nlinarith, by nlinarith⟩
+        simpa using this
+      have hb_mem : b ∈ (Icc a b : Set ℝ) := by
+        have : b ∈ Set.Icc a b := ⟨by nlinarith, by nlinarith⟩
+        simpa using this
+      have ha_x' : a = x := by
+        rw [h] at ha_mem; simp at ha_mem; exact ha_mem
+      have hb_x' : b = x := by
+        rw [h] at hb_mem; simp at hb_mem; exact hb_mem
+      nlinarith
+    have ha_eq_x : a = x := by nlinarith
+    have hb_eq_x : b = x := by nlinarith
+    subst ha_eq_x; subst hb_eq_x; rfl
+  | Ico a b =>
+    have hx : x ∈ Set.Ico a b := by simpa using hx_mem
+    rcases hx with ⟨ha_x, hx_lt_b⟩
+    by_cases ha_lt_x : a < x
+    · have hy : (a + x) / 2 ∈ (Ico a b : Set ℝ) := by
+        have : (a + x) / 2 ∈ Set.Ico a b := by
+          constructor <;> nlinarith
+        simpa using this
+      rw [h] at hy; simp at hy; nlinarith
+    · have ha_eq_x : a = x := by nlinarith
+      have h_temp : (Ico x b : Set ℝ) = {x} := by
+        simpa [ha_eq_x] using h
+      have hy : (x + b) / 2 ∈ (Ico x b : Set ℝ) := by
+        have : (x + b) / 2 ∈ Set.Ico x b := by
+          constructor <;> nlinarith
+        simpa using this
+      rw [h_temp] at hy; simp at hy; nlinarith
+  | Ioc a b =>
+    have hx : x ∈ Set.Ioc a b := by simpa using hx_mem
+    rcases hx with ⟨ha_lt_x, hx_b⟩
+    by_cases hx_lt_b : x < b
+    · have hy : (x + b) / 2 ∈ (Ioc a b : Set ℝ) := by
+        have : (x + b) / 2 ∈ Set.Ioc a b := by
+          constructor <;> nlinarith
+        simpa using this
+      rw [h] at hy; simp at hy; nlinarith
+    · have hx_eq_b : x = b := by nlinarith
+      have h_temp : (Ioc a x : Set ℝ) = {x} := by
+        simpa [hx_eq_b] using h
+      have hy : (a + x) / 2 ∈ (Ioc a x : Set ℝ) := by
+        have : (a + x) / 2 ∈ Set.Ioc a x := by
+          constructor <;> nlinarith
+        simpa using this
+      rw [h_temp] at hy; simp at hy; nlinarith
+  | Ioo a b =>
+    have hx : x ∈ Set.Ioo a b := by simpa using hx_mem
+    rcases hx with ⟨ha_lt_x, hx_lt_b⟩
+    have hy : (a + x) / 2 ∈ (Ioo a b : Set ℝ) := by
+      have : (a + x) / 2 ∈ Set.Ioo a b := by
+        constructor <;> nlinarith
+      simpa using this
+    rw [h] at hy; simp at hy; nlinarith
+
 /-- Theorem 11.8.4 / Exercise 11.8.1 -/
 theorem Partition.sum_of_α_length  {I: BoundedInterval} (P: Partition I) (α: ℝ → ℝ) :
-  ∑ J ∈ P.intervals, α[J]ₗ = α[I]ₗ := by sorry
+  ∑ J ∈ P.intervals, α[J]ₗ = α[I]ₗ := by
+  generalize hcard: P.intervals.card = n
+  revert I; induction' n with n hn <;> intro I P hcard
+  . rw [Finset.card_eq_zero] at hcard
+    have : (I:Set ℝ) = ∅ := by
+      by_contra! hne
+      rcases hne with ⟨x, hx⟩
+      rcases P.exists_unique x hx with ⟨J, ⟨hJmem, _⟩, _⟩
+      have hP_empty : P.intervals = ∅ := hcard
+      have hJmem' : J ∈ P.intervals := hJmem
+      rw [hP_empty] at hJmem'
+      simp at hJmem'
+    have h_len : α[I]ₗ = 0 := α_length_of_empty α this
+    simp [hcard, h_len]
+  by_cases h : Subsingleton (I:Set ℝ)
+  . have hJ_subs (J: BoundedInterval) (hJ: J ∈ P) : Subsingleton (J:Set ℝ) := by
+      apply Subsingleton.intro
+      intro a b
+      apply Subtype.ext
+      have haJ : a.val ∈ (J : Set ℝ) := a.property
+      have hbJ : b.val ∈ (J : Set ℝ) := b.property
+      have haI : a.val ∈ (I : Set ℝ) := (P.contains J hJ a.val) haJ
+      have hbI : b.val ∈ (I : Set ℝ) := (P.contains J hJ b.val) hbJ
+      have h_eq : (⟨a.val, haI⟩ : (I : Set ℝ)) = (⟨b.val, hbI⟩ : (I : Set ℝ)) :=
+        Subsingleton.elim _ _
+      injection h_eq
+    by_cases hne : (I:Set ℝ).Nonempty
+    · rcases hne with ⟨x, hx⟩
+      have hI_set : (I : Set ℝ) = {x} := by
+        have hI_subs : Set.Subsingleton (I : Set ℝ) := by
+          simpa [Set.subsingleton_coe] using h
+        exact hI_subs.eq_singleton_of_mem hx
+      rcases P.exists_unique x hx with ⟨J, ⟨hJmem, hxJ⟩, huniq⟩
+      have h_rest_zero : ∑ K ∈ P.intervals.erase J, α[K]ₗ = 0 := by
+        refine Finset.sum_eq_zero ?_
+        intro K hKmem_erase
+        have hKmem : K ∈ P.intervals := (Finset.mem_erase.mp hKmem_erase).2
+        have hKneJ : K ≠ J := (Finset.mem_erase.mp hKmem_erase).1
+        have hx_not_K : x ∉ (K : Set ℝ) := by
+          intro hxK; apply hKneJ; exact huniq K ⟨hKmem, hxK⟩
+        have hK_sub_I : (K : Set ℝ) ⊆ (I : Set ℝ) := λ y hy => (P.contains K hKmem y) hy
+        rw [hI_set] at hK_sub_I
+        have hK_empty : (K : Set ℝ) = ∅ :=
+          Set.not_nonempty_iff_eq_empty.mp (by
+            intro hneK; rcases hneK with ⟨y, hy⟩
+            have hy_singleton : y ∈ ({x} : Set ℝ) := hK_sub_I hy
+            simp at hy_singleton; subst hy_singleton
+            exact hx_not_K hy)
+        exact α_length_of_empty α hK_empty
+      have hα_J_eq_α_I : α[J]ₗ = α[I]ₗ := by
+        have hJ_set : (J : Set ℝ) = {x} := by
+          have hJ_subs_set : Set.Subsingleton (J : Set ℝ) := by
+            simpa [Set.subsingleton_coe] using hJ_subs J hJmem
+          exact hJ_subs_set.eq_singleton_of_mem hxJ
+        have hJ_eq : J = Icc x x := set_singleton_imp_Icc hJ_set
+        have hI_eq : I = Icc x x := set_singleton_imp_Icc hI_set
+        rw [hJ_eq, hI_eq]
+      calc
+        ∑ K ∈ P.intervals, α[K]ₗ = α[J]ₗ + ∑ K ∈ P.intervals.erase J, α[K]ₗ := by
+          rw [Finset.add_sum_erase P.intervals (λ K => α[K]ₗ) hJmem]
+        _ = α[J]ₗ := by simp [h_rest_zero]
+        _ = α[I]ₗ := hα_J_eq_α_I
+    · have hempty : (I : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hne
+      have h_all_zero : ∀ K ∈ P.intervals, α[K]ₗ = 0 := by
+        intro K hKmem
+        have hK_sub_I : (K : Set ℝ) ⊆ (I : Set ℝ) := λ y hy => (P.contains K hKmem y) hy
+        rw [hempty] at hK_sub_I
+        have hK_empty : (K : Set ℝ) = ∅ :=
+          Set.not_nonempty_iff_eq_empty.mp (by
+            intro hneK; rcases hneK with ⟨y, hy⟩
+            have hy_empty : y ∈ (∅ : Set ℝ) := hK_sub_I hy
+            simp at hy_empty)
+        exact α_length_of_empty α hK_empty
+      simp [α_length_of_empty α hempty, Finset.sum_eq_zero h_all_zero]
+  simp [length_of_subsingleton, length, -Set.subsingleton_coe] at h
+  have : ∃ K L : BoundedInterval, K ∈ P ∧ I.joins' L K := by
+    by_cases hI' : I.b ∈ I
+    . choose K hK hbK using (P.exists_unique I.b hI').exists
+      observe hKI : K ⊆ I
+      by_cases hsub : Subsingleton (K:Set ℝ)
+      . simp_all [mem_iff]
+        apply hsub.eq_singleton_of_mem at hbK
+        have : K = Icc (I.b) (I.b) := by
+          have hK_set_eq : (K : Set ℝ) = {I.b} := hbK
+          have hmem : I.b ∈ (K : Set ℝ) := by
+            simp [hK_set_eq]
+          cases K with
+          | Ioo a b =>
+            rcases Set.mem_Ioo.mp hmem with ⟨ha_lt_Ib, hIb_lt_b⟩
+            have ha_lt_b : a < b := lt_trans ha_lt_Ib hIb_lt_b
+            have hsub_set : (Ioo a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ioo a b : Set ℝ) := by
+              apply Set.mem_Ioo.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ioo a b : Set ℝ) := by
+              apply Set.mem_Ioo.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+          | Icc a b =>
+            have ha_le_Ib : a ≤ I.b := (Set.mem_Icc.mp hmem).1
+            have hIb_le_b : I.b ≤ b := (Set.mem_Icc.mp hmem).2
+            have hsub_set : (Icc a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hb_le_a : b ≤ a := by
+              have : (Set.Icc a b).Subsingleton := by simpa using hsub_set
+              rw [Set.subsingleton_Icc_iff] at this
+              exact this
+            have ha_eq_Ib : a = I.b := by nlinarith
+            have hb_eq_Ib : b = I.b := by nlinarith
+            simp [ha_eq_Ib, hb_eq_Ib]
+          | Ioc a b =>
+            rcases Set.mem_Ioc.mp hmem with ⟨ha_lt_Ib, hIb_le_b⟩
+            have ha_lt_b : a < b := lt_of_lt_of_le ha_lt_Ib hIb_le_b
+            have hsub_set : (Ioc a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ioc a b : Set ℝ) := by
+              apply Set.mem_Ioc.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ioc a b : Set ℝ) := by
+              apply Set.mem_Ioc.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+          | Ico a b =>
+            rcases Set.mem_Ico.mp hmem with ⟨ha_le_Ib, hIb_lt_b⟩
+            have ha_lt_b : a < b := lt_of_le_of_lt ha_le_Ib hIb_lt_b
+            have hsub_set : (Ico a b : Set ℝ).Subsingleton := by
+              simpa using hsub
+            have hx : (2*a + b)/3 ∈ (Ico a b : Set ℝ) := by
+              apply Set.mem_Ico.mpr; constructor <;> nlinarith
+            have hy : (a + 2*b)/3 ∈ (Ico a b : Set ℝ) := by
+              apply Set.mem_Ico.mpr; constructor <;> nlinarith
+            have h_val_eq : (2*a + b)/3 = (a + 2*b)/3 :=
+              hsub_set hx hy
+            have hneq : (2*a + b)/3 ≠ (a + 2*b)/3 := by nlinarith
+            exfalso; exact hneq h_val_eq
+        subst this
+        cases I with
+        | Ioo _ _ => simp at hI'
+        | Icc a b => use (Icc b b), hK, Ico a b; exact join_Ico_Icc' (by order) (by order)
+        | Ioc a b => use (Icc b b), hK, Ioo a b; exact join_Ioo_Icc' (by order) (by order)
+        | Ico _ _ => simp at hI'
+      simp [length_of_subsingleton, -Set.subsingleton_coe] at hsub
+      have hKI' := (K.Ioo_subset.trans hKI).trans I.subset_Icc
+      simp only [subset_iff] at hKI'
+      have hKb : K.b = I.b := by
+        rw [le_antisymm_iff]; split_ands
+        . apply csSup_le_csSup bddAbove_Icc (by simp [hsub]) at hKI'
+          simp_all [csSup_Ioo hsub, csSup_Icc (le_of_lt h)]
+        have := K.subset_Icc _ hbK; simp [mem_iff] at this; exact this.2
+      have hKA : I.a ≤ K.a := by
+        apply csInf_le_csInf bddBelow_Icc (by simp [hsub]) at hKI'
+        simp_all [csInf_Icc (le_of_lt h), csInf_Ioo]
+      cases I with
+      | Ioo _ _ => simp [mem_iff] at hI'
+      | Icc a₁ b₁ =>
+        use K; cases K with
+        | Ioo _ _ => simp [mem_iff, subset_iff] at *; grind
+        | Icc c₂ b₂ => use Ico a₁ c₂, hK; simp_all; apply join_Ico_Icc' <;> order
+        | Ioc c₂ b₂ => use Icc a₁ c₂, hK; simp_all; apply join_Icc_Ioc' <;> order
+        | Ico _ _ => simp [mem_iff] at *; grind
+      | Ioc a₁ b₁ =>
+        use K; cases K with
+        | Ioo _ _ => simp_all [mem_iff]
+        | Icc c₂ b₂ =>
+          use Ioo a₁ c₂, hK
+          simp_all [subset_iff]
+          have : c₂ ∈ Set.Icc c₂ b₁ := by grind
+          apply hKI at this; apply join_Ioo_Icc' <;> grind
+        | Ioc c₂ b₂ => use Ioc a₁ c₂, hK; simp_all; apply join_Ioc_Ioc' <;> order
+        | Ico _ _ => simp [mem_iff, subset_iff] at *; grind
+      | Ico _ _ => simp [mem_iff] at hI'
+    choose c hc hK using P.exist_right h hI'
+    cases I with
+    | Ioo a₁ b₁ =>
+      obtain hK | hK := hK <;> simp_all [mem_iff]
+      . use Ioo c b₁, hK, Ioc a₁ c; apply join_Ioc_Ioo' <;> tauto
+      use Ico c b₁, hK, Ioo a₁ c
+      apply P.contains at hK; simp [subset_iff] at hK
+      have : c ∈ Set.Ico c b₁ := by grind
+      apply join_Ioo_Ico' <;> grind
+    | Icc _ _ => simp [mem_iff] at hI' h; order
+    | Ioc _ _ => simp [mem_iff] at hI' h; order
+    | Ico a₁ b₁ =>
+      obtain hK | hK := hK <;> simp_all [mem_iff]
+      . use Ioo c b₁, hK, Icc a₁ c; apply join_Icc_Ioo' <;> grind
+      use Ico c b₁, hK, Ico a₁ c; apply join_Ico_Ico' <;> grind
+  obtain ⟨ K, L, hK, ⟨⟨ h1, h2, h3 ⟩, h_α ⟩ ⟩ := this
+  have : ∃ P' : Partition L, P'.intervals = P.intervals.erase K := by
+    refine ⟨{
+      intervals := P.intervals.erase K
+      exists_unique := by
+        intro x hxL
+        have hxI : x ∈ (I : Set ℝ) := by
+          rw [h2]
+          exact Set.mem_union_left (K : Set ℝ) hxL
+        rcases P.exists_unique x hxI with ⟨J, ⟨hJmem, hxJ⟩, huniq⟩
+        have hx_not_K : x ∉ (K : Set ℝ) := by
+          intro hxK
+          have : x ∈ (L : Set ℝ) ∩ (K : Set ℝ) := Set.mem_inter hxL hxK
+          rw [h1] at this
+          simp at this
+        have hJ_ne_K : J ≠ K := by
+          intro h_eq
+          subst h_eq
+          apply hx_not_K
+          simpa [mem_iff] using hxJ
+        have hJ_mem_erase : J ∈ P.intervals.erase K :=
+          Finset.mem_erase.mpr ⟨hJ_ne_K, hJmem⟩
+        refine ⟨J, ⟨hJ_mem_erase, hxJ⟩, ?_⟩
+        intro J' ⟨hJ'_mem_erase, hxJ'⟩
+        have hJ'_mem : J' ∈ P.intervals := (Finset.mem_erase.mp hJ'_mem_erase).2
+        exact huniq J' ⟨hJ'_mem, hxJ'⟩
+      contains := by
+        intro J hJ_erase
+        have hJmem : J ∈ P.intervals := (Finset.mem_erase.mp hJ_erase).2
+        have hJ_ne_K : J ≠ K := (Finset.mem_erase.mp hJ_erase).1
+        intro x hxJ
+        have hxI : x ∈ (I : Set ℝ) := (P.contains J hJmem) x hxJ
+        rw [h2] at hxI
+        rcases hxI with (hxL | hxK)
+        · simpa [mem_iff] using hxL
+        · exfalso
+          have hxI' : x ∈ (I : Set ℝ) := by
+            rw [h2]
+            exact Set.mem_union_right (L : Set ℝ) hxK
+          rcases P.exists_unique x hxI' with ⟨J', ⟨hJ'mem, hxJ'⟩, huniq⟩
+          have hJ_eq_K : J = K :=
+            (huniq J ⟨hJmem, hxJ⟩).trans (huniq K ⟨hK, by
+              simpa [mem_iff] using hxK⟩).symm
+          exact hJ_ne_K hJ_eq_K
+    }, rfl⟩
+  choose P' hP' using this
+  rw [h_α α, ←Finset.add_sum_erase _ _ hK, ←hP', add_comm]; congr
+  apply hn; simp [hP', Finset.card_erase_of_mem hK, hcard]
 
 /-- Definition 11.8.5 (Piecewise constant RS integral)-/
 noncomputable abbrev PiecewiseConstantWith.RS_integ (f:ℝ → ℝ) {I: BoundedInterval} (P: Partition I) (α: ℝ → ℝ)   :
@@ -283,16 +584,195 @@ noncomputable abbrev P_11_8_6 : Partition (Icc 1 3) :=
   (join_Ico_Icc (by norm_num) (by norm_num) )
 
 theorem f_11_8_6_RS_integ : PiecewiseConstantWith.RS_integ f_11_8_6 P_11_8_6 (fun x ↦ x^2) = 22 := by
-  sorry
+  have h_intervals : P_11_8_6.intervals = {Ico 1 2, Icc 2 3} := by
+    rw [P_11_8_6, Partition.intervals_of_join, Partition.intervals_of_bot, Partition.intervals_of_bot]
+    simp
+  have h_const_Ico : constant_value_on f_11_8_6 (Ico 1 2 : Set ℝ) = 4 := by
+    apply ConstantOn.const_eq ⟨1.5, by norm_num⟩
+    intro x hx; rcases hx with ⟨hx1, hx2⟩; simp [f_11_8_6, hx2]
+  have h_const_Icc : constant_value_on f_11_8_6 (Icc 2 3 : Set ℝ) = 2 := by
+    apply ConstantOn.const_eq ⟨2.5, by norm_num⟩
+    intro x hx; rcases hx with ⟨hx1, hx2⟩; simp [f_11_8_6, hx1]
+  have h_α_Ico : (fun x ↦ x^2)[Ico 1 2]ₗ = 3 := by
+    have hleft2 : left_lim (fun x ↦ x^2) 2 = (fun x ↦ x^2) 2 :=
+      left_lim_of_continuous ⟨1, by norm_num, Set.subset_univ _⟩
+        ((continuous_id.pow 2).continuousWithinAt)
+    have hleft1 : left_lim (fun x ↦ x^2) 1 = (fun x ↦ x^2) 1 :=
+      left_lim_of_continuous ⟨1, by norm_num, Set.subset_univ _⟩
+        ((continuous_id.pow 2).continuousWithinAt)
+    simp [α_length, hleft2, hleft1]
+    norm_num
+  have h_α_Icc : (fun x ↦ x^2)[Icc 2 3]ₗ = 5 := by
+    have hright : right_lim (fun x ↦ x^2) 3 = (fun x ↦ x^2) 3 :=
+      right_lim_of_continuous ⟨1, by norm_num, Set.subset_univ _⟩
+        ((continuous_id.pow 2).continuousWithinAt)
+    have hleft : left_lim (fun x ↦ x^2) 2 = (fun x ↦ x^2) 2 :=
+      left_lim_of_continuous ⟨1, by norm_num, Set.subset_univ _⟩
+        ((continuous_id.pow 2).continuousWithinAt)
+    simp [α_length, hright, hleft]
+    norm_num
+  rw [PiecewiseConstantWith.RS_integ, h_intervals]
+  have h_not_mem : (Ico 1 2 : BoundedInterval) ∉ ({Icc 2 3} : Finset BoundedInterval) := by
+    simp
+  rw [Finset.sum_insert h_not_mem, Finset.sum_singleton]
+  unfold constant_value_on at *
+  unfold constant_value at *
+  rw [h_const_Ico, h_const_Icc, h_α_Ico, h_α_Icc]
+  norm_num
 
 /-- Example 11.8.7 -/
 theorem PiecewiseConstantWith.RS_integ_eq_integ {f:ℝ → ℝ} {I: BoundedInterval} (P: Partition I) :RS_integ f P (fun x ↦ x) = integ f P := by
-  sorry
+  simp [PiecewiseConstantWith.RS_integ, PiecewiseConstantWith.integ, α_len_of_id]
+
+/-- If two intervals in a partition intersect, they are equal. -/
+lemma Partition.eq_of_mem_inter {I : BoundedInterval} (P : Partition I) {J K : BoundedInterval}
+  (hJ : J ∈ P.intervals) (hK : K ∈ P.intervals) {x : ℝ} (hxJ : x ∈ J) (hxK : x ∈ K) : J = K := by
+  have hxI : x ∈ I := (P.contains J hJ) x hxJ
+  rcases P.exists_unique x hxI with ⟨L, ⟨hL, hxL⟩, huniq⟩
+  have hJ_eq_L : J = L := huniq J ⟨hJ, hxJ⟩
+  have hK_eq_L : K = L := huniq K ⟨hK, hxK⟩
+  rw [hJ_eq_L, hK_eq_L]
+
+/-- If P ≤ Q, the RS integral with respect to Q equals the RS integral with respect to P. -/
+lemma RS_integ_eq_of_refinement {f : ℝ → ℝ} {I : BoundedInterval} {P Q : Partition I}
+  (hP : PiecewiseConstantWith f P) (hPQ : P ≤ Q) (α : ℝ → ℝ) :
+  PiecewiseConstantWith.RS_integ f Q α = PiecewiseConstantWith.RS_integ f P α := by
+  classical
+    let nonempty_set (J : BoundedInterval) : Prop := Set.Nonempty (J : Set ℝ)
+    let Q_intervals_K (K : BoundedInterval) : Finset BoundedInterval :=
+      (Q.intervals).filter (λ J => J ⊆ K ∧ nonempty_set J)
+    have h_nonempty_contrib_eq : ∑ J ∈ (Q.intervals).filter nonempty_set,
+      constant_value_on f (J : Set ℝ) * α[J]ₗ = PiecewiseConstantWith.RS_integ f Q α := by
+      rw [PiecewiseConstantWith.RS_integ]
+      have h_filter_subset : (Q.intervals).filter nonempty_set ⊆ Q.intervals := Finset.filter_subset _ _
+      apply Finset.sum_subset h_filter_subset
+      intro x hx hx'
+      have hx_not_nonempty : ¬nonempty_set x := by
+        intro hx_nonempty
+        apply hx'
+        exact Finset.mem_filter.mpr ⟨hx, hx_nonempty⟩
+      have hx_empty : (x : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hx_not_nonempty
+      have hx_alpha : α[x]ₗ = 0 := α_length_of_empty α hx_empty
+      simp [hx_alpha]
+    have h_sum_K (K : BoundedInterval) (hK : K ∈ P.intervals) :
+      ∑ J ∈ Q_intervals_K K, α[J]ₗ = α[K]ₗ := by
+      let Q_K : Partition K :=
+      { intervals := Q_intervals_K K
+        exists_unique := by
+          intro x hx
+          have hxI : x ∈ I := (P.contains K hK) x hx
+          rcases Q.exists_unique x hxI with ⟨J, ⟨hJmem, hxJ⟩, huniq⟩
+          have hJK : J ⊆ K := by
+            rcases hPQ J hJmem with ⟨K', hK', hJK'⟩
+            have hxK' : x ∈ K' := hJK' x hxJ
+            have h_eq : K' = K := Partition.eq_of_mem_inter P hK' hK hxK' hx
+            subst h_eq; exact hJK'
+          have hJ_nonempty : nonempty_set J := ⟨x, hxJ⟩
+          have hJmem' : J ∈ Q_intervals_K K := by
+            simp [Q_intervals_K, nonempty_set, hJmem, hJK, hJ_nonempty]
+          refine ⟨J, ⟨hJmem', hxJ⟩, ?_⟩
+          intro J' ⟨hJ'mem', hxJ'⟩
+          have hJ'_filter : J' ∈ (Q.intervals).filter (λ J' => J' ⊆ K ∧ nonempty_set J') := by
+            simpa [Q_intervals_K] using hJ'mem'
+          rcases Finset.mem_filter.mp hJ'_filter with ⟨hJ'mem, hJ'cond⟩
+          exact huniq J' ⟨hJ'mem, hxJ'⟩
+        contains := by
+          intro J hJ
+          have hJ_filter : J ∈ (Q.intervals).filter (λ J => J ⊆ K ∧ nonempty_set J) := by
+            simpa [Q_intervals_K] using hJ
+          rcases Finset.mem_filter.mp hJ_filter with ⟨hJmem, hJcond⟩
+          exact hJcond.1
+      }
+      calc
+        ∑ J ∈ Q_intervals_K K, α[J]ₗ = ∑ J ∈ Q_K.intervals, α[J]ₗ := rfl
+        _ = α[K]ₗ := Partition.sum_of_α_length Q_K α
+    have h_bUnion : Finset.biUnion P.intervals Q_intervals_K = (Q.intervals).filter nonempty_set := by
+      ext J
+      constructor
+      · intro hJ
+        rcases Finset.mem_biUnion.mp hJ with ⟨K, hK, hJ'⟩
+        have hJ_filter : J ∈ (Q.intervals).filter (λ J => J ⊆ K ∧ nonempty_set J) := by
+          simpa [Q_intervals_K] using hJ'
+        rcases Finset.mem_filter.mp hJ_filter with ⟨hJmem, ⟨hJK, hJ_nonempty⟩⟩
+        simp [hJmem, hJ_nonempty, nonempty_set]
+      · intro hJ
+        rcases Finset.mem_filter.mp hJ with ⟨hJmem, hJ_nonempty⟩
+        rcases hPQ J hJmem with ⟨K, hK, hJK⟩
+        apply Finset.mem_biUnion.mpr
+        refine ⟨K, hK, ?_⟩
+        simp [Q_intervals_K, nonempty_set, hJmem, hJK, hJ_nonempty]
+    have h_disjoint : ∀ K₁ ∈ P.intervals, ∀ K₂ ∈ P.intervals, K₁ ≠ K₂ → Disjoint (Q_intervals_K K₁) (Q_intervals_K K₂) := by
+      intro K₁ hK₁ K₂ hK₂ hne
+      rw [Finset.disjoint_iff_inter_eq_empty]
+      ext J
+      constructor
+      · intro hJ
+        rcases Finset.mem_inter.mp hJ with ⟨hJ₁, hJ₂⟩
+        have hJ₁_filter : J ∈ (Q.intervals).filter (λ J' => J' ⊆ K₁ ∧ nonempty_set J') := by
+          simpa [Q_intervals_K] using hJ₁
+        have hJ₂_filter : J ∈ (Q.intervals).filter (λ J' => J' ⊆ K₂ ∧ nonempty_set J') := by
+          simpa [Q_intervals_K] using hJ₂
+        rcases Finset.mem_filter.mp hJ₁_filter with ⟨hJmem₁, ⟨hJK₁, hJ_nonempty₁⟩⟩
+        rcases Finset.mem_filter.mp hJ₂_filter with ⟨hJmem₂, ⟨hJK₂, hJ_nonempty₂⟩⟩
+        rcases hJ_nonempty₁ with ⟨x, hx⟩
+        exfalso
+        exact hne (Partition.eq_of_mem_inter P hK₁ hK₂ (hJK₁ x hx) (hJK₂ x hx))
+      · intro hJ
+        exfalso
+        simp at hJ
+    calc
+      PiecewiseConstantWith.RS_integ f Q α = ∑ J ∈ (Q.intervals).filter nonempty_set,
+        constant_value_on f (J : Set ℝ) * α[J]ₗ := by symm; exact h_nonempty_contrib_eq
+      _ = ∑ J ∈ Finset.biUnion P.intervals Q_intervals_K, constant_value_on f (J : Set ℝ) * α[J]ₗ := by rw [h_bUnion]
+      _ = ∑ K ∈ P.intervals, ∑ J ∈ Q_intervals_K K, constant_value_on f (J : Set ℝ) * α[J]ₗ := by
+        rw [Finset.sum_biUnion h_disjoint]
+      _ = ∑ K ∈ P.intervals, ∑ J ∈ Q_intervals_K K, constant_value_on f (K : Set ℝ) * α[J]ₗ := by
+        refine Finset.sum_congr rfl (λ K hK => ?_)
+        refine Finset.sum_congr rfl (λ J hJ => ?_)
+        have hJ_filter : J ∈ (Q.intervals).filter (λ J => J ⊆ K ∧ nonempty_set J) := by
+          simpa [Q_intervals_K] using hJ
+        rcases Finset.mem_filter.mp hJ_filter with ⟨hJmem, ⟨hJK, hJ_nonempty⟩⟩
+        rcases hJ_nonempty with ⟨x, hx⟩
+        have h_const_J : ConstantOn f (J : Set ℝ) := by
+          rcases hP K hK with ⟨c, hc⟩
+          refine ⟨c, λ y => hc ⟨y.val, hJK y.val y.property⟩⟩
+        have h_val_eq : constant_value_on f (J : Set ℝ) = constant_value_on f (K : Set ℝ) := by
+          calc
+            constant_value_on f (J : Set ℝ) = f x := (ConstantOn.eq h_const_J hx).symm
+            _ = constant_value_on f (K : Set ℝ) := ConstantOn.eq (hP K hK) (hJK x hx)
+        simp [h_val_eq]
+      _ = ∑ K ∈ P.intervals, constant_value_on f (K : Set ℝ) * (∑ J ∈ Q_intervals_K K, α[J]ₗ) := by
+        simp [Finset.mul_sum]
+      _ = ∑ K ∈ P.intervals, constant_value_on f (K : Set ℝ) * α[K]ₗ := by
+        refine Finset.sum_congr rfl (λ K hK => ?_)
+        rw [h_sum_K K hK]
+      _ = PiecewiseConstantWith.RS_integ f P α := rfl
+
+lemma PiecewiseConstantWith.sup {f : ℝ → ℝ} {I : BoundedInterval} {P P' : Partition I}
+  (hP : PiecewiseConstantWith f P) (_hP' : PiecewiseConstantWith f P') : PiecewiseConstantWith f (P ⊔ P') := by
+  intro K hK
+  have hK_sup : K ∈ Finset.image₂ (fun J K' => J ∩ K') P.intervals P'.intervals := hK
+  rcases Finset.mem_image₂.mp hK_sup with ⟨J, hJ, J', hJ', rfl⟩
+  rcases hP J hJ with ⟨c, hc⟩
+  refine ⟨c, λ x => ?_⟩
+  have hxJ : (x : ℝ) ∈ (J : Set ℝ) := by
+    have hx_inter : (x : ℝ) ∈ ((J : Set ℝ) ∩ (J' : Set ℝ)) := by
+      simpa [BoundedInterval.inter_eq J J'] using x.property
+    exact hx_inter.1
+  exact hc ⟨x, hxJ⟩
 
 /-- Analogue of Proposition 11.2.13 -/
 theorem PiecewiseConstantWith.RS_integ_eq {f:ℝ → ℝ} {I: BoundedInterval} {P P': Partition I}
   (hP: PiecewiseConstantWith f P) (hP': PiecewiseConstantWith f P') (α:ℝ → ℝ): RS_integ f P α = RS_integ f P' α := by
-  sorry
+  have hmax := BoundedInterval.le_max P P'
+  have hPQ : P ≤ P ⊔ P' := hmax.1
+  have hP'Q : P' ≤ P ⊔ P' := hmax.2
+  have hQ : PiecewiseConstantWith f (P ⊔ P') := PiecewiseConstantWith.sup hP hP'
+  calc
+    RS_integ f P α = PiecewiseConstantWith.RS_integ f P α := rfl
+    _ = PiecewiseConstantWith.RS_integ f (P ⊔ P') α := (RS_integ_eq_of_refinement hP hPQ α).symm
+    _ = PiecewiseConstantWith.RS_integ f P' α := RS_integ_eq_of_refinement hP' hP'Q α
+    _ = RS_integ f P' α := rfl
 
 open Classical in
 noncomputable abbrev PiecewiseConstantOn.RS_integ (f:ℝ → ℝ) (I: BoundedInterval) (α:ℝ → ℝ):
@@ -306,72 +786,691 @@ theorem PiecewiseConstantOn.RS_integ_def {f:ℝ → ℝ} {I: BoundedInterval} {P
 /-- {name}`α_length` non-negative when α monotone -/
 theorem α_length_nonneg_of_monotone {α:ℝ → ℝ}  (hα: Monotone α) (I: BoundedInterval):
   0 ≤ α[I]ₗ := by
-  sorry
+  cases I with
+  | Icc a b =>
+    simp [α_length]
+    split
+    · by_cases hlt : a < b
+      · have h1 : left_lim α a ≤ right_lim α a := by
+          have := jump_of_monotone a hα; linarith
+        have h2 : right_lim α a ≤ left_lim α b := right_lim_le_left_lim_of_monotone hlt hα
+        have h3 : left_lim α b ≤ right_lim α b := by
+          have := jump_of_monotone b hα; linarith
+        linarith
+      · have heq : a = b := by linarith
+        subst heq
+        have hpos : 0 ≤ jump α a := jump_of_monotone a hα
+        simp [jump] at hpos
+        linarith
+    · rfl
+  | Ico a b =>
+    simp [α_length]
+    split
+    · by_cases hlt : a < b
+      · have h_left : left_lim α a ≤ left_lim α b := by
+          have h1 : left_lim α a ≤ right_lim α a := by
+            have := jump_of_monotone a hα; linarith
+          have h2 : right_lim α a ≤ left_lim α b := right_lim_le_left_lim_of_monotone hlt hα
+          linarith
+        linarith
+      · have heq : a = b := by linarith
+        subst heq; linarith
+    · rfl
+  | Ioc a b =>
+    simp [α_length]
+    split
+    · by_cases hlt : a < b
+      · have h_right : right_lim α a ≤ right_lim α b := by
+          have h1 : right_lim α a ≤ left_lim α b := right_lim_le_left_lim_of_monotone hlt hα
+          have h2 : left_lim α b ≤ right_lim α b := by
+            have := jump_of_monotone b hα; linarith
+          linarith
+        linarith
+      · have heq : a = b := by linarith
+        subst heq; linarith
+    · rfl
+  | Ioo a b =>
+    simp [α_length]
+    split
+    · have hchain : right_lim α a ≤ left_lim α b := right_lim_le_left_lim_of_monotone (by assumption) hα
+      linarith
+    · rfl
 
 /-- Analogue of Theorem 11.2.16 (a) (Laws of integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_add {f g: ℝ → ℝ} {I: BoundedInterval}
   (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) {α:ℝ → ℝ} (hα: Monotone α):
   RS_integ (f + g) I α = RS_integ f I α + RS_integ g I α := by
-  sorry
+  let _ := hα
+  rcases hf with ⟨P, hP⟩
+  rcases hg with ⟨Q, hQ⟩
+  set R := P ⊔ Q with hR
+  have hfR : PiecewiseConstantWith f R :=
+    PiecewiseConstantWith.mono (BoundedInterval.le_max P Q).1 hP
+  have hgR : PiecewiseConstantWith g R :=
+    PiecewiseConstantWith.mono (BoundedInterval.le_max P Q).2 hQ
+  have hfgR : PiecewiseConstantWith (f + g) R := by
+    intro J hJ
+    have hfJ := hfR J hJ
+    have hgJ := hgR J hJ
+    rcases hfJ with ⟨c, hc⟩
+    rcases hgJ with ⟨d, hd⟩
+    refine ⟨c + d, λ x => ?_⟩
+    simp [hc x, hd x]
+  have hval (J : BoundedInterval) (hJ : J ∈ R.intervals) :
+    constant_value_on (f + g) (J : Set ℝ) * α[J]ₗ
+    = constant_value_on f (J : Set ℝ) * α[J]ₗ + constant_value_on g (J : Set ℝ) * α[J]ₗ := by
+    have hfJ : ConstantOn f (J : Set ℝ) := hfR J hJ
+    have hgJ : ConstantOn g (J : Set ℝ) := hgR J hJ
+    by_cases hJ_nonempty : (J : Set ℝ).Nonempty
+    · rcases hJ_nonempty with ⟨x, hx⟩
+      have hfx : f x = constant_value_on f (J : Set ℝ) := hfJ.eq hx
+      have hgx : g x = constant_value_on g (J : Set ℝ) := hgJ.eq hx
+      have hfgJ : ConstantOn (f + g) (J : Set ℝ) := by
+        rcases hfJ with ⟨c, hc⟩
+        rcases hgJ with ⟨d, hd⟩
+        refine ⟨c + d, λ y => ?_⟩
+        simp [hc y, hd y]
+      have hfgx : (f + g) x = constant_value_on (f + g) (J : Set ℝ) := hfgJ.eq hx
+      calc
+        constant_value_on (f + g) (J : Set ℝ) * α[J]ₗ = ((f + g) x) * α[J]ₗ := by rw [hfgx]
+        _ = (f x + g x) * α[J]ₗ := rfl
+        _ = f x * α[J]ₗ + g x * α[J]ₗ := by ring
+        _ = constant_value_on f (J : Set ℝ) * α[J]ₗ + constant_value_on g (J : Set ℝ) * α[J]ₗ := by rw [hfx, hgx]
+    · have hJ_empty : (J : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hJ_nonempty
+      have h_len : α[J]ₗ = 0 := α_length_of_empty α hJ_empty
+      simp [h_len]
+  calc
+    RS_integ (f + g) I α = PiecewiseConstantWith.RS_integ (f + g) R α := by
+      rw [PiecewiseConstantOn.RS_integ_def hfgR α]
+    _ = ∑ J ∈ R.intervals, constant_value_on (f + g) (J : Set ℝ) * α[J]ₗ := rfl
+    _ = ∑ J ∈ R.intervals, (constant_value_on f (J : Set ℝ) * α[J]ₗ + constant_value_on g (J : Set ℝ) * α[J]ₗ) := by
+      refine Finset.sum_congr rfl (λ J hJ => ?_)
+      rw [hval J hJ]
+    _ = (∑ J ∈ R.intervals, constant_value_on f (J : Set ℝ) * α[J]ₗ) +
+        (∑ J ∈ R.intervals, constant_value_on g (J : Set ℝ) * α[J]ₗ) := by
+      simp [Finset.sum_add_distrib]
+    _ = PiecewiseConstantWith.RS_integ f R α + PiecewiseConstantWith.RS_integ g R α := rfl
+    _ = RS_integ f I α + RS_integ g I α := by
+      rw [PiecewiseConstantOn.RS_integ_def hfR α, PiecewiseConstantOn.RS_integ_def hgR α]
 
 /-- Analogue of Theorem 11.2.16 (b) (Laws of integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_smul {f: ℝ → ℝ} {I: BoundedInterval} (c:ℝ)
   (hf: PiecewiseConstantOn f I) {α:ℝ → ℝ} (hα: Monotone α) :
   RS_integ (c • f) I α = c * RS_integ f I α
    := by
-  sorry
+  let _ := hα
+  rcases hf with ⟨P, hP⟩
+  have hcP : PiecewiseConstantWith (c • f) P := by
+    intro J hJ
+    rcases hP J hJ with ⟨d, hd⟩
+    refine ⟨c * d, λ x => ?_⟩
+    simp [hd x]
+  have hval (J : BoundedInterval) (hJ : J ∈ P.intervals) :
+    constant_value_on (c • f) (J : Set ℝ) * α[J]ₗ = c * (constant_value_on f (J : Set ℝ) * α[J]ₗ) := by
+    have hfJ : ConstantOn f (J : Set ℝ) := hP J hJ
+    by_cases hJ_nonempty : (J : Set ℝ).Nonempty
+    · rcases hJ_nonempty with ⟨x, hx⟩
+      have hfx : f x = constant_value_on f (J : Set ℝ) := hfJ.eq hx
+      have hcfJ : ConstantOn (c • f) (J : Set ℝ) := by
+        rcases hfJ with ⟨d, hd⟩
+        refine ⟨c * d, λ y => ?_⟩
+        simp [hd y]
+      have hcfx : (c • f) x = constant_value_on (c • f) (J : Set ℝ) := hcfJ.eq hx
+      calc
+        constant_value_on (c • f) (J : Set ℝ) * α[J]ₗ = ((c • f) x) * α[J]ₗ := by rw [hcfx]
+        _ = (c * f x) * α[J]ₗ := rfl
+        _ = c * (f x * α[J]ₗ) := by ring
+        _ = c * (constant_value_on f (J : Set ℝ) * α[J]ₗ) := by rw [hfx]
+    · have hJ_empty : (J : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hJ_nonempty
+      have hlen : α[J]ₗ = 0 := α_length_of_empty α hJ_empty
+      simp [hlen]
+  calc
+    RS_integ (c • f) I α = PiecewiseConstantWith.RS_integ (c • f) P α := by
+      rw [PiecewiseConstantOn.RS_integ_def hcP α]
+    _ = ∑ J ∈ P.intervals, constant_value_on (c • f) (J : Set ℝ) * α[J]ₗ := rfl
+    _ = ∑ J ∈ P.intervals, c * (constant_value_on f (J : Set ℝ) * α[J]ₗ) := by
+      refine Finset.sum_congr rfl (λ J hJ => ?_)
+      rw [hval J hJ]
+    _ = c * (∑ J ∈ P.intervals, constant_value_on f (J : Set ℝ) * α[J]ₗ) := by simp [Finset.mul_sum]
+    _ = c * PiecewiseConstantWith.RS_integ f P α := rfl
+    _ = c * RS_integ f I α := by rw [PiecewiseConstantOn.RS_integ_def hP α]
 
 /-- Theorem 11.8.8 (c) (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_sub {f g: ℝ → ℝ} {I: BoundedInterval}
   {α:ℝ → ℝ} (hα: Monotone α)
   (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) :
   RS_integ (f - g) I α = RS_integ f I α - RS_integ g I α := by
-  sorry
+  have h_neg_g : PiecewiseConstantOn ((-1 : ℝ) • g) I :=
+    PiecewiseConstantOn.smul (-1) hg
+  have h_eq : f - g = f + ((-1 : ℝ) • g) := by
+    ext x; simp [sub_eq_add_neg]
+  rw [h_eq]
+  rw [RS_integ_add hf h_neg_g hα, RS_integ_smul (-1) hg hα]
+  ring
 
 /-- Theorem 11.8.8 (d) (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_of_nonneg {f: ℝ → ℝ} {I: BoundedInterval}
   {α:ℝ → ℝ} (hα: Monotone α)
   (h: ∀ x ∈ I, 0 ≤ f x) (hf: PiecewiseConstantOn f I) :
   0 ≤ RS_integ f I α := by
-  sorry
+  rcases hf with ⟨P, hP⟩
+  have h_nonneg_sum : 0 ≤ ∑ J ∈ P.intervals, constant_value_on f (J : Set ℝ) * α[J]ₗ := by
+    refine Finset.sum_nonneg (λ J hJ => ?_)
+    have hfJ : ConstantOn f (J : Set ℝ) := hP J hJ
+    by_cases hJ_nonempty : (J : Set ℝ).Nonempty
+    · rcases hJ_nonempty with ⟨x, hx⟩
+      have hJI : (J : Set ℝ) ⊆ (I : Set ℝ) := P.contains J hJ
+      have hxI : x ∈ (I : Set ℝ) := hJI hx
+      have h_fx : f x = constant_value_on f (J : Set ℝ) := hfJ.eq hx
+      have h_nonneg_val : 0 ≤ constant_value_on f (J : Set ℝ) := by
+        rw [← h_fx]; exact h x hxI
+      have h_nonneg_α : 0 ≤ α[J]ₗ := α_length_nonneg_of_monotone hα J
+      nlinarith
+    · have hJ_empty : (J : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hJ_nonempty
+      have hlen : α[J]ₗ = 0 := α_length_of_empty α hJ_empty
+      simp [hlen]
+  rw [PiecewiseConstantOn.RS_integ_def hP α, PiecewiseConstantWith.RS_integ]
+  exact h_nonneg_sum
 
 /-- Theorem 11.8.8 (e) (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_mono {f g: ℝ → ℝ} {I: BoundedInterval}
   {α:ℝ → ℝ} (hα: Monotone α)
   (h: ∀ x ∈ I, f x ≤ g x) (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) :
   RS_integ f I α ≤ RS_integ g I α := by
-  sorry
+  have h_nonneg : ∀ x ∈ I, 0 ≤ (g - f) x := by
+    intro x hx; simp; linarith [h x hx]
+  have h_sub : PiecewiseConstantOn (g - f) I :=
+    PiecewiseConstantOn.sub hg hf
+  have h_nonneg_integ : 0 ≤ RS_integ (g - f) I α :=
+    RS_integ_of_nonneg hα h_nonneg h_sub
+  have h_eq : RS_integ (g - f) I α = RS_integ g I α - RS_integ f I α :=
+    RS_integ_sub hα hg hf
+  linarith
 
 /-- Theorem 11.8.8 (f) (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_const (c: ℝ) (I: BoundedInterval) {α:ℝ → ℝ} (hα: Monotone α) :
   RS_integ (fun _ ↦ c) I α = c * α[I]ₗ := by
-  sorry
+  let _ := hα
+  have hc : ConstantOn (fun _ : ℝ ↦ c) (I : Set ℝ) := ConstantOn.of_const' c I
+  have hc_bot : PiecewiseConstantWith (fun _ : ℝ ↦ c) (⊥ : Partition I) := by
+    intro J hJ
+    have hJ_mem : J ∈ (⊥ : Partition I).intervals := hJ
+    rw [Partition.intervals_of_bot] at hJ_mem
+    have hJ_eq : J = I := by simpa [Finset.mem_singleton] using hJ_mem
+    subst hJ_eq; exact hc
+  calc
+    RS_integ (fun _ : ℝ ↦ c) I α = PiecewiseConstantWith.RS_integ (fun _ : ℝ ↦ c) (⊥ : Partition I) α := by
+      rw [PiecewiseConstantOn.RS_integ_def hc_bot α]
+    _ = constant_value_on (fun _ : ℝ ↦ c) (I : Set ℝ) * α[I]ₗ := by
+      simp [PiecewiseConstantWith.RS_integ, Partition.intervals_of_bot]
+    _ = c * α[I]ₗ := by
+      by_cases hI_nonempty : (I : Set ℝ).Nonempty
+      · rcases hI_nonempty with ⟨x, hx⟩
+        have hval : constant_value_on (fun _ : ℝ ↦ c) (I : Set ℝ) = c := (hc.eq hx).symm
+        rw [hval]
+      · have hI_empty : (I : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hI_nonempty
+        have hlen : α[I]ₗ = 0 := α_length_of_empty α hI_empty
+        simp [hlen]
 
 /-- Theorem 11.8.8 (f') (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_const' {f:ℝ → ℝ} {I: BoundedInterval}
   {α:ℝ → ℝ} (hα: Monotone α) (h: ConstantOn f I) :
   RS_integ f I α = (constant_value_on f I) * α[I]ₗ := by
-  sorry
+  let _ := hα
+  have hf_bot : PiecewiseConstantWith f (⊥ : Partition I) := by
+    intro J hJ
+    have hJ_mem : J ∈ (⊥ : Partition I).intervals := hJ
+    rw [Partition.intervals_of_bot] at hJ_mem
+    have hJ_eq : J = I := by simpa [Finset.mem_singleton] using hJ_mem
+    subst hJ_eq; exact h
+  calc
+    RS_integ f I α = PiecewiseConstantWith.RS_integ f (⊥ : Partition I) α := by
+      rw [PiecewiseConstantOn.RS_integ_def hf_bot α]
+    _ = constant_value_on f (I : Set ℝ) * α[I]ₗ := by
+      simp [PiecewiseConstantWith.RS_integ, Partition.intervals_of_bot]
+    _ = (constant_value_on f I) * α[I]ₗ := rfl
 
 open Classical in
 /-- Theorem 11.8.8 (g) (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_of_extend {I J: BoundedInterval} (hIJ: I ⊆ J)
   {f: ℝ → ℝ} (h: PiecewiseConstantOn f I) {α:ℝ → ℝ} (hα: Monotone α):
-  PiecewiseConstantOn (fun x ↦ if x ∈ I then f x else 0) J := by
-  sorry
+  PiecewiseConstantOn (fun x ↦ if x ∈ I then f x else 0) J :=
+  let _ := hα; PiecewiseConstantOn.of_extend hIJ h
 
 open Classical in
 /-- Theorem 11.8.8 (g') (Laws of RS integration) / Exercise 11.8.3 -/
 theorem PiecewiseConstantOn.RS_integ_of_extend {I J: BoundedInterval} (hIJ: I ⊆ J)
   {f: ℝ → ℝ} (h: PiecewiseConstantOn f I) {α:ℝ → ℝ} (hα: Monotone α):
   RS_integ (fun x ↦ if x ∈ I then f x else 0) J α = RS_integ f I α := by
-  sorry
+  let _ := hα
+  rcases h with ⟨P, hP⟩
+  set g := fun x ↦ if x ∈ I then f x else 0 with hg_def
+  have hg_on_P : PiecewiseConstantWith g P := by
+    intro K hK
+    rcases hP K hK with ⟨c, hc⟩
+    refine ⟨c, λ x => ?_⟩
+    have hxI : x.1 ∈ I := (P.contains K hK) x.1 x.2
+    simp [hg_def, hxI, hc x]
+  by_cases hI_empty : (I : Set ℝ) = ∅
+  · have hg_zero : g = (fun _ : ℝ => 0) := by
+      ext x; simp [hg_def, hI_empty, BoundedInterval.mem_iff]
+    rw [hg_zero]
+    have hzero : PiecewiseConstantWith (fun _ : ℝ => 0) (⊥ : Partition J) := by
+      intro K hK
+      have hK_eq_J : K = J := by
+        have hmem : K ∈ (⊥ : Partition J).intervals := hK
+        simp [Partition.intervals_of_bot] at hmem
+        simpa using hmem
+      subst hK_eq_J; exact ConstantOn.of_const (c := 0) (by simp)
+    have hf_zero : RS_integ f I α = 0 := by
+      rw [PiecewiseConstantOn.RS_integ_def hP α, PiecewiseConstantWith.RS_integ]
+      refine Finset.sum_eq_zero (λ K hK => ?_)
+      have hK_sub_I : (K : Set ℝ) ⊆ (I : Set ℝ) := P.contains K hK
+      have hK_empty : (K : Set ℝ) = ∅ :=
+        Set.subset_eq_empty hK_sub_I hI_empty
+      simp [hK_empty, α_length_of_empty α hK_empty]
+    calc
+      RS_integ (fun _ : ℝ => 0) J α = PiecewiseConstantWith.RS_integ (fun _ : ℝ => 0) (⊥ : Partition J) α := by
+        rw [PiecewiseConstantOn.RS_integ_def hzero α]
+      _ = constant_value_on (fun _ : ℝ => 0) (J : Set ℝ) * α[J]ₗ := by
+        simp [PiecewiseConstantWith.RS_integ, Partition.intervals_of_bot]
+      _ = 0 := by
+        by_cases hJ_nonempty : (J : Set ℝ).Nonempty
+        · rcases hJ_nonempty with ⟨x, hx⟩
+          have hJ_const : ConstantOn (fun _ : ℝ => 0) (J : Set ℝ) := by
+            refine ⟨0, λ x => ?_⟩; simp
+          have hconst : constant_value_on (fun _ : ℝ => 0) (J : Set ℝ) = 0 := by
+            have h_eq := hJ_const.eq hx
+            simp at h_eq
+            exact h_eq.symm
+          simp [hconst]
+        · have hJ_empty : (J : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hJ_nonempty
+          have hlen : α[J]ₗ = 0 := α_length_of_empty α hJ_empty
+          simp [hlen]
+      _ = RS_integ f I α := by rw [hf_zero]
+  have h_nonempty : (I : Set ℝ).Nonempty := Set.nonempty_iff_ne_empty.mpr hI_empty
+  rcases h_nonempty with ⟨x0, hx0⟩
+  have hJ_props : Bornology.IsBounded (J : Set ℝ) ∧ (J : Set ℝ).OrdConnected :=
+    (BoundedInterval.ordConnected_iff (J : Set ℝ)).mpr ⟨J, rfl⟩
+  have hI_props : Bornology.IsBounded (I : Set ℝ) ∧ (I : Set ℝ).OrdConnected :=
+    (BoundedInterval.ordConnected_iff (I : Set ℝ)).mpr ⟨I, rfl⟩
+  let leftGapSet : Set ℝ := ((J : Set ℝ) ∩ {x | x ≤ I.a}) \ (I : Set ℝ)
+  let rightGapSet : Set ℝ := ((J : Set ℝ) ∩ {x | I.b ≤ x}) \ (I : Set ℝ)
+  have hL_set_ord : leftGapSet.OrdConnected := by
+    by_cases hI_a_mem : I.a ∈ (I : Set ℝ)
+    · have h_eq : leftGapSet = ((J : Set ℝ) ∩ Set.Iio I.a) := by
+        ext x; constructor
+        · rintro ⟨⟨hxJ, hxle⟩, hxnot⟩
+          simp at hxle; refine ⟨hxJ, ?_⟩
+          simp
+          by_contra! h
+          have hx_eq : x = I.a := le_antisymm hxle h
+          subst hx_eq; exact hxnot hI_a_mem
+        · rintro ⟨hxJ, hxlt⟩; simp at hxlt
+          refine ⟨⟨hxJ, le_of_lt hxlt⟩, λ hxI => ?_⟩
+          have hx_Icc : x ∈ (Icc I.a I.b : Set ℝ) := (BoundedInterval.subset_Icc I) x hxI
+          have : I.a ≤ x := by simp at hx_Icc; exact hx_Icc.1
+          linarith
+      rw [h_eq]; exact hJ_props.2.inter Set.ordConnected_Iio
+    · have h_eq : leftGapSet = ((J : Set ℝ) ∩ Set.Iic I.a) := by
+        ext x; constructor
+        · rintro ⟨⟨hxJ, hxle⟩, _⟩; simp at hxle; exact ⟨hxJ, hxle⟩
+        · rintro ⟨hxJ, hxle⟩; simp at hxle
+          refine ⟨⟨hxJ, hxle⟩, λ hxI => ?_⟩
+          have hx_Icc : x ∈ (Icc I.a I.b : Set ℝ) := (BoundedInterval.subset_Icc I) x hxI
+          have hI_a_le_x : I.a ≤ x := by simp at hx_Icc; exact hx_Icc.1
+          by_cases hx_ltIa : I.a < x
+          · exact not_lt.mpr hxle hx_ltIa
+          · have hx_eq : x = I.a := le_antisymm hxle hI_a_le_x
+            subst hx_eq; exact hI_a_mem hxI
+      rw [h_eq]; exact hJ_props.2.inter Set.ordConnected_Iic
+  have hR_set_ord : rightGapSet.OrdConnected := by
+    by_cases hI_b_mem : I.b ∈ (I : Set ℝ)
+    · have h_eq : rightGapSet = ((J : Set ℝ) ∩ Set.Ioi I.b) := by
+        ext x; constructor
+        · rintro ⟨⟨hxJ, hxle⟩, hxnot⟩
+          simp at hxle; refine ⟨hxJ, ?_⟩
+          simp
+          by_contra! h
+          have hx_eq : x = I.b := le_antisymm h hxle
+          subst hx_eq; exact hxnot hI_b_mem
+        · rintro ⟨hxJ, hxlt⟩; simp at hxlt
+          refine ⟨⟨hxJ, le_of_lt hxlt⟩, λ hxI => ?_⟩
+          have hx_Icc : x ∈ (Icc I.a I.b : Set ℝ) := (BoundedInterval.subset_Icc I) x hxI
+          have : x ≤ I.b := by simp at hx_Icc; exact hx_Icc.2
+          linarith
+      rw [h_eq]; exact hJ_props.2.inter Set.ordConnected_Ioi
+    · have h_eq : rightGapSet = ((J : Set ℝ) ∩ Set.Ici I.b) := by
+        ext x; constructor
+        · rintro ⟨⟨hxJ, hxle⟩, _⟩; simp at hxle; exact ⟨hxJ, hxle⟩
+        · rintro ⟨hxJ, hxle⟩; simp at hxle
+          refine ⟨⟨hxJ, hxle⟩, λ hxI => ?_⟩
+          have hx_Icc : x ∈ (Icc I.a I.b : Set ℝ) := (BoundedInterval.subset_Icc I) x hxI
+          have hx_le_Ib : x ≤ I.b := by simp at hx_Icc; exact hx_Icc.2
+          by_cases hx_gtIb : I.b < x
+          · exfalso; linarith
+          · have hx_eq : x = I.b := le_antisymm hx_le_Ib hxle
+            subst hx_eq; exact hI_b_mem hxI
+      rw [h_eq]; exact hJ_props.2.inter Set.ordConnected_Ici
+  have hL_set_bdd : Bornology.IsBounded leftGapSet :=
+    hJ_props.1.subset (by intro x hx; exact hx.1.1)
+  have hR_set_bdd : Bornology.IsBounded rightGapSet :=
+    hJ_props.1.subset (by intro x hx; exact hx.1.1)
+  rcases (BoundedInterval.ordConnected_iff leftGapSet).mp ⟨hL_set_bdd, hL_set_ord⟩ with ⟨L, hL⟩
+  obtain ⟨R_b, hR⟩ := (BoundedInterval.ordConnected_iff rightGapSet).mp ⟨hR_set_bdd, hR_set_ord⟩
+  set R := R_b with hRdef
+  have hL_sub_J : (L : Set ℝ) ⊆ (J : Set ℝ) := by
+    intro x hx; rw [← hL] at hx; exact hx.1.1
+  have hR_sub_J : (R : Set ℝ) ⊆ (J : Set ℝ) := by
+    intro x hx; rw [← hR] at hx; exact hx.1.1
+  have hL_not_I : (L : Set ℝ) ∩ (I : Set ℝ) = ∅ := by
+    apply Set.not_nonempty_iff_eq_empty.mp
+    intro h; rcases h with ⟨x, hxL, hxI⟩
+    rw [← hL] at hxL; exact hxL.2 hxI
+  have hR_not_I : (R : Set ℝ) ∩ (I : Set ℝ) = ∅ := by
+    apply Set.not_nonempty_iff_eq_empty.mp
+    intro h; rcases h with ⟨x, hxR, hxI⟩
+    rw [← hR] at hxR; exact hxR.2 hxI
+  have hLR_disjoint : (L : Set ℝ) ∩ (R : Set ℝ) = ∅ := by
+    apply Set.not_nonempty_iff_eq_empty.mp
+    intro h; rcases h with ⟨x, hxL, hxR⟩
+    rw [← hL] at hxL; rw [← hR] at hxR
+    have hx_le_Ia : x ≤ I.a := hxL.1.2
+    have hx_Ib_le : I.b ≤ x := hxR.1.2
+    have hI_a_le_Ib : I.a ≤ I.b := by
+      have : x0 ∈ (Icc I.a I.b : Set ℝ) := (BoundedInterval.subset_Icc I) x0 hx0
+      simp at this; exact le_trans this.1 this.2
+    have hI_b_le_Ia : I.b ≤ I.a := le_trans hx_Ib_le hx_le_Ia
+    have h_eq : I.a = I.b := le_antisymm hI_a_le_Ib hI_b_le_Ia
+    have hx_eq : x = I.a := by nlinarith
+    subst hx_eq
+    have hI_a_mem : I.a ∈ (I : Set ℝ) := by
+      match I with
+      | Icc a b =>
+        have h_ab : a = b := by simpa using h_eq
+        subst h_ab; simp
+      | Ioo a b =>
+        have h_ab : a = b := by simpa using h_eq
+        subst h_ab; exfalso; exact hI_empty (by simp)
+      | Ioc a b =>
+        have h_ab : a = b := by simpa using h_eq
+        subst h_ab; exfalso; exact hI_empty (by simp)
+      | Ico a b =>
+        have h_ab : a = b := by simpa using h_eq
+        subst h_ab; exfalso; exact hI_empty (by simp)
+    exact hxL.2 hI_a_mem
+  let intervals_J : Finset BoundedInterval := P.intervals ∪ {L, R}
+  let P_J : Partition J := {
+    intervals := intervals_J
+    exists_unique := by
+      intro x hx
+      by_cases hxI : x ∈ (I : Set ℝ)
+      · rcases P.exists_unique x hxI with ⟨K, ⟨hKmem, hxK⟩, huniq⟩
+        refine ⟨K, ⟨Finset.mem_union_left _ hKmem, hxK⟩, λ K' hK' => ?_⟩
+        rcases hK' with ⟨hK'mem, hxK'⟩
+        rcases Finset.mem_union.mp hK'mem with (hK'P | hK'LR)
+        · exact huniq K' ⟨hK'P, hxK'⟩
+        · rcases Finset.mem_insert.mp hK'LR with (hK'L | hK'R)
+          · subst hK'L; exfalso; exact Set.not_nonempty_iff_eq_empty.mpr hL_not_I ⟨x, hxK', hxI⟩
+          · have hK'_eq_R : K' = R := Finset.mem_singleton.mp hK'R
+            subst hK'_eq_R; exfalso; exact Set.not_nonempty_iff_eq_empty.mpr hR_not_I ⟨x, hxK', hxI⟩
+      · by_cases hxL : x ∈ (L : Set ℝ)
+        · refine ⟨L, ⟨Finset.mem_union_right _ (by simp), hxL⟩, λ K' hK' => ?_⟩
+          rcases hK' with ⟨hK'mem, hxK'⟩
+          rcases Finset.mem_union.mp hK'mem with (hK'P | hK'LR)
+          · have hK'_sub_I : (K' : Set ℝ) ⊆ (I : Set ℝ) := P.contains K' hK'P
+            exact (hxI (hK'_sub_I hxK')).elim
+          · rcases Finset.mem_insert.mp hK'LR with (hK'L | hK'R)
+            · subst hK'L; rfl
+            · have hK'_eq_R : K' = R := Finset.mem_singleton.mp hK'R
+              subst hK'_eq_R; exfalso; exact Set.not_nonempty_iff_eq_empty.mpr hLR_disjoint ⟨x, hxL, hxK'⟩
+        · by_cases hxR : x ∈ (R : Set ℝ)
+          · refine ⟨R, ⟨Finset.mem_union_right _ (by simp [Finset.mem_insert]), hxR⟩, λ K' hK' => ?_⟩
+            rcases hK' with ⟨hK'mem, hxK'⟩
+            rcases Finset.mem_union.mp hK'mem with (hK'P | hK'LR)
+            · have hK'_sub_I : (K' : Set ℝ) ⊆ (I : Set ℝ) := P.contains K' hK'P
+              exact (hxI (hK'_sub_I hxK')).elim
+            · rcases Finset.mem_insert.mp hK'LR with (hK'L | hK'R)
+              · subst hK'L; exfalso; exact Set.not_nonempty_iff_eq_empty.mpr hLR_disjoint ⟨x, hxK', hxR⟩
+              · have hK'_eq_R : K' = R := Finset.mem_singleton.mp hK'R; subst hK'_eq_R; rfl
+          · have hxI' : x ∈ (I : Set ℝ) := by
+              have hx_gtIa : I.a < x := by
+                by_contra! h; rw [← hL] at hxL; apply hxL; refine ⟨⟨hx, h⟩, hxI⟩
+              have hx_ltIb : x < I.b := by
+                by_contra! h; rw [← hR] at hxR; apply hxR; refine ⟨⟨hx, h⟩, hxI⟩
+              have hxI' : x ∈ (I : Set ℝ) :=
+                (BoundedInterval.Ioo_subset I) x (by
+                  simpa using Set.mem_Ioo.mpr ⟨hx_gtIa, hx_ltIb⟩)
+              exact hxI'
+            exact (hxI hxI').elim
+    contains := by
+      intro K hK
+      rcases Finset.mem_union.mp hK with (hKP | hKLR)
+      · exact Set.Subset.trans (P.contains K hKP) hIJ
+      · rcases Finset.mem_insert.mp hKLR with (hKL | hKR)
+        · subst hKL; exact hL_sub_J
+        · have hK_eq_R : K = R := Finset.mem_singleton.mp hKR
+          subst hK_eq_R; exact hR_sub_J
+  }
+  have hg_on_P_J : PiecewiseConstantWith g P_J := by
+    intro K' hK'
+    rcases Finset.mem_union.mp hK' with (hKP | hKLR)
+    · exact hg_on_P K' hKP
+    · rcases Finset.mem_insert.mp hKLR with (hKL | hKR)
+      · rw [hKL]
+        refine ⟨0, λ x => ?_⟩
+        have hxL_val : x.val ∈ leftGapSet := by
+          simp [hL]
+        have hx_not_I : x.val ∉ (I : Set ℝ) := hxL_val.2
+        dsimp [g]
+        split_ifs with hxI
+        · exfalso; exact hx_not_I hxI
+        · rfl
+      · have hK'_eq_R : K' = R := Finset.mem_singleton.mp hKR
+        rw [hK'_eq_R]
+        refine ⟨0, λ x => ?_⟩
+        have hxR_val : x.val ∈ rightGapSet := by
+          simp [hR]
+        have hx_not_I : x.val ∉ (I : Set ℝ) := hxR_val.2
+        dsimp [g]
+        split_ifs with hxI
+        · exfalso; exact hx_not_I hxI
+        · rfl
+  have h1 : RS_integ g J α = PiecewiseConstantWith.RS_integ g P_J α := by
+    rw [PiecewiseConstantOn.RS_integ_def hg_on_P_J α]
 
-/-- Theorem 11.8.8 (h) (Laws of RS integration) / Exercise 11.8.3 -/
+  have h_T_zero (K : BoundedInterval) (hK : K ∈ ({L, R} : Finset BoundedInterval)) :
+    constant_value_on g (K : Set ℝ) * α[K]ₗ = 0 := by
+    rcases Finset.mem_insert.mp hK with (hKL | hKR)
+    · subst K
+      rcases Set.eq_empty_or_nonempty (L : Set ℝ) with (hL_empty | hL_nonempty)
+      · rw [hL_empty, α_length_of_empty α hL_empty]; simp
+      · rcases hL_nonempty with ⟨x, hx⟩
+        have h_zero_on_L : ∀ x ∈ (L : Set ℝ), g x = 0 := by
+          intro x' hx'
+          have hx'_leftGap : x' ∈ leftGapSet := by
+            rw [hL]; exact hx'
+          have hx'_not_I : x' ∉ (I : Set ℝ) := hx'_leftGap.2
+          dsimp [g]; simp [BoundedInterval.mem_iff, hx'_not_I]
+        have hgL_const : ConstantOn g (L : Set ℝ) := ⟨0, λ y => h_zero_on_L y.1 y.2⟩
+        have h_val : constant_value_on g (L : Set ℝ) = 0 := by
+          calc
+            constant_value_on g (L : Set ℝ) = g x := (hgL_const.eq hx).symm
+            _ = 0 := h_zero_on_L x hx
+        simp [h_val]
+    · have hK_eq_R : K = R := Finset.mem_singleton.mp hKR
+      subst hK_eq_R
+      rcases Set.eq_empty_or_nonempty (R : Set ℝ) with (hR_empty | hR_nonempty)
+      · have hlen : α[R]ₗ = 0 := α_length_of_empty α hR_empty
+        rw [hR_empty, hlen, mul_zero]
+      · rcases hR_nonempty with ⟨x, hx⟩
+        have h_zero_on_R : ∀ x ∈ (R : Set ℝ), g x = 0 := by
+          intro x' hx'
+          have hx'_rightGap : x' ∈ rightGapSet := by
+            rw [hR]; exact hx'
+          have hx'_not_I : x' ∉ (I : Set ℝ) := hx'_rightGap.2
+          have hx'I_not : x' ∉ (I : Set ℝ) := hx'_not_I
+          dsimp [g]
+          by_cases hx'I : x' ∈ I
+          · exfalso; exact hx'I_not hx'I
+          · simp [hx'I]
+        have hgR_const : ConstantOn g (R : Set ℝ) := ⟨0, λ y => h_zero_on_R y.1 y.2⟩
+        have h_val : constant_value_on g (R : Set ℝ) = 0 := by
+          calc
+            constant_value_on g (R : Set ℝ) = g x := (hgR_const.eq hx).symm
+            _ = 0 := h_zero_on_R x hx
+        rw [h_val, zero_mul]
+
+  have h2 : PiecewiseConstantWith.RS_integ g P_J α = (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+      (∑ K ∈ {L, R}, constant_value_on g (K : Set ℝ) * α[K]ₗ) := by
+    have : PiecewiseConstantWith.RS_integ g P_J α = ∑ K ∈ (P.intervals ∪ {L,R}), constant_value_on g (K : Set ℝ) * α[K]ₗ := by
+      dsimp [PiecewiseConstantWith.RS_integ, P_J, intervals_J]
+    rw [this]
+    have h_sdiff_sum : ∑ K ∈ ({L, R} \ P.intervals), constant_value_on g (K : Set ℝ) * α[K]ₗ =
+        ∑ K ∈ {L, R}, constant_value_on g (K : Set ℝ) * α[K]ₗ := by
+      refine Finset.sum_subset (λ x hx => ?_) (λ x hx hx_not => ?_)
+      · rcases Finset.mem_sdiff.mp hx with ⟨hxLR, _⟩; exact hxLR
+      · exact h_T_zero x hx
+    have h_sub : P.intervals ⊆ P.intervals ∪ {L, R} := by
+      intro x hx; exact Finset.mem_union_left {L, R} hx
+    have h_sdiff_eq : (P.intervals ∪ {L, R}) \ P.intervals = ({L, R} : Finset BoundedInterval) \ P.intervals := by
+      apply Finset.Subset.antisymm
+      · intro x hx; rcases Finset.mem_sdiff.mp hx with ⟨hx_union, hx_not⟩
+        refine Finset.mem_sdiff.mpr ⟨?_, hx_not⟩
+        rcases Finset.mem_union.mp hx_union with (hx_P | hx_LR)
+        · exfalso; exact hx_not hx_P
+        · exact hx_LR
+      · intro x hx; rcases Finset.mem_sdiff.mp hx with ⟨hx_LR, hx_not⟩
+        refine Finset.mem_sdiff.mpr ⟨Finset.mem_union_right _ hx_LR, hx_not⟩
+    have h_temp : (∑ K ∈ ((P.intervals ∪ {L, R}) \ P.intervals), constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+        (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) =
+        ∑ K ∈ (P.intervals ∪ {L, R}), (constant_value_on g (K : Set ℝ) * α[K]ₗ) :=
+      Finset.sum_sdiff h_sub
+    rw [h_sdiff_eq] at h_temp
+    have h_goal : ∑ K ∈ (P.intervals ∪ {L,R}), constant_value_on g (K : Set ℝ) * α[K]ₗ =
+        (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+        (∑ K ∈ {L,R}, constant_value_on g (K : Set ℝ) * α[K]ₗ) := by
+      calc
+        ∑ K ∈ (P.intervals ∪ {L,R}), constant_value_on g (K : Set ℝ) * α[K]ₗ
+            = (∑ K ∈ ({L,R} \ P.intervals), constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+              (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) := by
+          rw [← h_temp, add_comm]
+        _ = (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+            (∑ K ∈ ({L,R} \ P.intervals), constant_value_on g (K : Set ℝ) * α[K]ₗ) := by rw [add_comm]
+        _ = (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) +
+            (∑ K ∈ {L,R}, constant_value_on g (K : Set ℝ) * α[K]ₗ) := by rw [h_sdiff_sum]
+    exact h_goal
+
+  have h3 : (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) + (∑ K ∈ {L, R}, constant_value_on g (K : Set ℝ) * α[K]ₗ) =
+      (∑ K ∈ P.intervals, constant_value_on f (K : Set ℝ) * α[K]ₗ) + 0 := by
+    congr 1
+    · refine Finset.sum_congr rfl (λ K hK => ?_)
+      have hK_sub_I : (K : Set ℝ) ⊆ (I : Set ℝ) := P.contains K hK
+      rcases Set.eq_empty_or_nonempty (K : Set ℝ) with (h_empty | h_nonempty)
+      · simp [h_empty, α_length_of_empty α h_empty]
+      · rcases h_nonempty with ⟨x, hx⟩
+        have hxI : x ∈ (I : Set ℝ) := hK_sub_I hx
+        have hgK : ConstantOn g (K : Set ℝ) := hg_on_P K hK
+        have hfK : ConstantOn f (K : Set ℝ) := hP K hK
+        have hgx : g x = f x := by
+          dsimp [g]; simp [BoundedInterval.mem_iff, hxI]
+        have hg_val : constant_value_on g (K : Set ℝ) = g x := (hgK.eq hx).symm
+        have hf_val : constant_value_on f (K : Set ℝ) = f x := (hfK.eq hx).symm
+        simp [hg_val, hf_val, hgx]
+    · apply Finset.sum_eq_zero; intro K hK
+      rcases Finset.mem_insert.mp hK with (hKL | hKR)
+      · subst K; exact h_T_zero L (by simp)
+      · have hK_eq_R : K = R := Finset.mem_singleton.mp hKR
+        subst hK_eq_R; exact h_T_zero R (by simp)
+
+  have h4 : (∑ K ∈ P.intervals, constant_value_on f (K : Set ℝ) * α[K]ₗ) + 0 = PiecewiseConstantWith.RS_integ f P α := by
+    simp [PiecewiseConstantWith.RS_integ]
+
+  have h5 : PiecewiseConstantWith.RS_integ f P α = RS_integ f I α := by
+    rw [PiecewiseConstantOn.RS_integ_def hP α]
+
+  calc
+    RS_integ g J α = PiecewiseConstantWith.RS_integ g P_J α := h1
+    _ = (∑ K ∈ P.intervals, constant_value_on g (K : Set ℝ) * α[K]ₗ) + (∑ K ∈ {L, R}, constant_value_on g (K : Set ℝ) * α[K]ₗ) := h2
+    _ = (∑ K ∈ P.intervals, constant_value_on f (K : Set ℝ) * α[K]ₗ) + 0 := h3
+    _ = PiecewiseConstantWith.RS_integ f P α := h4
+    _ = RS_integ f I α := h5
+
+open Classical in
+/-- Theorem 11.8.8 (h) (Laws of RS integration) / Exercise 11.8.8 -/
 theorem PiecewiseConstantOn.RS_integ_of_join {I J K: BoundedInterval} (hIJK: K.joins' I J)
   {f: ℝ → ℝ} (h: PiecewiseConstantOn f K) {α:ℝ → ℝ} (hα: Monotone α):
   RS_integ f K α = RS_integ f I α + RS_integ f J α := by
-  sorry
+  let _ := hα
+  rcases (PiecewiseConstantOn.of_join hIJK.1 f).mp h with ⟨hI, hJ⟩
+  rcases hI with ⟨P_I, hP_I⟩
+  rcases hJ with ⟨P_J, hP_J⟩
+  have hP_join : PiecewiseConstantWith f (P_I.join P_J hIJK.1) := by
+    intro L hL
+    have hL_int : L ∈ (P_I.join P_J hIJK.1).intervals := hL
+    have hL' : L ∈ (P_I.intervals ∪ P_J.intervals) := by
+      simpa [Partition.intervals_of_join] using hL_int
+    rcases Finset.mem_union.mp hL' with (hL_I | hL_J)
+    · exact hP_I L hL_I
+    · exact hP_J L hL_J
+  let T : BoundedInterval → ℝ := λ L => constant_value_on f (L : Set ℝ) * α[L]ₗ
+  have hzero_inter : ∀ L ∈ P_I.intervals ∩ P_J.intervals, T L = 0 := by
+    intro L hL
+    rcases Finset.mem_inter.mp hL with ⟨hL_I, hL_J⟩
+    have hL_sub_I : (L : Set ℝ) ⊆ (I : Set ℝ) := by
+      rw [← BoundedInterval.subset_iff]; exact P_I.contains L hL_I
+    have hL_sub_J : (L : Set ℝ) ⊆ (J : Set ℝ) := by
+      rw [← BoundedInterval.subset_iff]; exact P_J.contains L hL_J
+    have hL_empty : (L : Set ℝ) = ∅ := by
+      by_contra! h_ne
+      have h_nonempty : (L : Set ℝ).Nonempty := by
+        rcases h_ne with ⟨x, hx⟩; exact ⟨x, hx⟩
+      rcases h_nonempty with ⟨x, hx⟩
+      have hxI : x ∈ (I : Set ℝ) := hL_sub_I hx
+      have hxJ : x ∈ (J : Set ℝ) := hL_sub_J hx
+      have h_disjoint : (I : Set ℝ) ∩ (J : Set ℝ) = ∅ := hIJK.1.1
+      exact Set.not_nonempty_iff_eq_empty.mpr h_disjoint ⟨x, hxI, hxJ⟩
+    simp [T, α_length_of_empty α hL_empty]
+  have h_disjoint : Disjoint P_I.intervals (P_J.intervals \ P_I.intervals) :=
+    Finset.disjoint_sdiff (s := P_I.intervals) (t := P_J.intervals)
+  have h_union_eq : P_I.intervals ∪ P_J.intervals = P_I.intervals ∪ (P_J.intervals \ P_I.intervals) := by
+    ext x; simp
+  have h_sub : (P_I.intervals ∩ P_J.intervals) ⊆ P_J.intervals :=
+    λ x hx => (Finset.mem_inter.mp hx).2
+  have h_sdiff_eq : P_J.intervals \ P_I.intervals = P_J.intervals \ (P_I.intervals ∩ P_J.intervals) := by
+    ext x; simp
+  have hA : ∑ L ∈ (P_J.intervals \ (P_I.intervals ∩ P_J.intervals)), T L = (∑ L ∈ P_J.intervals, T L) - (∑ L ∈ (P_I.intervals ∩ P_J.intervals), T L) := by
+    have h := Finset.sum_sdiff (f := T) h_sub
+    apply eq_sub_of_add_eq
+    simpa [add_comm] using h
+  have h_sdiff_sum : (∑ L ∈ (P_J.intervals \ P_I.intervals), T L : ℝ) = (∑ L ∈ P_J.intervals, T L) - (∑ L ∈ (P_I.intervals ∩ P_J.intervals), T L) := by
+    calc
+      ∑ L ∈ (P_J.intervals \ P_I.intervals), T L
+          = ∑ L ∈ (P_J.intervals \ (P_I.intervals ∩ P_J.intervals)), T L := by rw [h_sdiff_eq]
+      _ = (∑ L ∈ P_J.intervals, T L) - (∑ L ∈ (P_I.intervals ∩ P_J.intervals), T L) := hA
+  have h_union_sum : (∑ L ∈ (P_I.intervals ∪ P_J.intervals), T L) = (∑ L ∈ P_I.intervals, T L) + (∑ L ∈ P_J.intervals, T L) := by
+    calc
+      (∑ L ∈ (P_I.intervals ∪ P_J.intervals), T L)
+          = (∑ L ∈ (P_I.intervals ∪ (P_J.intervals \ P_I.intervals)), T L) := by rw [h_union_eq]
+      _ = (∑ L ∈ P_I.intervals, T L) + (∑ L ∈ (P_J.intervals \ P_I.intervals), T L) := by
+        rw [Finset.sum_union h_disjoint]
+      _ = (∑ L ∈ P_I.intervals, T L) + (∑ L ∈ P_J.intervals, T L - ∑ L ∈ (P_I.intervals ∩ P_J.intervals), T L) := by rw [h_sdiff_sum]
+      _ = (∑ L ∈ P_I.intervals, T L) + (∑ L ∈ P_J.intervals, T L - 0) := by
+        have h_inter_sum : ∑ L ∈ (P_I.intervals ∩ P_J.intervals), T L = 0 := by
+          apply Finset.sum_eq_zero; intro L hL; exact hzero_inter L hL
+        rw [h_inter_sum]
+      _ = (∑ L ∈ P_I.intervals, T L) + (∑ L ∈ P_J.intervals, T L) := by ring
+  calc
+    RS_integ f K α = PiecewiseConstantWith.RS_integ f (P_I.join P_J hIJK.1) α := by
+      rw [PiecewiseConstantOn.RS_integ_def hP_join α]
+    _ = ∑ L ∈ (P_I.join P_J hIJK.1).intervals, constant_value_on f (L : Set ℝ) * α[L]ₗ := rfl
+    _ = ∑ L ∈ (P_I.intervals ∪ P_J.intervals), constant_value_on f (L : Set ℝ) * α[L]ₗ := by
+      simp
+    _ = (∑ L ∈ P_I.intervals, constant_value_on f (L : Set ℝ) * α[L]ₗ) +
+        (∑ L ∈ P_J.intervals, constant_value_on f (L : Set ℝ) * α[L]ₗ) := h_union_sum
+    _ = PiecewiseConstantWith.RS_integ f P_I α + PiecewiseConstantWith.RS_integ f P_J α := rfl
+    _ = RS_integ f I α + RS_integ f J α := by
+      rw [PiecewiseConstantOn.RS_integ_def hP_I α, PiecewiseConstantOn.RS_integ_def hP_J α]
 
 /-- Analogue of Definition 11.3.2 (Upper and lower Riemann integrals ). -/
 noncomputable abbrev upper_RS_integral (f:ℝ → ℝ) (I: BoundedInterval) (α: ℝ → ℝ): ℝ :=
@@ -479,34 +1578,84 @@ noncomputable abbrev RS_IntegrableOn (f:ℝ → ℝ) (I: BoundedInterval) (α: �
 /-- Analogue of various components of Lemma 11.3.3 -/
 theorem upper_RS_integral_eq_upper_integral (f:ℝ → ℝ) (I: BoundedInterval) :
   upper_RS_integral f I (fun x ↦ x) = upper_integral f I := by
-  sorry
+  simp [upper_RS_integral, upper_integral, PiecewiseConstantOn.RS_integ, PiecewiseConstantOn.integ,
+    PiecewiseConstantWith.RS_integ, PiecewiseConstantWith.integ, α_len_of_id]
 
 theorem lower_RS_integral_eq_lower_integral (f:ℝ → ℝ) (I: BoundedInterval) :
   lower_RS_integral f I (fun x ↦ x) = lower_integral f I := by
-  sorry
+  simp [lower_RS_integral, lower_integral, PiecewiseConstantOn.RS_integ, PiecewiseConstantOn.integ,
+    PiecewiseConstantWith.RS_integ, PiecewiseConstantWith.integ, α_len_of_id]
 
 theorem RS_integ_eq_integ (f:ℝ → ℝ) (I: BoundedInterval) :
   RS_integ f I (fun x ↦ x) = integ f I := by
-  sorry
+  simp [RS_integ, integ, upper_RS_integral_eq_upper_integral]
 
 theorem RS_IntegrableOn_iff_IntegrableOn (f:ℝ → ℝ) (I: BoundedInterval) :
   RS_IntegrableOn f I (fun x ↦ x) ↔ IntegrableOn f I := by
-  sorry
+  simp [RS_IntegrableOn, IntegrableOn, lower_RS_integral_eq_lower_integral,
+    upper_RS_integral_eq_upper_integral]
 
 /-- Exercise 11.8.4 -/
 theorem RS_integ_of_uniform_cts {I: BoundedInterval} {f:ℝ → ℝ} (hf: UniformContinuousOn f I)
- {α:ℝ → ℝ} (hα: Monotone α):
+  {α:ℝ → ℝ} (hα: Monotone α):
   RS_IntegrableOn f I α := by
   sorry
 
 /-- Exercise 11.8.5 -/
-theorem RS_integ_with_sign (f:ℝ → ℝ) (hf: ContinuousOn f (.Icc (-1) 1)) : RS_IntegrableOn f (Icc (-1) 1) Real.sign ∧ RS_integ f (Icc (-1) 1) Real.sign = 2 * f 0 := by
+theorem RS_integ_with_sign (f:ℝ → ℝ) (hf: ContinuousOn f (.Icc (-1) 1)) :
+    RS_IntegrableOn f (Icc (-1) 1) Real.sign ∧ RS_integ f (Icc (-1) 1) Real.sign = 2 * f 0 := by
   sorry
 
 /-- Analogue of Lemma 11.3.7 -/
 theorem RS_integ_of_piecewise_const {f:ℝ → ℝ} {I: BoundedInterval} (hf: PiecewiseConstantOn f I)
   {α: ℝ → ℝ} (hα: Monotone α):
   RS_IntegrableOn f I α ∧ RS_integ f I α = PiecewiseConstantOn.RS_integ f I α := by
-  sorry
+  have hmaj : MajorizesOn f f I := λ x hx ↦ le_rfl
+  have hmin : MinorizesOn f f I := λ x hx ↦ le_rfl
+  have hbdd : BddOn f I := by
+    rcases hf with ⟨P, hP⟩
+    by_cases hI_nonempty : (I : Set ℝ).Nonempty
+    · rcases hI_nonempty with ⟨x0, hx0⟩
+      rcases P.exists_unique x0 hx0 with ⟨J0, ⟨hJ0mem, _⟩, _⟩
+      have h_intervals_nonempty : P.intervals.Nonempty := ⟨J0, hJ0mem⟩
+      let vals : Finset ℝ := Finset.image (λ (J : BoundedInterval) => constant_value_on f (J : Set ℝ)) P.intervals
+      have h_vals_nonempty : vals.Nonempty := by
+        have h_val0 : constant_value_on f (J0 : Set ℝ) ∈ vals :=
+          Finset.mem_image.mpr ⟨J0, hJ0mem, rfl⟩
+        exact ⟨constant_value_on f (J0 : Set ℝ), h_val0⟩
+      use Finset.sup' vals h_vals_nonempty (λ v => |v|)
+      intro x hx
+      rcases P.exists_unique x hx with ⟨J, ⟨hJmem, hxJ⟩, _⟩
+      have h_const : ConstantOn f (J : Set ℝ) := hP J hJmem
+      have hfx_eq : f x = constant_value_on f (J : Set ℝ) := h_const.eq hxJ
+      rw [hfx_eq]
+      have h_val_mem : constant_value_on f (J : Set ℝ) ∈ vals :=
+        Finset.mem_image.mpr ⟨J, hJmem, rfl⟩
+      exact Finset.le_sup' (λ v : ℝ => |v|) h_val_mem
+    · use 0; intro x hx; exfalso; exact hI_nonempty ⟨x, hx⟩
+  set RS_integ_val := PiecewiseConstantOn.RS_integ f I α with hRS_integ_val
+  have hmem_upper : RS_integ_val ∈ (PiecewiseConstantOn.RS_integ · I α) '' {g | MajorizesOn g f I ∧ PiecewiseConstantOn g I} := by
+    refine ⟨f, ⟨hmaj, hf⟩, rfl⟩
+  have hmem_lower : RS_integ_val ∈ (PiecewiseConstantOn.RS_integ · I α) '' {g | MinorizesOn g f I ∧ PiecewiseConstantOn g I} := by
+    refine ⟨f, ⟨hmin, hf⟩, rfl⟩
+  have h_upper_integ_le : upper_RS_integral f I α ≤ RS_integ_val :=
+    csInf_le (RS_integral_bound_below hbdd hα) hmem_upper
+  have h_lower_integ_ge : RS_integ_val ≤ lower_RS_integral f I α :=
+    le_csSup (RS_integral_bound_above hbdd hα) hmem_lower
+  have h_lower_le_upper : lower_RS_integral f I α ≤ upper_RS_integral f I α :=
+    lower_RS_integral_le_upper hbdd hα
+  have h_eq : lower_RS_integral f I α = upper_RS_integral f I α := by
+    apply le_antisymm h_lower_le_upper
+    calc
+      upper_RS_integral f I α ≤ RS_integ_val := h_upper_integ_le
+      _ ≤ lower_RS_integral f I α := h_lower_integ_ge
+  have h_upper_integ_eq : upper_RS_integral f I α = RS_integ_val :=
+    le_antisymm h_upper_integ_le (calc
+      RS_integ_val ≤ lower_RS_integral f I α := h_lower_integ_ge
+      _ = upper_RS_integral f I α := h_eq)
+  have h_RS_integ_eq : RS_integ f I α = RS_integ_val := by
+    dsimp [RS_integ, RS_integ_val]
+    exact h_upper_integ_eq
+  exact ⟨⟨hbdd, h_eq⟩, h_RS_integ_eq⟩
 
 end Chapter11
