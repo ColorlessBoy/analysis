@@ -787,6 +787,152 @@ theorem antideriv_eq_antideriv_add_const {I:BoundedInterval} {f F G : ℝ → �
     intro x hx
     exfalso; exact h_nonempty ⟨x, hx⟩
 
+/-
+Difference-quotient bounds for the integral of a monotone function.
+    For `x < y` in `[a,b]`, the increment `∫_a^y f - ∫_a^x f = ∫_x^y f`
+    is squeezed between `f x * (y-x)` and `f y * (y-x)`.
+-/
+private lemma Exercise_11_9_3.integ_incr_bounds {a b:ℝ} {f:ℝ → ℝ}
+    (hf: MonotoneOn f (Icc a b)) {x y:ℝ}
+    (hx: x ∈ Set.Icc a b) (hy: y ∈ Set.Icc a b) (hxy: x < y) :
+    f x * (y - x) ≤ integ f (Icc a y) - integ f (Icc a x) ∧
+      integ f (Icc a y) - integ f (Icc a x) ≤ f y * (y - x) := by
+        -- Apply the integrability and join the intervals.
+        have h_integrable : IntegrableOn f (Icc a y) := by
+          apply_rules [ integ_of_monotone, hf.mono ];
+          exact Set.Icc_subset_Icc_right hy.2
+        have h_join : (Icc a y).joins (Icc a x) (Ioc x y) := by
+          exact BoundedInterval.join_Icc_Ioc hx.1 hxy.le
+        have h_splits : integ f (Icc a y) = integ f (Icc a x) + integ f (Ioc x y) := by
+          exact ( IntegrableOn.join h_join h_integrable ).2.2 ▸ rfl
+        have h_length : (Ioc x y).length = y - x := by
+          simp +decide [ BoundedInterval.length, hxy.le ];
+        -- Apply the bounds via monotonicity.
+        have h_lower_bound : f x * (y - x) ≤ integ f (Ioc x y) := by
+          have h_lower_bound : ∀ t ∈ (Ioc x y : Set ℝ), f x ≤ f t := by
+            exact fun t ht => hf ⟨ hx.1, hx.2 ⟩ ⟨ by linarith [ ht.1, hx.1 ], by linarith [ ht.2, hy.2 ] ⟩ ht.1.le;
+          convert IntegrableOn.mono ( IntegrableOn.const ( f x ) ( Ioc x y ) |>.1 ) ( show IntegrableOn f ( Ioc x y ) from ?_ ) ( fun t ht => h_lower_bound t ht ) using 1;
+          · rw [ ← h_length, ( IntegrableOn.const ( f x ) ( Ioc x y ) |>.2 ) ];
+          · exact IntegrableOn.mono' ( show ( Ioc x y : Set ℝ ) ⊆ ( Icc a y : Set ℝ ) from fun t ht => ⟨ by linarith [ ht.1, hx.1 ], by linarith [ ht.2, hy.2 ] ⟩ ) h_integrable
+        have h_upper_bound : integ f (Ioc x y) ≤ f y * (y - x) := by
+          convert IntegrableOn.mono _ _ _ using 1;
+          convert ( IntegrableOn.const ( f y ) ( Ioc x y ) ) |>.2.symm using 1;
+          · rw [ h_length ];
+          · exact h_integrable.mono' ( Set.Ioc_subset_Icc_self.trans ( Set.Icc_subset_Icc hx.1 le_rfl ) );
+          · exact IntegrableOn.const _ _ |>.1;
+          · exact fun t ht => hf ⟨ by linarith [ ht.1, hx.1 ], by linarith [ ht.2, hy.2 ] ⟩ ⟨ by linarith [ ht.1, hx.1 ], by linarith [ ht.2, hy.2 ] ⟩ ht.2;
+        constructor <;> linarith
+
+/-- Right-hand difference-quotient (slope) bounds for a monotone function:
+    for {lit}`x₀ < y` in {lit}`[a,b]`, `f x₀ ≤ slope ≤ f y`. -/
+private lemma Exercise_11_9_3.slope_right {a b:ℝ} {f:ℝ → ℝ}
+    (hf: MonotoneOn f (Icc a b)) {x₀ y:ℝ}
+    (hx₀: x₀ ∈ Set.Icc a b) (hy: y ∈ Set.Icc a b) (hxy: x₀ < y) :
+    f x₀ ≤ (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) ∧
+      (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) ≤ f y := by
+  obtain ⟨hlo, hhi⟩ := Exercise_11_9_3.integ_incr_bounds hf hx₀ hy hxy
+  have hpos : 0 < y - x₀ := by linarith
+  constructor
+  · rw [le_div_iff₀ hpos]; linarith
+  · rw [div_le_iff₀ hpos]; linarith
+
+/-- Left-hand difference-quotient (slope) bounds for a monotone function:
+    for {lit}`y < x₀` in {lit}`[a,b]`, `f y ≤ slope ≤ f x₀`. -/
+private lemma Exercise_11_9_3.slope_left {a b:ℝ} {f:ℝ → ℝ}
+    (hf: MonotoneOn f (Icc a b)) {x₀ y:ℝ}
+    (hx₀: x₀ ∈ Set.Icc a b) (hy: y ∈ Set.Icc a b) (hxy: y < x₀) :
+    f y ≤ (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) ∧
+      (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) ≤ f x₀ := by
+  obtain ⟨hlo, hhi⟩ := Exercise_11_9_3.integ_incr_bounds hf hy hx₀ hxy
+  have hneg : y - x₀ < 0 := by linarith
+  constructor
+  · rw [le_div_iff_of_neg hneg]; linarith
+  · rw [div_le_iff_of_neg hneg]; linarith
+
+/-
+The hard direction of Exercise 11.9.3 at an interior point:
+    if `F(x) = ∫_a^x f` is differentiable at an interior `x₀`, then the monotone
+    integrand `f` is continuous at `x₀`.
+-/
+private lemma Exercise_11_9_3.cts_of_diff {a b x₀:ℝ} (hx₀: x₀ ∈ Set.Ioo a b)
+    {f: ℝ → ℝ} (hf: MonotoneOn f (Icc a b))
+    (hdiff: DifferentiableWithinAt ℝ (fun x => integ f (Icc a x)) (Icc a b) x₀) :
+    ContinuousWithinAt f (Icc a b) x₀ := by
+      -- Let $L := \text{derivWithin } F (\text{Icc } a b) x₀$. From `hdiff.hasDerivWithinAt` get `hL : HasDerivWithinAt F L (\text{Icc } a b) x₀`.
+      obtain ⟨L, hL⟩ : ∃ L, HasDerivWithinAt (fun x => integ f (Icc a x)) L (Icc a b) x₀ := by
+        exact ⟨ _, hdiff.hasDerivWithinAt ⟩;
+      -- Using `hL.hasDerivAt (Icc_mem_nhds hx₀.1 hx₀.2)` get `HasDerivAt F L x₀`, and then `hasDerivAt_iff_tendsto_slope.mp` gives
+      have h_slope : Filter.Tendsto (fun y => (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀)) (nhdsWithin x₀ {x₀}ᶜ) (nhds L) := by
+        convert hL.hasDerivAt ( Icc_mem_nhds hx₀.1 hx₀.2 ) |> HasDerivAt.tendsto_slope using 1;
+        exact funext fun x => by rw [ slope_def_field ] ;
+      -- STEP 1: `L = f x₀`.
+      have hLeq : L = f x₀ := by
+        refine' le_antisymm _ _;
+        · -- By definition of $L$, we know that for $y$ slightly less than $x₀$, $(integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) \leq f(x₀)$.
+          have h_left : ∀ᶠ y in nhdsWithin x₀ (Set.Iio x₀), (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) ≤ f x₀ := by
+            rw [ eventually_nhdsWithin_iff ];
+            filter_upwards [ Ioo_mem_nhds hx₀.1 hx₀.2 ] with y hy hy' ; have := Exercise_11_9_3.slope_left hf ( show x₀ ∈ Set.Icc a b from ⟨ hx₀.1.le, hx₀.2.le ⟩ ) ( show y ∈ Set.Icc a b from ⟨ hy.1.le, hy.2.le ⟩ ) hy' ; aesop;
+          exact le_of_tendsto ( h_slope.mono_left <| nhdsWithin_mono _ <| by simp +decide ) h_left;
+        · have h_slope_right : ∀ᶠ y in nhdsWithin x₀ (Set.Ioi x₀), f x₀ ≤ (integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀) := by
+            filter_upwards [ Ioo_mem_nhdsGT hx₀.2 ] with y hy using Exercise_11_9_3.slope_right hf ⟨ hx₀.1.le, hx₀.2.le ⟩ ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ hy.1 |>.1;
+          exact le_of_tendsto_of_tendsto tendsto_const_nhds ( h_slope.mono_left <| nhdsWithin_mono _ <| by simp +decide ) h_slope_right;
+      -- STEP 2: RIGHT LIMIT `Tendsto f (𝓝[>] x₀) (𝓝 (f x₀))`, by squeeze `tendsto_of_tendsto_of_tendsto_of_le_of_le'` with lower bound `fun _ => f x₀` and upper bound `hup := fun y => 2 * slope F x₀ (2*y - x₀) - slope F x₀ y`.
+      have h_right : Filter.Tendsto f (nhdsWithin x₀ (Set.Ioi x₀)) (nhds (f x₀)) := by
+        have h_right : Filter.Tendsto (fun y => 2 * ((integ f (Icc a (2 * y - x₀)) - integ f (Icc a x₀)) / (2 * y - x₀ - x₀)) - ((integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀))) (nhdsWithin x₀ (Set.Ioi x₀)) (nhds (f x₀)) := by
+          have h_right : Filter.Tendsto (fun y => (integ f (Icc a (2 * y - x₀)) - integ f (Icc a x₀)) / (2 * y - x₀ - x₀)) (nhdsWithin x₀ (Set.Ioi x₀)) (nhds (f x₀)) := by
+            convert h_slope.comp ( show Filter.Tendsto ( fun y : ℝ => 2 * y - x₀ ) ( nhdsWithin x₀ ( Set.Ioi x₀ ) ) ( nhdsWithin x₀ { x₀ } ᶜ ) from ?_ ) using 2;
+            · rw [hLeq];
+            · refine' Filter.Tendsto.inf _ _ <;> norm_num;
+              · exact Continuous.tendsto' ( by continuity ) _ _ ( by ring );
+              · intros; linarith;
+          convert Filter.Tendsto.sub ( h_right.const_mul 2 ) ( h_slope.mono_left <| nhdsWithin_mono _ _ ) using 2 <;> norm_num [ hLeq ] ; ring;
+        refine' tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h_right _ _;
+        · filter_upwards [ Ioo_mem_nhdsGT hx₀.2 ] with y hy using hf ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ hy.1.le;
+        · filter_upwards [ Ioo_mem_nhdsGT ( show x₀ < ( x₀ + b ) / 2 by linarith [ hx₀.2 ] ) ] with y hy;
+          have := Exercise_11_9_3.integ_incr_bounds hf ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ ( show y < 2 * y - x₀ by linarith [ hy.1, hy.2 ] );
+          rw [ mul_div, div_sub_div, le_div_iff₀ ] <;> nlinarith [ hy.1, hy.2 ];
+      -- STEP 3: LEFT LIMIT `Tendsto f (𝓝[<] x₀) (𝓝 (f x₀))`, symmetric squeeze with lower bound `fun y => 2 * slope F x₀ (2*y - x₀) - slope F x₀ y` and upper bound `fun _ => f x₀`.
+      have h_left : Filter.Tendsto f (nhdsWithin x₀ (Set.Iio x₀)) (nhds (f x₀)) := by
+        -- For `y ∈ Set.Ioo ((a+x₀)/2) x₀` (so `a < 2*y - x₀ < y < x₀`), apply `Exercise_11_9_3.integ_incr_bounds hf (h2 : 2*y-x₀ ∈ Icc a b) (hy : y ∈ Icc a b) (by linarith : 2*y-x₀ < y)`, whose UPPER part reads `F y - F (2*y-x₀) ≤ f y * (y - (2*y-x₀)) = f y * (x₀ - y)`; rearrange to `2*slope F x₀ (2*y-x₀) - slope F x₀ y ≤ f y` (same algebraic identity as Step 2).
+        have h_left_bound : ∀ᶠ y in nhdsWithin x₀ (Set.Iio x₀), 2 * ((integ f (Icc a (2 * y - x₀)) - integ f (Icc a x₀)) / ((2 * y - x₀) - x₀)) - ((integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀)) ≤ f y := by
+          filter_upwards [ Ioo_mem_nhdsLT ( show ( a + x₀ ) / 2 < x₀ by linarith [ hx₀.1 ] ) ] with y hy;
+          have := Exercise_11_9_3.integ_incr_bounds hf ( show 2 * y - x₀ ∈ Set.Icc a b from ⟨ by linarith [ hy.1, hy.2, hx₀.1, hx₀.2 ], by linarith [ hy.1, hy.2, hx₀.1, hx₀.2 ] ⟩ ) ( show y ∈ Set.Icc a b from ⟨ by linarith [ hy.1, hy.2, hx₀.1, hx₀.2 ], by linarith [ hy.1, hy.2, hx₀.1, hx₀.2 ] ⟩ ) ( by linarith [ hy.1, hy.2, hx₀.1, hx₀.2 ] : 2 * y - x₀ < y );
+          rw [ mul_div, div_sub_div, div_le_iff₀ ] <;> nlinarith [ hy.1, hy.2 ];
+        -- Both bounds tend to `f x₀` (const, and the `hup`-type combination via `hslope_lt` and `g` mapping `𝓝[<]x₀ → 𝓝[<]x₀`).
+        have h_left_tendsto : Filter.Tendsto (fun y => 2 * ((integ f (Icc a (2 * y - x₀)) - integ f (Icc a x₀)) / ((2 * y - x₀) - x₀)) - ((integ f (Icc a y) - integ f (Icc a x₀)) / (y - x₀))) (nhdsWithin x₀ (Set.Iio x₀)) (nhds (f x₀)) := by
+          have h_left_tendsto : Filter.Tendsto (fun y => ((integ f (Icc a (2 * y - x₀)) - integ f (Icc a x₀)) / ((2 * y - x₀) - x₀))) (nhdsWithin x₀ (Set.Iio x₀)) (nhds (f x₀)) := by
+            convert h_slope.comp ( show Filter.Tendsto ( fun y : ℝ => 2 * y - x₀ ) ( nhdsWithin x₀ ( Set.Iio x₀ ) ) ( nhdsWithin x₀ { x₀ } ᶜ ) from ?_ ) using 2;
+            · linarith;
+            · refine' Filter.Tendsto.inf _ _ <;> norm_num;
+              · exact Continuous.tendsto' ( by continuity ) _ _ ( by ring );
+              · intros; linarith;
+          convert Filter.Tendsto.sub ( h_left_tendsto.const_mul 2 ) ( h_slope.mono_left <| nhdsWithin_mono _ _ ) using 2 <;> norm_num [ hLeq ] ; ring;
+        refine' tendsto_of_tendsto_of_tendsto_of_le_of_le' h_left_tendsto tendsto_const_nhds _ _;
+        · exact h_left_bound;
+        · filter_upwards [ Ioo_mem_nhdsLT hx₀.1 ] with y hy using hf ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ ⟨ by linarith [ hy.1, hx₀.1 ], by linarith [ hy.2, hx₀.2 ] ⟩ hy.2.le;
+      refine' ContinuousAt.continuousWithinAt _;
+      exact continuousAt_iff_continuous_left'_right'.mpr ⟨ h_left, h_right ⟩
+
+/-- Exercise 11.9.3 (corrected to interior points).
+
+    The statement as originally posed allowed {lit}`x₀` to be an endpoint of {lit}`[a,b]`,
+    but in that form it is FALSE: e.g. with {lit}`a = 0`, {lit}`b = 1`, {lit}`f 0 = 0` and
+    {lit}`f x = 1` for `x ∈ (0,1]`, the function {lit}`f` is monotone, `F x = ∫₀ˣ f = x` is
+    differentiable within {lit}`[0,1]` at {lit}`0` (with derivative {lit}`1`), yet {lit}`f` is not
+    continuous within {lit}`[0,1]` at {lit}`0`. The equivalence is valid precisely at
+    interior points, so we require {lit}`x₀ ∈ Ioo a b`. The original (false) statement
+    is retained, commented out, below. -/
+theorem Exercise_11_9_3 {a b x₀:ℝ} (hx₀: x₀ ∈ Set.Ioo a b) {f: ℝ → ℝ}
+    (hf: MonotoneOn f (Icc a b)) :
+    DifferentiableWithinAt ℝ (fun x => integ f (Icc a x)) (Icc a b) x₀ ↔
+    ContinuousWithinAt f (Icc a b) x₀ := by
+  constructor
+  · intro hdiff
+    exact Exercise_11_9_3.cts_of_diff hx₀ hf hdiff
+  · intro hcts
+    have hab : a < b := lt_trans hx₀.1 hx₀.2
+    exact (deriv_of_integ hab (integ_of_monotone hf)
+      (Set.Ioo_subset_Icc_self hx₀) hcts).differentiableWithinAt
 
 /-- Exercise 11.9.3 -/
 example {a b x₀:ℝ} (hab: a < b) (hx₀: x₀ ∈ Ioo a b) {f: ℝ → ℝ} (hf: MonotoneOn f (Icc a b)) :
@@ -797,7 +943,85 @@ end Chapter11
 
 /-- Exercise 11.6.5, moved to Section 11.9 -/
 theorem Chapter7.Series.converges_qseries' (p:ℝ) : (mk' (m := 1) fun n ↦ 1 / (n:ℝ) ^ p : Series).converges ↔ (p>1) := by
-  sorry
+  set s := (mk' (m := 1) fun n ↦ 1 / (n:ℝ) ^ p : Series) with hs
+  constructor
+  · intro hs_conv
+    by_contra! hp  -- hp : p ≤ 1
+    by_cases hp_pos : 0 < p
+    · have h := (Series.converges_qseries p hp_pos).mp hs_conv
+      linarith
+    · -- p ≤ 0
+      have hp_nonpos : p ≤ 0 := by linarith
+      have h_no_decay : ¬ Filter.atTop.Tendsto s.seq (nhds 0) := by
+        intro h_tendsto
+        rw [Metric.tendsto_nhds] at h_tendsto
+        have h_ball := h_tendsto (1/2) (by norm_num)
+        rcases Filter.eventually_atTop.mp h_ball with ⟨N, hN⟩
+        set n := max N 1 with hn
+        have hn_ge_N : n ≥ N := le_max_left _ _
+        have hn_ge_one : n ≥ (1 : ℤ) := le_max_right _ _
+        have h_seq_ge_one : s.seq n ≥ 1 := by
+          dsimp [s]
+          simp [hn_ge_one]
+          have hn_nonneg_int : 0 ≤ n := by omega
+          have hn_nonneg_real : 0 ≤ (n : ℝ) := by exact_mod_cast hn_nonneg_int
+          have hn_ge_one_real : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn_ge_one
+          have hneg_nonneg : 0 ≤ -p := by linarith
+          calc
+            ((n : ℝ) ^ p)⁻¹ = (n : ℝ) ^ (-p) := by
+              rw [← Real.rpow_neg hn_nonneg_real]
+            _ ≥ (1 : ℝ) ^ (-p) :=
+              Real.rpow_le_rpow (by norm_num) hn_ge_one_real hneg_nonneg
+            _ = 1 := by simp
+        have h_dist : dist (s.seq n) 0 < 1/2 := hN n hn_ge_N
+        have h_contra : dist (s.seq n) 0 ≥ 1 := by
+          rw [Real.dist_eq, sub_zero]
+          have h_nonneg : 0 ≤ s.seq n := by
+            dsimp [s]; simp [hn_ge_one]; positivity
+          rw [abs_of_nonneg h_nonneg]
+          exact h_seq_ge_one
+        linarith
+      exact h_no_decay (Series.decay_of_converges hs_conv)
+  · intro hp
+    have hp_pos : 0 < p := by linarith
+    exact (Series.converges_qseries p hp_pos).mpr hp
 
 theorem Chapter7.Series.converges_qseries'' (p:ℝ) : (mk' (m := 1) fun n ↦ 1 / (n:ℝ) ^ p : Series).absConverges ↔ (p>1) := by
-  sorry
+  set s := (mk' (m := 1) fun n ↦ 1 / (n:ℝ) ^ p : Series) with hs
+  have h_nonneg : ∀ n, |s.seq n| = s.seq n := by
+    intro n
+    by_cases h : (1 : ℤ) ≤ n
+    · have hn_nonneg : (0 : ℝ) ≤ (n : ℝ) := by
+        have : (0 : ℤ) ≤ n := by omega
+        exact_mod_cast this
+      have hpos : 0 ≤ 1 / (n : ℝ) ^ p :=
+        div_nonneg (by norm_num) (Real.rpow_nonneg hn_nonneg p)
+      dsimp [s]
+      split_ifs with hcond
+      · rw [abs_of_nonneg hpos]
+      · exfalso; exact hcond h
+    · have hzero : s.seq n = 0 := by
+        dsimp [s]
+        simp [h]
+      simp [hzero, abs_zero]
+  have h_abs_eq : s.abs = s := by
+    apply Series.ext
+    · rfl
+    · ext n
+      by_cases hn : (1 : ℤ) ≤ n
+      · have hpos : 0 ≤ 1 / ((n : ℝ) ^ p) := by
+          have hn_nonneg : (0 : ℝ) ≤ (n : ℝ) := by
+            have : (0 : ℤ) ≤ n := by omega
+            exact_mod_cast this
+          exact div_nonneg (by norm_num) (Real.rpow_nonneg hn_nonneg p)
+        dsimp [Series.abs, Series.mk', s]
+        split_ifs with hcond
+        · rw [abs_of_nonneg hpos]
+        · exfalso; exact hcond hn
+      · dsimp [Series.abs, Series.mk', s]
+        split_ifs with hcond
+        · exfalso; exact hn hcond
+        · rfl
+  dsimp [Series.absConverges]
+  rw [h_abs_eq]
+  exact converges_qseries' p
