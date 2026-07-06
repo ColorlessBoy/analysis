@@ -385,7 +385,7 @@ theorem PosintDecimal.leading_nonzero (p q:PosintDecimal) :
         omega
     have hsum_eq : p.sum_digit q (N-1) = (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) := by
       unfold sum_digit
-      split_ifs <;> simp
+      split_ifs; simp
     rw [hsum_eq]
     have hnonzero : (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) ≠ 0 := by
       have hN_cases : p.digits.length = N ∨ q.digits.length = N := by
