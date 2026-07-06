@@ -216,8 +216,7 @@ example : PiecewiseConstantOn f_11_2_4 (Icc 1 6) := by
       have hx_gt2 : 2 < x.1 := x.2.1
       have hx_lt3 : x.1 < 3 := x.2.2
       have hx_not_lt1 : ¬ x.1 < 1 := by nlinarith
-      have hx_not_lt2 : ¬ x.1 < 2 := by nlinarith
-      simp [f_11_2_4, hx_not_lt1, hx_not_lt2, hx_lt3]
+      simp [f_11_2_4, hx_not_lt1, hx_lt3]
     · refine ⟨4, λ x => ?_⟩
       have hx_eq3 : x.1 = 3 := le_antisymm x.2.2 x.2.1
       dsimp; rw [hx_eq3]; norm_num [f_11_2_4]
@@ -792,7 +791,7 @@ theorem PiecewiseConstantOn.integ_sub {f g: ℝ → ℝ} {I: BoundedInterval}
   integ (f - g) I = integ f I - integ g I := by
   calc
     integ (f - g) I = integ (f + ((-1 : ℝ) • g)) I := by
-      simp [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, sub_eq_add_neg]
+      simp [sub_eq_add_neg]
     _ = integ f I + integ ((-1 : ℝ) • g) I := PiecewiseConstantOn.integ_add hf (PiecewiseConstantOn.smul (-1) hg)
     _ = integ f I + ((-1 : ℝ) * integ g I) := by rw [PiecewiseConstantOn.integ_smul (-1) hg]
     _ = integ f I - integ g I := by ring

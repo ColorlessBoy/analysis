@@ -531,19 +531,18 @@ theorem MajorizesOn.anti_symm {f g: ℝ → ℝ} {I: BoundedInterval}:
     constructor
     · intro x hx; rw [h x hx]
     · intro x hx; rw [h x hx]
-  · intro ⟨hfg, hgf⟩
-    intro x hx
+  · intro ⟨hfg, hgf⟩ x hx
     exact le_antisymm (hgf x hx) (hfg x hx)
 
 /-- Exercise 11.3.2 -/
-def MajorizesOn.of_add : Decidable ( ∀ (f g h:ℝ → ℝ) (I:BoundedInterval) (hfg: MajorizesOn f g I),
+def MajorizesOn.of_add : Decidable ( ∀ (f g h:ℝ → ℝ) (I:BoundedInterval) (_hfg: MajorizesOn f g I),
  MajorizesOn (f+h) (g+h) I) := by
   apply isTrue
   intro f g h I hfg x hx
   have hgfx : g x ≤ f x := hfg x hx
   simpa using add_le_add_right hgfx (h x)
 
-def MajorizesOn.of_mul : Decidable ( ∀ (f g h:ℝ → ℝ) (I:BoundedInterval) (hfg: MajorizesOn f g I),
+def MajorizesOn.of_mul : Decidable ( ∀ (f g h:ℝ → ℝ) (I:BoundedInterval) (_hfg: MajorizesOn f g I),
  MajorizesOn (f*h) (g*h) I) := by
   apply isFalse
   intro hAll
@@ -557,7 +556,7 @@ def MajorizesOn.of_mul : Decidable ( ∀ (f g h:ℝ → ℝ) (I:BoundedInterval)
   dsimp [MajorizesOn, f, g, h] at hbad
   nlinarith
 
-def MajorizesOn.of_smul : Decidable ( ∀ (f g:ℝ → ℝ) (c:ℝ) (I:BoundedInterval) (hfg: MajorizesOn f g I),
+def MajorizesOn.of_smul : Decidable ( ∀ (f g:ℝ → ℝ) (c:ℝ) (I:BoundedInterval) (_hfg: MajorizesOn f g I),
  MajorizesOn (c • f) (c • g) I) := by
   apply isFalse
   intro hAll
