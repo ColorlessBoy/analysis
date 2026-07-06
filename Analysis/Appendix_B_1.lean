@@ -316,23 +316,211 @@ abbrev PosintDecimal.sum_digit (p q:PosintDecimal) (i:ℕ) : ℕ :=
   else
     p.digit i + q.digit i + (p.carry q) i - 10
 
+theorem PosintDecimal.carry_le_one (p q:PosintDecimal) (i:ℕ) : p.carry q i ≤ 1 := by
+  induction i with
+  | zero =>
+    rw [carry_zero]
+    omega
+  | succ i ih =>
+    rw [carry_succ]
+    split <;> omega
+
 /-- Exercise B.1.1 -/
 theorem PosintDecimal.sum_digit_lt (p q:PosintDecimal) (i:ℕ) :
-  p.sum_digit q i < 10 := by sorry
+  p.sum_digit q i < 10 := by
+  dsimp [sum_digit]
+  have h1 : (p.digit i : ℕ) < 10 := Digit.lt _
+  have h2 : (q.digit i : ℕ) < 10 := Digit.lt _
+  have h3 : p.carry q i ≤ 1 := carry_le_one _ _ _
+  split <;> omega
 
 /-- Define this number such that it satisfies the two following theorems. -/
-def PosintDecimal.sum_digit_top (p q:PosintDecimal) : ℕ := by sorry
+def PosintDecimal.sum_digit_top (p q:PosintDecimal) : ℕ :=
+  let N := max p.digits.length q.digits.length
+  if p.carry q N = 1 then N else N - 1
 
 theorem PosintDecimal.leading_nonzero (p q:PosintDecimal) :
-    p.sum_digit q (p.sum_digit_top q) ≠ 0 := sorry
+    p.sum_digit q (p.sum_digit_top q) ≠ 0 := by
+  unfold sum_digit_top
+  dsimp
+  set N := max p.digits.length q.digits.length with hN
+  have hNpos : 0 < N := by
+    rw [hN]
+    exact lt_of_lt_of_le p.length_pos (le_max_left _ _)
+  have hcarry_le_one : p.carry q N ≤ 1 := carry_le_one _ _ _
+  split
+  · rename_i hcarry
+    -- case: p.carry q N = 1, so sum_digit_top = N
+    have hp_digit_N : p.digit N = (0 : Digit) := by
+      dsimp [digit]
+      have hNge : N ≥ p.digits.length := by
+        rw [hN]; exact le_max_left _ _
+      have : ¬ N < p.digits.length := by omega
+      simp [this]
+    have hq_digit_N : q.digit N = (0 : Digit) := by
+      dsimp [digit]
+      have hNge : N ≥ q.digits.length := by
+        rw [hN]; exact le_max_right _ _
+      have : ¬ N < q.digits.length := by omega
+      simp [this]
+    have hsum : p.sum_digit q N = 1 := by
+      unfold sum_digit
+      have hsum1 : (p.digit N : ℕ) + (q.digit N : ℕ) + (p.carry q) N = 1 := by
+        simp [hp_digit_N, hq_digit_N, hcarry]
+      have hlt : (p.digit N : ℕ) + (q.digit N : ℕ) + (p.carry q) N < 10 := by
+        rw [hsum1]; norm_num
+      rw [if_pos hlt, hsum1]
+    simp [hsum]
+  · rename_i hcarry
+    -- case: p.carry q N ≠ 1, so sum_digit_top = N - 1
+    have hcarry0 : p.carry q N = 0 := by
+      have : p.carry q N ≤ 1 := hcarry_le_one
+      omega
+    have hsum_lt10 : (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) < 10 := by
+      have hsucc : N = (N-1) + 1 := by omega
+      rw [hsucc, carry_succ] at hcarry0
+      by_cases hlt : (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) < 10
+      · exact hlt
+      · rw [if_neg hlt] at hcarry0
+        omega
+    have hsum_eq : p.sum_digit q (N-1) = (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) := by
+      unfold sum_digit
+      split_ifs <;> simp
+    rw [hsum_eq]
+    have hnonzero : (p.digit (N-1) : ℕ) + (q.digit (N-1) : ℕ) + p.carry q (N-1) ≠ 0 := by
+      have hN_cases : p.digits.length = N ∨ q.digits.length = N := by
+        have hle_total : q.digits.length ≤ p.digits.length ∨ p.digits.length ≤ q.digits.length := le_total _ _
+        rcases hle_total with (h | h)
+        · left; rw [hN]; exact (Nat.max_eq_left h).symm
+        · right; rw [hN]; exact (Nat.max_eq_right h).symm
+      rcases hN_cases with (hp_len | hq_len)
+      · -- p.digits.length = N
+        have hp_digit_pos : (p.digit (N-1) : ℕ) ≠ 0 := by
+          dsimp [digit]
+          have h_index_lt_len : N-1 < p.digits.length := by
+            rw [hp_len]; omega
+          rw [dif_pos h_index_lt_len]
+          have : p.digits.length - (N-1) - 1 = 0 := by
+            rw [hp_len]; omega
+          have hhead : p.digits[0] = p.head := by
+            dsimp [head]
+            simpa using (List.head_eq_getElem p.nonempty).symm
+          simpa [this, hhead] using p.head_ne_zero'
+        intro hzero
+        apply hp_digit_pos
+        omega
+      · -- q.digits.length = N
+        have hq_digit_pos : (q.digit (N-1) : ℕ) ≠ 0 := by
+          dsimp [digit]
+          have h_index_lt_len : N-1 < q.digits.length := by
+            rw [hq_len]; omega
+          rw [dif_pos h_index_lt_len]
+          have : q.digits.length - (N-1) - 1 = 0 := by
+            rw [hq_len]; omega
+          have hhead : q.digits[0] = q.head := by
+            dsimp [head]
+            simpa using (List.head_eq_getElem q.nonempty).symm
+          simpa [this, hhead] using q.head_ne_zero'
+        intro hzero
+        apply hq_digit_pos
+        omega
+    exact hnonzero
 
 theorem PosintDecimal.out_of_range_eq_zero (p q:PosintDecimal) :
-    ∀ i > ↑(p.sum_digit_top q), p.sum_digit q i = 0 := sorry
+    ∀ i > ↑(p.sum_digit_top q), p.sum_digit q i = 0 := by
+  unfold sum_digit_top
+  dsimp
+  set N := max p.digits.length q.digits.length with hN
+  have hp_len_le_N : p.digits.length ≤ N := by
+    rw [hN]; exact le_max_left _ _
+  have hq_len_le_N : q.digits.length ≤ N := by
+    rw [hN]; exact le_max_right _ _
+  have hdigit_ge_N (k : ℕ) (hk : k ≥ N) : p.digit k = (0 : Digit) ∧ q.digit k = (0 : Digit) := by
+    constructor
+    · dsimp [digit]
+      have : ¬ k < p.digits.length := not_lt.mpr (le_trans hp_len_le_N hk)
+      simp [this]
+    · dsimp [digit]
+      have : ¬ k < q.digits.length := not_lt.mpr (le_trans hq_len_le_N hk)
+      simp [this]
+  have digit_val_zero (k : ℕ) (hk : k ≥ N) : (p.digit k : ℕ) = 0 ∧ (q.digit k : ℕ) = 0 := by
+    have ⟨hp_digit, hq_digit⟩ := hdigit_ge_N k hk
+    have hp_val : (p.digit k : ℕ) = 0 := by
+      calc
+        (p.digit k : ℕ) = Digit.toNat (p.digit k) := rfl
+        _ = Digit.toNat (0 : Digit) := by rw [hp_digit]
+        _ = 0 := rfl
+    have hq_val : (q.digit k : ℕ) = 0 := by
+      calc
+        (q.digit k : ℕ) = Digit.toNat (q.digit k) := rfl
+        _ = Digit.toNat (0 : Digit) := by rw [hq_digit]
+        _ = 0 := rfl
+    exact ⟨hp_val, hq_val⟩
+  have hcarry_prep : ∀ n, p.carry q (N+1 + n) = 0 := by
+    intro n
+    induction' n with m ih
+    · rw [carry_succ p q N]
+      have ⟨hp_val, hq_val⟩ := digit_val_zero N (le_refl N)
+      have hcarry_le1 : p.carry q N ≤ 1 := carry_le_one _ _ _
+      have hsum : ((p.digit N : ℕ) + (q.digit N : ℕ) + p.carry q N) < 10 := by
+        rw [hp_val, hq_val]
+        omega
+      simp [hsum]
+    · have h_eq : N+1+(m+1) = (N+1+m)+1 := by omega
+      rw [h_eq, carry_succ p q (N+1+m), ih]
+      have ⟨hp_val, hq_val⟩ := digit_val_zero (N+1+m) (by omega)
+      simp [hp_val, hq_val]
+  have hcarry_gt_N : ∀ k > N, p.carry q k = 0 := by
+    intro k hk
+    have : N+1 + (k - (N+1)) = k := by omega
+    rw [← this]
+    apply hcarry_prep
+  intro i hi
+  split at hi
+  · -- case: carry N = 1, sum_digit_top = N, need i > N
+    have hi_gt_N : i > N := by omega
+    have hcarry_i : p.carry q i = 0 := hcarry_gt_N i hi_gt_N
+    have ⟨hp_val, hq_val⟩ := digit_val_zero i (by omega)
+    unfold sum_digit
+    rw [hp_val, hq_val, hcarry_i]
+    norm_num
+  · -- case: carry N ≠ 1, sum_digit_top = N-1, need i > N-1
+    have hi_ge_N : i ≥ N := by omega
+    have hcarry_i : p.carry q i = 0 := by
+      by_cases hi_eq_N : i = N
+      · subst hi_eq_N
+        have hcarry0 : p.carry q N = 0 := by
+          have hle : p.carry q N ≤ 1 := carry_le_one _ _ _
+          omega
+        exact hcarry0
+      · have hi_gt_N : i > N := by omega
+        exact hcarry_gt_N i hi_gt_N
+    have ⟨hp_val, hq_val⟩ := digit_val_zero i hi_ge_N
+    unfold sum_digit
+    rw [hp_val, hq_val, hcarry_i]
+    norm_num
 
+
+/-- The decimal list for the sum of p and q. -/
 def PosintDecimal.longAddition (p q : PosintDecimal) : PosintDecimal where
-  digits := sorry
-  nonempty := sorry
-  nonzero := sorry
+  digits := (List.range (p.sum_digit_top q + 1)).reverse.map (λ i =>
+    Digit.mk (h := sum_digit_lt p q i))
+  nonempty := by
+    dsimp
+    simp
+  nonzero := by
+    dsimp
+    have hhead : ((List.range (p.sum_digit_top q + 1)).reverse.map (λ i =>
+      Digit.mk (h := sum_digit_lt p q i))).head (by simp) =
+      Digit.mk (h := sum_digit_lt p q (p.sum_digit_top q)) := by
+      simp
+    rw [hhead]
+    intro hzero
+    apply leading_nonzero p q
+    have hval : (Digit.mk (h := sum_digit_lt p q (p.sum_digit_top q)) : ℕ) =
+      p.sum_digit q (p.sum_digit_top q) := by simp
+    simpa [hval] using congrArg (λ d : Digit => (d : ℕ)) hzero
 
 theorem PosintDecimal.sum_eq (p q:PosintDecimal) (i:ℕ) :
-    (((p.longAddition q).digit i):ℕ) = p.sum_digit q i ∧ (p.longAddition q:ℕ) = p + q := by sorry
+    (((p.longAddition q).digit i):ℕ) = p.sum_digit q i ∧ (p.longAddition q:ℕ) = p + q := by
+  sorry

@@ -96,21 +96,38 @@ example : ¬ ∃ m:ℤ, ∀ n:ℤ, m > n := by
 
 /-- Exercise A.5.1 -/
 def Exercise_A_5_1a : Decidable (∀ x > (0:ℝ), ∀ y > (0:ℝ), y^2 = x ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  have h1 := h 1 (by norm_num) 2 (by norm_num)
+  norm_num at h1
 
 def Exercise_A_5_1b : Decidable (∃ x > (0:ℝ), ∀ y > (0:ℝ), y^2 = x ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  rcases h with ⟨x, hxpos, h⟩
+  have h1 := h 1 (by norm_num)
+  have h2 := h 2 (by norm_num)
+  norm_num at h1 h2
+  linarith
 
 def Exercise_A_5_1c : Decidable (∃ x > (0:ℝ), ∃ y > (0:ℝ), y^2 = x ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  use 4, by norm_num
+  use 2, by norm_num
+  norm_num
 
 def Exercise_A_5_1d : Decidable (∀ y > (0:ℝ), ∃ x > (0:ℝ), y^2 = x ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro y hy
+  use y^2
+  constructor
+  · positivity
+  · ring
 
 def Exercise_A_5_1e : Decidable (∃ y > (0:ℝ), ∀ x > (0:ℝ), y^2 = x ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  rcases h with ⟨y, hypos, h⟩
+  have h1 := h 1 (by norm_num)
+  have h4 := h 4 (by norm_num)
+  linarith
