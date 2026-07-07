@@ -622,7 +622,7 @@ theorem mono_of_continuous_inj (a b:ℝ) (h: a < b) {f:ℝ → ℝ}
     have : c ≥ y := hc.1
     linarith
 /-- Exercise 9.8.4 -/
-def MonotoneOn.exist_inverse_without_continuity {a b:ℝ} (_h: a < b) {f: ℝ → ℝ} (_hmono: StrictMonoOn f (.Icc a b)) :
+noncomputable def MonotoneOn.exist_inverse_without_continuity {a b:ℝ} (_h: a < b) {f: ℝ → ℝ} (_hmono: StrictMonoOn f (.Icc a b)) :
   Decidable ( f '' (.Icc a b) = .Icc (f a) (f b) ∧
   ∃ finv: ℝ → ℝ, ContinuousOn finv (.Icc (f a) (f b)) ∧ StrictMonoOn finv (.Icc (f a) (f b)) ∧
   finv '' (.Icc (f a) (f b)) = .Icc a b ∧
@@ -636,8 +636,8 @@ def MonotoneOn.exist_inverse_without_continuity {a b:ℝ} (_h: a < b) {f: ℝ �
     (∀ x ∈ Set.Icc a b, finv (f x) = x) ∧
     ∀ y ∈ Set.Icc (f a) (f b), f (finv y) = y) then isTrue h else isFalse h
 
-/-- Exercise 9.8.4 (without strict monotonicity) -/
-def MonotoneOn.exist_inverse_without_strictmono {a b:ℝ} (_h: a < b) (f: ℝ → ℝ)
+/-- Exercise 9.8.4 -/
+noncomputable def MonotoneOn.exist_inverse_without_strictmono {a b:ℝ} (_h: a < b) (f: ℝ → ℝ)
   (_hcont: ContinuousOn f (.Icc a b)) (_hmono: MonotoneOn f (.Icc a b)) :
   Decidable ( f '' (.Icc a b) = .Icc (f a) (f b) ∧
   ∃ finv: ℝ → ℝ, ContinuousOn finv (.Icc (f a) (f b)) ∧ StrictMonoOn finv (.Icc (f a) (f b)) ∧
