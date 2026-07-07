@@ -291,7 +291,7 @@ lemma EReal.tsum_add_le_of_nonneg_pointwise {f g h : ℕ → ℝ}
     If 0 ≤ f n ≤ ↑(g n) for all n, where g n ≥ 0 and g summable, then ∑' f ≤ ↑(∑' g).
     Routes through ENNReal where tsum comparison is unconditional. -/
 lemma EReal.tsum_le_coe_tsum_of_forall_le {f : ℕ → EReal} {g : ℕ → ℝ}
-    (hf_nn : ∀ n, 0 ≤ f n) (hg_nn : ∀ n, 0 ≤ g n) (hg_sum : Summable g)
+    (hf_nn : ∀ n, 0 ≤ f n) (hg_nn : ∀ n, 0 ≤ g n) (_hg_sum : Summable g)
     (h_le : ∀ n, f n ≤ (g n : EReal)) :
     ∑' n, f n ≤ (∑' n, g n : EReal) := by
   -- Define ENNReal version of g

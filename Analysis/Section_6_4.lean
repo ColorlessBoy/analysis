@@ -383,7 +383,33 @@ theorem Sequence.limit_point_of_limit {a:Sequence} {x:ℝ} (h: a.TendsTo x) : a.
 
 /-- Proposition 6.4.5 (b) / Exercise 6.4.1 -/
 theorem Sequence.limit_point_of_limit_unique {a:Sequence} {x y:ℝ} (h: a.TendsTo x) (hy: a.LimitPoint y) : x = y := by
-  sorry
+  have hTends := (Sequence.tendsTo_iff a x).mp h
+  have hLimit := (Sequence.limit_point_def a y).mp hy
+  have h_all_eps : ∀ ε > (0:ℝ), |x - y| ≤ ε := by
+    intro ε hε
+    have hε2 : ε/2 > 0 := by linarith
+    rcases hTends (ε/2) hε2 with ⟨N, hN⟩
+    have hN' : max a.m N ≥ a.m := le_max_left _ _
+    rcases hLimit (ε/2) hε2 (max a.m N) hN' with ⟨n, hn, hclose⟩
+    have hn_N : n ≥ N := le_trans (le_max_right _ _) hn
+    have hclose_x : |a n - x| ≤ ε/2 := hN n hn_N
+    have hclose_y : |a n - y| ≤ ε/2 := hclose
+    have h_sub_eq : (a n - y) - (a n - x) = x - y := by ring
+    calc
+      |x - y| = |(a n - y) - (a n - x)| := by simp [h_sub_eq]
+      _ ≤ |a n - y| + |a n - x| := abs_sub _ _
+      _ = |a n - x| + |a n - y| := by ring
+      _ ≤ ε/2 + ε/2 := by nlinarith
+      _ = ε := by ring
+  have h_abs0 : |x - y| = 0 := by
+    have h_nonpos : |x - y| ≤ (0 : ℝ) :=
+      le_of_forall_pos_le_add fun ε hε => by
+        have h := h_all_eps ε (by linarith)
+        linarith
+    have h_nonneg : (0 : ℝ) ≤ |x - y| := abs_nonneg _
+    exact le_antisymm h_nonpos h_nonneg
+  have hsub0 : x - y = 0 := abs_eq_zero.mp h_abs0
+  linarith
 
 /--
   A technical issue uncovered by the formalization: the upper and lower sequences of a real

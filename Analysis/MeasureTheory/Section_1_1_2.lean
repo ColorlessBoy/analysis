@@ -143,7 +143,7 @@ theorem Jordan_inner_le_outer {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornolog
 
 /-- Elementary measure of a subset is a lower bound for inner Jordan measure. -/
 theorem le_Jordan_inner {d:ℕ} {E A: Set (EuclideanSpace' d)}
-  (hA: IsElementary A) (hAE: A ⊆ E) : hA.measure ≤ Jordan_inner_measure A := by
+  (hA: IsElementary A) (_hAE: A ⊆ E) : hA.measure ≤ Jordan_inner_measure A := by
   -- Strategy:
   -- 1. Unfold definition: Jordan_inner_measure A = sSup { m | ∃ B, IsElementary B, B ⊆ A ∧ m = hB.measure }
   -- 2. Show hA.measure is in this set: use A itself (A ⊆ A, and hA.measure = hA.measure)
@@ -165,7 +165,7 @@ theorem le_Jordan_inner {d:ℕ} {E A: Set (EuclideanSpace' d)}
 
 /-- Elementary measure of a superset is an upper bound for outer Jordan measure. -/
 theorem Jordan_outer_le {d:ℕ} {E A: Set (EuclideanSpace' d)}
-  (hA: IsElementary A) (hAE: E ⊆ A) : Jordan_outer_measure A ≤ hA.measure := by
+  (hA: IsElementary A) (_hAE: E ⊆ A) : Jordan_outer_measure A ≤ hA.measure := by
   -- Strategy:
   -- 1. Unfold definition: Jordan_outer_measure A = sInf { m | ∃ B, IsElementary B, A ⊆ B ∧ m = hB.measure }
   -- 2. Show hA.measure is in this set: use A itself (A ⊆ A, and hA.measure = hA.measure)

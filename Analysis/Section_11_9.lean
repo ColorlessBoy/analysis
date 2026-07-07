@@ -937,7 +937,11 @@ theorem Exercise_11_9_3 {a b x₀:ℝ} (hx₀: x₀ ∈ Set.Ioo a b) {f: ℝ →
 /-- Exercise 11.9.3 -/
 example {a b x₀:ℝ} (hab: a < b) (hx₀: x₀ ∈ Ioo a b) {f: ℝ → ℝ} (hf: MonotoneOn f (Icc a b)) :
   DifferentiableWithinAt ℝ (fun x => integ f (Icc a x)) (Icc a b) x₀ ↔
-  ContinuousWithinAt f (Icc a b) x₀ := by sorry
+  ContinuousWithinAt f (Icc a b) x₀ := by
+  have hx₀' : x₀ ∈ Set.Ioo a b := by
+    simpa [BoundedInterval.set_Ioo] using hx₀
+  have := hab
+  exact Exercise_11_9_3 hx₀' hf
 
 end Chapter11
 
