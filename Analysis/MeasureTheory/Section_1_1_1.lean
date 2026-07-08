@@ -2306,7 +2306,7 @@ abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 
 
 /-! ## Grid boxes and cubes (geometric scaffolding for Exercise 1.1.3) -/
 
-/-- The half-open cube (0,t]^d. -/
+/-- The half-open cube (0,t\]^d. -/
 abbrev Box.cube (d:ℕ) (t:ℝ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 t }
 
 /-
