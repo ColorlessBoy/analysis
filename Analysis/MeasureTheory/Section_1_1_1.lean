@@ -289,13 +289,13 @@ def witness_upperBound_lowerBounds {X : Set ℝ} (y : ℝ) (hy : y ∈ X)
 
 /- If x < sSup X and X is not empty, then there exists z ∈ X with x < z -/
 /- We don't need to assume that X is BddAbove
--(if X is not BddAbove, we get that sSup X = 0 (the junk value) and the result still follows -/
-#check exists_lt_of_lt_csSup
+-(if X is not Bddabove, we get that sSup X = 0 (the junk value) and the result still follows -/
+-- #check exists_lt_of_lt_csSup
 
 /- If sInf X < x and X is not empty, then there exists w ∈ X with w ≤ x -/
 /- We don't need to assume that X is BddBelow.
--(if X is not BddBelow, we get that sInf X = 0 (the junk value) and the result still follows -/
-#check exists_lt_of_csInf_lt
+-(if X if not BddBelow, we get that sInf X = 0 (the junk value) and the result still follows-/
+-- #check exists_lt_of_csInf_lt
 
 /-- Show x < b when b = sSup X and b ∉ X -/
 theorem lt_sSup_of_ne_sSup {X : Set ℝ} {x b : ℝ} (_hBddAbove : BddAbove X) (_hb : b = sSup X)
