@@ -995,7 +995,8 @@ theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
 /-- Exercise 1.1.1 (Boolean closure): The symmetric difference of two elementary sets is elementary. -/
 theorem IsElementary.symmDiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (hF: IsElementary F) : IsElementary (symmDiff E F) := by
-  sorry
+  rw [symmDiff_def]
+  exact IsElementary.union (IsElementary.sdiff hE hF) (IsElementary.sdiff hF hE)
 
 open Pointwise
 
