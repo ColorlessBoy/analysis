@@ -1119,4 +1119,100 @@ theorem bullets.not_jordanMeasurable : ¬ JordanMeasurable bullets := by sorry
 /-- Exercise 1.1.19 (Caratheodory property) -/
 theorem JordanMeasurable.caratheodory {d:ℕ} {E F: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) (hF: IsElementary F) :
   Jordan_outer_measure E = Jordan_outer_measure (E ∩ F) + Jordan_outer_measure (E \ F) := by
-  sorry
+  apply le_antisymm
+  · -- ≤ direction
+    refine le_of_forall_pos_le_add ?_
+    intro ε hε
+    have hε2 : ε/2 > 0 := by linarith
+    set S_EF : Set ℝ := { m:ℝ | ∃ (A: Set (EuclideanSpace' d)), ∃ hA: IsElementary A, (E ∩ F) ⊆ A ∧ m = hA.measure } with hS_EF
+    have h_nonempty_EF : S_EF.Nonempty := by
+      have h_bounded : Bornology.IsBounded (E ∩ F) :=
+        hE.subset (Set.inter_subset_left (s := E) (t := F))
+      obtain ⟨A, hA, h_sub⟩ := IsElementary.contains_bounded h_bounded
+      rw [hS_EF]
+      exact ⟨hA.measure, A, hA, h_sub, rfl⟩
+    have h_sInf_lt_EF : Jordan_outer_measure (E ∩ F) < Jordan_outer_measure (E ∩ F) + ε/2 := by
+      nlinarith
+    obtain ⟨m_EF, hm_EF, hm_EF_lt⟩ := exists_lt_of_csInf_lt h_nonempty_EF h_sInf_lt_EF
+    obtain ⟨A, hA, hA_sub, rfl⟩ := hm_EF
+    set S_EsF : Set ℝ := { m:ℝ | ∃ (A: Set (EuclideanSpace' d)), ∃ hA: IsElementary A, (E \ F) ⊆ A ∧ m = hA.measure } with hS_EsF
+    have h_nonempty_EsF : S_EsF.Nonempty := by
+      have h_bounded : Bornology.IsBounded (E \ F) :=
+        hE.subset Set.diff_subset
+      obtain ⟨A, hA, h_sub⟩ := IsElementary.contains_bounded h_bounded
+      rw [hS_EsF]
+      exact ⟨hA.measure, A, hA, h_sub, rfl⟩
+    have h_sInf_lt_EsF : Jordan_outer_measure (E \ F) < Jordan_outer_measure (E \ F) + ε/2 := by
+      nlinarith
+    obtain ⟨m_EsF, hm_EsF, hm_EsF_lt⟩ := exists_lt_of_csInf_lt h_nonempty_EsF h_sInf_lt_EsF
+    obtain ⟨B, hB, hB_sub, rfl⟩ := hm_EsF
+    have hA_union_B : IsElementary (A ∪ B) := IsElementary.union hA hB
+    have hE_sub_A_union_B : E ⊆ A ∪ B := by
+      intro x hx
+      by_cases hxF : x ∈ F
+      · have : x ∈ E ∩ F := ⟨hx, hxF⟩
+        exact Or.inl (hA_sub this)
+      · have : x ∈ E \ F := ⟨hx, hxF⟩
+        exact Or.inr (hB_sub this)
+    have h_outer_le_union : Jordan_outer_measure E ≤ (hA_union_B).measure := by
+      unfold Jordan_outer_measure
+      apply csInf_le
+      · refine ⟨0, ?_⟩
+        rintro m ⟨A', hA', hA'_sub, rfl⟩
+        exact IsElementary.measure_nonneg hA'
+      · exact ⟨A ∪ B, hA_union_B, hE_sub_A_union_B, rfl⟩
+    have h_union_measure : (hA_union_B).measure ≤ hA.measure + hB.measure :=
+      IsElementary.measure_of_union hA hB
+    have h_sum_lt : hA.measure + hB.measure < Jordan_outer_measure (E ∩ F) + Jordan_outer_measure (E \ F) + ε := by
+      nlinarith
+    nlinarith
+  · -- ≥ direction
+    refine le_of_forall_pos_le_add ?_
+    intro ε hε
+    set S_E : Set ℝ := { m:ℝ | ∃ (A: Set (EuclideanSpace' d)), ∃ hA: IsElementary A, E ⊆ A ∧ m = hA.measure } with hS_E
+    have h_nonempty_E : S_E.Nonempty := by
+      obtain ⟨A, hA, h_sub⟩ := IsElementary.contains_bounded hE
+      rw [hS_E]
+      exact ⟨hA.measure, A, hA, h_sub, rfl⟩
+    have h_sInf_lt_E : Jordan_outer_measure E < Jordan_outer_measure E + ε := by
+      nlinarith
+    obtain ⟨m_E, hm_E, hm_E_lt⟩ := exists_lt_of_csInf_lt h_nonempty_E h_sInf_lt_E
+    obtain ⟨C, hC, hC_sub_E, rfl⟩ := hm_E
+    have hC_inter_F : IsElementary (C ∩ F) := IsElementary.inter hC hF
+    have hC_sdiff_F : IsElementary (C \ F) := IsElementary.sdiff hC hF
+    have h_sub_inter : (E ∩ F) ⊆ (C ∩ F) :=
+      Set.inter_subset_inter hC_sub_E (Set.Subset.refl F)
+    have h_sub_sdiff : (E \ F) ⊆ (C \ F) :=
+      Set.diff_subset_diff hC_sub_E (Set.Subset.refl F)
+    have h_disjoint : Disjoint (C ∩ F) (C \ F) :=
+      (Set.disjoint_sdiff_inter (s := C) (t := F)).symm
+    have h_union_eq : (C ∩ F) ∪ (C \ F) = C := by
+      ext x; constructor
+      · rintro (⟨hxC, hxF⟩ | ⟨hxC, hxF⟩)
+        · exact hxC
+        · exact hxC
+      · intro hxC
+        by_cases hxF : x ∈ F
+        · exact Or.inl ⟨hxC, hxF⟩
+        · exact Or.inr ⟨hxC, hxF⟩
+    have h_outer_inter_le : Jordan_outer_measure (E ∩ F) ≤ hC_inter_F.measure := by
+      unfold Jordan_outer_measure
+      apply csInf_le
+      · refine ⟨0, ?_⟩
+        rintro m ⟨A', hA', hA'_sub, rfl⟩
+        exact IsElementary.measure_nonneg hA'
+      · exact ⟨C ∩ F, hC_inter_F, h_sub_inter, rfl⟩
+    have h_outer_sdiff_le : Jordan_outer_measure (E \ F) ≤ hC_sdiff_F.measure := by
+      unfold Jordan_outer_measure
+      apply csInf_le
+      · refine ⟨0, ?_⟩
+        rintro m ⟨A', hA', hA'_sub, rfl⟩
+        exact IsElementary.measure_nonneg hA'
+      · exact ⟨C \ F, hC_sdiff_F, h_sub_sdiff, rfl⟩
+    have h_measure_add : hC_inter_F.measure + hC_sdiff_F.measure = hC.measure := by
+      calc
+        hC_inter_F.measure + hC_sdiff_F.measure = (hC_inter_F.union hC_sdiff_F).measure := by
+          symm; exact IsElementary.measure_of_disjUnion hC_inter_F hC_sdiff_F h_disjoint
+        _ = hC.measure := IsElementary.measure_eq_of_set_eq (hC_inter_F.union hC_sdiff_F) hC h_union_eq
+    have h_sum_lt : hC.measure < Jordan_outer_measure E + ε := hm_E_lt
+    nlinarith
