@@ -1003,7 +1003,123 @@ open Pointwise
 /-- Exercise 1.1.1 (Boolean closure): Translation of an elementary set is elementary. -/
 theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (x: EuclideanSpace' d) : IsElementary (E + {x}) := by
-  sorry
+  classical
+  obtain ⟨S, hE⟩ := hE
+  -- Translation of each bounded interval type by a constant
+  have h_Ioo_add (a b c : ℝ) : (Set.Ioo (a + c) (b + c)) = (Set.Ioo a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Icc_add (a b c : ℝ) : (Set.Icc (a + c) (b + c)) = (Set.Icc a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Ioc_add (a b c : ℝ) : (Set.Ioc (a + c) (b + c)) = (Set.Ioc a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Ico_add (a b c : ℝ) : (Set.Ico (a + c) (b + c)) = (Set.Ico a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  -- Shift a bounded interval by a constant
+  let shiftInterval (I : BoundedInterval) (c : ℝ) : BoundedInterval :=
+    match I with
+    | Ioo a b => Ioo (a + c) (b + c)
+    | Icc a b => Icc (a + c) (b + c)
+    | Ioc a b => Ioc (a + c) (b + c)
+    | Ico a b => Ico (a + c) (b + c)
+  have h_shiftInterval (I : BoundedInterval) (c : ℝ) : (shiftInterval I c : Set ℝ) = (I : Set ℝ) + {c} := by
+    dsimp [shiftInterval]
+    cases I with
+    | Ioo a b => exact h_Ioo_add a b c
+    | Icc a b => exact h_Icc_add a b c
+    | Ioc a b => exact h_Ioc_add a b c
+    | Ico a b => exact h_Ico_add a b c
+  -- Translate a box by x (coordinate-wise shift of each side interval)
+  let f : Box d → Box d := λ B => ⟨fun i => shiftInterval (B.side i) (x i)⟩
+  have hf (B : Box d) : (f B).toSet = B.toSet + {x} := by
+    dsimp [f]
+    ext y
+    simp only [Box.mem_toSet]
+    constructor
+    · intro hy
+      have hy' : ∀ i, y i - x i ∈ (B.side i : Set ℝ) := by
+        intro i
+        have hy_i : y i ∈ (shiftInterval (B.side i) (x i) : Set ℝ) := hy i
+        rw [h_shiftInterval (B.side i) (x i)] at hy_i
+        obtain ⟨a, ha, b, hb, hab⟩ := hy_i
+        have hb_eq : b = x i := Set.mem_singleton_iff.mp hb
+        rw [hb_eq] at hab
+        have ha_eq : a = y i - x i := by linarith
+        simpa [ha_eq] using ha
+      refine Set.mem_add.mpr ⟨.toLp 2 (fun i => y i - x i), ?_, x, rfl, ?_⟩
+      · rw [Box.mem_toSet]
+        intro i
+        simpa using hy' i
+      · apply PiLp.ext; intro i; simp
+    · intro hy
+      obtain ⟨a, ha, b, hb, hab⟩ := Set.mem_add.mp hy
+      have hb_eq : b = x := Set.mem_singleton_iff.mp hb
+      rw [hb_eq] at hab
+      rw [Box.mem_toSet] at ha
+      intro i
+      rw [h_shiftInterval (B.side i) (x i)]
+      refine Set.mem_add.mpr ⟨a i, ha i, x i, by simp, ?_⟩
+      have := congr_fun (congrArg WithLp.ofLp hab) i
+      simpa using this
+  refine ⟨S.image f, ?_⟩
+  rw [hE]
+  ext y; constructor
+  · intro hy
+    rw [Set.mem_add] at hy
+    obtain ⟨a, ha, b, hb, hab⟩ := hy
+    rw [Set.mem_singleton_iff.mp hb] at hab
+    rw [Set.mem_iUnion₂] at ha
+    obtain ⟨B, hB, haB⟩ := ha
+    apply Set.mem_iUnion₂.mpr
+    refine ⟨f B, Finset.mem_image.mpr ⟨B, hB, rfl⟩, ?_⟩
+    rw [hf B]
+    exact Set.mem_add.mpr ⟨a, haB, x, Set.mem_singleton x, hab⟩
+  · intro hy
+    rw [Set.mem_iUnion₂] at hy
+    obtain ⟨B', hB', hyB'⟩ := hy
+    obtain ⟨B, hB, rfl⟩ := Finset.mem_image.mp hB'
+    rw [hf B] at hyB'
+    obtain ⟨a, haB, b, hb, hab⟩ := Set.mem_add.mp hyB'
+    rw [Set.mem_singleton_iff.mp hb] at hab
+    apply Set.mem_add.mpr
+    refine ⟨a, ?_, x, Set.mem_singleton x, hab⟩
+    rw [Set.mem_iUnion₂]
+    exact ⟨B, hB, haB⟩
 
 /-- Helper lemma for Lemma 1.1.2(ii): The set of lattice points (multiples of 1/N) in an interval is finite. -/
 theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0):
