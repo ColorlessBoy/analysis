@@ -2313,7 +2313,7 @@ abbrev Box.cube (d:ℕ) (t:ℝ) : Box d := { side := fun _ ↦ BoundedInterval.I
 Volume of the half-open cube (0,t]^d is `t^d` for `0 ≤ t`.
 -/
 lemma Box.volume_cube {d:ℕ} {t:ℝ} (ht : 0 ≤ t) : |Box.cube d t|ᵥ = t ^ d := by
-  unfold Box.volume; simp +decide [ ht, pow_succ' ] ;
+  unfold Box.volume; simp +decide [ ht ] ;
 
 /-- The grid cell at resolution `N` with lower corner `k/N`: `∏ᵢ (kᵢ/N, (kᵢ+1)/N]`. -/
 noncomputable abbrev Box.cell {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : Box d :=
@@ -2326,10 +2326,10 @@ noncomputable abbrev Box.gridVec {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : Euclidean
 /-
 Each grid cell is a translate of the cube `(0,1/N]^d`.
 -/
-lemma Box.cell_eq_translate {d:ℕ} {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
+lemma Box.cell_eq_translate {d:ℕ} {N:ℕ} (_hN : N ≠ 0) (k : Fin d → ℤ) :
     (Box.cell N k).toSet = (Box.cube d ((N:ℝ)⁻¹)).toSet + { Box.gridVec N k } := by
   ext y
-  simp [Box.mem_toSet, Set.mem_add];
+  simp [Box.mem_toSet];
   grind
 
 /-- The half-open grid box `∏ᵢ (pᵢ/N, qᵢ/N]`. -/
@@ -2345,7 +2345,7 @@ noncomputable def Box.gridCells {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Finset (
 The `cell` map is injective for `N ≠ 0`.
 -/
 lemma Box.cell_injective {d:ℕ} {N:ℕ} (hN : N ≠ 0) : Function.Injective (Box.cell (d:=d) N) := by
-  intro k₁ k₂ hk; replace hk := congr_arg ( fun f => f.side ) hk; simp_all +decide [ funext_iff, Box.mk.injEq ] ;
+  intro k₁ k₂ hk; replace hk := congr_arg ( fun f => f.side ) hk; simp_all +decide [ funext_iff ] ;
 
 /-
 Number of grid cells tiling `gridBox N p q`.
@@ -2439,7 +2439,7 @@ lemma m'_sum_boxes (T : Finset (Box d))
   induction' T using Finset.induction_on with B T hT ih;
   all_goals try exact Classical.decEq _;
   · contrapose! hadd;
-    use ∅, ∅; simp [hadd];
+    use ∅, ∅; simp;
     exact ⟨ IsElementary.empty d, by simpa using hadd ⟩;
   · simp_all +decide [ Finset.sum_insert, Set.PairwiseDisjoint ];
     convert hadd _ _ { B } rfl T rfl _ using 1;
@@ -2573,7 +2573,7 @@ lemma m'_box_ge (B : Box d) :
   -- For all $n \geq N$, we have $Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1) \subseteq B.toSet$.
   have h_subset : ∀ n ≥ N, (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet ⊆ B.toSet := by
     intro n hn x hx; simp_all +decide [ Box.mem_toSet ] ;
-    intro i; specialize hx i; specialize hN; have := hN.2.2 n hn i; simp_all +decide [ div_lt_iff₀, le_div_iff₀ ] ;
+    intro i; specialize hx i; specialize hN; have := hN.2.2 n hn i; simp_all +decide [];
     convert BoundedInterval.Ioo_subset ( B.side i ) _ using 1;
     swap;
     exact x.ofLp i;
