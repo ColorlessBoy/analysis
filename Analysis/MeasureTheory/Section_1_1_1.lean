@@ -1150,7 +1150,7 @@ theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0
       exact Int.le_floor.mpr this
   exact Set.Finite.subset ((Finset.finite_toSet _).image _) this
 
-/-- `⌊N*x⌋ / N → x` as `N → ∞`. -/
+/-- {lit}`⌊N*x⌋ / N → x` as `N → ∞`. -/
 lemma tendsto_floor_div_atTop (x : ℝ) : 
     Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ)) (nhds x) := by
   have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
@@ -1181,7 +1181,7 @@ lemma tendsto_floor_div_atTop (x : ℝ) :
     h_ineq.mono fun N hN => hN.2
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower hx_const h_lower' h_upper'
 
-/-- `⌈N*x⌉ / N → x` as `N → ∞`. -/
+/-- {lit}`⌈N*x⌉ / N → x` as `N → ∞`. -/
 lemma tendsto_ceil_div_atTop (x : ℝ) : 
     Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ)) (nhds x) := by
   have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
@@ -1215,7 +1215,7 @@ lemma tendsto_ceil_div_atTop (x : ℝ) :
     h_ineq.mono fun N hN => hN.2
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' hx_const h_upper h_lower' h_upper'
 
-/-- Eventually `⌊N*b⌋ + 1 - ⌈N*a⌉ ≥ 0` when `a < b`. -/
+/-- Eventually {lit}`⌊N*b⌋ + 1 - ⌈N*a⌉ ≥ 0` when {lean}`a < b`. -/
 lemma ceil_floor_pos_eventually (a b : ℝ) (h : a < b) : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) := by
   have h_diff_pos : b - a > 0 := sub_pos.mpr h
   have h_tendsto : Filter.Tendsto (fun N : ℕ ↦ (N : ℝ) * (b - a)) Filter.atTop Filter.atTop :=
@@ -1234,7 +1234,7 @@ lemma ceil_floor_pos_eventually (a b : ℝ) (h : a < b) : ∀ᶠ N : ℕ in Filt
     nlinarith
   exact_mod_cast h_real_ineq
 
-/-- Lattice points in `Icc a b` are in bijection with integers in `Icc ⌈N*a⌉ ⌊N*b⌋`. -/
+/-- Lattice points in {lean}`Icc a b` are in bijection with integers in {lit}`Icc ⌈N*a⌉ ⌊N*b⌋`. -/
 lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) : 
     Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) =
     (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
@@ -1303,7 +1303,7 @@ lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) :
     _ = (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
       simp [F_set, Int.card_Icc]
 
-/-- Limit of `(1/N)*|Icc a b ∩ lattice(N)| = b - a` for `a < b`. -/
+/-- Limit of {lit}`(1/N)*|Icc a b ∩ lattice(N)| = b - a` for {lean}`a < b`. -/
 lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) : 
     Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) 
     (nhds (b - a)) := by
@@ -1340,12 +1340,12 @@ lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) :
           ((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) : ℝ) := by exact_mod_cast Int.toNat_of_nonneg hpos
         simp [h_eq]
       _ = g N := by
-        dsimp [g]; push_cast; ring
+        dsimp [g]; ring
   have h_card_eq' : g =ᶠ[Filter.atTop] f := by
     simpa [Filter.EventuallyEq, eq_comm] using h_card_eq
   exact h_limit_raw.congr' h_card_eq'
 
-/-- If `x ∈ Icc I.a I.b` but `x ∉ I`, then `x` is an endpoint of `I`. -/
+/-- If {lean}`x ∈ Icc I.a I.b` but {lean}`x ∉ I`, then {lean}`x` is an endpoint of {lean}`I`. -/
 lemma endpoint_of_Icc_not_I (I : BoundedInterval) (x : ℝ) (hx_Icc : x ∈ Set.Icc I.a I.b) (hx_not_I : x ∉ I.toSet) : x = I.a ∨ x = I.b := by
   cases I with
   | Ioo a b =>
@@ -1385,7 +1385,7 @@ lemma endpoint_of_Icc_not_I (I : BoundedInterval) (x : ℝ) (hx_Icc : x ∈ Set.
     · -- hx_lt_b: x < b
       exfalso; apply hx_not_Ico; exact ⟨ha_le_x, hx_lt_b⟩
 
-/-- The lattice count in `Icc I.a I.b` exceeds that in `I` by at most 2. -/
+/-- The lattice count in {lean}`Icc I.a I.b` exceeds that in {lean}`I` by at most 2. -/
 lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) : 
     Nat.card ↥(Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) ≤ 
     Nat.card ↥(I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) + 2 := by
@@ -1410,10 +1410,12 @@ lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) :
     have hfx_cases (z : ↥S_Icc) (hz_mem : (z.1 : ℝ) ∈ I.toSet) : f z = Sum.inl ⟨z.1, ⟨hz_mem, z.2.2⟩⟩ := by
       simp [f, hz_mem]
     have hfx_cases_not (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_a : (z.1 : ℝ) = I.a) : f z = Sum.inr (0 : Fin 2) := by
-      have h_not_I_a : I.a ∉ I.toSet := by rw [← hz_a]; exact hz_not_mem
-      simp [f, hz_not_mem, hz_a, h_not_I_a]
+      have h_I_a_not_mem : I.a ∉ I.toSet := by rw [← hz_a]; exact hz_not_mem
+      unfold f; dsimp
+      simp [hz_a, h_I_a_not_mem]
     have hfx_cases_not' (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_ne_a : (z.1 : ℝ) ≠ I.a) : f z = Sum.inr (1 : Fin 2) := by
-      simp [f, hz_not_mem, hz_ne_a]
+      unfold f; dsimp
+      simp [hz_not_mem, hz_ne_a]
     by_cases hx_mem_I : (x.1 : ℝ) ∈ I.toSet
     · have hfx := hfx_cases x hx_mem_I
       by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
@@ -2310,16 +2312,9 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
   set c := m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) with hc_def
   have hc_nonneg : c ≥ 0 := hnonneg _ _
-  have hmono : ∀ (E F : Set (EuclideanSpace' d)) (hE : IsElementary E) (hF : IsElementary F), E ⊆ F → m' E hE ≤ m' F hF := by
-    intro E F hE hF hsub
-    have h_sdiff : IsElementary (F \ E) := IsElementary.sdiff hF hE
-    have h_decomp : F = E ∪ (F \ E) := by ext x; simp; tauto
-    have h_disj : Disjoint E (F \ E) := by
-      rw [Set.disjoint_iff]; intro x ⟨hxE, _, hxE'⟩; exact hxE' hxE
-    have h_union_m' := hadd E (F \ E) hE h_sdiff h_disj
-    have h_nonneg_sdiff : 0 ≤ m' (F \ E) h_sdiff := hnonneg (F \ E) h_sdiff
-    rw [h_decomp] at h_union_m'
-    nlinarith
+  -- hmono (monotonicity of m') was originally attempted here but failed due to
+  -- dependent type issues with rewriting the set argument in hadd's conclusion.
+  -- The lemma is not used in the current proof, so it is omitted.
   -- For d=1, we can use a direct argument with the unit cube
   have h_box_eq_vol : ∀ (B : Box d), m' (B.toSet) (IsElementary.box B) = c * |B|ᵥ := by
     intro B
@@ -2397,7 +2392,7 @@ lemma Box.volume_prod {d₁ d₂:ℕ} (B₁ : Box d₁) (B₂ : Box d₂) : |Box
         | Sum.inl i => |B₁.side i|ₗ
         | Sum.inr i => |B₂.side i|ₗ))
       intro i
-      simp [finAddSumEquiv, Box.prod]
+      simp [finAddSumEquiv]
       split_ifs <;> rfl
     _ = (∏ (i : Fin d₁), |B₁.side i|ₗ) * (∏ (i : Fin d₂), |B₂.side i|ₗ) := by
       simp [Fintype.prod_sum_type]
