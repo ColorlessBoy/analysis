@@ -1151,7 +1151,7 @@ theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0
   exact Set.Finite.subset ((Finset.finite_toSet _).image _) this
 
 /-- {lit}`⌊N*x⌋ / N → x` as `N → ∞`. -/
-lemma tendsto_floor_div_atTop (x : ℝ) : 
+lemma tendsto_floor_div_atTop (x : ℝ) :
     Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ)) (nhds x) := by
   have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
   have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
@@ -1182,7 +1182,7 @@ lemma tendsto_floor_div_atTop (x : ℝ) :
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower hx_const h_lower' h_upper'
 
 /-- {lit}`⌈N*x⌉ / N → x` as `N → ∞`. -/
-lemma tendsto_ceil_div_atTop (x : ℝ) : 
+lemma tendsto_ceil_div_atTop (x : ℝ) :
     Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ)) (nhds x) := by
   have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
   have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
@@ -1235,7 +1235,7 @@ lemma ceil_floor_pos_eventually (a b : ℝ) (h : a < b) : ∀ᶠ N : ℕ in Filt
   exact_mod_cast h_real_ineq
 
 /-- Lattice points in {lean}`Icc a b` are in bijection with integers in {lit}`Icc ⌈N*a⌉ ⌊N*b⌋`. -/
-lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) : 
+lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) :
     Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) =
     (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
   have hN_nonzero : (N : ℝ) ≠ 0 := by exact_mod_cast hN
@@ -1304,8 +1304,8 @@ lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) :
       simp [F_set, Int.card_Icc]
 
 /-- Limit of {lit}`(1/N)*|Icc a b ∩ lattice(N)| = b - a` for {lean}`a < b`. -/
-lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) : 
-    Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) 
+lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) :
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)))
     (nhds (b - a)) := by
   have hN_nonzero_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 := by
     refine Filter.eventually_atTop.mpr ⟨1, fun N hN => by omega⟩
@@ -1386,8 +1386,8 @@ lemma endpoint_of_Icc_not_I (I : BoundedInterval) (x : ℝ) (hx_Icc : x ∈ Set.
       exfalso; apply hx_not_Ico; exact ⟨ha_le_x, hx_lt_b⟩
 
 /-- The lattice count in {lean}`Icc I.a I.b` exceeds that in {lean}`I` by at most 2. -/
-lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) : 
-    Nat.card ↥(Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) ≤ 
+lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) :
+    Nat.card ↥(Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) ≤
     Nat.card ↥(I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) + 2 := by
   set S_I := I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_I
   set S_Icc := Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_Icc
@@ -2310,26 +2310,6 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (hF: IsElementary F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
-  set c := m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) with hc_def
-  have hc_nonneg : c ≥ 0 := hnonneg _ _
-  -- hmono (monotonicity of m') was originally attempted here but failed due to
-  -- dependent type issues with rewriting the set argument in hadd's conclusion.
-  -- The lemma is not used in the current proof, so it is omitted.
-  -- For d=1, we can use a direct argument with the unit cube
-  have h_box_eq_vol : ∀ (B : Box d), m' (B.toSet) (IsElementary.box B) = c * |B|ᵥ := by
-    intro B
-    -- This is hard in full generality. For now, we only need that m' is proportional to measure
-    -- on boxes. We'll use `Box.vol_eq` and `BoundedInterval.length_eq` and the lattice point counting.
-    -- For any box, the elementary measure |B|ᵥ is determined by the limit of lattice point counts.
-    -- We can use `Box.vol_eq` to relate |B|ᵥ to lattice points, and the fact that m'(point)=0
-    -- (which follows from the arguments below for d≥1) to relate m'(B) to m'(lattice), which is 0.
-    -- But this doesn't directly give m'(B) = c * |B|ᵥ without additional arguments.
-    -- 
-    -- For a complete proof, we need to use the partition of the unit cube argument.
-    -- Given the time constraints, we skip the full proof here and refer to the standard textbook proof.
-    have : (IsElementary.box (Box.unit_cube d)).measure = 1 := by
-      simp [IsElementary.measure_of_box, Box.volume, Box.unit_cube, BoundedInterval.length]
-    sorry
   sorry
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
