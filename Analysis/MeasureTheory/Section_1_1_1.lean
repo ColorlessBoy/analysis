@@ -1006,6 +1006,7 @@ theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
   classical
   obtain ⟨S, hE⟩ := hE
   -- Translation of each bounded interval type by a constant
+  -- Translation of each bounded interval type by a constant
   have h_Ioo_add (a b c : ℝ) : (Set.Ioo (a + c) (b + c)) = (Set.Ioo a b) + {c} := by
     ext x; constructor
     · intro ⟨hx1, hx2⟩
@@ -2297,6 +2298,9 @@ lemma IsElementary.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
       exact Finset.sum_congr rfl fun B hB => (hf_spec B hB).2
     rw [h_translate_measure, h_sum_eq, hE.measure_eq hT_disj hE_eq]
 
+/-- The d-dimensional unit cube (0,1\]^d. -/
+abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 1}
+
 /-- Exercise 1.1.3 (uniqueness of elementary measure): Any non-negative, additive, translation-invariant
 function on elementary sets is a scalar multiple of the standard elementary measure. -/
 theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
@@ -2304,10 +2308,7 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (hF: IsElementary F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
-    sorry
-
-/-- The d-dimensional unit cube (0,1\]^d. -/
-abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 1}
+  sorry
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
 theorem IsElementary.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
