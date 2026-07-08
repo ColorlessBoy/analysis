@@ -1149,11 +1149,446 @@ theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0
       exact Int.le_floor.mpr this
   exact Set.Finite.subset ((Finset.finite_toSet _).image _) this
 
+/-- `⌊N*x⌋ / N → x` as `N → ∞`. -/
+lemma tendsto_floor_div_atTop (x : ℝ) : 
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ)) (nhds x) := by
+  have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  have h_lower : Filter.atTop.Tendsto (fun N : ℕ ↦ x - (1 : ℝ) / (N : ℝ)) (nhds x) := by
+    simpa using hx_const.sub h_one_div_N
+  have h_ineq : ∀ᶠ N : ℕ in Filter.atTop, x - (1 : ℝ) / (N : ℝ) ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ∧
+    (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ x := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => ?_⟩
+    have hNpos_pos : 0 < N := Nat.lt_of_lt_of_le (by norm_num : 0 < 1) hN
+    have hNpos : (N : ℝ) > 0 := by exact_mod_cast hNpos_pos
+    have hfloor_le : (⌊(N : ℝ) * x⌋ : ℝ) ≤ (N : ℝ) * x := by exact mod_cast Int.floor_le ((N : ℝ) * x)
+    have hlt_floor_add_one : (N : ℝ) * x < (⌊(N : ℝ) * x⌋ : ℝ) + 1 := Int.lt_floor_add_one _
+    constructor
+    · have h : (N : ℝ) * x - 1 ≤ (⌊(N : ℝ) * x⌋ : ℝ) := by linarith
+      calc
+        x - (1 : ℝ) / (N : ℝ) = ((N : ℝ) * x - 1) / (N : ℝ) := by field_simp [hNpos.ne']
+        _ ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) :=
+          div_le_div_of_nonneg_right h (by positivity : 0 ≤ (N : ℝ))
+    · calc
+        (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x) / (N : ℝ) :=
+          div_le_div_of_nonneg_right hfloor_le (by positivity : 0 ≤ (N : ℝ))
+        _ = x := by field_simp [hNpos.ne']
+  have h_lower' : ∀ᶠ N : ℕ in Filter.atTop, x - (1 : ℝ) / (N : ℝ) ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.1
+  have h_upper' : ∀ᶠ N : ℕ in Filter.atTop, (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ x :=
+    h_ineq.mono fun N hN => hN.2
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower hx_const h_lower' h_upper'
+
+/-- `⌈N*x⌉ / N → x` as `N → ∞`. -/
+lemma tendsto_ceil_div_atTop (x : ℝ) : 
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ)) (nhds x) := by
+  have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  have h_upper : Filter.atTop.Tendsto (fun N : ℕ ↦ x + (1 : ℝ) / (N : ℝ)) (nhds x) := by
+    simpa using hx_const.add h_one_div_N
+  have h_ineq : ∀ᶠ N : ℕ in Filter.atTop, x ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ∧
+    (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ x + (1 : ℝ) / (N : ℝ) := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => ?_⟩
+    have hNpos_pos : 0 < N := Nat.lt_of_lt_of_le (by norm_num : 0 < 1) hN
+    have hNpos : (N : ℝ) > 0 := by exact_mod_cast hNpos_pos
+    have hceil_ge : (N : ℝ) * x ≤ (⌈(N : ℝ) * x⌉ : ℝ) := by exact mod_cast Int.le_ceil ((N : ℝ) * x)
+    have h_mid : (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x + 1) / (N : ℝ) :=
+      div_le_div_of_nonneg_right (by
+        have hceil_lt_add_one : (⌈(N : ℝ) * x⌉ : ℝ) < (N : ℝ) * x + 1 := Int.ceil_lt_add_one _
+        linarith) (by positivity : 0 ≤ (N : ℝ))
+    have h_last : ((N : ℝ) * x + 1) / (N : ℝ) = x + (1 : ℝ) / (N : ℝ) := by
+      field_simp [hNpos.ne']
+    constructor
+    · calc
+        x = ((N : ℝ) * x) / (N : ℝ) := by field_simp [hNpos.ne']
+        _ ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) :=
+          div_le_div_of_nonneg_right hceil_ge (by positivity : 0 ≤ (N : ℝ))
+    · calc
+        (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x + 1) / (N : ℝ) := h_mid
+        _ = x + (1 : ℝ) / (N : ℝ) := h_last
+  have h_lower' : ∀ᶠ N : ℕ in Filter.atTop, x ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.1
+  have h_upper' : ∀ᶠ N : ℕ in Filter.atTop, (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ x + (1 : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.2
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' hx_const h_upper h_lower' h_upper'
+
+/-- Eventually `⌊N*b⌋ + 1 - ⌈N*a⌉ ≥ 0` when `a < b`. -/
+lemma ceil_floor_pos_eventually (a b : ℝ) (h : a < b) : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) := by
+  have h_diff_pos : b - a > 0 := sub_pos.mpr h
+  have h_tendsto : Filter.Tendsto (fun N : ℕ ↦ (N : ℝ) * (b - a)) Filter.atTop Filter.atTop :=
+    (tendsto_natCast_atTop_atTop (R := ℝ)).atTop_mul_const h_diff_pos
+  have h_gt_one : ∀ᶠ (y : ℝ) in Filter.atTop, y > 1 := Filter.eventually_gt_atTop (1 : ℝ)
+  have h_event : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ) * (b - a) > 1 :=
+    h_tendsto.eventually h_gt_one
+  refine h_event.mono fun N hN => ?_
+  have h_floor_ineq : (⌊(N : ℝ) * b⌋ : ℝ) ≥ (N : ℝ) * b - 1 := by
+    have h_lt : (N : ℝ) * b < (⌊(N : ℝ) * b⌋ : ℝ) + 1 := Int.lt_floor_add_one _
+    linarith
+  have h_ceil_ineq : (⌈(N : ℝ) * a⌉ : ℝ) ≤ (N : ℝ) * a + 1 := by
+    have h_lt : (⌈(N : ℝ) * a⌉ : ℝ) < (N : ℝ) * a + 1 := Int.ceil_lt_add_one _
+    exact h_lt.le
+  have h_real_ineq : (⌊(N : ℝ) * b⌋ : ℝ) + 1 - (⌈(N : ℝ) * a⌉ : ℝ) ≥ 0 := by
+    nlinarith
+  exact_mod_cast h_real_ineq
+
+/-- Lattice points in `Icc a b` are in bijection with integers in `Icc ⌈N*a⌉ ⌊N*b⌋`. -/
+lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) : 
+    Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) =
+    (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
+  have hN_nonzero : (N : ℝ) ≠ 0 := by exact_mod_cast hN
+  have hNpos : (0 : ℝ) < N := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hN)
+  set f : ℤ → ℝ := λ n => (N : ℝ)⁻¹ * (n : ℝ) with hf
+  have hf_inj : Function.Injective f := by
+    intro x y h
+    dsimp [f] at h
+    field_simp [hN_nonzero] at h
+    exact_mod_cast h
+  set F_int : Set ℤ := {n | (⌈(N : ℝ) * a⌉ : ℤ) ≤ n ∧ n ≤ (⌊(N : ℝ) * b⌋ : ℤ)} with hF_int
+  set F_set : Set ℤ := (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ) : Set ℤ) with hF_set
+  have hF_int_eq : F_int = F_set := by
+    ext n; simp [F_int, F_set]
+  have h_eq : Set.Icc a b ∩ Set.range f = f '' F_int := by
+    ext x
+    constructor
+    · intro ⟨⟨hxa, hxb⟩, hx_range⟩
+      rcases hx_range with ⟨n, hn⟩
+      have hn_mem_F : n ∈ F_int := by
+        have ha_fn : a ≤ f n := by rw [hn]; exact hxa
+        have hb_fn : f n ≤ b := by rw [hn]; exact hxb
+        have hn_ge : (⌈(N : ℝ) * a⌉ : ℤ) ≤ n := by
+          have hN_a_le_n : (N : ℝ) * a ≤ (n : ℝ) := by
+            dsimp [f] at ha_fn
+            calc
+              (N : ℝ) * a ≤ (N : ℝ) * ((N : ℝ)⁻¹ * (n : ℝ)) := mul_le_mul_of_nonneg_left ha_fn (by positivity)
+              _ = (n : ℝ) := by field_simp [hN_nonzero]
+          exact Int.ceil_le.mpr hN_a_le_n
+        have hn_le : n ≤ (⌊(N : ℝ) * b⌋ : ℤ) := by
+          have hn_le_N_b : (n : ℝ) ≤ (N : ℝ) * b := by
+            dsimp [f] at hb_fn
+            calc
+              (n : ℝ) = (N : ℝ) * ((N : ℝ)⁻¹ * (n : ℝ)) := by field_simp [hN_nonzero]
+              _ ≤ (N : ℝ) * b := mul_le_mul_of_nonneg_left hb_fn (by positivity)
+          exact Int.le_floor.mpr hn_le_N_b
+        exact ⟨hn_ge, hn_le⟩
+      exact ⟨n, hn_mem_F, hn⟩
+    · intro ⟨n, hn_mem_F, hn⟩
+      rcases hn_mem_F with ⟨hn_ge, hn_le⟩
+      have hxa : a ≤ (N : ℝ)⁻¹ * (n : ℝ) := by
+        have hN_a_le_n : (N : ℝ) * a ≤ (n : ℝ) := by
+          have hceil_ge : (N : ℝ) * a ≤ (⌈(N : ℝ) * a⌉ : ℝ) := by exact mod_cast Int.le_ceil ((N : ℝ) * a)
+          have hn_ge' : (⌈(N : ℝ) * a⌉ : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn_ge
+          linarith
+        calc
+          a = (N : ℝ)⁻¹ * ((N : ℝ) * a) := by field_simp [hN_nonzero]
+          _ ≤ (N : ℝ)⁻¹ * (n : ℝ) := mul_le_mul_of_nonneg_left hN_a_le_n (by positivity)
+      have hxb : (N : ℝ)⁻¹ * (n : ℝ) ≤ b := by
+        have hn_le_N_b : (n : ℝ) ≤ (N : ℝ) * b := by
+          have hfloor_le : (⌊(N : ℝ) * b⌋ : ℝ) ≤ (N : ℝ) * b := by exact mod_cast Int.floor_le ((N : ℝ) * b)
+          have hn_le' : (n : ℝ) ≤ (⌊(N : ℝ) * b⌋ : ℝ) := by exact_mod_cast hn_le
+          linarith
+        calc
+          (N : ℝ)⁻¹ * (n : ℝ) ≤ (N : ℝ)⁻¹ * ((N : ℝ) * b) := mul_le_mul_of_nonneg_left hn_le_N_b (by positivity)
+          _ = b := by field_simp [hN_nonzero]
+      have hx_Icc : (N : ℝ)⁻¹ * (n : ℝ) ∈ Set.Icc a b := ⟨hxa, hxb⟩
+      have hx_range : (N : ℝ)⁻¹ * (n : ℝ) ∈ Set.range f := ⟨n, rfl⟩
+      rw [← hn]
+      exact ⟨hx_Icc, hx_range⟩
+  calc
+    Nat.card ↥(Set.Icc a b ∩ Set.range f) = Nat.card ↥(f '' F_int) := by rw [h_eq]
+    _ = Nat.card ↥F_int := Nat.card_image_of_injective hf_inj _
+    _ = Nat.card ↥F_set := by rw [hF_int_eq]
+    _ = (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
+      simp [F_set, Int.card_Icc]
+
+/-- Limit of `(1/N)*|Icc a b ∩ lattice(N)| = b - a` for `a < b`. -/
+lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) : 
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) 
+    (nhds (b - a)) := by
+  have hN_nonzero_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => by omega⟩
+  have h_tendsto_floor_b : Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * b⌋ : ℝ) / (N : ℝ)) (nhds b) :=
+    tendsto_floor_div_atTop b
+  have h_tendsto_ceil_a : Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * a⌉ : ℝ) / (N : ℝ)) (nhds a) :=
+    tendsto_ceil_div_atTop a
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  set f : ℕ → ℝ := fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hf
+  set g : ℕ → ℝ := fun N : ℕ ↦ ((⌊(N : ℝ) * b⌋ : ℝ) - (⌈(N : ℝ) * a⌉ : ℝ) + 1) / (N : ℝ) with hg
+  have h_limit_raw : Filter.atTop.Tendsto g (nhds (b - a)) := by
+    have h_eq : g = (fun N : ℕ ↦ (⌊(N : ℝ) * b⌋ : ℝ) / (N : ℝ) - (⌈(N : ℝ) * a⌉ : ℝ) / (N : ℝ) + (1 : ℝ) / (N : ℝ)) := by
+      ext N; dsimp [g]; ring
+    rw [h_eq]
+    simpa [add_assoc, sub_eq_add_neg] using
+      ((h_tendsto_floor_b.sub h_tendsto_ceil_a).add h_one_div_N)
+  have h_card_eq : ∀ᶠ N : ℕ in Filter.atTop, f N = g N := by
+    have h_pos_ev : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) :=
+      ceil_floor_pos_eventually a b h
+    have h_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 ∧ 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) :=
+      hN_nonzero_ev.and h_pos_ev
+    refine h_ev.mono fun N ⟨hN, hpos⟩ => ?_
+    calc
+      f N = (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) := rfl
+      _ = (N : ℝ)⁻¹ * ((Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card : ℝ) := by
+        simp [Icc_lattice_card a b N hN]
+      _ = (N : ℝ)⁻¹ * (((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ)).toNat : ℝ) := by
+        simp [Int.card_Icc]
+      _ = (N : ℝ)⁻¹ * ((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) : ℝ) := by
+        have h_eq : (((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ)).toNat : ℝ) =
+          ((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) : ℝ) := by exact_mod_cast Int.toNat_of_nonneg hpos
+        simp [h_eq]
+      _ = g N := by
+        dsimp [g]; push_cast; ring
+  have h_card_eq' : g =ᶠ[Filter.atTop] f := by
+    simpa [Filter.EventuallyEq, eq_comm] using h_card_eq
+  exact h_limit_raw.congr' h_card_eq'
+
+/-- If `x ∈ Icc I.a I.b` but `x ∉ I`, then `x` is an endpoint of `I`. -/
+lemma endpoint_of_Icc_not_I (I : BoundedInterval) (x : ℝ) (hx_Icc : x ∈ Set.Icc I.a I.b) (hx_not_I : x ∉ I.toSet) : x = I.a ∨ x = I.b := by
+  cases I with
+  | Ioo a b =>
+    have hx_not_Ioo : x ∉ Set.Ioo a b := by simpa [set_Ioo] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (a < x) with (h_not_a_lt_x | ha_lt_x)
+    · -- h_not_a_lt_x: ¬(a < x), so x ≤ a; combined with a ≤ x gives x = a
+      have hx_eq_a : x = a := le_antisymm (by linarith) ha_le_x
+      exact Or.inl hx_eq_a
+    · -- ha_lt_x: a < x
+      have hx_ge_b : x ≥ b := by
+        by_contra! h
+        apply hx_not_Ioo
+        exact ⟨ha_lt_x, h⟩
+      have hx_eq_b : x = b := le_antisymm hx_le_b hx_ge_b
+      exact Or.inr hx_eq_b
+  | Icc a b =>
+    have hx_not_Icc : x ∉ Set.Icc a b := by simpa [set_Icc] using hx_not_I
+    exact (hx_not_Icc hx_Icc).elim
+  | Ioc a b =>
+    have hx_not_Ioc : x ∉ Set.Ioc a b := by simpa [set_Ioc] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (a < x) with (h_not_a_lt_x | ha_lt_x)
+    · have hx_eq_a : x = a := le_antisymm (by linarith) ha_le_x
+      exact Or.inl hx_eq_a
+    · exfalso; apply hx_not_Ioc; exact ⟨ha_lt_x, hx_le_b⟩
+  | Ico a b =>
+    have hx_not_Ico : x ∉ Set.Ico a b := by simpa [set_Ico] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (x < b) with (h_not_lt_b | hx_lt_b)
+    · -- h_not_lt_b: ¬(x < b), so b ≤ x
+      have hx_eq_b : x = b := le_antisymm hx_le_b (by linarith)
+      exact Or.inr hx_eq_b
+    · -- hx_lt_b: x < b
+      exfalso; apply hx_not_Ico; exact ⟨ha_le_x, hx_lt_b⟩
+
+/-- The lattice count in `Icc I.a I.b` exceeds that in `I` by at most 2. -/
+lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) : 
+    Nat.card ↥(Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) ≤ 
+    Nat.card ↥(I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) + 2 := by
+  set S_I := I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_I
+  set S_Icc := Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_Icc
+  have hS_I_fin : Finite ↥S_I := BoundedInterval.sample_finite I hN
+  have hS_Icc_fin : Finite ↥S_Icc := BoundedInterval.sample_finite (Icc I.a I.b) hN
+  haveI : Finite ↥S_I := hS_I_fin
+  haveI : Finite ↥S_Icc := hS_Icc_fin
+  have h_inj : ∃ (f : ↥S_Icc → (↥S_I ⊕ Fin 2)), Function.Injective f := by
+    let f : ↥S_Icc → (↥S_I ⊕ Fin 2) := λ x => by
+      by_cases hx_mem_I : (x.1 : ℝ) ∈ I.toSet
+      · exact Sum.inl ⟨x.1, ⟨hx_mem_I, x.2.2⟩⟩
+      · by_cases hx_a : (x.1 : ℝ) = I.a
+        · exact Sum.inr 0
+        · exact Sum.inr 1
+    refine ⟨f, ?_⟩
+    intro x y h
+    apply Subtype.ext
+    have hx_mem_Icc : x.1 ∈ Set.Icc I.a I.b := x.2.1
+    have hy_mem_Icc : y.1 ∈ Set.Icc I.a I.b := y.2.1
+    have hfx_cases (z : ↥S_Icc) (hz_mem : (z.1 : ℝ) ∈ I.toSet) : f z = Sum.inl ⟨z.1, ⟨hz_mem, z.2.2⟩⟩ := by
+      simp [f, hz_mem]
+    have hfx_cases_not (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_a : (z.1 : ℝ) = I.a) : f z = Sum.inr (0 : Fin 2) := by
+      have h_not_I_a : I.a ∉ I.toSet := by rw [← hz_a]; exact hz_not_mem
+      simp [f, hz_not_mem, hz_a, h_not_I_a]
+    have hfx_cases_not' (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_ne_a : (z.1 : ℝ) ≠ I.a) : f z = Sum.inr (1 : Fin 2) := by
+      simp [f, hz_not_mem, hz_ne_a]
+    by_cases hx_mem_I : (x.1 : ℝ) ∈ I.toSet
+    · have hfx := hfx_cases x hx_mem_I
+      by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+      · -- both in I
+        have hfy := hfx_cases y hy_mem_I
+        rw [hfx, hfy] at h
+        injection h with h_inl
+        simpa using congr_arg Subtype.val h_inl
+      · -- x in I, y not in I
+        by_cases hy_a : (y.1 : ℝ) = I.a
+        · have hfy := hfx_cases_not y hy_mem_I hy_a
+          rw [hfx, hfy] at h
+          injection h
+        · have hfy := hfx_cases_not' y hy_mem_I hy_a
+          rw [hfx, hfy] at h
+          injection h
+    · -- x not in I
+      by_cases hx_a : (x.1 : ℝ) = I.a
+      · have hfx := hfx_cases_not x hx_mem_I hx_a
+        by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+        · -- x not in I, y in I
+          have hfy := hfx_cases y hy_mem_I
+          rw [hfx, hfy] at h
+          injection h
+        · -- both not in I
+          by_cases hy_a : (y.1 : ℝ) = I.a
+          · -- both equal I.a
+            calc
+              x.1 = I.a := hx_a
+              _ = y.1 := hy_a.symm
+          · -- x = I.a, y ≠ I.a
+            have hfy := hfx_cases_not' y hy_mem_I hy_a
+            rw [hfx, hfy] at h
+            have hzero : (0 : Fin 2) = (1 : Fin 2) := by injection h
+            have : (0 : Fin 2) ≠ (1 : Fin 2) := by decide
+            exfalso; exact this hzero
+      · have hfx := hfx_cases_not' x hx_mem_I hx_a
+        by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+        · -- x not in I, y in I
+          have hfy := hfx_cases y hy_mem_I
+          rw [hfx, hfy] at h
+          injection h
+        · -- both not in I
+          by_cases hy_a : (y.1 : ℝ) = I.a
+          · -- x ≠ I.a, y = I.a
+            have hfy := hfx_cases_not y hy_mem_I hy_a
+            rw [hfx, hfy] at h
+            have hzero : (1 : Fin 2) = (0 : Fin 2) := by injection h
+            have : (1 : Fin 2) ≠ (0 : Fin 2) := by decide
+            exfalso; exact this hzero
+          · -- neither = I.a, so both = I.b
+            have hx_b : x.1 = I.b := by
+              rcases endpoint_of_Icc_not_I I x.1 hx_mem_Icc hx_mem_I with (hx_a' | hx_b')
+              · exact absurd hx_a' hx_a
+              · exact hx_b'
+            have hy_b : y.1 = I.b := by
+              rcases endpoint_of_Icc_not_I I y.1 hy_mem_Icc hy_mem_I with (hy_a' | hy_b')
+              · exact absurd hy_a' hy_a
+              · exact hy_b'
+            calc
+              x.1 = I.b := hx_b
+              _ = y.1 := hy_b.symm
+  obtain ⟨f, hf⟩ := h_inj
+  have h_card : Nat.card ↥S_Icc ≤ Nat.card (↥S_I ⊕ Fin 2) :=
+    Nat.card_le_card_of_injective f hf
+  have h_card_sum : Nat.card (↥S_I ⊕ Fin 2) = Nat.card ↥S_I + Nat.card (Fin 2) := by
+    simp
+  calc
+    Nat.card ↥S_Icc ≤ Nat.card (↥S_I ⊕ Fin 2) := h_card
+    _ = Nat.card ↥S_I + Nat.card (Fin 2) := h_card_sum
+    _ = Nat.card ↥S_I + 2 := by simp
+
 /-- Exercise for Lemma 1.1.2(ii): Interval length equals the limit of lattice point counts scaled by 1/N. -/
 theorem BoundedInterval.length_eq (I : BoundedInterval) :
   Filter.atTop.Tendsto (fun N:ℕ ↦ (N:ℝ)⁻¹ * Nat.card ↥(I.toSet ∩ (Set.range (fun n:ℤ ↦ (N:ℝ)⁻¹*n))))
   (nhds |I|ₗ) := by
-  sorry
+  rw [BoundedInterval.length]
+  set S_I := fun (N : ℕ) ↦ I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_I
+  set S_Icc := fun (N : ℕ) ↦ Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_Icc
+  have h_subset_I_S : ∀ N : ℕ, S_I N ⊆ S_Icc N := by
+    intro N x hx
+    have hx_mem_I : x ∈ (I : Set ℝ) := hx.1
+    have h_subset : (I : Set ℝ) ⊆ Set.Icc I.a I.b := BoundedInterval.subset_Icc I
+    have hx_mem_Icc : x ∈ Set.Icc I.a I.b := h_subset hx_mem_I
+    exact ⟨hx_mem_Icc, hx.2⟩
+  have hN_nonzero_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => by omega⟩
+  by_cases h : I.a < I.b
+  · -- Non-degenerate interval: length = b - a
+    have h_le : I.a ≤ I.b := le_of_lt h
+    have h_len : max (I.b - I.a) 0 = I.b - I.a := by simp [h_le]
+    rw [h_len]
+    have h_tendsto_Icc : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ)) (nhds (I.b - I.a)) :=
+      tendsto_Icc_lattice_count I.a I.b h
+    have h_upper : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_fin_S_Icc : Finite ↥(S_Icc N) := BoundedInterval.sample_finite (Icc I.a I.b) hN
+      haveI : Finite ↥(S_Icc N) := h_fin_S_Icc
+      have h_card_le : Nat.card ↥(S_I N) ≤ Nat.card ↥(S_Icc N) :=
+        Nat.card_le_card_of_injective (fun (x : ↥(S_I N)) =>
+          Subtype.mk x.1 (h_subset_I_S N x.2)) (by
+          intro x y h
+          apply Subtype.ext
+          simpa using congr_arg Subtype.val h)
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_card_le' : (Nat.card ↥(S_I N) : ℝ) ≤ (Nat.card ↥(S_Icc N) : ℝ) := by exact_mod_cast h_card_le
+      nlinarith
+    have h_lower : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) - 2 / (N : ℝ) ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_card_diff : Nat.card ↥(S_Icc N) ≤ Nat.card ↥(S_I N) + 2 := lattice_count_diff_bound I N hN
+      have h_card_diff' : (Nat.card ↥(S_Icc N) : ℝ) ≤ (Nat.card ↥(S_I N) : ℝ) + 2 := by exact_mod_cast h_card_diff
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_two_div_N_eq : 2 / (N : ℝ) = 2 * (N : ℝ)⁻¹ := by ring
+      rw [h_two_div_N_eq]
+      nlinarith
+    have h_lower_tendsto : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) - 2 / (N : ℝ)) (nhds (I.b - I.a)) := by
+      have h_two_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ 2 / (N : ℝ)) (nhds 0) := by
+        simpa [div_eq_mul_inv] using (tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (2 : ℝ)
+      simpa [sub_eq_add_neg] using h_tendsto_Icc.sub h_two_div_N
+    exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower_tendsto h_tendsto_Icc h_lower h_upper
+  · -- Degenerate interval: length = 0
+    push_neg at h
+    have h_len : max (I.b - I.a) 0 = 0 := by simp [h]
+    rw [h_len]
+    have h_card_bound : ∀ᶠ N : ℕ in Filter.atTop, (Nat.card ↥(S_I N) : ℝ) ≤ 1 := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_card : Nat.card ↥(S_I N) ≤ 1 := by
+        have h_subsingleton : Set.Subsingleton (Set.Icc I.a I.b) := by
+          intro u hu v hv
+          have ha_le_u : I.a ≤ u := hu.1
+          have hu_le_b : u ≤ I.b := hu.2
+          have ha_le_v : I.a ≤ v := hv.1
+          have hv_le_b : v ≤ I.b := hv.2
+          have hu_le_a : u ≤ I.a := by linarith
+          have hv_le_a : v ≤ I.a := by linarith
+          have hu_eq_a : u = I.a := le_antisymm hu_le_a ha_le_u
+          have hv_eq_a : v = I.a := le_antisymm hv_le_a ha_le_v
+          rw [hu_eq_a, hv_eq_a]
+        have h_fin : Finite ↥(S_I N) := BoundedInterval.sample_finite I hN
+        haveI : Finite ↥(S_I N) := h_fin
+        have h_card_fin1 : Nat.card (Fin 1) = 1 := by simp
+        have h_card_le : Nat.card ↥(S_I N) ≤ Nat.card (Fin 1) :=
+          Nat.card_le_card_of_injective (fun (x : ↥(S_I N)) => (0 : Fin 1)) ?_
+        · rw [h_card_fin1] at h_card_le; exact h_card_le
+        intro x y hxy
+        apply Subtype.ext
+        have hx_mem_I : x.1 ∈ (I : Set ℝ) := x.2.1
+        have hy_mem_I : y.1 ∈ (I : Set ℝ) := y.2.1
+        have h_subset : (I : Set ℝ) ⊆ Set.Icc I.a I.b := BoundedInterval.subset_Icc I
+        have hx_Icc : x.1 ∈ Set.Icc I.a I.b := h_subset hx_mem_I
+        have hy_Icc : y.1 ∈ Set.Icc I.a I.b := h_subset hy_mem_I
+        exact h_subsingleton hx_Icc hy_Icc
+      exact_mod_cast h_card
+    have h_tendsto_zero : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * 1) (nhds 0) := by
+      simpa using (tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (1 : ℝ)
+    have h_bound : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) ≤ (N : ℝ)⁻¹ * 1 := by
+      refine (h_card_bound.and hN_nonzero_ev).mono fun N ⟨h_card, hN⟩ => ?_
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      nlinarith
+    have h_nonneg_count : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_nonneg_N_inv : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_nonneg_card : (0 : ℝ) ≤ (Nat.card ↥(S_I N) : ℝ) := by exact_mod_cast (Nat.zero_le _)
+      nlinarith
+    have h_squeeze : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ)) (nhds 0) :=
+      tendsto_of_tendsto_of_tendsto_of_le_of_le' (tendsto_const_nhds : Filter.atTop.Tendsto (fun _ : ℕ ↦ (0 : ℝ)) _) h_tendsto_zero
+        h_nonneg_count h_bound
+    simpa using h_squeeze
 
 /-- Lattice points in a box decompose as a product of lattice points in each interval side. -/
 def Box.sample_congr {d:ℕ} (B:Box d) (N:ℕ) :
