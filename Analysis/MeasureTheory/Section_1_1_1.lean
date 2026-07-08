@@ -695,6 +695,7 @@ theorem IsElementary.union {d:ℕ} {E F: Set (EuclideanSpace' d)}
 /-- The union of a finset of elementary sets is elementary. -/
 lemma IsElementary.union' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
 (hE: ∀ E ∈ S, IsElementary E) : IsElementary (⋃ E ∈ S, E) := by
+  classical
   induction S using Finset.induction_on with
   | empty =>
     use (∅ : Finset (Box d)); simp
@@ -2303,6 +2304,316 @@ lemma IsElementary.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
 /-- The d-dimensional unit cube (0,1\]^d. -/
 abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 1}
 
+/-! ## Grid boxes and cubes (geometric scaffolding for Exercise 1.1.3) -/
+
+/-- The half-open cube (0,t]^d. -/
+abbrev Box.cube (d:ℕ) (t:ℝ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 t }
+
+/-
+Volume of the half-open cube (0,t]^d is `t^d` for `0 ≤ t`.
+-/
+lemma Box.volume_cube {d:ℕ} {t:ℝ} (ht : 0 ≤ t) : |Box.cube d t|ᵥ = t ^ d := by
+  unfold Box.volume; simp +decide [ ht, pow_succ' ] ;
+
+/-- The grid cell at resolution `N` with lower corner `k/N`: `∏ᵢ (kᵢ/N, (kᵢ+1)/N]`. -/
+noncomputable abbrev Box.cell {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : Box d :=
+  { side := fun i ↦ BoundedInterval.Ioc ((k i : ℝ)/(N:ℝ)) (((k i : ℝ)+1)/(N:ℝ)) }
+
+/-- The translation vector `k/N` in Euclidean space. -/
+noncomputable abbrev Box.gridVec {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : EuclideanSpace' d :=
+  .toLp 2 (fun i ↦ (k i : ℝ)/(N:ℝ))
+
+/-
+Each grid cell is a translate of the cube `(0,1/N]^d`.
+-/
+lemma Box.cell_eq_translate {d:ℕ} {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
+    (Box.cell N k).toSet = (Box.cube d ((N:ℝ)⁻¹)).toSet + { Box.gridVec N k } := by
+  ext y
+  simp [Box.mem_toSet, Set.mem_add];
+  grind
+
+/-- The half-open grid box `∏ᵢ (pᵢ/N, qᵢ/N]`. -/
+noncomputable abbrev Box.gridBox {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Box d :=
+  { side := fun i ↦ BoundedInterval.Ioc ((p i : ℝ)/(N:ℝ)) ((q i : ℝ)/(N:ℝ)) }
+
+open Classical in
+/-- The finset of grid cells tiling `gridBox N p q`. -/
+noncomputable def Box.gridCells {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Finset (Box d) :=
+  Finset.image (Box.cell N) (Fintype.piFinset (fun i ↦ Finset.Ico (p i) (q i)))
+
+/-
+The `cell` map is injective for `N ≠ 0`.
+-/
+lemma Box.cell_injective {d:ℕ} {N:ℕ} (hN : N ≠ 0) : Function.Injective (Box.cell (d:=d) N) := by
+  intro k₁ k₂ hk; replace hk := congr_arg ( fun f => f.side ) hk; simp_all +decide [ funext_iff, Box.mk.injEq ] ;
+
+/-
+Number of grid cells tiling `gridBox N p q`.
+-/
+lemma Box.gridCells_card {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    (Box.gridCells N p q).card = ∏ i, (q i - p i).toNat := by
+  convert Finset.card_image_of_injOn _;
+  · simp +decide [ Int.card_Ico ];
+  · exact fun x hx y hy hxy => Box.cell_injective hN hxy
+
+/-
+The grid cells are pairwise disjoint.
+-/
+lemma Box.gridCells_pairwiseDisjoint {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    ((Box.gridCells N p q : Finset (Box d)) : Set (Box d)).PairwiseDisjoint Box.toSet := by
+  intro x hx y hy hxy; simp_all +decide [ Set.disjoint_left ] ;
+  -- Since x and y are in gridCells, there exist k₁ and k₂ such that x = Box.cell N k₁ and y = Box.cell N k₂.
+  obtain ⟨k₁, hk₁⟩ : ∃ k₁ : Fin d → ℤ, x = Box.cell N k₁ := by
+    unfold gridCells at hx; aesop;
+  obtain ⟨k₂, hk₂⟩ : ∃ k₂ : Fin d → ℤ, y = Box.cell N k₂ := by
+    unfold gridCells at hy; aesop;
+  -- Since $k₁ \neq k₂$, there exists some $i$ such that $k₁ i \neq k₂ i$.
+  obtain ⟨i, hi⟩ : ∃ i, k₁ i ≠ k₂ i := by
+    exact Function.ne_iff.mp ( by aesop );
+  contrapose! hi; simp_all +decide [ cell ] ;
+  obtain ⟨ a, ha₁, ha₂ ⟩ := hi; have := ha₁ i; have := ha₂ i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] at *; norm_cast at *;
+  norm_num at * ; exact Int.le_antisymm ( Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast at * ; linarith ) ( Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast at * ; linarith )
+
+/-
+The grid box is the disjoint union of its grid cells.
+-/
+lemma Box.gridBox_eq_cells_union {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    (Box.gridBox N p q).toSet = ⋃ B ∈ Box.gridCells N p q, B.toSet := by
+  ext x;
+  constructor;
+  · intro hx
+    obtain ⟨k, hk⟩ : ∃ k : Fin d → ℤ, (∀ i, p i ≤ k i ∧ k i < q i) ∧ (∀ i, (k i : ℝ) / N < x i ∧ x i ≤ ((k i + 1) : ℝ) / N) := by
+      refine' ⟨ fun i => ⌈N * x.ofLp i⌉ - 1, _, _ ⟩ <;> simp_all +decide [ gridBox ];
+      · intro i; specialize hx i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] at hx;
+        exact ⟨ Int.lt_ceil.2 ( by linarith ), Int.ceil_le.2 ( by linarith ) ⟩;
+      · intro i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] ; constructor <;> linarith [ Int.ceil_lt_add_one ( ( N : ℝ ) * x.ofLp i ), Int.le_ceil ( ( N : ℝ ) * x.ofLp i ) ] ;
+    simp_all +decide [ Box.mem_toSet, gridCells ];
+    exact ⟨ k, hk ⟩;
+  · simp [Box.mem_toSet, gridCells];
+    intro k hk₁ hk₂ i; exact ⟨ lt_of_le_of_lt ( by gcongr ; exact_mod_cast hk₁ i |>.1 ) ( hk₂ i |>.1 ), le_trans ( hk₂ i |>.2 ) ( by gcongr ; exact_mod_cast hk₁ i |>.2 ) ⟩ ;
+
+/-
+Volume of a grid box.
+-/
+lemma Box.volume_gridBox {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
+    |Box.gridBox N p q|ᵥ = ∏ i, ((q i - p i : ℤ):ℝ)/(N:ℝ) := by
+  convert Finset.prod_congr rfl fun i _ => ?_;
+  unfold BoundedInterval.length; norm_num [ sub_div ] ; ring;
+  rw [ mul_comm ] ; gcongr ; exact hpq i
+
+/-
+The unit cube is the grid box `∏ (0/N, N/N]`.
+-/
+lemma Box.unit_cube_eq_gridBox {d:ℕ} {N:ℕ} (hN : N ≠ 0) :
+    Box.unit_cube d = Box.gridBox N (fun _ ↦ (0:ℤ)) (fun _ ↦ (N:ℤ)) := by
+  congr 1 with i ; norm_num [ hN ]
+
+section MeasureUniqAux
+
+variable {d : ℕ} {m' : (E : Set (EuclideanSpace' d)) → IsElementary E → ℝ}
+  (hnonneg : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E), m' E hE ≥ 0)
+  (hadd : ∀ (E F : Set (EuclideanSpace' d)) (hE : IsElementary E) (hF : IsElementary F),
+    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
+  (htrans : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E) (x : EuclideanSpace' d),
+    m' (E + {x}) (hE.translate x) = m' E hE)
+
+/-- `m'` does not depend on the chosen elementarity proof (proof irrelevance of `IsElementary`). -/
+lemma m'_congr {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
+    (h : E = F) : m' E hE = m' F hF := by
+  subst h; rfl
+
+include hadd in
+/-- `m'` of the empty set is `0`. -/
+lemma m'_empty : m' (∅ : Set (EuclideanSpace' d)) (IsElementary.empty d) = 0 := by
+  have h := hadd ∅ ∅ (IsElementary.empty d) (IsElementary.empty d) (by simp)
+  rw [m'_congr (m' := m') ((IsElementary.empty d).union (IsElementary.empty d)) (IsElementary.empty d)
+    (Set.union_self ∅)] at h
+  linarith
+
+include hadd in
+/-- `m'` is additive over a pairwise-disjoint finset of boxes. -/
+lemma m'_sum_boxes (T : Finset (Box d))
+    (hT : (T : Set (Box d)).PairwiseDisjoint Box.toSet) :
+    m' (⋃ B ∈ T, (B : Set (EuclideanSpace' d))) ⟨T, rfl⟩
+      = ∑ B ∈ T, m' (B : Set (EuclideanSpace' d)) (IsElementary.box B) := by
+  induction' T using Finset.induction_on with B T hT ih;
+  all_goals try exact Classical.decEq _;
+  · contrapose! hadd;
+    use ∅, ∅; simp [hadd];
+    exact ⟨ IsElementary.empty d, by simpa using hadd ⟩;
+  · simp_all +decide [ Finset.sum_insert, Set.PairwiseDisjoint ];
+    convert hadd _ _ { B } rfl T rfl _ using 1;
+    · convert m'_congr _ _ _ ; aesop;
+    · simp +decide [ ih ( hT.mono ( by aesop_cat ) ) ];
+    · grind +suggestions
+
+include hnonneg hadd in
+/-- `m'` is monotone with respect to set inclusion. -/
+lemma m'_mono {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
+    (hsub : E ⊆ F) : m' E hE ≤ m' F hF := by
+  contrapose! hadd;
+  use E, F \ E;
+  refine' ⟨ hE, hF.sdiff hE, _, _ ⟩;
+  · exact disjoint_sdiff_self_right;
+  · convert ne_of_lt ( lt_add_of_lt_of_nonneg hadd ( hnonneg _ _ ) ) using 1;
+    convert m'_congr _ _ _ ; aesop
+
+include htrans in
+/-- `m'` of a grid cell equals `m'` of the cube `(0,1/N]^d` (translation invariance). -/
+lemma m'_cell_eq_cube {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
+    m' (Box.cell N k).toSet (IsElementary.box _)
+      = m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+  convert htrans _ _ _ using 2;
+  convert Box.cell_eq_translate hN k
+
+include hadd htrans in
+/-- `m'` of a grid box is the number of cells times `m'` of the small cube. -/
+lemma m'_gridBox_count {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    m' (Box.gridBox N p q).toSet (IsElementary.box _)
+      = ((∏ i, (q i - p i).toNat : ℕ) : ℝ)
+          * m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+  convert m'_congr _ _ ( Box.gridBox_eq_cells_union hN p q ) using 1;
+  convert Eq.symm ( m'_sum_boxes hadd _ _ ) using 1;
+  · have h_sum : ∀ B ∈ Box.gridCells N p q, m' B.toSet (IsElementary.box B) = m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+      simp +decide [ Box.gridCells ];
+      exact fun a _ => m'_cell_eq_cube htrans hN a;
+    rw [ Finset.sum_congr rfl h_sum, Finset.sum_const, nsmul_eq_mul, Box.gridCells_card hN ];
+  · exact Box.gridCells_pairwiseDisjoint hN p q
+
+include hadd htrans in
+/-- `m'` of the cube `(0,1/N]^d` equals `c / N^d`, where `c = m'` of the unit cube. -/
+lemma m'_cube_value {N:ℕ} (hN : N ≠ 0) :
+    m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) / (N:ℝ) ^ d := by
+  convert eq_div_of_mul_eq ( by positivity : ( N ^ d : ℝ ) ≠ 0 ) ( mul_comm _ _ ) using 1;
+  congr! 2;
+  convert m'_gridBox_count hadd htrans hN ( fun _ ↦ 0 ) ( fun _ ↦ N ) using 1;
+  · exact Box.unit_cube_eq_gridBox hN ▸ rfl;
+  · norm_num [ Int.toNat_of_nonneg, hN ]
+
+include hadd htrans in
+/-- `m'` agrees with `c · volume` on every grid box (with `p ≤ q`). -/
+lemma m'_gridBox_eq {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
+    m' (Box.gridBox N p q).toSet (IsElementary.box _)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |Box.gridBox N p q|ᵥ := by
+  convert m'_gridBox_count hadd htrans hN p q using 1;
+  rw [ mul_comm, Box.volume_gridBox hN p q hpq, m'_cube_value hadd htrans hN ];
+  rw [ Finset.prod_div_distrib, Finset.prod_const, Finset.card_fin ] ; ring;
+  rw [ mul_assoc, mul_comm ];
+  congr! 2;
+  norm_cast;
+  rw [ Nat.cast_prod ] ; exact Finset.prod_congr rfl fun _ _ => by rw [ Int.toNat_of_nonneg ( sub_nonneg.mpr ( hpq _ ) ) ] ;
+
+include hnonneg hadd htrans in
+/-- Upper bound: `m'` of a box is at most `c · volume`, via an outer grid box and `N → ∞`. -/
+lemma m'_box_le (B : Box d) :
+    m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
+      ≤ m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ := by
+  by_cases hB : B.toSet = ∅;
+  · rw [ Box.volume_eq_zero_of_empty ] <;> norm_num [ hB ];
+    exact le_of_eq ( m'_empty hadd );
+  · -- For every `N ≥ 1`, `B.toSet ⊆ (O N).toSet`.
+    have h_subset : ∀ N : ℕ, N ≥ 1 → B.toSet ⊆ (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).toSet := by
+      intro N hN x hx;
+      intro i
+      have h_floor : ((⌊(N:ℝ) * (B.side i).a⌋ - 1 : ℤ) : ℝ) / N < (B.side i).a := by
+        rw [ div_lt_iff₀ ] <;> norm_num <;> linarith [ Int.floor_le ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.lt_floor_add_one ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), show ( N : ℝ ) ≥ 1 by norm_cast ]
+      have h_ceil : (B.side i).b ≤ ((⌈(N:ℝ) * (B.side i).b⌉ : ℤ) : ℝ) / N := by
+        rw [ le_div_iff₀ ] <;> first | positivity | linarith [ Int.le_ceil ( ( N : ℝ ) * ( B.side i ).b ) ] ;
+      have := BoundedInterval.subset_Icc ( B.side i ) ; simp_all +decide [ Box.mem_toSet ] ;
+      exact ⟨ lt_of_lt_of_le h_floor ( this ( hx i ) |>.1 ), le_trans ( this ( hx i ) |>.2 ) h_ceil ⟩;
+    -- Hence for `N ≥ 1`: `m' B (IsElementary.box B) ≤ m' (O N).toSet _` by `m'_mono` with (i), and `m' (O N).toSet _ = c * |O N|ᵥ` by `m'_gridBox_eq` (using `N ≠ 0` and (ii)).
+    have h_le : ∀ N : ℕ, N ≥ 1 → m' B.toSet (IsElementary.box B) ≤ m' (Box.unit_cube d).toSet (IsElementary.box (Box.unit_cube d)) * (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).volume := by
+      intros N hN
+      have h_mono : m' B.toSet (IsElementary.box B) ≤ m' (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).toSet (IsElementary.box _) := by
+        apply m'_mono;
+        · assumption;
+        · assumption;
+        · exact h_subset N hN;
+      convert h_mono using 1;
+      rw [ m'_gridBox_eq hadd htrans ( by positivity ) ];
+      intro i; specialize h_subset N hN; simp_all +decide [ Set.subset_def ] ;
+      obtain ⟨ x, hx ⟩ := Set.nonempty_iff_ne_empty.mpr hB;
+      have := h_subset x hx i;
+      exact Int.le_of_lt_add_one ( by rw [ ← @Int.cast_lt ℝ ] ; push_cast; nlinarith [ show ( N : ℝ ) ≥ 1 by norm_cast, mul_div_cancel₀ ( ( ⌊ ( N : ℝ ) * ( B.side i ).a⌋ : ℝ ) - 1 ) ( by positivity : ( N : ℝ ) ≠ 0 ), mul_div_cancel₀ ( ( ⌈ ( N : ℝ ) * ( B.side i ).b⌉ : ℝ ) ) ( by positivity : ( N : ℝ ) ≠ 0 ) ] );
+    -- By `tendsto_finset_prod`, the product tends to `∏ i, (b i - a i) = |B|ᵥ`.
+    have h_tendsto : Filter.Tendsto (fun N : ℕ => (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).volume) Filter.atTop (nhds (B.volume)) := by
+      convert tendsto_finset_prod _ fun i _ => ?_ using 2;
+      · infer_instance;
+      · unfold Box.gridBox; norm_num [ BoundedInterval.length ] ; ring;
+        refine' Filter.Tendsto.max _ tendsto_const_nhds;
+        convert Filter.Tendsto.add ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( Filter.Tendsto.sub ( tendsto_inv_atTop_nhds_zero_nat ) ( tendsto_floor_div_atTop ( B.side i |>.a ) ) ) using 2 ; ring;
+        ring;
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds ( h_tendsto.const_mul _ ) ( Filter.eventually_atTop.mpr ⟨ 1, fun N hN => h_le N hN ⟩ )
+
+set_option maxHeartbeats 1000000 in
+include hnonneg hadd htrans in
+/-- Lower bound: `c · volume` is at most `m'` of a box, via an inner grid box and `N → ∞`. -/
+lemma m'_box_ge (B : Box d) :
+    m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ
+      ≤ m' (B : Set (EuclideanSpace' d)) (IsElementary.box B) := by
+  by_contra! h_contra;
+  obtain ⟨N, hN⟩ : ∃ N : ℕ, N ≥ 1 ∧ B.toSet.Nonempty ∧ ∀ n ≥ N, (∀ i, ⌈(n:ℝ) * (B.side i).a⌉ + 1 ≤ ⌈(n:ℝ) * (B.side i).b⌉) := by
+    have h_nonempty : B.toSet.Nonempty := by
+      contrapose! h_contra;
+      rw [ Box.volume_eq_zero_of_empty ] <;> norm_num [ h_contra ];
+      exact hnonneg _ _;
+    have h_pos : ∀ i, (B.side i).a < (B.side i).b := by
+      intro i; contrapose! h_contra; simp_all +decide [ Box.volume ] ;
+      rw [ Finset.prod_eq_zero ( Finset.mem_univ i ) ] <;> norm_num [ BoundedInterval.length, h_contra ];
+      convert hnonneg _ { B } rfl using 1;
+      congr ; aesop;
+    have h_pos : ∀ i, ∃ N : ℕ, ∀ n ≥ N, ⌈(n:ℝ) * (B.side i).a⌉ + 1 ≤ ⌈(n:ℝ) * (B.side i).b⌉ := by
+      intro i
+      obtain ⟨N, hN⟩ : ∃ N : ℕ, ∀ n ≥ N, (n : ℝ) * ((B.side i).b - (B.side i).a) > 1 := by
+        exact ⟨ ⌊1 / ( ( B.side i ).b - ( B.side i ).a ) ⌋₊ + 1, fun n hn => by nlinarith [ Nat.lt_of_floor_lt hn, h_pos i, mul_div_cancel₀ 1 ( sub_ne_zero_of_ne ( ne_of_gt ( h_pos i ) ) ) ] ⟩;
+      exact ⟨ N, fun n hn => Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast; linarith [ Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), hN n hn ] ⟩;
+    choose N hN using h_pos;
+    exact ⟨ Finset.univ.sup N + 1, Nat.succ_pos _, h_nonempty, fun n hn i => hN i n <| le_trans ( Finset.le_sup ( f := N ) <| Finset.mem_univ i ) <| Nat.le_of_succ_le hn ⟩;
+  -- For all $n \geq N$, we have $Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1) \subseteq B.toSet$.
+  have h_subset : ∀ n ≥ N, (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet ⊆ B.toSet := by
+    intro n hn x hx; simp_all +decide [ Box.mem_toSet ] ;
+    intro i; specialize hx i; specialize hN; have := hN.2.2 n hn i; simp_all +decide [ div_lt_iff₀, le_div_iff₀ ] ;
+    convert BoundedInterval.Ioo_subset ( B.side i ) _ using 1;
+    swap;
+    exact x.ofLp i;
+    exact ⟨ fun h => fun _ => h, fun h => h ⟨ by rw [ div_lt_iff₀ ( by norm_cast; linarith ) ] at hx; nlinarith [ Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), show ( n : ℝ ) ≥ 1 by norm_cast; linarith ], by rw [ le_div_iff₀ ( by norm_cast; linarith ) ] at hx; nlinarith [ Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), show ( n : ℝ ) ≥ 1 by norm_cast; linarith ] ⟩ ⟩;
+  -- By `m'_gridBox_eq`, we have $m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet _ = m' (Box.unit_cube d).toSet _ * |Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)|ᵥ$.
+  have h_eq : ∀ n ≥ N, m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet (IsElementary.box _) = m' (Box.unit_cube d).toSet (IsElementary.box (Box.unit_cube d)) * (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).volume := by
+    intros n hn
+    apply m'_gridBox_eq hadd htrans (by linarith) (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1) (by
+    exact fun i => Int.le_sub_one_of_lt ( hN.2.2 n hn i ));
+  -- By `tendsto_finset_prod`, we have $|Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)|ᵥ \to |B|ᵥ$ as $n \to \infty$.
+  have h_tendsto : Filter.Tendsto (fun n : ℕ => (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).volume) Filter.atTop (nhds (B.volume)) := by
+    have h_tendsto : Filter.Tendsto (fun n : ℕ => ∏ i, ((⌈(n:ℝ) * (B.side i).b⌉ - 1 - ⌈(n:ℝ) * (B.side i).a⌉ : ℤ):ℝ)/(n:ℝ)) Filter.atTop (nhds (∏ i, ((B.side i).b - (B.side i).a))) := by
+      refine' tendsto_finset_prod _ fun i _ => _;
+      convert Filter.Tendsto.sub ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( tendsto_ceil_div_atTop ( B.side i |>.a ) ) |> Filter.Tendsto.sub <| tendsto_one_div_atTop_nhds_zero_nat using 2 ; ring;
+      · push_cast; ring;
+      · ring;
+    convert h_tendsto.congr' _ using 2;
+    · have h_volume : ∀ i, (B.side i).b - (B.side i).a ≥ 0 := by
+        intro i; specialize hN; have := hN.2.2 N le_rfl i; contrapose! this;
+        exact Int.lt_add_one_iff.mpr ( Int.ceil_mono <| mul_le_mul_of_nonneg_left ( by linarith ) <| Nat.cast_nonneg _ );
+      exact Finset.prod_congr rfl fun i _ => by rw [ BoundedInterval.length ] ; rw [ max_eq_left ( h_volume i ) ] ;
+    · filter_upwards [ Filter.eventually_ge_atTop N ] with n hn;
+      rw [ Box.volume_gridBox ];
+      · linarith;
+      · exact fun i => Int.le_sub_one_of_lt ( hN.2.2 n hn i );
+  -- By `m'_mono`, we have $m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet _ \leq m' B.toSet _$.
+  have h_mono : ∀ n ≥ N, m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet (IsElementary.box _) ≤ m' B.toSet (IsElementary.box B) := by
+    exact fun n a => m'_mono hnonneg hadd _ (IsElementary.box B) (h_subset n a);
+  exact h_contra.not_ge <| le_of_tendsto_of_tendsto ( h_tendsto.const_mul _ ) tendsto_const_nhds <| Filter.eventually_atTop.mpr ⟨ N, fun n hn => by linarith [ h_eq n hn, h_mono n hn ] ⟩
+
+include hnonneg hadd htrans in
+/-- The crux of Exercise 1.1.3: `m'` agrees with `c · volume` on every box, where
+`c = m'` of the unit cube. -/
+lemma m'_box (B : Box d) :
+    m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ :=
+  le_antisymm (m'_box_le hnonneg hadd htrans B) (m'_box_ge hnonneg hadd htrans B)
+
+end MeasureUniqAux
+
 /-- Exercise 1.1.3 (uniqueness of elementary measure): Any non-negative, additive, translation-invariant
 function on elementary sets is a scalar multiple of the standard elementary measure. -/
 theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
@@ -2310,7 +2621,14 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (hF: IsElementary F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
-  sorry
+  classical
+  refine ⟨ m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)), hnonneg _ _, ?_ ⟩
+  intro E hE
+  obtain ⟨T, hT_disj, hE_eq⟩ := hE.partition
+  rw [m'_congr (m' := m') hE (⟨T, rfl⟩) hE_eq]
+  rw [m'_sum_boxes (m' := m') hadd T hT_disj]
+  rw [hE.measure_eq hT_disj hE_eq, Finset.mul_sum]
+  exact Finset.sum_congr rfl (fun B _ => m'_box (m' := m') hnonneg hadd htrans B)
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
 theorem IsElementary.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
