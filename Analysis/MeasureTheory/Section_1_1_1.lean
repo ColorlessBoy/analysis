@@ -2315,11 +2315,11 @@ Volume of the half-open cube (0,t]^d is `t^d` for `0 ≤ t`.
 lemma Box.volume_cube {d:ℕ} {t:ℝ} (ht : 0 ≤ t) : |Box.cube d t|ᵥ = t ^ d := by
   unfold Box.volume; simp +decide [ ht ] ;
 
-/-- The grid cell at resolution `N` with lower corner `k/N`: `∏ᵢ (kᵢ/N, (kᵢ+1)/N]`. -/
+/-- The grid cell at resolution {lit}`N` with lower corner {lit}`k/N`: {lit}`∏ᵢ (kᵢ/N, (kᵢ+1)/N]`. -/
 noncomputable abbrev Box.cell {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : Box d :=
   { side := fun i ↦ BoundedInterval.Ioc ((k i : ℝ)/(N:ℝ)) (((k i : ℝ)+1)/(N:ℝ)) }
 
-/-- The translation vector `k/N` in Euclidean space. -/
+/-- The translation vector {lit}`k/N` in Euclidean space. -/
 noncomputable abbrev Box.gridVec {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : EuclideanSpace' d :=
   .toLp 2 (fun i ↦ (k i : ℝ)/(N:ℝ))
 
@@ -2337,7 +2337,7 @@ noncomputable abbrev Box.gridBox {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Box d :
   { side := fun i ↦ BoundedInterval.Ioc ((p i : ℝ)/(N:ℝ)) ((q i : ℝ)/(N:ℝ)) }
 
 open Classical in
-/-- The finset of grid cells tiling `gridBox N p q`. -/
+/-- The finset of grid cells tiling {lit}`gridBox N p q`. -/
 noncomputable def Box.gridCells {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Finset (Box d) :=
   Finset.image (Box.cell N) (Fintype.piFinset (fun i ↦ Finset.Ico (p i) (q i)))
 
@@ -2417,13 +2417,13 @@ variable {d : ℕ} {m' : (E : Set (EuclideanSpace' d)) → IsElementary E → �
   (htrans : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E) (x : EuclideanSpace' d),
     m' (E + {x}) (hE.translate x) = m' E hE)
 
-/-- `m'` does not depend on the chosen elementarity proof (proof irrelevance of `IsElementary`). -/
+/-- {lit}`m'` does not depend on the chosen elementarity proof (proof irrelevance of {lean}`IsElementary`). -/
 lemma m'_congr {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
     (h : E = F) : m' E hE = m' F hF := by
   subst h; rfl
 
 include hadd in
-/-- `m'` of the empty set is `0`. -/
+/-- {lit}`m'` of the empty set is {lit}`0`. -/
 lemma m'_empty : m' (∅ : Set (EuclideanSpace' d)) (IsElementary.empty d) = 0 := by
   have h := hadd ∅ ∅ (IsElementary.empty d) (IsElementary.empty d) (by simp)
   rw [m'_congr (m' := m') ((IsElementary.empty d).union (IsElementary.empty d)) (IsElementary.empty d)
@@ -2431,7 +2431,7 @@ lemma m'_empty : m' (∅ : Set (EuclideanSpace' d)) (IsElementary.empty d) = 0 :
   linarith
 
 include hadd in
-/-- `m'` is additive over a pairwise-disjoint finset of boxes. -/
+/-- {lit}`m'` is additive over a pairwise-disjoint finset of boxes. -/
 lemma m'_sum_boxes (T : Finset (Box d))
     (hT : (T : Set (Box d)).PairwiseDisjoint Box.toSet) :
     m' (⋃ B ∈ T, (B : Set (EuclideanSpace' d))) ⟨T, rfl⟩
@@ -2448,7 +2448,7 @@ lemma m'_sum_boxes (T : Finset (Box d))
     · grind +suggestions
 
 include hnonneg hadd in
-/-- `m'` is monotone with respect to set inclusion. -/
+/-- {lit}`m'` is monotone with respect to set inclusion. -/
 lemma m'_mono {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
     (hsub : E ⊆ F) : m' E hE ≤ m' F hF := by
   contrapose! hadd;
@@ -2459,7 +2459,7 @@ lemma m'_mono {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElem
     convert m'_congr _ _ _ ; aesop
 
 include htrans in
-/-- `m'` of a grid cell equals `m'` of the cube `(0,1/N]^d` (translation invariance). -/
+/-- {lit}`m'` of a grid cell equals {lit}`m'` of the cube `(0,1/N]^d` (translation invariance). -/
 lemma m'_cell_eq_cube {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
     m' (Box.cell N k).toSet (IsElementary.box _)
       = m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
@@ -2467,7 +2467,7 @@ lemma m'_cell_eq_cube {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
   convert Box.cell_eq_translate hN k
 
 include hadd htrans in
-/-- `m'` of a grid box is the number of cells times `m'` of the small cube. -/
+/-- {lit}`m'` of a grid box is the number of cells times {lit}`m'` of the small cube. -/
 lemma m'_gridBox_count {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
     m' (Box.gridBox N p q).toSet (IsElementary.box _)
       = ((∏ i, (q i - p i).toNat : ℕ) : ℝ)
@@ -2481,7 +2481,7 @@ lemma m'_gridBox_count {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
   · exact Box.gridCells_pairwiseDisjoint hN p q
 
 include hadd htrans in
-/-- `m'` of the cube `(0,1/N]^d` equals `c / N^d`, where `c = m'` of the unit cube. -/
+/-- {lit}`m'` of the cube `(0,1/N]^d` equals {lit}`c / N^d`, where {lit}`c = m'` of the unit cube. -/
 lemma m'_cube_value {N:ℕ} (hN : N ≠ 0) :
     m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _)
       = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) / (N:ℝ) ^ d := by
@@ -2492,7 +2492,7 @@ lemma m'_cube_value {N:ℕ} (hN : N ≠ 0) :
   · norm_num [ Int.toNat_of_nonneg, hN ]
 
 include hadd htrans in
-/-- `m'` agrees with `c · volume` on every grid box (with `p ≤ q`). -/
+/-- {lit}`m'` agrees with {lit}`c · volume` on every grid box (with {lit}`p ≤ q`). -/
 lemma m'_gridBox_eq {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
     m' (Box.gridBox N p q).toSet (IsElementary.box _)
       = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |Box.gridBox N p q|ᵥ := by
@@ -2505,7 +2505,7 @@ lemma m'_gridBox_eq {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q)
   rw [ Nat.cast_prod ] ; exact Finset.prod_congr rfl fun _ _ => by rw [ Int.toNat_of_nonneg ( sub_nonneg.mpr ( hpq _ ) ) ] ;
 
 include hnonneg hadd htrans in
-/-- Upper bound: `m'` of a box is at most `c · volume`, via an outer grid box and `N → ∞`. -/
+/-- Upper bound: {lit}`m'` of a box is at most {lit}`c · volume`, via an outer grid box and `N → ∞`. -/
 lemma m'_box_le (B : Box d) :
     m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
       ≤ m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ := by
@@ -2547,7 +2547,7 @@ lemma m'_box_le (B : Box d) :
 
 set_option maxHeartbeats 1000000 in
 include hnonneg hadd htrans in
-/-- Lower bound: `c · volume` is at most `m'` of a box, via an inner grid box and `N → ∞`. -/
+/-- Lower bound: {lit}`c · volume` is at most {lit}`m'` of a box, via an inner grid box and `N → ∞`. -/
 lemma m'_box_ge (B : Box d) :
     m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ
       ≤ m' (B : Set (EuclideanSpace' d)) (IsElementary.box B) := by
@@ -2604,8 +2604,8 @@ lemma m'_box_ge (B : Box d) :
   exact h_contra.not_ge <| le_of_tendsto_of_tendsto ( h_tendsto.const_mul _ ) tendsto_const_nhds <| Filter.eventually_atTop.mpr ⟨ N, fun n hn => by linarith [ h_eq n hn, h_mono n hn ] ⟩
 
 include hnonneg hadd htrans in
-/-- The crux of Exercise 1.1.3: `m'` agrees with `c · volume` on every box, where
-`c = m'` of the unit cube. -/
+/-- The crux of Exercise 1.1.3: {lit}`m'` agrees with {lit}`c · volume` on every box, where
+{lit}`c = m'` of the unit cube. -/
 lemma m'_box (B : Box d) :
     m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
       = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ :=
