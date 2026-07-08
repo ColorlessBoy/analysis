@@ -429,7 +429,14 @@ theorem JordanMeasurable.equiv {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornolo
 
 /-- Every elementary set is Jordan measurable. -/
 theorem IsElementary.jordanMeasurable {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: IsElementary E) : JordanMeasurable E := by
-  sorry
+  have h_bounded : Bornology.IsBounded E := hE.isBounded
+  have h_eq : Jordan_inner_measure E = Jordan_outer_measure E := by
+    apply le_antisymm
+    · exact Jordan_inner_le_outer h_bounded
+    · calc
+      Jordan_outer_measure E ≤ hE.measure := Jordan_outer_le hE (Set.Subset.refl E)
+      _ ≤ Jordan_inner_measure E := le_Jordan_inner hE (Set.Subset.refl E)
+  exact ⟨h_bounded, h_eq⟩
 
 /-- The Jordan measure of an elementary set equals its elementary measure. -/
 theorem JordanMeasurable.mes_of_elementary {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: IsElementary E) : hE.jordanMeasurable.measure = hE.measure := by
