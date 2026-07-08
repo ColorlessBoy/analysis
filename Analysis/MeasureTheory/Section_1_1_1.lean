@@ -2308,6 +2308,8 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (hF: IsElementary F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
+  set c := m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) with hc_def
+  have hc_nonneg : c ≥ 0 := hnonneg _ _
   sorry
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
@@ -2318,7 +2320,22 @@ theorem IsElementary.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) →
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE)
   (hcube : m' (Box.unit_cube d) (IsElementary.box _) = 1) :
   ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = hE.measure := by
-    sorry
+  have h_uniq := IsElementary.measure_uniq (m' := m') hnonneg hadd htrans
+  rcases h_uniq with ⟨c, hc_nonneg, h_eq⟩
+  have hc_one : c = 1 := by
+    have h_cube_measure : (IsElementary.box (Box.unit_cube d)).measure = 1 := by
+      -- The unit cube has volume 1
+      simp [IsElementary.measure_of_box, Box.volume, Box.unit_cube, BoundedInterval.length]
+    have h_cube_eq : m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) = c * (IsElementary.box (Box.unit_cube d)).measure :=
+      h_eq (Box.unit_cube d) (IsElementary.box (Box.unit_cube d))
+    rw [h_cube_measure, mul_one] at h_cube_eq
+    rw [hcube] at h_cube_eq
+    exact h_cube_eq.symm
+  intro E hE
+  calc
+    m' E hE = c * hE.measure := h_eq E hE
+    _ = 1 * hE.measure := by rw [hc_one]
+    _ = hE.measure := by simp
 
 /-- The Cartesian product of two boxes is a box in the sum dimension. -/
 abbrev Box.prod {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) : Box (d₁ + d₂) where
