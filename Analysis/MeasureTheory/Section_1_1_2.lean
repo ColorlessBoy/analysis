@@ -984,7 +984,29 @@ lemma JordanMeasurable.null_iff {d:ℕ} {E: Set (EuclideanSpace' d)} : null E �
 /-- Exercise 1.1.12 -/
 -- A subset of a Jordan null set is also Jordan null.
 lemma JordanMeasurable.null_mono {d:ℕ} {E F: Set (EuclideanSpace' d)} (h: null E) (hEF: F ⊆ E) : null F := by
-  sorry
+  rcases null_iff.mp h with ⟨hEbounded, hEouter⟩
+  have hFbounded : Bornology.IsBounded F := hEbounded.subset hEF
+  have hFouter : Jordan_outer_measure F = 0 := by
+    have h_nonneg : 0 ≤ Jordan_outer_measure F := Jordan_outer_measure_nonneg F
+    have hF_le_E : Jordan_outer_measure F ≤ Jordan_outer_measure E := by
+      unfold Jordan_outer_measure
+      apply csInf_le_csInf
+      · -- The set for F is bounded below by 0
+        use 0
+        intro m hm
+        obtain ⟨A, hA, _, hm_eq⟩ := hm
+        rw [hm_eq]
+        exact hA.measure_nonneg
+      · -- The set for E is nonempty: E is bounded, so there exists an elementary superset
+        obtain ⟨A, hA, hEA⟩ := IsElementary.contains_bounded hEbounded
+        exact ⟨hA.measure, A, hA, hEA, rfl⟩
+      · -- Since F ⊆ E, any elementary superset of E is also a superset of F
+        intro m hm
+        obtain ⟨A, hA, hEA, hm_eq⟩ := hm
+        exact ⟨A, hA, Set.Subset.trans hEF hEA, hm_eq⟩
+    rw [hEouter] at hF_le_E
+    nlinarith
+  exact null_iff.mpr ⟨hFbounded, hFouter⟩
 
 /-- Exercise 1.1.13 -/
 -- The Jordan measure equals the limit of scaled lattice point counts in the set.
