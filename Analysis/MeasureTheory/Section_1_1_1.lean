@@ -2514,8 +2514,7 @@ lemma m'_box_le (B : Box d) :
     exact le_of_eq ( m'_empty hadd );
   · -- For every `N ≥ 1`, `B.toSet ⊆ (O N).toSet`.
     have h_subset : ∀ N : ℕ, N ≥ 1 → B.toSet ⊆ (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).toSet := by
-      intro N hN x hx;
-      intro i
+      intro N hN x hx i
       have h_floor : ((⌊(N:ℝ) * (B.side i).a⌋ - 1 : ℤ) : ℝ) / N < (B.side i).a := by
         rw [ div_lt_iff₀ ] <;> norm_num <;> linarith [ Int.floor_le ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.lt_floor_add_one ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), show ( N : ℝ ) ≥ 1 by norm_cast ]
       have h_ceil : (B.side i).b ≤ ((⌈(N:ℝ) * (B.side i).b⌉ : ℤ) : ℝ) / N := by
