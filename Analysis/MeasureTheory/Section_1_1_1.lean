@@ -710,7 +710,44 @@ lemma IsElementary.union' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
 /-- Exercise 1.1.1 (Boolean closure): The intersection of two elementary sets is elementary. -/
 theorem IsElementary.inter {d:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E ∩ F) := by
-  sorry
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_F, hF⟩ := hF
+  classical
+  let f : Box d × Box d → Box d := λ ⟨B_E, B_F⟩ => ⟨fun i => (B_E.side i) ∩ (B_F.side i)⟩
+  have hf : ∀ (B_E B_F : Box d), (f (B_E, B_F)).toSet = B_E.toSet ∩ B_F.toSet := by
+    intro B_E B_F
+    dsimp [f]
+    ext x
+    simp only [Box.mem_toSet]
+    constructor
+    · intro h
+      constructor
+      · intro i
+        have hi := h i
+        rw [BoundedInterval.inter_eq] at hi
+        exact hi.1
+      · intro i
+        have hi := h i
+        rw [BoundedInterval.inter_eq] at hi
+        exact hi.2
+    · intro ⟨hE, hF⟩ i
+      rw [BoundedInterval.inter_eq]
+      exact ⟨hE i, hF i⟩
+  use (S_E ×ˢ S_F).image f
+  rw [hE, hF]
+  ext x
+  simp only [Set.mem_inter_iff, Set.mem_iUnion, exists_prop]
+  constructor
+  · rintro ⟨⟨B_E, hBE, hx_E⟩, B_F, hBF, hx_F⟩
+    refine ⟨f (B_E, B_F), Finset.mem_image.mpr ⟨(B_E, B_F), Finset.mem_product.mpr ⟨hBE, hBF⟩, rfl⟩, ?_⟩
+    rw [hf]
+    exact ⟨hx_E, hx_F⟩
+  · rintro ⟨B, hB, hx⟩
+    rcases Finset.mem_image.mp hB with ⟨⟨B_E, B_F⟩, hpair, rfl⟩
+    rcases Finset.mem_product.mp hpair with ⟨hBE, hBF⟩
+    rw [hf] at hx
+    rcases hx with ⟨hx_E, hx_F⟩
+    exact ⟨⟨B_E, hBE, hx_E⟩, B_F, hBF, hx_F⟩
 
 /-- The empty set is elementary. -/
 theorem IsElementary.empty (d:ℕ) : IsElementary (∅: Set (EuclideanSpace' d)) := by
