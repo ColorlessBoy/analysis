@@ -2398,7 +2398,7 @@ Volume of a grid box.
 lemma Box.volume_gridBox {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
     |Box.gridBox N p q|ᵥ = ∏ i, ((q i - p i : ℤ):ℝ)/(N:ℝ) := by
   convert Finset.prod_congr rfl fun i _ => ?_;
-  unfold BoundedInterval.length; norm_num [ sub_div ] ; ring;
+  unfold BoundedInterval.length; norm_num [ sub_div ] ; ring_nf;
   rw [ mul_comm ] ; gcongr ; exact hpq i
 
 /-
@@ -2498,7 +2498,7 @@ lemma m'_gridBox_eq {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q)
       = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |Box.gridBox N p q|ᵥ := by
   convert m'_gridBox_count hadd htrans hN p q using 1;
   rw [ mul_comm, Box.volume_gridBox hN p q hpq, m'_cube_value hadd htrans hN ];
-  rw [ Finset.prod_div_distrib, Finset.prod_const, Finset.card_fin ] ; ring;
+  rw [ Finset.prod_div_distrib, Finset.prod_const, Finset.card_fin ] ; ring_nf;
   rw [ mul_assoc, mul_comm ];
   congr! 2;
   norm_cast;
@@ -2540,7 +2540,7 @@ lemma m'_box_le (B : Box d) :
     have h_tendsto : Filter.Tendsto (fun N : ℕ => (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).volume) Filter.atTop (nhds (B.volume)) := by
       convert tendsto_finset_prod _ fun i _ => ?_ using 2;
       · infer_instance;
-      · unfold Box.gridBox; norm_num [ BoundedInterval.length ] ; ring;
+      · unfold Box.gridBox; norm_num [ BoundedInterval.length ] ; ring_nf;
         refine' Filter.Tendsto.max _ tendsto_const_nhds;
         convert Filter.Tendsto.add ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( Filter.Tendsto.sub ( tendsto_inv_atTop_nhds_zero_nat ) ( tendsto_floor_div_atTop ( B.side i |>.a ) ) ) using 2 ; ring;
         ring;
@@ -2587,7 +2587,7 @@ lemma m'_box_ge (B : Box d) :
   have h_tendsto : Filter.Tendsto (fun n : ℕ => (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).volume) Filter.atTop (nhds (B.volume)) := by
     have h_tendsto : Filter.Tendsto (fun n : ℕ => ∏ i, ((⌈(n:ℝ) * (B.side i).b⌉ - 1 - ⌈(n:ℝ) * (B.side i).a⌉ : ℤ):ℝ)/(n:ℝ)) Filter.atTop (nhds (∏ i, ((B.side i).b - (B.side i).a))) := by
       refine' tendsto_finset_prod _ fun i _ => _;
-      convert Filter.Tendsto.sub ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( tendsto_ceil_div_atTop ( B.side i |>.a ) ) |> Filter.Tendsto.sub <| tendsto_one_div_atTop_nhds_zero_nat using 2 ; ring;
+      convert Filter.Tendsto.sub ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( tendsto_ceil_div_atTop ( B.side i |>.a ) ) |> Filter.Tendsto.sub <| tendsto_one_div_atTop_nhds_zero_nat using 2 ; ring_nf;
       · push_cast; ring;
       · ring;
     convert h_tendsto.congr' _ using 2;
