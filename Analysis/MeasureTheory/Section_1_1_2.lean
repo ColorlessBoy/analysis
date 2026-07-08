@@ -462,7 +462,7 @@ theorem JordanMeasurable.empty (d:ℕ) : JordanMeasurable (∅: Set (EuclideanSp
 /-- The empty set has Jordan measure zero. -/
 @[simp]
 theorem JordanMeasurable.mes_of_empty (d:ℕ) : (JordanMeasurable.empty d).measure = 0 := by
-  sorry
+  rw [JordanMeasurable.mes_of_elementary (IsElementary.empty d), IsElementary.measure_of_empty d]
 
 
 /-- Exercise 1.1.6 (i) (Boolean closure) -/
