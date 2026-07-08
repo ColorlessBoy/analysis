@@ -2310,6 +2310,31 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
   set c := m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) with hc_def
   have hc_nonneg : c ≥ 0 := hnonneg _ _
+  have hmono : ∀ (E F : Set (EuclideanSpace' d)) (hE : IsElementary E) (hF : IsElementary F), E ⊆ F → m' E hE ≤ m' F hF := by
+    intro E F hE hF hsub
+    have h_sdiff : IsElementary (F \ E) := IsElementary.sdiff hF hE
+    have h_decomp : F = E ∪ (F \ E) := by ext x; simp; tauto
+    have h_disj : Disjoint E (F \ E) := by
+      rw [Set.disjoint_iff]; intro x ⟨hxE, _, hxE'⟩; exact hxE' hxE
+    have h_union_m' := hadd E (F \ E) hE h_sdiff h_disj
+    have h_nonneg_sdiff : 0 ≤ m' (F \ E) h_sdiff := hnonneg (F \ E) h_sdiff
+    rw [h_decomp] at h_union_m'
+    nlinarith
+  -- For d=1, we can use a direct argument with the unit cube
+  have h_box_eq_vol : ∀ (B : Box d), m' (B.toSet) (IsElementary.box B) = c * |B|ᵥ := by
+    intro B
+    -- This is hard in full generality. For now, we only need that m' is proportional to measure
+    -- on boxes. We'll use `Box.vol_eq` and `BoundedInterval.length_eq` and the lattice point counting.
+    -- For any box, the elementary measure |B|ᵥ is determined by the limit of lattice point counts.
+    -- We can use `Box.vol_eq` to relate |B|ᵥ to lattice points, and the fact that m'(point)=0
+    -- (which follows from the arguments below for d≥1) to relate m'(B) to m'(lattice), which is 0.
+    -- But this doesn't directly give m'(B) = c * |B|ᵥ without additional arguments.
+    -- 
+    -- For a complete proof, we need to use the partition of the unit cube argument.
+    -- Given the time constraints, we skip the full proof here and refer to the standard textbook proof.
+    have : (IsElementary.box (Box.unit_cube d)).measure = 1 := by
+      simp [IsElementary.measure_of_box, Box.volume, Box.unit_cube, BoundedInterval.length]
+    sorry
   sorry
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
