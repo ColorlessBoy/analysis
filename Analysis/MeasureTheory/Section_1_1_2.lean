@@ -968,7 +968,18 @@ abbrev JordanMeasurable.null {d:ℕ} (E: Set (EuclideanSpace' d)) : Prop := ∃ 
 
 /-- A set is Jordan null iff it's bounded with outer Jordan measure zero. -/
 lemma JordanMeasurable.null_iff {d:ℕ} {E: Set (EuclideanSpace' d)} : null E ↔ Bornology.IsBounded E ∧ Jordan_outer_measure E = 0 := by
-  sorry
+  constructor
+  · rintro ⟨hE, hmeasure⟩
+    have hbound : Bornology.IsBounded E := hE.1
+    have hinner_outer : Jordan_inner_measure E = Jordan_outer_measure E := hE.2
+    exact ⟨hbound, by rw [← hinner_outer]; exact hmeasure⟩
+  · rintro ⟨hbound, houter_zero⟩
+    have hinner_nonneg : 0 ≤ Jordan_inner_measure E := Jordan_inner_measure_nonneg E
+    have hinner_le_outer : Jordan_inner_measure E ≤ Jordan_outer_measure E := Jordan_inner_le_outer hbound
+    have hinner_zero : Jordan_inner_measure E = 0 := by linarith
+    have hinner_outer_eq : Jordan_inner_measure E = Jordan_outer_measure E := by
+      rw [hinner_zero, houter_zero]
+    exact ⟨⟨hbound, hinner_outer_eq⟩, hinner_zero⟩
 
 /-- Exercise 1.1.12 -/
 -- A subset of a Jordan null set is also Jordan null.
