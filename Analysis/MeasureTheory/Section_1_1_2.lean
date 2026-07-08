@@ -456,8 +456,8 @@ theorem JordanMeasurable.mes_of_elementary {d:ℕ} {E: Set (EuclideanSpace' d)} 
     exact le_Jordan_inner hE (Set.Subset.refl E)
 
 /-- The empty set is Jordan measurable. -/
-theorem JordanMeasurable.empty (d:ℕ) : JordanMeasurable (∅: Set (EuclideanSpace' d)) := by
-  sorry
+theorem JordanMeasurable.empty (d:ℕ) : JordanMeasurable (∅: Set (EuclideanSpace' d)) :=
+  (IsElementary.empty d).jordanMeasurable
 
 /-- The empty set has Jordan measure zero. -/
 @[simp]
