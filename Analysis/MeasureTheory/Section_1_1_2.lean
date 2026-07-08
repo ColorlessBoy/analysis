@@ -440,7 +440,20 @@ theorem IsElementary.jordanMeasurable {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: 
 
 /-- The Jordan measure of an elementary set equals its elementary measure. -/
 theorem JordanMeasurable.mes_of_elementary {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: IsElementary E) : hE.jordanMeasurable.measure = hE.measure := by
-  sorry
+  rw [hE.jordanMeasurable.eq_inner]
+  apply le_antisymm
+  · -- Jordan_inner_measure E ≤ hE.measure
+    dsimp [Jordan_inner_measure]
+    apply csSup_le
+    · -- set is nonempty
+      refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset E, ?_⟩
+      exact Eq.symm (IsElementary.measure_of_empty d)
+    · -- hE.measure is an upper bound
+      intro m hm
+      obtain ⟨A, hA, hA_sub_E, rfl⟩ := hm
+      exact IsElementary.measure_mono hA hE hA_sub_E
+  · -- hE.measure ≤ Jordan_inner_measure E
+    exact le_Jordan_inner hE (Set.Subset.refl E)
 
 /-- The empty set is Jordan measurable. -/
 theorem JordanMeasurable.empty (d:ℕ) : JordanMeasurable (∅: Set (EuclideanSpace' d)) := by
