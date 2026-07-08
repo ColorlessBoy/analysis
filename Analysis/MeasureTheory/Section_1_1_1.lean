@@ -677,11 +677,35 @@ theorem IsElementary.box {d:ℕ} (B: Box d) : IsElementary B.toSet := by
 /-- Exercise 1.1.1 (Boolean closure): The union of two elementary sets is elementary. -/
 theorem IsElementary.union {d:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E ∪ F) := by
-  sorry
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_F, hF⟩ := hF
+  classical
+  use S_E ∪ S_F
+  rw [hE, hF]
+  ext x
+  simp only [Set.mem_union, Set.mem_iUnion, Finset.mem_union, Box.mem_toSet]
+  constructor
+  · rintro ((⟨i, hi, hx⟩) | (⟨i, hi, hx⟩))
+    · exact ⟨i, Or.inl hi, hx⟩
+    · exact ⟨i, Or.inr hi, hx⟩
+  · rintro ⟨i, (hi | hi), hx⟩
+    · exact Or.inl ⟨i, hi, hx⟩
+    · exact Or.inr ⟨i, hi, hx⟩
 
 /-- The union of a finset of elementary sets is elementary. -/
 lemma IsElementary.union' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
-(hE: ∀ E ∈ S, IsElementary E) : IsElementary (⋃ E ∈ S, E) := by sorry
+(hE: ∀ E ∈ S, IsElementary E) : IsElementary (⋃ E ∈ S, E) := by
+  induction S using Finset.induction_on with
+  | empty =>
+    use (∅ : Finset (Box d)); simp
+  | insert a S' ha_notin ih =>
+    have hE_a : IsElementary a := hE a (Finset.mem_insert_self a S')
+    have hE_S' : ∀ E ∈ S', IsElementary E := fun E hE_mem => hE E (Finset.mem_insert_of_mem hE_mem)
+    have h_union : (⋃ E ∈ insert a S', E) = a ∪ (⋃ E ∈ S', E) := by
+      ext x; simp
+    rw [h_union]
+    have h_union_elem : IsElementary (⋃ E ∈ S', E) := ih hE_S'
+    exact IsElementary.union hE_a h_union_elem
 
 /-- Exercise 1.1.1 (Boolean closure): The intersection of two elementary sets is elementary. -/
 theorem IsElementary.inter {d:ℕ} {E F: Set (EuclideanSpace' d)}
@@ -690,7 +714,7 @@ theorem IsElementary.inter {d:ℕ} {E F: Set (EuclideanSpace' d)}
 
 /-- The empty set is elementary. -/
 theorem IsElementary.empty (d:ℕ) : IsElementary (∅: Set (EuclideanSpace' d)) := by
-  sorry
+  use (∅ : Finset (Box d)); simp
 
 /-- Exercise 1.1.1 (Boolean closure): The set difference of two elementary sets is elementary. -/
 theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
@@ -971,8 +995,8 @@ theorem Box.measure_uniq' {d:ℕ} {T₁ T₂: Finset (Box d)}
  (hT₁: (T₁ : Set (Box d)).PairwiseDisjoint Box.toSet)
  (hT₂: (T₂ : Set (Box d)).PairwiseDisjoint Box.toSet)
  (heq: ⋃ B ∈ T₁, B.toSet = ⋃ B ∈ T₂, B.toSet) :
- ∑ B ∈ T₁, |B|ᵥ = ∑ B ∈ T₂, |B|ᵥ := by
- sorry
+ ∑ B ∈ T₁, |B|ᵥ = ∑ B ∈ T₂, |B|ᵥ :=
+ Box.measure_uniq hT₁ hT₂ heq
 
 /-- Example: the measure of (1,2) ∪ \[3,6\] is 1 + 3 = 4. -/
 example :
