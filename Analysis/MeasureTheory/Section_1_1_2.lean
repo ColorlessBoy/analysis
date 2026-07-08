@@ -1,6 +1,8 @@
 import Analysis.MeasureTheory.Section_1_1_1
 import Mathlib.LinearAlgebra.AffineSpace.Simplex.Basic
 
+set_option maxHeartbeats 0
+
 /-!
 # Introduction to Measure Theory, Section 1.1.2: Jordan measure
 
@@ -1058,12 +1060,407 @@ theorem JordanMeasure.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) �
 
 /-- Exercise 1.1.16 -/
 theorem JordanMeasurable.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
-  (hE₁: JordanMeasurable E₁) (hE₂: JordanMeasurable E₂) : JordanMeasurable (EuclideanSpace'.prod E₁ E₂) := by sorry
+  (hE₁: JordanMeasurable E₁) (hE₂: JordanMeasurable E₂) : JordanMeasurable (EuclideanSpace'.prod E₁ E₂) := by
+  have hb₁ : Bornology.IsBounded E₁ := hE₁.1
+  have hb₂ : Bornology.IsBounded E₂ := hE₂.1
+  obtain ⟨B₁₀, hB₁₀, hB₁₀_sup⟩ := IsElementary.contains_bounded hb₁
+  obtain ⟨B₂₀, hB₂₀, hB₂₀_sup⟩ := IsElementary.contains_bounded hb₂
+  have hb_prod : Bornology.IsBounded (EuclideanSpace'.prod E₁ E₂) := by
+    have h_prod_elem : IsElementary (EuclideanSpace'.prod B₁₀ B₂₀) := IsElementary.prod hB₁₀ hB₂₀
+    have h_sub : EuclideanSpace'.prod E₁ E₂ ⊆ EuclideanSpace'.prod B₁₀ B₂₀ := by
+      dsimp [EuclideanSpace'.prod]
+      apply Set.image_mono
+      exact Set.prod_mono hB₁₀_sup hB₂₀_sup
+    exact h_prod_elem.isBounded.subset h_sub
+  set M₁ := hB₁₀.measure with hM₁
+  set M₂ := hB₂₀.measure with hM₂
+  have hM₁_nonneg : 0 ≤ M₁ := IsElementary.measure_nonneg hB₁₀
+  have hM₂_nonneg : 0 ≤ M₂ := IsElementary.measure_nonneg hB₂₀
+  have h_approx : ∀ ε > 0, ∃ A B : Set (EuclideanSpace' (d₁ + d₂)), ∃ hA : IsElementary A, ∃ hB : IsElementary B,
+      A ⊆ EuclideanSpace'.prod E₁ E₂ ∧ EuclideanSpace'.prod E₁ E₂ ⊆ B ∧ (hB.sdiff hA).measure ≤ ε := by
+    intro ε hε
+    set ε₁ := ε / (2*(M₂ + 1)) with hε₁_def
+    set ε₂ := ε / (2*(M₁ + 1)) with hε₂_def
+    have hε₁_pos : ε₁ > 0 := by
+      dsimp [ε₁]
+      refine div_pos hε ?_
+      nlinarith
+    have hε₂_pos : ε₂ > 0 := by
+      dsimp [ε₂]
+      refine div_pos hε ?_
+      nlinarith
+    have h_approx₁ : ∃ A₁ B₁ : Set (EuclideanSpace' d₁), ∃ hA₁ : IsElementary A₁, ∃ hB₁ : IsElementary B₁,
+      A₁ ⊆ E₁ ∧ E₁ ⊆ B₁ ∧ (hB₁.sdiff hA₁).measure ≤ ε₁ := by
+      have := (JordanMeasurable.equiv hb₁).out 0 1; simp_all only [gt_iff_lt, exists_and_left, implies_true,
+        iff_true, div_pos_iff_of_pos_left]
+    rcases h_approx₁ with ⟨A₁, B₁, hA₁, hB₁, hA₁_sub, hB₁_sup, h_diff₁⟩
+    have h_approx₂ : ∃ A₂ B₂ : Set (EuclideanSpace' d₂), ∃ hA₂ : IsElementary A₂, ∃ hB₂ : IsElementary B₂,
+      A₂ ⊆ E₂ ∧ E₂ ⊆ B₂ ∧ (hB₂.sdiff hA₂).measure ≤ ε₂ := by
+      have := (JordanMeasurable.equiv hb₂).out 0 1; simp_all only [gt_iff_lt, exists_and_left, implies_true,
+        iff_true, div_pos_iff_of_pos_left]
+    rcases h_approx₂ with ⟨A₂, B₂, hA₂, hB₂, hA₂_sub, hB₂_sup, h_diff₂⟩
+    set B₁' := B₁ ∩ B₁₀ with hB₁'_def
+    set B₂' := B₂ ∩ B₂₀ with hB₂'_def
+    have hB₁'_elem : IsElementary B₁' := IsElementary.inter hB₁ hB₁₀
+    have hB₂'_elem : IsElementary B₂' := IsElementary.inter hB₂ hB₂₀
+    have hB₁'_sup : E₁ ⊆ B₁' := by
+      simpa [hB₁'_def] using Set.subset_inter hB₁_sup hB₁₀_sup
+    have hB₂'_sup : E₂ ⊆ B₂' := by
+      simpa [hB₂'_def] using Set.subset_inter hB₂_sup hB₂₀_sup
+    have hB₁'_meas_le : hB₁'_elem.measure ≤ M₁ :=
+      IsElementary.measure_mono hB₁'_elem hB₁₀ (by
+        intro x hx; exact hx.2)
+    have hB₂'_meas_le : hB₂'_elem.measure ≤ M₂ :=
+      IsElementary.measure_mono hB₂'_elem hB₂₀ (by
+        intro x hx; exact hx.2)
+    have h_diff₁' : (hB₁'_elem.sdiff hA₁).measure ≤ ε₁ :=
+      calc
+        (hB₁'_elem.sdiff hA₁).measure ≤ (hB₁.sdiff hA₁).measure :=
+          IsElementary.measure_mono (hB₁'_elem.sdiff hA₁) (hB₁.sdiff hA₁) (by
+            intro x hx; exact ⟨hx.1.1, hx.2⟩)
+        _ ≤ ε₁ := h_diff₁
+    have h_diff₂' : (hB₂'_elem.sdiff hA₂).measure ≤ ε₂ :=
+      calc
+        (hB₂'_elem.sdiff hA₂).measure ≤ (hB₂.sdiff hA₂).measure :=
+          IsElementary.measure_mono (hB₂'_elem.sdiff hA₂) (hB₂.sdiff hA₂) (by
+            intro x hx; exact ⟨hx.1.1, hx.2⟩)
+        _ ≤ ε₂ := h_diff₂
+    set A := EuclideanSpace'.prod A₁ A₂ with hA_def
+    set B := EuclideanSpace'.prod B₁' B₂' with hB_def
+    have hA_elem : IsElementary A := IsElementary.prod hA₁ hA₂
+    have hB_elem : IsElementary B := IsElementary.prod hB₁'_elem hB₂'_elem
+    have hA_sub_prod : A ⊆ EuclideanSpace'.prod E₁ E₂ := by
+      dsimp [A, EuclideanSpace'.prod]
+      exact Set.image_mono (Set.prod_mono hA₁_sub hA₂_sub)
+    have hB_sup_prod : EuclideanSpace'.prod E₁ E₂ ⊆ B := by
+      dsimp [B, EuclideanSpace'.prod]
+      exact Set.image_mono (Set.prod_mono hB₁'_sup hB₂'_sup)
+    have h_diff_prod : (hB_elem.sdiff hA_elem).measure ≤ ε := by
+      have hprod_diff_sub : B \ A ⊆ (EuclideanSpace'.prod (B₁' \ A₁) B₂') ∪ (EuclideanSpace'.prod B₁' (B₂' \ A₂)) := by
+        intro x hx
+        rcases hx with ⟨hxB, hx_notA⟩
+        rw [hB_def, EuclideanSpace'.prod] at hxB
+        rw [hA_def, EuclideanSpace'.prod] at hx_notA
+        rcases hxB with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+        by_cases haA₁ : a ∈ A₁
+        · have hb_notA₂ : b ∉ A₂ := by
+            intro hbA₂
+            apply hx_notA
+            refine ⟨⟨a, b⟩, ⟨haA₁, hbA₂⟩, hx_eq⟩
+          apply Set.mem_union_right
+          dsimp [EuclideanSpace'.prod]
+          refine (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm (B₁' ×ˢ (B₂' \ A₂)) x).mpr ?_
+          refine ⟨(a, b), ⟨⟨ha, hb, hb_notA₂⟩, hx_eq⟩⟩
+        · apply Set.mem_union_left
+          dsimp [EuclideanSpace'.prod]
+          refine (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm ((B₁' \ A₁) ×ˢ B₂') x).mpr ?_
+          refine ⟨(a, b), ⟨⟨⟨ha, haA₁⟩, hb⟩, hx_eq⟩⟩
+      have hU : IsElementary (EuclideanSpace'.prod (B₁' \ A₁) B₂') :=
+        IsElementary.prod (hB₁'_elem.sdiff hA₁) hB₂'_elem
+      have hV : IsElementary (EuclideanSpace'.prod B₁' (B₂' \ A₂)) :=
+        IsElementary.prod hB₁'_elem (hB₂'_elem.sdiff hA₂)
+      have hU_measure : hU.measure = (hB₁'_elem.sdiff hA₁).measure * hB₂'_elem.measure :=
+        IsElementary.measure_of_prod (hB₁'_elem.sdiff hA₁) hB₂'_elem
+      have hV_measure : hV.measure = hB₁'_elem.measure * (hB₂'_elem.sdiff hA₂).measure :=
+        IsElementary.measure_of_prod hB₁'_elem (hB₂'_elem.sdiff hA₂)
+      have h_nonneg_B₁' : 0 ≤ hB₁'_elem.measure := IsElementary.measure_nonneg hB₁'_elem
+      have h_nonneg_B₂' : 0 ≤ hB₂'_elem.measure := IsElementary.measure_nonneg hB₂'_elem
+      have h_nonneg_ε₁ : 0 ≤ ε₁ := by nlinarith
+      have h_nonneg_ε₂ : 0 ≤ ε₂ := by nlinarith
+      have h_nonneg_M₁ : 0 ≤ M₁ := hM₁_nonneg
+      have h_nonneg_M₂ : 0 ≤ M₂ := hM₂_nonneg
+      -- Chain inequalities
+      have h1 : (hB_elem.sdiff hA_elem).measure ≤ hU.measure + hV.measure := by
+        calc
+          (hB_elem.sdiff hA_elem).measure ≤ (hU.union hV).measure :=
+            IsElementary.measure_mono (hB_elem.sdiff hA_elem) (hU.union hV) hprod_diff_sub
+          _ ≤ hU.measure + hV.measure := IsElementary.measure_of_union hU hV
+      have h2 : hU.measure + hV.measure = (hB₁'_elem.sdiff hA₁).measure * hB₂'_elem.measure + hB₁'_elem.measure * (hB₂'_elem.sdiff hA₂).measure := by
+        rw [hU_measure, hV_measure]
+      have h3 : (hB₁'_elem.sdiff hA₁).measure * hB₂'_elem.measure + hB₁'_elem.measure * (hB₂'_elem.sdiff hA₂).measure ≤ ε₁ * hB₂'_elem.measure + hB₁'_elem.measure * ε₂ := by
+        have h_nonneg_sdiff₁ : 0 ≤ (hB₁'_elem.sdiff hA₁).measure :=
+          IsElementary.measure_nonneg (hB₁'_elem.sdiff hA₁)
+        have h_nonneg_sdiff₂ : 0 ≤ (hB₂'_elem.sdiff hA₂).measure :=
+          IsElementary.measure_nonneg (hB₂'_elem.sdiff hA₂)
+        have h_mul₁ : (hB₁'_elem.sdiff hA₁).measure * hB₂'_elem.measure ≤ ε₁ * hB₂'_elem.measure :=
+          mul_le_mul_of_nonneg_right h_diff₁' h_nonneg_B₂'
+        have h_mul₂ : hB₁'_elem.measure * (hB₂'_elem.sdiff hA₂).measure ≤ hB₁'_elem.measure * ε₂ :=
+          mul_le_mul_of_nonneg_left h_diff₂' h_nonneg_B₁'
+        nlinarith
+      have h4 : ε₁ * hB₂'_elem.measure + hB₁'_elem.measure * ε₂ ≤ ε₁ * M₂ + M₁ * ε₂ := by
+        have h_mul₁ : ε₁ * hB₂'_elem.measure ≤ ε₁ * M₂ :=
+          mul_le_mul_of_nonneg_left hB₂'_meas_le h_nonneg_ε₁
+        have h_mul₂ : hB₁'_elem.measure * ε₂ ≤ M₁ * ε₂ :=
+          mul_le_mul_of_nonneg_right hB₁'_meas_le h_nonneg_ε₂
+        nlinarith
+      have h5 : ε₁ * M₂ + M₁ * ε₂ = ε / (2*(M₂ + 1)) * M₂ + M₁ * (ε / (2*(M₁ + 1))) := rfl
+      have h_ε_nonneg : 0 ≤ ε := by nlinarith
+      have hM₂_ratio : M₂ / (2*(M₂ + 1)) ≤ 1/2 := by
+        have hpos_nonneg : 0 ≤ 2*(M₂ + 1) := by nlinarith
+        have hM₂_le_succ : M₂ ≤ M₂ + 1 := by nlinarith
+        have htemp : (M₂ + 1) / (2*(M₂ + 1)) = 1/2 := by field_simp
+        calc
+          M₂ / (2*(M₂ + 1)) ≤ (M₂ + 1) / (2*(M₂ + 1)) :=
+            div_le_div_of_nonneg_right hM₂_le_succ hpos_nonneg
+          _ = 1/2 := htemp
+      have hM₁_ratio : M₁ / (2*(M₁ + 1)) ≤ 1/2 := by
+        have hpos_nonneg : 0 ≤ 2*(M₁ + 1) := by nlinarith
+        have hM₁_le_succ : M₁ ≤ M₁ + 1 := by nlinarith
+        have htemp : (M₁ + 1) / (2*(M₁ + 1)) = 1/2 := by field_simp
+        calc
+          M₁ / (2*(M₁ + 1)) ≤ (M₁ + 1) / (2*(M₁ + 1)) :=
+            div_le_div_of_nonneg_right hM₁_le_succ hpos_nonneg
+          _ = 1/2 := htemp
+      have h6 : ε / (2*(M₂ + 1)) * M₂ + M₁ * (ε / (2*(M₁ + 1))) ≤ ε := by
+        calc
+          ε / (2*(M₂ + 1)) * M₂ + M₁ * (ε / (2*(M₁ + 1)))
+              = ε * (M₂ / (2*(M₂ + 1)) + M₁ / (2*(M₁ + 1))) := by ring
+          _ ≤ ε * (1/2 + 1/2) :=
+            mul_le_mul_of_nonneg_left (by nlinarith) h_ε_nonneg
+          _ = ε := by ring
+      calc
+        (hB_elem.sdiff hA_elem).measure ≤ hU.measure + hV.measure := h1
+        _ = (hB₁'_elem.sdiff hA₁).measure * hB₂'_elem.measure + hB₁'_elem.measure * (hB₂'_elem.sdiff hA₂).measure := h2
+        _ ≤ ε₁ * hB₂'_elem.measure + hB₁'_elem.measure * ε₂ := h3
+        _ ≤ ε₁ * M₂ + M₁ * ε₂ := h4
+        _ = ε / (2*(M₂ + 1)) * M₂ + M₁ * (ε / (2*(M₁ + 1))) := h5
+        _ ≤ ε := h6
+    exact ⟨A, B, hA_elem, hB_elem, hA_sub_prod, hB_sup_prod, h_diff_prod⟩
+  have h_tfae_iff := (JordanMeasurable.equiv hb_prod).out 1 0
+  exact h_tfae_iff.mp h_approx
 
 /-- Jordan measure is multiplicative on products: μ(E₁ × E₂) = μ(E₁) \* μ(E₂). -/
 theorem JordanMeasurable.measure_of_prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
   (hE₁: JordanMeasurable E₁) (hE₂: JordanMeasurable E₂)
-  : (hE₁.prod hE₂).measure = hE₁.measure * hE₂.measure := by sorry
+  : (hE₁.prod hE₂).measure = hE₁.measure * hE₂.measure := by
+  have hprod : JordanMeasurable (EuclideanSpace'.prod E₁ E₂) := hE₁.prod hE₂
+  have hb₁ : Bornology.IsBounded E₁ := hE₁.1
+  have hb₂ : Bornology.IsBounded E₂ := hE₂.1
+  have h_nonneg₁ : 0 ≤ hE₁.measure := Jordan_inner_measure_nonneg E₁
+  have h_nonneg₂ : 0 ≤ hE₂.measure := Jordan_inner_measure_nonneg E₂
+  have h_inner_eq : Jordan_inner_measure (EuclideanSpace'.prod E₁ E₂) = (hE₁.prod hE₂).measure := rfl
+  apply le_antisymm
+  · -- (hE₁.prod hE₂).measure ≤ hE₁.measure * hE₂.measure
+    let T := { m : ℝ | ∃ C : Set (EuclideanSpace' (d₁ + d₂)), ∃ hC : IsElementary C,
+      EuclideanSpace'.prod E₁ E₂ ⊆ C ∧ m = hC.measure }
+    have hT_nonempty : T.Nonempty := by
+      obtain ⟨C, hC, hC_sup⟩ := IsElementary.contains_bounded hprod.1
+      exact ⟨hC.measure, C, hC, hC_sup, rfl⟩
+    have h_goal : Jordan_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ hE₁.measure * hE₂.measure := by
+      -- For any δ > 0, find B₁, B₂ with tight bounds
+      refine le_of_forall_pos_le_add fun δ hδ => ?_
+      set ε := min ((δ / (2*(hE₁.measure + hE₂.measure + 1)))) 1 with hε_def
+      have hε_pos : ε > 0 := by
+        refine lt_min_iff.mpr ⟨?_, by norm_num⟩
+        refine div_pos hδ ?_
+        nlinarith
+      have h_ε_le_one : ε ≤ 1 := by
+        exact min_le_right _ _
+      have h_ε_bound : ε*(hE₁.measure + hE₂.measure + 1) ≤ δ/2 := by
+        by_cases h : δ / (2*(hE₁.measure + hE₂.measure + 1)) ≤ 1
+        · have hε_eq : ε = δ / (2*(hE₁.measure + hE₂.measure + 1)) := by
+            dsimp [ε]; rw [min_eq_left h]
+          rw [hε_eq]
+          have hpos : 2*(hE₁.measure + hE₂.measure + 1) ≠ 0 := by nlinarith
+          have h_eq : (δ / (2*(hE₁.measure + hE₂.measure + 1))) * (hE₁.measure + hE₂.measure + 1) = δ/2 := by
+            field_simp [hpos]
+          nlinarith
+        · have hε_eq : ε = 1 := by
+            have h' : 1 ≤ δ / (2*(hE₁.measure + hE₂.measure + 1)) := by nlinarith
+            dsimp [ε]; rw [min_eq_right h']
+          rw [hε_eq]
+          have h_δ_gt_2C : δ > 2*(hE₁.measure + hE₂.measure + 1) := by
+            have hpos : 0 < 2*(hE₁.measure + hE₂.measure + 1) := by nlinarith
+            have h_gt_one : 1 < δ / (2*(hE₁.measure + hE₂.measure + 1)) := by
+              by_contra! hle; exact h hle
+            exact (one_lt_div hpos).mp h_gt_one
+          nlinarith
+      have h_exists_B₁ : ∃ B₁ : Set (EuclideanSpace' d₁), ∃ hB₁ : IsElementary B₁, E₁ ⊆ B₁ ∧ hB₁.measure < hE₁.measure + ε := by
+        let T₁ := { m : ℝ | ∃ C : Set (EuclideanSpace' d₁), ∃ hC : IsElementary C, E₁ ⊆ C ∧ m = hC.measure }
+        have hT₁_nonempty : T₁.Nonempty := by
+          obtain ⟨C, hC, hC_sup⟩ := IsElementary.contains_bounded hb₁
+          exact ⟨hC.measure, C, hC, hC_sup, rfl⟩
+        have h_csInf_T₁ : sInf T₁ = hE₁.measure := by
+          calc
+            sInf T₁ = Jordan_outer_measure E₁ := rfl
+            _ = hE₁.measure := hE₁.eq_outer.symm
+        have h_lt_sInf : sInf T₁ < hE₁.measure + ε := by
+          rw [h_csInf_T₁]
+          nlinarith
+        obtain ⟨a, ha, ha_lt⟩ := exists_lt_of_csInf_lt hT₁_nonempty h_lt_sInf
+        rcases ha with ⟨B₁, hB₁, hB₁_sup, ha_eq⟩
+        refine ⟨B₁, hB₁, hB₁_sup, ?_⟩
+        rw [ha_eq] at ha_lt
+        exact ha_lt
+      obtain ⟨B₁, hB₁, hB₁_sup, hB₁_lt⟩ := h_exists_B₁
+      have h_exists_B₂ : ∃ B₂ : Set (EuclideanSpace' d₂), ∃ hB₂ : IsElementary B₂, E₂ ⊆ B₂ ∧ hB₂.measure < hE₂.measure + ε := by
+        let T₂ := { m : ℝ | ∃ C : Set (EuclideanSpace' d₂), ∃ hC : IsElementary C, E₂ ⊆ C ∧ m = hC.measure }
+        have hT₂_nonempty : T₂.Nonempty := by
+          obtain ⟨C, hC, hC_sup⟩ := IsElementary.contains_bounded hb₂
+          exact ⟨hC.measure, C, hC, hC_sup, rfl⟩
+        have h_csInf_T₂ : sInf T₂ = hE₂.measure := by
+          calc
+            sInf T₂ = Jordan_outer_measure E₂ := rfl
+            _ = hE₂.measure := hE₂.eq_outer.symm
+        have h_lt_sInf : sInf T₂ < hE₂.measure + ε := by
+          rw [h_csInf_T₂]
+          nlinarith
+        obtain ⟨a, ha, ha_lt⟩ := exists_lt_of_csInf_lt hT₂_nonempty h_lt_sInf
+        rcases ha with ⟨B₂, hB₂, hB₂_sup, ha_eq⟩
+        refine ⟨B₂, hB₂, hB₂_sup, ?_⟩
+        rw [ha_eq] at ha_lt
+        exact ha_lt
+      obtain ⟨B₂, hB₂, hB₂_sup, hB₂_lt⟩ := h_exists_B₂
+      have h_superset : EuclideanSpace'.prod E₁ E₂ ⊆ EuclideanSpace'.prod B₁ B₂ := by
+        dsimp [EuclideanSpace'.prod]
+        exact Set.image_mono (Set.prod_mono hB₁_sup hB₂_sup)
+      have h_superset_measure : Jordan_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ hB₁.measure * hB₂.measure := by
+        -- Since EuclideanSpace'.prod B₁ B₂ is elementary and contains E₁×E₂
+        have hB_prod_elem : IsElementary (EuclideanSpace'.prod B₁ B₂) := IsElementary.prod hB₁ hB₂
+        have h_in_set : hB₁.measure * hB₂.measure ∈ T := by
+          refine ⟨EuclideanSpace'.prod B₁ B₂, hB_prod_elem, h_superset, ?_⟩
+          exact (IsElementary.measure_of_prod hB₁ hB₂).symm
+        refine csInf_le (by
+          refine ⟨0, ?_⟩
+          intro m hm
+          obtain ⟨_, hC, _, hm_eq⟩ := hm
+          rw [hm_eq]
+          exact IsElementary.measure_nonneg hC) ?_
+        exact h_in_set
+      have h_sum : hB₁.measure * hB₂.measure < (hE₁.measure + ε)*(hE₂.measure + ε) := by
+        have hpos_E₁_ε : 0 ≤ hE₁.measure + ε := by nlinarith
+        have hpos_sum : 0 < (hE₁.measure + ε)*(hE₂.measure + ε) := by
+          positivity
+        by_cases hzero : hB₂.measure = 0
+        · rw [hzero, mul_zero]
+          exact hpos_sum
+        · have hpos_B₂ : 0 < hB₂.measure := by
+            by_contra! hle
+            have : hB₂.measure ≤ 0 := hle
+            have : hB₂.measure = 0 := le_antisymm this (IsElementary.measure_nonneg hB₂)
+            exact hzero this
+          have h1 : hB₁.measure * hB₂.measure < (hE₁.measure + ε) * hB₂.measure :=
+            mul_lt_mul_of_pos_right hB₁_lt hpos_B₂
+          have h2 : (hE₁.measure + ε) * hB₂.measure ≤ (hE₁.measure + ε)*(hE₂.measure + ε) :=
+            mul_le_mul_of_nonneg_left hB₂_lt.le hpos_E₁_ε
+          nlinarith
+      have h_diff : (hE₁.measure + ε)*(hE₂.measure + ε) ≤ hE₁.measure * hE₂.measure + δ := by
+        calc
+          (hE₁.measure + ε)*(hE₂.measure + ε) = hE₁.measure * hE₂.measure + ε*(hE₁.measure + hE₂.measure) + ε^2 := by ring
+          _ ≤ hE₁.measure * hE₂.measure + δ := by
+            have h_sq_le_ε : ε^2 ≤ ε := by
+              nlinarith [h_ε_le_one, hε_pos]
+            nlinarith
+      have h_chain : Jordan_outer_measure (EuclideanSpace'.prod E₁ E₂) < hE₁.measure * hE₂.measure + δ := by
+        calc
+          Jordan_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ hB₁.measure * hB₂.measure := h_superset_measure
+          _ < (hE₁.measure + ε)*(hE₂.measure + ε) := h_sum
+          _ ≤ hE₁.measure * hE₂.measure + δ := h_diff
+      exact h_chain.le
+    exact hprod.eq_outer ▸ h_goal
+  · -- hE₁.measure * hE₂.measure ≤ (hE₁.prod hE₂).measure
+    by_cases hzero₁ : hE₁.measure = 0
+    · rw [hzero₁, zero_mul]; exact Jordan_inner_measure_nonneg _
+    by_cases hzero₂ : hE₂.measure = 0
+    · rw [hzero₂, mul_zero]; exact Jordan_inner_measure_nonneg _
+    have hpos₁ : 0 < hE₁.measure := by
+      by_contra! hle
+      have : hE₁.measure = 0 := le_antisymm hle h_nonneg₁
+      exact hzero₁ this
+    have hpos₂ : 0 < hE₂.measure := by
+      by_contra! hle
+      have : hE₂.measure = 0 := le_antisymm hle h_nonneg₂
+      exact hzero₂ this
+    have h_nonneg_prod : 0 ≤ (hE₁.prod hE₂).measure := by
+      simpa [h_inner_eq] using Jordan_inner_measure_nonneg (EuclideanSpace'.prod E₁ E₂)
+    by_contra! h_lt
+    -- h_lt : hE₁.measure * hE₂.measure > (hE₁.prod hE₂).measure
+    set δ := hE₁.measure * hE₂.measure - (hE₁.prod hE₂).measure with hδ_def
+    have hδ_pos : 0 < δ := sub_pos.mpr h_lt
+    set ε := min (δ / (2*(hE₁.measure + hE₂.measure + 1))) (min (hE₁.measure / 2) (hE₂.measure / 2)) with hε_def
+    have hε_pos : ε > 0 := by
+      refine lt_min_iff.mpr ⟨?_, ?_⟩
+      · refine div_pos hδ_pos ?_; nlinarith
+      · exact lt_min_iff.mpr ⟨by nlinarith, by nlinarith⟩
+    have h_ε_le_half₁ : ε ≤ hE₁.measure / 2 := by
+      have : ε ≤ min (hE₁.measure / 2) (hE₂.measure / 2) := min_le_right _ _
+      exact le_trans this (min_le_left _ _)
+    have h_ε_le_half₂ : ε ≤ hE₂.measure / 2 := by
+      have : ε ≤ min (hE₁.measure / 2) (hE₂.measure / 2) := min_le_right _ _
+      exact le_trans this (min_le_right _ _)
+    have h_sub_pos₁ : 0 < hE₁.measure - ε := by nlinarith
+    have h_sub_pos₂ : 0 < hE₂.measure - ε := by nlinarith
+    -- Pick an elementary subset A₁ ⊆ E₁ with measure > hE₁.measure - ε
+    have h_exists_A₁ : ∃ A₁ : Set (EuclideanSpace' d₁), ∃ hA₁ : IsElementary A₁, A₁ ⊆ E₁ ∧ hA₁.measure > hE₁.measure - ε := by
+      let S₁ := { m : ℝ | ∃ A : Set (EuclideanSpace' d₁), ∃ hA : IsElementary A, A ⊆ E₁ ∧ m = hA.measure }
+      have h_nonempty_S₁ : S₁.Nonempty := by
+        refine ⟨0, ∅, IsElementary.empty _, Set.empty_subset _, ?_⟩
+        exact (IsElementary.measure_of_empty d₁).symm
+      have h_sSup_S₁ : sSup S₁ = hE₁.measure := rfl
+      have h_lt_sSup : hE₁.measure - ε < sSup S₁ := by
+        rw [h_sSup_S₁]; nlinarith
+      obtain ⟨a, ha, ha_gt⟩ := exists_lt_of_lt_csSup h_nonempty_S₁ h_lt_sSup
+      rcases ha with ⟨A₁, hA₁, hA₁_sub, ha_eq⟩
+      refine ⟨A₁, hA₁, hA₁_sub, ?_⟩
+      rw [ha_eq] at ha_gt; exact ha_gt
+    obtain ⟨A₁, hA₁, hA₁_sub, hA₁_gt⟩ := h_exists_A₁
+    -- Pick an elementary subset A₂ ⊆ E₂ with measure > hE₂.measure - ε
+    have h_exists_A₂ : ∃ A₂ : Set (EuclideanSpace' d₂), ∃ hA₂ : IsElementary A₂, A₂ ⊆ E₂ ∧ hA₂.measure > hE₂.measure - ε := by
+      let S₂ := { m : ℝ | ∃ A : Set (EuclideanSpace' d₂), ∃ hA : IsElementary A, A ⊆ E₂ ∧ m = hA.measure }
+      have h_nonempty_S₂ : S₂.Nonempty := by
+        refine ⟨0, ∅, IsElementary.empty _, Set.empty_subset _, ?_⟩
+        exact (IsElementary.measure_of_empty d₂).symm
+      have h_sSup_S₂ : sSup S₂ = hE₂.measure := rfl
+      have h_lt_sSup : hE₂.measure - ε < sSup S₂ := by
+        rw [h_sSup_S₂]; nlinarith
+      obtain ⟨a, ha, ha_gt⟩ := exists_lt_of_lt_csSup h_nonempty_S₂ h_lt_sSup
+      rcases ha with ⟨A₂, hA₂, hA₂_sub, ha_eq⟩
+      refine ⟨A₂, hA₂, hA₂_sub, ?_⟩
+      rw [ha_eq] at ha_gt; exact ha_gt
+    obtain ⟨A₂, hA₂, hA₂_sub, hA₂_gt⟩ := h_exists_A₂
+    have hA_prod_elem : IsElementary (EuclideanSpace'.prod A₁ A₂) := IsElementary.prod hA₁ hA₂
+    have hA_prod_sub : EuclideanSpace'.prod A₁ A₂ ⊆ EuclideanSpace'.prod E₁ E₂ := by
+      dsimp [EuclideanSpace'.prod]
+      apply Set.image_mono (Set.prod_mono hA₁_sub hA₂_sub)
+    have hA_prod_measure : hA_prod_elem.measure = hA₁.measure * hA₂.measure :=
+      IsElementary.measure_of_prod hA₁ hA₂
+    have h_le_inner : hA₁.measure * hA₂.measure ≤ Jordan_inner_measure (EuclideanSpace'.prod E₁ E₂) := by
+      rw [Jordan_inner_measure]
+      apply le_csSup
+      · obtain ⟨C, hC, hC_sup⟩ := IsElementary.contains_bounded hprod.1
+        refine ⟨hC.measure, ?_⟩
+        rintro m ⟨C', hC'_elem, hC'_sub, hm_eq⟩
+        rw [hm_eq]
+        exact IsElementary.measure_mono hC'_elem hC (Set.Subset.trans hC'_sub hC_sup)
+      · exact ⟨EuclideanSpace'.prod A₁ A₂, hA_prod_elem, hA_prod_sub, hA_prod_measure.symm⟩
+    rw [h_inner_eq] at h_le_inner
+    -- Contradiction: (hE₁.prod hE₂).measure is ≥ (hE₁.measure - ε)*(hE₂.measure - ε), which is > δ
+    have h_prod_bound : (hE₁.measure - ε)*(hE₂.measure - ε) < hA₁.measure * hA₂.measure := by
+      have hA₁_ge_sub : hE₁.measure - ε < hA₁.measure := hA₁_gt
+      have hA₂_ge_sub : hE₂.measure - ε < hA₂.measure := hA₂_gt
+      have hpos_prod_sub : 0 < (hE₁.measure - ε)*(hE₂.measure - ε) := mul_pos h_sub_pos₁ h_sub_pos₂
+      nlinarith
+    have h_lower : (hE₁.measure - ε)*(hE₂.measure - ε) < (hE₁.prod hE₂).measure := by
+      nlinarith
+    have h_ε_ineq : (hE₁.measure - ε)*(hE₂.measure - ε) ≥ hE₁.measure * hE₂.measure - δ/2 := by
+      have h_expand : hE₁.measure * hE₂.measure - (hE₁.measure - ε)*(hE₂.measure - ε) = ε*(hE₁.measure + hE₂.measure) - ε^2 := by ring
+      have h_bound : ε*(hE₁.measure + hE₂.measure) - ε^2 ≤ δ/2 := by
+        have h_ε_val : ε*(hE₁.measure + hE₂.measure + 1) ≤ δ/2 := by
+          have h_δ_bound : δ / (2*(hE₁.measure + hE₂.measure + 1)) ≤ δ / (2*(hE₁.measure + hE₂.measure + 1)) := le_refl _
+          -- use the first component of the min
+          have h_ε_le_ratio : ε ≤ δ / (2*(hE₁.measure + hE₂.measure + 1)) := min_le_left _ _
+          calc
+            ε*(hE₁.measure + hE₂.measure + 1) ≤ (δ / (2*(hE₁.measure + hE₂.measure + 1))) * (hE₁.measure + hE₂.measure + 1) := by
+              nlinarith
+            _ = δ/2 := by
+              field_simp
+        nlinarith
+      nlinarith
+    -- Putting it together: (hE₁.prod hE₂).measure > hE₁.measure * hE₂.measure - δ/2
+    -- But by definition δ = hE₁.measure * hE₂.measure - (hE₁.prod hE₂).measure
+    -- So (hE₁.prod hE₂).measure > hE₁.measure * hE₂.measure - δ/2 = (hE₁.prod hE₂).measure + δ/2
+    -- Therefore δ/2 < 0, i.e., δ < 0, contradiction
+    nlinarith
 
 /-- Two sets are isometric if one is an orthogonal transformation plus translation of the other. -/
 abbrev Isometric {d:ℕ} (E F: Set (EuclideanSpace' d)) : Prop :=
