@@ -2328,7 +2328,80 @@ abbrev Box.prod {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) : Box (d₁ + 
 
 /-- Exercise 1.1.4: The Cartesian product of two elementary sets is elementary. -/
 theorem IsElementary.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
-  (hE₁: IsElementary E₁) (hE₂: IsElementary E₂) : IsElementary (EuclideanSpace'.prod E₁ E₂) := by sorry
+  (hE₁: IsElementary E₁) (hE₂: IsElementary E₂) : IsElementary (EuclideanSpace'.prod E₁ E₂) := by
+  obtain ⟨S₁, hE₁⟩ := hE₁
+  obtain ⟨S₂, hE₂⟩ := hE₂
+  classical
+  have h_prod_set (B₁ : Box d₁) (B₂ : Box d₂) : (Box.prod B₁ B₂).toSet = EuclideanSpace'.prod (B₁.toSet) (B₂.toSet) := by
+    ext x; constructor
+    · intro hx
+      rw [EuclideanSpace'.prod, Set.mem_image]
+      refine ⟨(EuclideanSpace'.prod_equiv d₁ d₂) x, ?_, ?_⟩
+      · rw [Set.mem_prod]
+        constructor
+        · rw [Box.mem_toSet]
+          intro i
+          have hi' : (i : ℕ) < d₁ + d₂ := by
+            have hi := i.2; omega
+          have h := hx ⟨(i : ℕ), hi'⟩
+          have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ), hi'⟩ = B₁.side i := by
+            simp [i.2]
+          rw [hside] at h
+          simpa [EuclideanSpace'.prod_equiv] using h
+        · rw [Box.mem_toSet]
+          intro i
+          have hi' : (i : ℕ) + d₁ < d₁ + d₂ := by
+            have hi := i.2; omega
+          have h := hx ⟨(i : ℕ) + d₁, hi'⟩
+          have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ) + d₁, hi'⟩ = B₂.side i := by
+            simp [show ¬(i : ℕ) + d₁ < d₁ from by omega]
+          rw [hside] at h
+          simpa [EuclideanSpace'.prod_equiv] using h
+      · simp
+    · intro hx
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [Box.mem_toSet]
+      intro i
+      rw [← hx_eq]
+      simp [EuclideanSpace'.prod_equiv]
+      by_cases hi : (i : ℕ) < d₁
+      · have ha' := ha
+        rw [Box.mem_toSet] at ha'
+        simp [hi, ha' ⟨(i : ℕ), hi⟩]
+      · have hb' := hb
+        rw [Box.mem_toSet] at hb'
+        simp [hi, hb' ⟨(i : ℕ) - d₁, by omega⟩]
+  have h_union : EuclideanSpace'.prod E₁ E₂ = ⋃ B ∈ (S₁ ×ˢ S₂).image (λ (B₁, B₂) => Box.prod B₁ B₂), B.toSet := by
+    rw [hE₁, hE₂]
+    ext x; constructor
+    · intro hx
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [Set.mem_iUnion₂] at ha hb
+      rcases ha with ⟨B₁, hB₁, ha⟩
+      rcases hb with ⟨B₂, hB₂, hb⟩
+      rw [Set.mem_iUnion₂]
+      refine ⟨Box.prod B₁ B₂, Finset.mem_image.mpr ⟨(B₁, B₂), Finset.mem_product.mpr ⟨hB₁, hB₂⟩, rfl⟩, ?_⟩
+      have h_mem : x ∈ EuclideanSpace'.prod (B₁.toSet) (B₂.toSet) := by
+        rw [EuclideanSpace'.prod]
+        exact (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm (B₁.toSet ×ˢ B₂.toSet) x).mpr ⟨(a, b), ⟨ha, hb⟩, hx_eq⟩
+      simpa [h_prod_set] using h_mem
+    · intro hx
+      rw [Set.mem_iUnion₂] at hx
+      rcases hx with ⟨B, hB, hx⟩
+      rw [Finset.mem_image] at hB
+      rcases hB with ⟨⟨B₁, B₂⟩, hpair, rfl⟩
+      rw [Finset.mem_product] at hpair
+      rcases hpair with ⟨hB₁, hB₂⟩
+      rw [h_prod_set, EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [EuclideanSpace'.prod]
+      refine (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm ((⋃ B₁ ∈ S₁, (B₁ : Set (EuclideanSpace' d₁))) ×ˢ (⋃ B₂ ∈ S₂, (B₂ : Set (EuclideanSpace' d₂)))) x).mpr ?_
+      refine ⟨(a, b), ⟨?_, ?_⟩, hx_eq⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₁, hB₁, ha⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₂, hB₂, hb⟩
+  use (S₁ ×ˢ S₂).image (λ (B₁, B₂) => Box.prod B₁ B₂)
 
 /-- Measure is multiplicative on products: μ(E₁ × E₂) = μ(E₁) \* μ(E₂). -/
 theorem IsElementary.measure_of_prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
