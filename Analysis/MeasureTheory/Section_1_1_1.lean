@@ -753,23 +753,6 @@ theorem IsElementary.inter {d:ℕ} {E F: Set (EuclideanSpace' d)}
 theorem IsElementary.empty (d:ℕ) : IsElementary (∅: Set (EuclideanSpace' d)) := by
   use (∅ : Finset (Box d)); simp
 
-/-- Exercise 1.1.1 (Boolean closure): The set difference of two elementary sets is elementary. -/
-theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E \ F) := by
-  sorry
-
-/-- Exercise 1.1.1 (Boolean closure): The symmetric difference of two elementary sets is elementary. -/
-theorem IsElementary.symmDiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (symmDiff E F) := by
-  sorry
-
-open Pointwise
-
-/-- Exercise 1.1.1 (Boolean closure): Translation of an elementary set is elementary. -/
-theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (x: EuclideanSpace' d) : IsElementary (E + {x}) := by
-  sorry
-
 /-- A sublemma for proving Lemma 1.1.2(i): Any finset of intervals admits a common
 refinement into pairwise disjoint sub-intervals. -/
 theorem BoundedInterval.partition (S: Finset BoundedInterval) : ∃ T: Finset BoundedInterval, (T : Set _).PairwiseDisjoint BoundedInterval.toSet ∧ ∀ I ∈ S, ∃ U : Set T, I = ⋃ J ∈ U, J.val.toSet := by
@@ -897,6 +880,129 @@ theorem IsElementary.partition {d:ℕ} {E: Set (EuclideanSpace' d)}
   simp; split_ands
   . apply hT'.subset; intro _; simp; tauto
   ext; simp; grind
+
+/-- Exercise 1.1.1 (Boolean closure): The set difference of two elementary sets is elementary. -/
+theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E \ F) := by
+  have h_inter : IsElementary (E ∩ F) := IsElementary.inter hE hF
+  have h_diff_eq : E \ F = E \ (E ∩ F) := by ext x; simp
+  rw [h_diff_eq]
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_H, hH⟩ := h_inter
+  classical
+  have ⟨T, hT_disj, hT⟩ := Box.partition (S_E ∪ S_H)
+  choose U hU using hT
+  let tE : Finset (Box d) := T.filter (λ J =>
+    ∃ (B : Box d) (hB : B ∈ S_E), J ∈ Subtype.val '' (U B (Finset.mem_union_left S_H hB)))
+  let tH : Finset (Box d) := T.filter (λ J =>
+    ∃ (C : Box d) (hC : C ∈ S_H), J ∈ Subtype.val '' (U C (Finset.mem_union_right S_E hC)))
+  have hT_disj_set : (T : Set (Box d)).PairwiseDisjoint Box.toSet := hT_disj
+  have htE_sub_T : tE ⊆ T := Finset.filter_subset _ _
+  have htH_sub_T : tH ⊆ T := Finset.filter_subset _ _
+  have hE_cover : E = ⋃ J ∈ tE, J.toSet := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx' : x ∈ ⋃ B ∈ S_E, ↑B := by rwa [← hE]
+      rcases Set.mem_iUnion₂.mp hx' with ⟨B, hB, hx_B⟩
+      have hB' : B ∈ S_E := by simpa using hB
+      have hU_B := hU B (Finset.mem_union_left S_H hB')
+      rw [hU_B] at hx_B
+      rcases Set.mem_iUnion₂.mp hx_B with ⟨J', hJ'_U, hx_J'⟩
+      refine Set.mem_iUnion₂.mpr ⟨J'.val, ?_, hx_J'⟩
+      refine Finset.mem_filter.mpr ⟨J'.property, ?_⟩
+      refine ⟨B, hB', ?_⟩
+      exact ⟨J', hJ'_U, rfl⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ' : J ∈ tE := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ' with ⟨hJ_T, hJ_cond⟩
+      rcases hJ_cond with ⟨B, hB, hJ_val⟩
+      rcases hJ_val with ⟨J', hJ'_U, hJ'_eq⟩
+      have hU_B := hU B (Finset.mem_union_left S_H hB)
+      have hx_B : x ∈ B.toSet := by
+        rw [hU_B]
+        refine Set.mem_iUnion₂.mpr ⟨J', hJ'_U, ?_⟩
+        rw [hJ'_eq]
+        exact hx_J
+      rw [hE]
+      exact Set.mem_iUnion₂.mpr ⟨B, by simpa using hB, hx_B⟩
+  have hH_cover : (E ∩ F) = ⋃ J ∈ tH, J.toSet := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx' : x ∈ ⋃ C ∈ S_H, ↑C := by rwa [← hH]
+      rcases Set.mem_iUnion₂.mp hx' with ⟨C, hC, hx_C⟩
+      have hC' : C ∈ S_H := by simpa using hC
+      have hU_C := hU C (Finset.mem_union_right S_E hC')
+      rw [hU_C] at hx_C
+      rcases Set.mem_iUnion₂.mp hx_C with ⟨J', hJ'_U, hx_J'⟩
+      refine Set.mem_iUnion₂.mpr ⟨J'.val, ?_, hx_J'⟩
+      refine Finset.mem_filter.mpr ⟨J'.property, ?_⟩
+      refine ⟨C, hC', ?_⟩
+      exact ⟨J', hJ'_U, rfl⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ' : J ∈ tH := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ' with ⟨hJ_T, hJ_cond⟩
+      rcases hJ_cond with ⟨C, hC, hJ_val⟩
+      rcases hJ_val with ⟨J', hJ'_U, hJ'_eq⟩
+      have hU_C := hU C (Finset.mem_union_right S_E hC)
+      have hx_C : x ∈ C.toSet := by
+        rw [hU_C]
+        refine Set.mem_iUnion₂.mpr ⟨J', hJ'_U, ?_⟩
+        rw [hJ'_eq]
+        exact hx_J
+      rw [hH]
+      exact Set.mem_iUnion₂.mpr ⟨C, by simpa using hC, hx_C⟩
+  have h_sdiff_union : (⋃ J ∈ tE, J.toSet) \ (⋃ J ∈ tH, J.toSet) = ⋃ J ∈ (tE \ tH), J.toSet := by
+    ext x; constructor
+    · rintro ⟨hx_E, hx_not_H⟩
+      rcases Set.mem_iUnion₂.mp hx_E with ⟨J, hJ, hx_J⟩
+      have hJ_E : J ∈ tE := by simpa using hJ
+      have hJ_not_H : J ∉ tH := by
+        intro hJ_H
+        apply hx_not_H
+        exact Set.mem_iUnion₂.mpr ⟨J, by simpa using hJ_H, hx_J⟩
+      refine Set.mem_iUnion₂.mpr ⟨J, by
+        simpa using Finset.mem_sdiff.mpr ⟨hJ_E, hJ_not_H⟩, hx_J⟩
+    · intro hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ_sdiff : J ∈ tE \ tH := by simpa using hJ
+      rcases Finset.mem_sdiff.mp hJ_sdiff with ⟨hJ_E, hJ_not_H⟩
+      have hJ_T : J ∈ (T : Set (Box d)) := by
+        simpa using htE_sub_T hJ_E
+      constructor
+      · exact Set.mem_iUnion₂.mpr ⟨J, by simpa using hJ_E, hx_J⟩
+      · intro hx_H
+        rcases Set.mem_iUnion₂.mp hx_H with ⟨K, hK, hx_K⟩
+        have hK_H : K ∈ tH := by simpa using hK
+        have hK_T : K ∈ (T : Set (Box d)) := by
+          simpa using htH_sub_T hK_H
+        by_cases h_eq : J = K
+        · subst h_eq; exact hJ_not_H hK_H
+        · have h_disjoint : Disjoint (J.toSet) (K.toSet) :=
+            hT_disj_set hJ_T hK_T h_eq
+          have h_disjoint' : J.toSet ∩ K.toSet = ∅ :=
+            Set.disjoint_iff_inter_eq_empty.mp h_disjoint
+          have : x ∈ J.toSet ∩ K.toSet := ⟨hx_J, hx_K⟩
+          rw [h_disjoint'] at this
+          exact this.elim
+  use tE \ tH
+  calc
+    E \ (E ∩ F) = E \ (⋃ J ∈ tH, J.toSet) := by rw [hH_cover]
+    _ = (⋃ J ∈ tE, J.toSet) \ (⋃ J ∈ tH, J.toSet) := by rw [hE_cover]
+    _ = ⋃ J ∈ (tE \ tH), J.toSet := h_sdiff_union
+
+/-- Exercise 1.1.1 (Boolean closure): The symmetric difference of two elementary sets is elementary. -/
+theorem IsElementary.symmDiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (symmDiff E F) := by
+  sorry
+
+open Pointwise
+
+/-- Exercise 1.1.1 (Boolean closure): Translation of an elementary set is elementary. -/
+theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (x: EuclideanSpace' d) : IsElementary (E + {x}) := by
+  sorry
 
 /-- Helper lemma for Lemma 1.1.2(ii): The set of lattice points (multiples of 1/N) in an interval is finite. -/
 theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0):
