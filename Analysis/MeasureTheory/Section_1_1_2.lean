@@ -1175,6 +1175,455 @@ lemma JordanMeasurable.measure_of_graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d 
   rw [hJM.eq_outer]
   exact graph_outer_measure_zero hB hf
 
+/-- If `u, η` are real and `η ≥ 0`, then `max(0, u+η) - max(0, u-η) ≤ 2*η`. -/
+lemma max_sub_max_le {u η : ℝ} (hη : 0 ≤ η) : max 0 (u + η) - max 0 (u - η) ≤ 2 * η := by
+  by_cases h : 0 ≤ u - η
+  · -- u - η ≥ 0, so u + η ≥ 2η ≥ 0, both maxes equal to u±η
+    have h1 : max 0 (u - η) = u - η := max_eq_right h
+    have h2 : max 0 (u + η) = u + η := max_eq_right (by nlinarith)
+    rw [h1, h2]
+    nlinarith
+  · -- u - η < 0, so max(0, u-η) = 0
+    have h0 : u - η ≤ 0 := by linarith
+    have h1 : max 0 (u - η) = 0 := max_eq_left h0
+    rw [h1]
+    by_cases h' : 0 ≤ u + η
+    · -- u + η ≥ 0 > u - η
+      have : max 0 (u + η) = u + η := max_eq_right h'
+      rw [this]
+      nlinarith
+    · -- u + η < 0, so both maxes are 0
+      have h0' : u + η ≤ 0 := by linarith
+      have : max 0 (u + η) = 0 := max_eq_left h0'
+      rw [this]
+      nlinarith
+
+/-- The total volume of all Qbox cells equals the volume of the big box B. -/
+lemma GraphGrid.sum_vol_Qbox {d:ℕ} (a b : Fin d → ℝ) (hab: ∀ i, a i ≤ b i) {N:ℕ} (hN: 0 < N) :
+    ∑ k : Fin d → Fin N, |GraphGrid.Qbox a b N k|ᵥ = ∏ i, (b i - a i) := by
+  have hNpos : (0 : ℝ) < N := by exact_mod_cast hN
+  calc
+    ∑ k : Fin d → Fin N, |GraphGrid.Qbox a b N k|ᵥ
+        = ∑ k : Fin d → Fin N, ∏ i, ((b i - a i) / (N : ℝ)) := by
+          refine Finset.sum_congr rfl fun k _ => ?_
+          rw [GraphGrid.Qbox_volume a b hab hN k]
+    _ = ((Finset.card (Finset.univ : Finset (Fin d → Fin N))) : ℝ) * (∏ i, ((b i - a i) / (N : ℝ))) := by
+      simp
+    _ = ((N : ℝ) ^ d) * (∏ i, ((b i - a i) / (N : ℝ))) := by
+      simp
+    _ = ((N : ℝ) ^ d) * ((∏ i, (b i - a i)) / ((N : ℝ) ^ d)) := by
+      simp [Finset.prod_div_distrib]
+    _ = ∏ i, (b i - a i) := by
+      field_simp [pow_ne_zero d hNpos.ne']
+
+
+/-- The undergraph of `f` over a closed box `B` is bounded. -/
+lemma undergraph_isBounded {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    Bornology.IsBounded { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by
+  obtain ⟨ M, hM ⟩ := IsCompact.exists_bound_of_continuousOn ( Box.isCompact_of_closed hB ) hf
+  have hbox_bounded : Bornology.IsBounded ((Box.prod B ((BoundedInterval.Icc 0 M : Box 1))).toSet) :=
+    IsElementary.isBounded (IsElementary.box _)
+  refine hbox_bounded.subset ?_
+  intro p hp
+  obtain ⟨ x, hx, t, hp_eq, ht0, ht ⟩ := hp
+  have hfx : f x ≤ M := by
+    have := abs_le.mp (hM x hx)
+    linarith
+  rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+  refine ⟨(x, Real.equiv_EuclideanSpace' t), ⟨hx, ?_⟩, ?_⟩
+  · rw [BoundedInterval.coe_of_box, Set.mem_image]
+    exact ⟨t, ⟨ht0, ht.trans hfx⟩, rfl⟩
+  · calc
+      (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t)
+          = (EuclideanSpace'.prod_equiv d 1).symm ((EuclideanSpace'.prod_equiv d 1) p) := by
+            simp [hp_eq]
+      _ = p := by simp
+
+/-- For `ε>0`, construct elementary `A` such that `Jordan_outer_measure (symmDiff U A) ≤ ε`.
+Used to prove `JordanMeasurable.undergraph` via `JordanMeasurable.equiv`. -/
+lemma undergraph_approx {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet)
+    {ε:ℝ} (hε: 0 < ε) :
+    ∃ A : Set (EuclideanSpace' (d+1)), IsElementary A ∧
+    Jordan_outer_measure (symmDiff
+      { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } A) ≤ ε := by
+  set U := { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } with hU
+  by_cases h_empty : B.toSet = ∅
+  · have hU_empty : U = ∅ := by
+      ext p; simp [hU, h_empty]
+    refine ⟨∅, IsElementary.empty (d+1), ?_⟩
+    have : symmDiff (∅ : Set (EuclideanSpace' (d+1))) ∅ = (∅ : Set (EuclideanSpace' (d+1))) := by
+      simp
+    rw [hU_empty, this, Jordan_outer_measure_empty]
+    exact hε.le
+  have h_nonempty : B.toSet.Nonempty := Set.nonempty_iff_ne_empty.mpr h_empty
+  have hcompact : IsCompact B.toSet := Box.isCompact_of_closed hB
+  have h_vol_nonneg : 0 ≤ |B|ᵥ := by
+    apply Finset.prod_nonneg
+    intro i _
+    exact BoundedInterval.length_nonneg _
+  set η := ε / (2 * (|B|ᵥ + 1)) with hη_def
+  have hη_pos : 0 < η := by
+    apply div_pos hε
+    have : 0 < 2 * (|B|ᵥ + 1) := by nlinarith
+    exact this
+  choose a b hBside using hB
+  have hab : ∀ i, a i ≤ b i := by
+    intro i
+    obtain ⟨x, hx⟩ := h_nonempty
+    have hxi := hx i
+    rw [hBside i] at hxi
+    exact hxi.1.trans hxi.2
+  obtain ⟨δ, hδ_pos, hδ⟩ : ∃ δ > 0, ∀ u v : EuclideanSpace' d, u ∈ B.toSet → v ∈ B.toSet → dist u v < δ → |f u - f v| < η := by
+    have hunif : UniformContinuousOn f B.toSet :=
+      hcompact.uniformContinuousOn_of_continuous hf
+    have := Metric.uniformContinuousOn_iff.mp hunif η hη_pos
+    aesop
+  obtain ⟨N, hN_pos, hN⟩ : ∃ N : ℕ, 0 < N ∧ Real.sqrt (∑ i, (b i - a i)^2) / (N : ℝ) < δ := by
+    set s := Real.sqrt (∑ i, (b i - a i)^2) with hs
+    have hs_nonneg : 0 ≤ s := Real.sqrt_nonneg _
+    set N0 : ℕ := ⌊s / δ⌋₊ + 1 with hN0
+    have hN0_pos : 0 < N0 := Nat.succ_pos _
+    have hN0_pos' : (0 : ℝ) < (N0 : ℝ) := by exact_mod_cast hN0_pos
+    have h_floor : s / δ < (⌊s / δ⌋₊ : ℝ) + 1 := Nat.lt_floor_add_one (s / δ)
+    refine ⟨N0, hN0_pos, ?_⟩
+    have h_ineq : s < (N0 : ℝ) * δ := by
+      calc
+        s = (s / δ) * δ := by field_simp [hδ_pos.ne']
+        _ < ((⌊s / δ⌋₊ : ℝ) + 1) * δ := by nlinarith
+        _ = (N0 : ℝ) * δ := by
+          dsimp [N0]
+          simp
+    have hpos : (0 : ℝ) < (N0 : ℝ) := by exact_mod_cast hN0_pos
+    have : s / (N0 : ℝ) < δ := by
+      have h_ineq' : s < δ * (N0 : ℝ) := by
+        calc
+          s < (N0 : ℝ) * δ := h_ineq
+          _ = δ * (N0 : ℝ) := by ring
+      calc
+        s / (N0 : ℝ) < (δ * (N0 : ℝ)) / (N0 : ℝ) :=
+          div_lt_div_of_pos_right h_ineq' hpos
+        _ = δ := by field_simp [hpos.ne']
+    exact this
+  let Qk (k : Fin d → Fin N) : Box d := GraphGrid.Qbox a b N k
+  let xk (k : Fin d → Fin N) : EuclideanSpace' d := GraphGrid.corner a b N k
+  have h_xk_mem (k : Fin d → Fin N) : xk k ∈ B.toSet := by
+    intro i
+    rw [hBside i, GraphGrid.corner_apply, GraphGrid.cornerLo]
+    have hk_nonneg : (0 : ℝ) ≤ (k i : ℝ) := Nat.cast_nonneg _
+    have hk_lt_N : (k i : ℝ) < (N : ℝ) := by exact_mod_cast Fin.is_lt (k i)
+    have h_diff_nonneg : 0 ≤ b i - a i := sub_nonneg.mpr (hab i)
+    have h_lo : a i ≤ a i + (b i - a i) * (k i : ℝ) / (N : ℝ) := by
+      have : 0 ≤ (b i - a i) * (k i : ℝ) / (N : ℝ) := by positivity
+      nlinarith
+    have h_hi : a i + (b i - a i) * (k i : ℝ) / (N : ℝ) ≤ b i := by
+      have h_mul : (b i - a i) * (k i : ℝ) / (N : ℝ) ≤ b i - a i := by
+        have h_div : (k i : ℝ) / (N : ℝ) ≤ 1 := (div_le_one (by positivity)).mpr hk_lt_N.le
+        calc
+          (b i - a i) * (k i : ℝ) / (N : ℝ) = (b i - a i) * ((k i : ℝ) / (N : ℝ)) := by ring
+          _ ≤ (b i - a i) * 1 := by gcongr
+          _ = b i - a i := by ring
+      nlinarith
+    exact ⟨h_lo, h_hi⟩
+  let mk (k : Fin d → Fin N) : ℝ := max 0 (f (xk k) - η)
+  let Mk (k : Fin d → Fin N) : ℝ := max 0 (f (xk k) + η)
+  have hmk_nonneg (k : Fin d → Fin N) : 0 ≤ mk k := le_max_left _ _
+  have hmk_le_Mk (k : Fin d → Fin N) : mk k ≤ Mk k :=
+    max_le_max (le_refl 0) (by nlinarith)
+  -- Inner approximation: union of grid cells Qk × [0, mk]
+  set A := ⋃ k : Fin d → Fin N, ((Box.prod (Qk k) ((BoundedInterval.Icc 0 (mk k) : Box 1))).toSet) with hA_def
+  have hA_elem : IsElementary A := by
+    let S : Finset (Set (EuclideanSpace' (d+1))) :=
+      Finset.image (fun (k : Fin d → Fin N) => (Box.prod (Qk k) ((BoundedInterval.Icc 0 (mk k) : Box 1))).toSet) Finset.univ
+    have hS : ∀ E ∈ S, IsElementary E := by
+      intro E hE
+      rcases Finset.mem_image.mp hE with ⟨k, _, rfl⟩
+      exact IsElementary.box (Box.prod (Qk k) ((BoundedInterval.Icc 0 (mk k) : Box 1)))
+    have hA_eq : A = ⋃ E ∈ S, E := by
+      ext p; simp [hA_def, S]
+    rw [hA_eq]
+    exact IsElementary.union' hS
+  -- Cover U \ A by boxes Dk = Qk × [mk, Mk]
+  let Dk (k : Fin d → Fin N) : Box (d+1) :=
+    Box.prod (Qk k) ((BoundedInterval.Icc (mk k) (Mk k) : Box 1))
+  have hDk_vol (k : Fin d → Fin N) : |Dk k|ᵥ = |(Qk k)|ᵥ * (Mk k - mk k) := by
+    simp [Dk, Box.volume_prod, Box.volume_of_interval, BoundedInterval.length, hmk_le_Mk k]
+  have h_diff_bound (k : Fin d → Fin N) : Mk k - mk k ≤ 2 * η :=
+    max_sub_max_le (hη_pos.le)
+  have h_vol_Qk_nonneg (k : Fin d → Fin N) : 0 ≤ |(Qk k)|ᵥ := by
+    apply Finset.prod_nonneg
+    intro i _
+    apply BoundedInterval.length_nonneg
+  have h_sum_vol : ∑ k, |(Qk k)|ᵥ = |B|ᵥ := by
+    calc
+      ∑ k, |(Qk k)|ᵥ = ∑ k : Fin d → Fin N, |GraphGrid.Qbox a b N k|ᵥ := rfl
+      _ = ∏ i, (b i - a i) := GraphGrid.sum_vol_Qbox a b hab hN_pos
+      _ = |B|ᵥ := by
+        refine calc
+          ∏ i, (b i - a i) = ∏ i, |(B.side i : BoundedInterval)|ₗ := by
+            refine Finset.prod_congr rfl fun i _ => ?_
+            rw [hBside i]
+            simp [hab i]
+          _ = |B|ᵥ := rfl
+  have h_total_vol : ∑ k, |Dk k|ᵥ ≤ 2 * η * |B|ᵥ := by
+    calc
+      ∑ k, |Dk k|ᵥ = ∑ k, (|(Qk k)|ᵥ * (Mk k - mk k)) := by
+        refine Finset.sum_congr rfl fun k _ => ?_
+        rw [hDk_vol k]
+      _ ≤ ∑ k, (|(Qk k)|ᵥ * (2 * η)) := by
+        refine Finset.sum_le_sum fun k _ => ?_
+        have : 0 ≤ |(Qk k)|ᵥ := h_vol_Qk_nonneg k
+        gcongr
+        exact h_diff_bound k
+      _ = (2 * η) * ∑ k, |(Qk k)|ᵥ := by
+        simp [Finset.mul_sum, mul_comm, mul_assoc]
+      _ = (2 * η) * |B|ᵥ := by rw [h_sum_vol]
+  have h_final : 2 * η * |B|ᵥ < ε := by
+    dsimp [η]
+    have h_vol_plus_one_pos : 0 < |B|ᵥ + 1 := by
+      have : 0 ≤ |B|ᵥ := h_vol_nonneg
+      nlinarith
+    have h_calc : ε * |B|ᵥ / (|B|ᵥ + 1) < ε := by
+      refine (div_lt_iff₀ h_vol_plus_one_pos).mpr ?_
+      nlinarith
+    have h_eq : 2 * (ε / (2 * (|B|ᵥ + 1))) * |B|ᵥ = ε * |B|ᵥ / (|B|ᵥ + 1) := by
+      field_simp [h_vol_plus_one_pos.ne']
+    nlinarith
+  -- Bound Jordan_outer_measure (U \ A) by ∑|Dk k|ᵥ
+  have h_bounded_D : Bornology.IsBounded (⋃ k, (Dk k).toSet) := by
+    have : Bornology.IsBounded (⋃ k ∈ Finset.univ, (Dk k).toSet) :=
+      isBounded_biUnion_box (Finset.univ : Finset (Fin d → Fin N)) Dk
+    simpa using this
+  have h_cover : U \ A ⊆ ⋃ k, (Dk k).toSet := by
+    intro p hp
+    rcases hp with ⟨hpU, hpA⟩
+    rw [hU] at hpU
+    rcases hpU with ⟨x, hx, t, hp_eq, ht0, ht_le_fx⟩
+    -- Find which grid cell x belongs to
+    have hx_coord : ∀ i, a i ≤ x i ∧ x i ≤ b i := by
+      intro i; have hxi := hx i; rw [hBside i] at hxi; exact hxi
+    have hx_corner : ∃ k : Fin d → Fin N, ∀ i, GraphGrid.cornerLo a b N k i ≤ x i ∧ x i ≤ GraphGrid.cornerHi a b N k i := by
+      exact ⟨ fun i => Classical.choose ( GraphGrid.exists_cell ( hab i ) hN_pos ( hx_coord i |>.1 ) ( hx_coord i |>.2 ) ), fun i => Classical.choose_spec ( GraphGrid.exists_cell ( hab i ) hN_pos ( hx_coord i |>.1 ) ( hx_coord i |>.2 ) ) ⟩
+    obtain ⟨k, hk⟩ := hx_corner
+    have hxQ : x ∈ (Qk k).toSet := by
+      rw [Box.mem_toSet]
+      intro i; simpa [Qk, GraphGrid.Qbox] using hk i
+    -- Distance bound from x to xk
+    have hx_dist : dist x (xk k) ≤ Real.sqrt (∑ i, (b i - a i)^2) / (N : ℝ) := by
+      have hx_dist_eq : dist x (xk k) = Real.sqrt (∑ i, (x i - GraphGrid.cornerLo a b N k i)^2) := by
+        simp +decide [dist_eq_norm, EuclideanSpace.norm_eq, xk, GraphGrid.corner]
+      have hx_dist_le : ∀ i, (x i - GraphGrid.cornerLo a b N k i)^2 ≤ ((b i - a i) / (N : ℝ))^2 := by
+        intro i
+        have h_diff : x i - GraphGrid.cornerLo a b N k i ≤ (b i - a i) / (N : ℝ) := by
+          have h_cornerHi_eq : GraphGrid.cornerHi a b N k i = GraphGrid.cornerLo a b N k i + (b i - a i) / (N : ℝ) := by
+            simp [GraphGrid.cornerHi, GraphGrid.cornerLo]
+            ring
+          have hi := hk i
+          rw [h_cornerHi_eq] at hi
+          nlinarith
+        have h_nonneg : 0 ≤ x i - GraphGrid.cornerLo a b N k i := sub_nonneg.mpr (hk i |>.1)
+        exact pow_le_pow_left₀ h_nonneg h_diff 2
+      rw [hx_dist_eq, Real.sqrt_le_iff]
+      constructor
+      · positivity
+      · rw [div_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]
+        calc
+          ∑ i, (x i - GraphGrid.cornerLo a b N k i)^2 ≤ ∑ i, ((b i - a i) / (N : ℝ))^2 :=
+            Finset.sum_le_sum fun i _ => hx_dist_le i
+          _ = (∑ i, (b i - a i)^2) / ((N : ℝ)^2) := by simp [div_pow, Finset.sum_div]
+    have h_dist_lt : dist x (xk k) < δ := lt_of_le_of_lt hx_dist hN
+    have h_f_diff : |f x - f (xk k)| < η := hδ x (xk k) hx (h_xk_mem k) h_dist_lt
+    -- Show that p ∉ A implies mk k < t
+    have h_mk_lt_t : mk k < t := by
+      by_contra! h
+      -- then t ≤ mk k, so p ∈ A, contradiction
+      have hpA' : p ∈ A := by
+        rw [hA_def]
+        refine Set.mem_iUnion.mpr ⟨k, ?_⟩
+        rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+        refine ⟨(x, Real.equiv_EuclideanSpace' t), ⟨hxQ, ?_⟩, ?_⟩
+        · rw [BoundedInterval.coe_of_box, Set.mem_image]
+          exact ⟨t, ⟨ht0, h⟩, by simp⟩
+        · calc
+            (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t)
+                = (EuclideanSpace'.prod_equiv d 1).symm ((EuclideanSpace'.prod_equiv d 1) p) := by
+                  simp [hp_eq]
+            _ = p := by simp
+      exact hpA hpA'
+    have ht_Mk : t ≤ Mk k := by
+      have h_fx_lt : f x < f (xk k) + η := by
+        have := abs_lt.mp h_f_diff
+        linarith
+      have : f (xk k) + η ≤ Mk k := le_max_right _ _
+      nlinarith
+    -- Show p ∈ (Dk k).toSet
+    refine Set.mem_iUnion.mpr ⟨k, ?_⟩
+    rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+    refine ⟨(x, Real.equiv_EuclideanSpace' t), ⟨hxQ, ?_⟩, ?_⟩
+    · rw [BoundedInterval.coe_of_box, Set.mem_image]
+      exact ⟨t, ⟨by nlinarith, ht_Mk⟩, by simp⟩
+    · calc
+        (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t)
+            = (EuclideanSpace'.prod_equiv d 1).symm ((EuclideanSpace'.prod_equiv d 1) p) := by
+              simp [hp_eq]
+        _ = p := by simp
+  have h_outer_U_A : Jordan_outer_measure (U \ A) ≤ ∑ k, |Dk k|ᵥ := by
+    calc
+      Jordan_outer_measure (U \ A) ≤ Jordan_outer_measure (⋃ k, (Dk k).toSet) :=
+        Jordan_outer_measure_mono_of_subset h_cover h_bounded_D
+      _ = Jordan_outer_measure (⋃ k ∈ (Finset.univ : Finset (Fin d → Fin N)), (Dk k).toSet) := by simp
+      _ ≤ ∑ k, |Dk k|ᵥ := Jordan_outer_measure_biUnion_box_le (Finset.univ : Finset (Fin d → Fin N)) Dk
+  -- Bound Jordan_outer_measure (A \ U): A\U ⊆ B × {0}, which has measure zero
+  have h_A_U_sub_floor : A \ U ⊆ (Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet := by
+    intro p hp
+    rcases hp with ⟨hpA, hpU⟩
+    have hkA : ∃ (k' : Fin d → Fin N), p ∈ ((Box.prod (Qk k') ((BoundedInterval.Icc 0 (mk k') : Box 1))).toSet) := by
+      simpa [hA_def, Set.mem_iUnion] using hpA
+    rcases hkA with ⟨k, hpA⟩
+    -- Decompose p ∈ (Box.prod (Qk k) (Icc 0 (mk k))).toSet
+    rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image] at hpA
+    rcases hpA with ⟨⟨x, t'⟩, ⟨hx, ht'⟩, hp_eq⟩
+    rw [BoundedInterval.coe_of_box] at ht'
+    rcases ht' with ⟨t, ht, ht'_eq⟩
+    replace hp_eq : (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t) = p := by
+      simpa [ht'_eq] using hp_eq
+    rcases ht with ⟨ht0, ht_le_mk⟩
+    have hx_in_B : x ∈ B.toSet := by
+      rw [Box.mem_toSet]
+      intro i
+      have hxi := hx i
+      -- hxi: x i ∈ (Qk k).side i = Icc (cornerLo a b N k i) (cornerHi a b N k i)
+      -- This is contained in Icc (a i) (b i)
+      have h_cornerLo_ge_a : a i ≤ GraphGrid.cornerLo a b N k i := by
+        dsimp [GraphGrid.cornerLo]
+        have h_nonneg : 0 ≤ (b i - a i) * (k i : ℝ) / (N : ℝ) := by
+          have h_nonneg_num : 0 ≤ (b i - a i) * (k i : ℝ) :=
+            mul_nonneg (sub_nonneg.mpr (hab i)) (Nat.cast_nonneg _)
+          have h_pos_denom : 0 ≤ (N : ℝ) := by exact_mod_cast hN_pos.le
+          exact div_nonneg h_nonneg_num h_pos_denom
+        nlinarith
+      have h_cornerHi_le_b : GraphGrid.cornerHi a b N k i ≤ b i := by
+        have hk_lt_N : (k i : ℝ) < (N : ℝ) := by exact_mod_cast Fin.is_lt (k i)
+        have h_diff_nonneg : 0 ≤ b i - a i := sub_nonneg.mpr (hab i)
+        dsimp [GraphGrid.cornerHi]
+        have hk1 : (k i : ℝ) + 1 ≤ (N : ℝ) := by
+          have : (k i : ℕ) + 1 ≤ N := Nat.succ_le_of_lt (Fin.is_lt (k i))
+          exact_mod_cast this
+        have h_div : ((k i : ℝ) + 1) / (N : ℝ) ≤ 1 :=
+          (div_le_one (by exact_mod_cast hN_pos)).mpr hk1
+        calc
+          a i + (b i - a i) * ((k i : ℝ) + 1) / (N : ℝ) = a i + (b i - a i) * (((k i : ℝ) + 1) / (N : ℝ)) := by ring
+          _ ≤ a i + (b i - a i) := by gcongr; nlinarith
+          _ = b i := by ring
+      rw [hBside i]
+      rcases hxi with ⟨hlo, hhi⟩
+      exact ⟨le_trans h_cornerLo_ge_a hlo, le_trans hhi h_cornerHi_le_b⟩
+    have hk_cell : ∀ i, GraphGrid.cornerLo a b N k i ≤ x i ∧ x i ≤ GraphGrid.cornerHi a b N k i := by
+      intro i
+      have hxi := hx i
+      simp [Qk, GraphGrid.Qbox] at hxi
+      exact hxi
+    -- Show that t = 0 (so p lies on the floor)
+    have ht_zero : t = 0 := by
+      by_contra! ht_pos
+      have hmk_pos : 0 < mk k := lt_of_lt_of_le (by positivity) ht_le_mk
+      have hfxk_gt_η : η < f (xk k) := by
+        by_contra! h
+        have : f (xk k) - η ≤ 0 := by linarith
+        have hmk_zero : mk k = 0 := by
+          dsimp [mk]
+          rw [max_eq_left this]
+        rw [hmk_zero] at hmk_pos
+        linarith
+      have hmk_eq : mk k = f (xk k) - η := by
+        dsimp [mk]
+        have h_nonneg : 0 ≤ f (xk k) - η := by linarith
+        rw [max_eq_right h_nonneg]
+      have hx_dist : dist x (xk k) ≤ Real.sqrt (∑ i, (b i - a i)^2) / (N : ℝ) := by
+        have hx_dist_eq : dist x (xk k) = Real.sqrt (∑ i, (x i - GraphGrid.cornerLo a b N k i)^2) := by
+          simp +decide [dist_eq_norm, EuclideanSpace.norm_eq, xk, GraphGrid.corner]
+        have hx_dist_le : ∀ i, (x i - GraphGrid.cornerLo a b N k i)^2 ≤ ((b i - a i) / (N : ℝ))^2 := by
+          intro i
+          have h_diff : x i - GraphGrid.cornerLo a b N k i ≤ (b i - a i) / (N : ℝ) := by
+            have h_cornerHi_eq : GraphGrid.cornerHi a b N k i = GraphGrid.cornerLo a b N k i + (b i - a i) / (N : ℝ) := by
+              simp [GraphGrid.cornerHi, GraphGrid.cornerLo]
+              ring
+            have hi := hk_cell i
+            rw [h_cornerHi_eq] at hi
+            nlinarith
+          have h_nonneg : 0 ≤ x i - GraphGrid.cornerLo a b N k i := sub_nonneg.mpr (hk_cell i |>.1)
+          exact pow_le_pow_left₀ h_nonneg h_diff 2
+        rw [hx_dist_eq, Real.sqrt_le_iff]
+        constructor
+        · positivity
+        · rw [div_pow, Real.sq_sqrt (Finset.sum_nonneg fun _ _ => sq_nonneg _)]
+          calc
+            ∑ i, (x i - GraphGrid.cornerLo a b N k i)^2 ≤ ∑ i, ((b i - a i) / (N : ℝ))^2 :=
+              Finset.sum_le_sum fun i _ => hx_dist_le i
+            _ = (∑ i, (b i - a i)^2) / ((N : ℝ)^2) := by simp [div_pow, Finset.sum_div]
+      have h_dist_lt : dist x (xk k) < δ := lt_of_le_of_lt hx_dist hN
+      have h_f_diff : |f x - f (xk k)| < η := hδ x (xk k) hx_in_B (h_xk_mem k) h_dist_lt
+      have h_fx_gt_mk : f x > mk k := by
+        rw [hmk_eq]
+        have h_abs := abs_lt.mp h_f_diff
+        linarith
+      have hpU' : p ∈ U := by
+        rw [hU]
+        refine ⟨x, hx_in_B, t, ?_, ht0, le_trans ht_le_mk (by linarith)⟩
+        calc
+          (EuclideanSpace'.prod_equiv d 1) p = (EuclideanSpace'.prod_equiv d 1) ((EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t)) := by rw [hp_eq]
+          _ = (x, Real.equiv_EuclideanSpace' t) := by simp
+      exact hpU hpU'
+    rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+    refine ⟨(x, Real.equiv_EuclideanSpace' 0), ⟨hx_in_B, ?_⟩, ?_⟩
+    · rw [BoundedInterval.coe_of_box]
+      refine ⟨0, ⟨by norm_num, by norm_num⟩, by simp⟩
+    · calc
+        (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' 0)
+            = (EuclideanSpace'.prod_equiv d 1).symm (x, Real.equiv_EuclideanSpace' t) := by simp [ht_zero]
+        _ = p := hp_eq
+  have h_floor_vol : |Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))|ᵥ = 0 := by
+    simp [Box.volume_prod, Box.volume_of_interval, BoundedInterval.length]
+  have h_floor_bounded : Bornology.IsBounded ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet) :=
+    IsElementary.isBounded (IsElementary.box _)
+  have h_outer_A_U : Jordan_outer_measure (A \ U) ≤ 0 := by
+    calc
+      Jordan_outer_measure (A \ U) ≤ Jordan_outer_measure ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet) :=
+        Jordan_outer_measure_mono_of_subset h_A_U_sub_floor h_floor_bounded
+      _ = 0 := by
+        apply le_antisymm ?_ (Jordan_outer_measure_nonneg _)
+        have hElem : IsElementary ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet) :=
+          IsElementary.box _
+        have hsub : ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet) ⊆
+          ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet) := Set.Subset.refl _
+        calc
+          Jordan_outer_measure ((Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))).toSet)
+              ≤ (hElem.measure) := Jordan_outer_le hElem hsub
+          _ = |Box.prod B ((BoundedInterval.Icc 0 0 : Box 1))|ᵥ := by
+            simp
+          _ = 0 := h_floor_vol
+  have h_bound : Jordan_outer_measure (symmDiff U A) ≤ ε := by
+    have hB' : ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b := by
+      intro i; exact ⟨a i, b i, hBside i⟩
+    have hU_bounded : Bornology.IsBounded U := undergraph_isBounded hB' hf
+    have h_bounded_U_A : Bornology.IsBounded (U \ A) :=
+      hU_bounded.subset (Set.diff_subset (s := U) (t := A))
+    have hA_bounded : Bornology.IsBounded A := IsElementary.isBounded hA_elem
+    have h_bounded_A_U : Bornology.IsBounded (A \ U) :=
+      hA_bounded.subset (Set.diff_subset (s := A) (t := U))
+    have h_lt : Jordan_outer_measure (symmDiff U A) < ε := by
+      calc
+        Jordan_outer_measure (symmDiff U A) = Jordan_outer_measure ((U \ A) ∪ (A \ U)) := by
+          simp [symmDiff_def]
+        _ ≤ Jordan_outer_measure (U \ A) + Jordan_outer_measure (A \ U) :=
+          Jordan_outer_subadd h_bounded_U_A h_bounded_A_U
+        _ ≤ ∑ k, |Dk k|ᵥ + 0 := by nlinarith
+        _ < ε := by nlinarith
+    -- But we need ≤ ε, not < ε
+    exact le_of_lt h_lt
+  exact ⟨A, hA_elem, h_bound⟩
+
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable).
 
 Corrected statement: {lit}`B` is required to be a closed box (see {lit}`JordanMeasurable.graph`).  As with the
@@ -1183,7 +1632,19 @@ measurable, so closedness of {lit}`B` is needed. -/
 lemma JordanMeasurable.undergraph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
     (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
     JordanMeasurable { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by
-  sorry
+  set U := { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } with hU
+  have h_bounded : Bornology.IsBounded U := undergraph_isBounded hB hf
+  have h_equiv := (JordanMeasurable.equiv h_bounded).out 0 2
+  rcases h_equiv with ⟨h_imp, h_imp'⟩
+  apply h_imp'
+  intro ε hε
+  obtain ⟨A, hA, h_bound⟩ := undergraph_approx hB hf hε
+  refine ⟨A, hA, ?_⟩
+  -- h_bound: Jordan_outer_measure (symmDiff U A) ≤ ε where U is the one from undergraph_approx
+  -- But h_bound uses the U defined inside undergraph_approx, which is the same set as our U
+  -- So we can just use h_bound directly
+  -- Actually, h_bound's type is Jordan_outer_measure (symmDiff ?U A) ≤ ε where ?U = U
+  simpa [hU] using h_bound
 
 /-- Exercise 1.1.8(i) (A triangle is Jordan measurable) -/
 lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
