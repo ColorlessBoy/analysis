@@ -1654,7 +1654,194 @@ theorem JordanMeasurable.outer_measure_of_closure {d:ℕ} {E: Set (EuclideanSpac
 /-- Exercise 1.1.18 (2) -/
 -- The inner Jordan measure of a set equals the inner measure of its interior.
 theorem JordanMeasurable.inner_measure_of_interior {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
-  Jordan_inner_measure (interior E) = Jordan_inner_measure E := by sorry
+  Jordan_inner_measure (interior E) = Jordan_inner_measure E := by
+  have h_sub : interior E ⊆ E := interior_subset
+  apply le_antisymm
+  · -- Jordan_inner_measure (interior E) ≤ Jordan_inner_measure E
+    unfold Jordan_inner_measure
+    apply csSup_le_csSup
+    · -- ht: BddAbove {m | ∃ A, IsElementary A, A ⊆ E ∧ m = hA.measure}
+      obtain ⟨B, hB, hEB⟩ := IsElementary.contains_bounded hE
+      refine ⟨hB.measure, ?_⟩
+      rintro m ⟨A, hA, hA_sub, rfl⟩
+      exact IsElementary.measure_mono hA hB (Set.Subset.trans hA_sub hEB)
+    · -- hs: {m | ∃ A, IsElementary A, A ⊆ interior E ∧ m = hA.measure}.Nonempty
+      refine ⟨0, ?_⟩
+      refine ⟨∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+      exact Eq.symm (IsElementary.measure_of_empty d)
+    · -- h: {m | ... ⊆ interior E} ⊆ {m | ... ⊆ E}
+      rintro m ⟨A, hA, hA_sub, rfl⟩
+      exact ⟨A, hA, Set.Subset.trans hA_sub h_sub, rfl⟩
+  · -- Jordan_inner_measure E ≤ Jordan_inner_measure (interior E)
+    unfold Jordan_inner_measure
+    apply csSup_le_csSup
+    · -- ht: BddAbove {m | ∃ A, IsElementary A, A ⊆ interior E ∧ m = hA.measure}
+      obtain ⟨B, hB, hEB⟩ := IsElementary.contains_bounded hE
+      have h_sub_int_B : interior E ⊆ B := Set.Subset.trans interior_subset hEB
+      refine ⟨hB.measure, ?_⟩
+      rintro m ⟨A, hA, hA_sub, rfl⟩
+      exact IsElementary.measure_mono hA hB (Set.Subset.trans hA_sub h_sub_int_B)
+    · -- hs: {m | ∃ A, IsElementary A, A ⊆ E ∧ m = hA.measure}.Nonempty
+      refine ⟨0, ?_⟩
+      refine ⟨∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+      exact Eq.symm (IsElementary.measure_of_empty d)
+    · -- h: {m | ... ⊆ E} ⊆ {m | ... ⊆ interior E}
+      rintro m ⟨A, hA, hA_sub_E, rfl⟩
+      obtain ⟨T, hT_disj, hA_eq⟩ := hA.partition
+      have h_box_sub_E (B : Box d) (hB : B ∈ T) : B.toSet ⊆ E := by
+        intro x hx
+        apply hA_sub_E
+        rw [hA_eq]
+        exact Set.mem_biUnion hB hx
+      let f : Box d → Box d := λ B => { side := λ i => BoundedInterval.Ioo (B.side i).a (B.side i).b }
+      have h_vol_eq (B : Box d) : |f B|ᵥ = |B|ᵥ := by
+        simp [Box.volume, f, BoundedInterval.length]
+      have h_open_sub (B : Box d) : (f B).toSet ⊆ B.toSet := by
+        intro x hx
+        rw [Box.mem_toSet] at hx ⊢
+        intro i
+        have hx_i : x i ∈ (BoundedInterval.Ioo (B.side i).a (B.side i).b : Set ℝ) := hx i
+        have h_sub' : (BoundedInterval.Ioo (B.side i).a (B.side i).b : Set ℝ) ⊆ (B.side i : Set ℝ) :=
+          BoundedInterval.Ioo_subset (B.side i)
+        exact h_sub' hx_i
+      have h_open_sub_int (B : Box d) : (f B).toSet ⊆ interior (B.toSet) := by
+        refine interior_maximal (h_open_sub B) ?_
+        have h_open : IsOpen ((f B).toSet) := by
+          have h_eq : (f B).toSet = ⋂ i ∈ (Finset.univ : Finset (Fin d)), (fun (x : EuclideanSpace' d) => x i)⁻¹' (Set.Ioo ((B.side i).a) ((B.side i).b)) := by
+            ext x; simp [Box.mem_toSet, f, Set.mem_iInter, Set.mem_preimage]
+          rw [h_eq]
+          refine isOpen_biInter_finset (fun i hi => ?_)
+          apply IsOpen.preimage
+          · exact PiLp.continuous_apply 2 (fun _ : Fin d => ℝ) i
+          · exact isOpen_Ioo
+        exact h_open
+      have h_open_sub_int_E (B : Box d) (hB : B ∈ T) : (f B).toSet ⊆ interior E := by
+        intro x hx
+        have hx_int_B : x ∈ interior (B.toSet) := h_open_sub_int B hx
+        have h_int_mono : interior (B.toSet) ⊆ interior E := interior_mono (h_box_sub_E B hB)
+        exact h_int_mono hx_int_B
+      set A' := ⋃ B ∈ T, (f B).toSet with hA'_def
+      classical
+      let T' : Finset (Box d) := T.image f
+      have hA'_eq_boxes : A' = ⋃ B ∈ T', B.toSet := by
+        ext x; simp [hA'_def, T', Box.mem_toSet, f]
+      have hT'_disj : (T' : Set (Box d)).PairwiseDisjoint Box.toSet := by
+        intro B₁' hB₁' B₂' hB₂' hne'
+        have hB₁'_fin : B₁' ∈ T.image f := Finset.mem_coe.mp hB₁'
+        have hB₂'_fin : B₂' ∈ T.image f := Finset.mem_coe.mp hB₂'
+        rcases Finset.mem_image.mp hB₁'_fin with ⟨B₁, hB₁, rfl⟩
+        rcases Finset.mem_image.mp hB₂'_fin with ⟨B₂, hB₂, rfl⟩
+        have hne : B₁ ≠ B₂ := by
+          intro h_eq
+          apply hne'
+          simp [h_eq]
+        have h_base : Disjoint (B₁.toSet : Set (EuclideanSpace' d)) (B₂.toSet : Set (EuclideanSpace' d)) :=
+          hT_disj hB₁ hB₂ hne
+        refine h_base.mono (h_open_sub B₁) (h_open_sub B₂)
+      let S' : Finset (Set (EuclideanSpace' d)) := T'.image (fun (B : Box d) => (B : Set (EuclideanSpace' d)))
+      have hS'_elem : ∀ s ∈ S', IsElementary s := by
+        intro s hs
+        rcases Finset.mem_image.mp hs with ⟨B', hB', rfl⟩
+        rcases Finset.mem_image.mp hB' with ⟨B, hB, rfl⟩
+        exact IsElementary.box (f B)
+      have hA'_elem : IsElementary A' := by
+        have hA'_eq_sets : A' = ⋃ s ∈ S', s := by
+          ext x; simp [hA'_eq_boxes, S']
+        rw [hA'_eq_sets]
+        exact IsElementary.union' hS'_elem
+      have hA'_sub_int : A' ⊆ interior E := by
+        intro x hx
+        rw [hA'_def] at hx
+        -- hx : x ∈ ⋃ B ∈ T, (f B).toSet
+        -- This is Set.iUnion (fun (B : Box d) => Set.iUnion (fun (h : B ∈ (T : Set (Box d))) => (f B).toSet))
+        -- But x ∈ Set.iUnion ... matches with rcases
+        -- Try using conversion
+        have hx' : ∃ (B' : Box d), ∃ (hB' : B' ∈ (T : Set (Box d))), x ∈ (f B').toSet := by simpa using hx
+        rcases hx' with ⟨B', hB', hx⟩
+        exact h_open_sub_int_E B' (Finset.mem_coe.mp hB') hx
+      have h_zero_if_dup : ∀ B₁ ∈ T, ∀ B₂ ∈ T, B₁ ≠ B₂ → f B₁ = f B₂ → |f B₁|ᵥ = 0 := by
+        intro B₁ hB₁ B₂ hB₂ hne h_eq
+        have h_disj_box : Disjoint (B₁.toSet : Set (EuclideanSpace' d)) (B₂.toSet : Set (EuclideanSpace' d)) :=
+          hT_disj hB₁ hB₂ hne
+        have h_sub1 : (f B₁).toSet ⊆ B₁.toSet := h_open_sub B₁
+        have h_sub2 : (f B₁).toSet ⊆ B₂.toSet := by
+          intro x hx
+          have hx' : x ∈ (f B₂).toSet := by simpa [h_eq] using hx
+          exact h_open_sub B₂ hx'
+        have h_inter : (f B₁).toSet ⊆ B₁.toSet ∩ B₂.toSet := by
+          intro x hx; exact ⟨h_sub1 hx, h_sub2 hx⟩
+        have h_empty_inter : B₁.toSet ∩ B₂.toSet = ∅ := Set.disjoint_iff_inter_eq_empty.mp h_disj_box
+        have h_empty_f : (f B₁).toSet = ∅ := by
+          apply Set.not_nonempty_iff_eq_empty.mp
+          intro hne'
+          rcases hne' with ⟨x, hx⟩
+          have : x ∈ B₁.toSet ∩ B₂.toSet := h_inter hx
+          rw [h_empty_inter] at this
+          exact this
+        exact Box.volume_eq_zero_of_empty (f B₁) h_empty_f
+      have h_sum_eq : ∑ B' ∈ T', |B'|ᵥ = ∑ B ∈ T, |B|ᵥ := by
+        let T_nonzero := T.filter (λ B => |f B|ᵥ ≠ 0)
+        let T_zero := T.filter (λ B => |f B|ᵥ = 0)
+        have h_disjoint : Disjoint T_nonzero T_zero := by
+          apply (Finset.disjoint_filter (s := T) (p := λ B => |f B|ᵥ ≠ 0) (q := λ B => |f B|ᵥ = 0)).mpr
+          intro B hB hpos hzero
+          exact hpos hzero
+        have h_T_union : T = T_nonzero ∪ T_zero := by
+          ext B; simp [T_nonzero, T_zero, h_vol_eq]; tauto
+        have h_T0_sum : ∑ B ∈ T_zero, |B|ᵥ = 0 := by
+          refine Finset.sum_eq_zero ?_
+          intro B hB
+          rcases Finset.mem_filter.mp hB with ⟨hBT, hzero⟩
+          calc
+            |B|ᵥ = |f B|ᵥ := by symm; exact h_vol_eq B
+            _ = 0 := hzero
+        have h_T_sum : ∑ B ∈ T, |B|ᵥ = ∑ B ∈ T_nonzero, |B|ᵥ := by
+          calc
+            ∑ B ∈ T, |B|ᵥ = ∑ B ∈ T_nonzero, |B|ᵥ + ∑ B ∈ T_zero, |B|ᵥ := by
+              rw [h_T_union, Finset.sum_union h_disjoint]
+            _ = ∑ B ∈ T_nonzero, |B|ᵥ := by simp [h_T0_sum]
+        have h_nonzero_inj : Set.InjOn f (T_nonzero : Set (Box d)) := by
+          intro B₁ hB₁ B₂ hB₂ h_eq
+          rcases Finset.mem_filter.mp hB₁ with ⟨hB₁T, hB₁pos⟩
+          rcases Finset.mem_filter.mp hB₂ with ⟨hB₂T, hB₂pos⟩
+          by_contra! hne
+          have hzero : |f B₁|ᵥ = 0 := h_zero_if_dup B₁ hB₁T B₂ hB₂T hne h_eq
+          rw [hzero] at hB₁pos
+          exact hB₁pos rfl
+        have h_image_nonzero_sum : ∑ B' ∈ T_nonzero.image f, |B'|ᵥ = ∑ B ∈ T_nonzero, |f B|ᵥ :=
+          Finset.sum_image h_nonzero_inj
+        have h_image_sum_nonzero_subset : T_nonzero.image f ⊆ T.image f :=
+          Finset.image_subset_image (f := f) (Finset.filter_subset (λ B => |f B|ᵥ ≠ 0) T)
+        have h_image_diff_sum_zero : ∑ B' ∈ T.image f \ T_nonzero.image f, |B'|ᵥ = 0 := by
+          apply Finset.sum_eq_zero
+          intro B' hB'
+          rcases Finset.mem_sdiff.mp hB' with ⟨hB'_img, hB'_not⟩
+          rcases Finset.mem_image.mp hB'_img with ⟨B, hB, rfl⟩
+          have hB_zero : |f B|ᵥ = 0 := by
+            by_cases h : |f B|ᵥ ≠ 0
+            · exfalso
+              apply hB'_not
+              apply Finset.mem_image.mpr
+              exact ⟨B, Finset.mem_filter.mpr ⟨hB, h⟩, rfl⟩
+            · push_neg at h
+              exact h
+          simp [hB_zero]
+        calc
+          ∑ B' ∈ T', |B'|ᵥ = ∑ B' ∈ T.image f, |B'|ᵥ := rfl
+          _ = (∑ B' ∈ T.image f \ T_nonzero.image f, |B'|ᵥ) + (∑ B' ∈ T_nonzero.image f, |B'|ᵥ) := by
+            rw [(Finset.sum_sdiff h_image_sum_nonzero_subset).symm]
+          _ = (∑ B' ∈ T_nonzero.image f, |B'|ᵥ) + (∑ B' ∈ T.image f \ T_nonzero.image f, |B'|ᵥ) := by ring
+          _ = ∑ B' ∈ T_nonzero.image f, |B'|ᵥ := by simp [h_image_diff_sum_zero]
+          _ = ∑ B ∈ T_nonzero, |f B|ᵥ := h_image_nonzero_sum
+          _ = ∑ B ∈ T_nonzero, |B|ᵥ := by simp [h_vol_eq]
+          _ = ∑ B ∈ T, |B|ᵥ := by rw [h_T_sum]
+      have hA'_measure : hA'_elem.measure = hA.measure := by
+        have hA_meas : hA.measure = ∑ B ∈ T, |B|ᵥ :=
+          IsElementary.measure_eq hA hT_disj hA_eq
+        have hA'_meas : hA'_elem.measure = ∑ B ∈ T', |B|ᵥ :=
+          IsElementary.measure_eq hA'_elem hT'_disj hA'_eq_boxes
+        rw [hA'_meas, h_sum_eq, hA_meas]
+      exact ⟨A', hA'_elem, hA'_sub_int, hA'_measure.symm⟩
 
 /-- Exercise 1.1.18 (3) -/
 -- A bounded set is Jordan measurable if and only if its boundary is Jordan null.
