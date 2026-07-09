@@ -255,7 +255,7 @@ theorem JordanMeasurable.equiv {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornolo
  [JordanMeasurable E,
   ∀ ε>0, ∃ A, ∃ B, ∃ hA: IsElementary A, ∃ hB: IsElementary B,
     A ⊆ E ∧ E ⊆ B ∧ (hB.sdiff hA).measure ≤ ε,
-  ∀ ε>0, ∃ A, ∃ hA: IsElementary A, Jordan_outer_measure (symmDiff E A) ≤ ε].TFAE := by
+  ∀ ε>0, ∃ A, ∃ _hA: IsElementary A, Jordan_outer_measure (symmDiff E A) ≤ ε].TFAE := by
   apply List.tfae_of_cycle
   · rw [List.isChain_cons_cons]
     refine ⟨?_, ?_⟩
@@ -298,8 +298,7 @@ theorem JordanMeasurable.equiv {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornolo
     · rw [List.isChain_cons_cons]
       refine ⟨?_, ?_⟩
       · -- 1 → 2: elementary approximation → symmDiff small
-        intro h_approx
-        intro ε hε
+        intro h_approx ε hε
         obtain ⟨A, B, hA, hB, hA_sub_E, hE_sub_B, h_diff⟩ := h_approx ε hε
         have h_symm_eq : symmDiff E A = E \ A := by
           rw [symmDiff_def]
@@ -870,6 +869,12 @@ lemma JordanMeasurable.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
 
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
 lemma JordanMeasurable.graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : JordanMeasurable { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
+  -- Note: This lemma requires f to be bounded on B.toSet for the graph to be Jordan measurable.
+  -- For boxes with all sides Icc (closed), B.toSet is compact and continuity implies boundedness.
+  -- For open boxes (Ioo, Ico, etc.), a continuous function may be unbounded (e.g., 1/x on (0,1)),
+  -- making the graph unbounded and thus not Jordan measurable.
+  -- The standard setting in Tao's book assumes closed boxes (Icc).
+  -- The proof uses IsCompact.exists_bound_of_continuousOn' and uniform continuity on compact sets.
   sorry
 
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
