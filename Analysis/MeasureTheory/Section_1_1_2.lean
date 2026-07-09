@@ -3,6 +3,7 @@ import Mathlib.LinearAlgebra.AffineSpace.Simplex.Basic
 
 set_option maxHeartbeats 0
 
+
 /-!
 # Introduction to Measure Theory, Section 1.1.2: Jordan measure
 
@@ -279,9 +280,10 @@ theorem JordanMeasurable.equiv {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornolo
           · exact hAB hx
           · exact hxB
         · intro hx
-          by_cases hxA : x ∈ A
-          · exact Or.inl hxA
-          · exact Or.inr ⟨hx, hxA⟩
+          classical
+            by_cases hxA : x ∈ A
+            · exact Or.inl hxA
+            · exact Or.inr ⟨hx, hxA⟩
       have h_disjoint : Disjoint A (B \ A) := disjoint_sdiff_self_right
       have h_measure_eq : hB.measure = hA.measure + (hB.sdiff hA).measure := by
         have h_union_measure : (hA.union (hB.sdiff hA)).measure = hA.measure + (hB.sdiff hA).measure :=
@@ -867,16 +869,318 @@ lemma JordanMeasurable.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
   · convert JordanMeasurable.eq_outer _;
   · exact eq_outer hE;
 
-/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
-lemma JordanMeasurable.graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : JordanMeasurable { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
+/-!
+## Auxiliary lemmas for Exercise 1.1.7 (regions under graphs)
+
+The original statement of {lit}`JordanMeasurable.graph` below (kept commented out) is **false** as
+stated: it only assumes {lit}`ContinuousOn f B.toSet` for an arbitrary box {lit}`B`.  A box may have open
+sides (e.g. {lit}`Ioo`), on which a continuous function can be unbounded (for instance {lit}`f x = 1/x` on
+{lit}`(0,1)`).  Its graph is then an unbounded set, hence *not* Jordan measurable.  This matches Tao's
+actual Exercise 1.1.7, which is stated for a **closed** box.  We therefore add the hypothesis
+{lit}`hB : ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b` (all sides closed) to the corrected versions.
+-/
+
+section GraphMeasurableAux
+
+/-
+The Jordan outer measure of the empty set is zero.
+-/
+lemma Jordan_outer_measure_empty (d:ℕ) : Jordan_outer_measure (∅ : Set (EuclideanSpace' d)) = 0 := by
+  convert JordanMeasurable.mes_of_empty d using 1;
+  exact Eq.symm (JordanMeasurable.eq_outer (JordanMeasurable.empty d))
+
+/-
+The Jordan outer measure of a box equals its volume.
+-/
+lemma Jordan_outer_measure_of_box {d:ℕ} (B: Box d) :
+    Jordan_outer_measure B.toSet = |B|ᵥ := by
+  refine' le_antisymm _ _;
+  · refine' csInf_le _ _;
+    · exact ⟨ 0, by rintro x ⟨ A, hA, hAB, rfl ⟩ ; exact IsElementary.measure_nonneg _ ⟩;
+    · exact ⟨ _, IsElementary.box B, Set.Subset.refl _, IsElementary.measure_of_box B ▸ rfl ⟩;
+  · refine' le_csInf _ _;
+    · exact ⟨ _, ⟨ _, IsElementary.box B, Set.Subset.refl _, rfl ⟩ ⟩;
+    · rintro _ ⟨ A, hA, hBA, rfl ⟩;
+      obtain ⟨ T, hT ⟩ := hA;
+      convert IsElementary.measure_mono _ _ hBA;
+      rotate_left;
+      exact IsElementary.box B;
+      · exact ⟨ T, hT ⟩;
+      · exact Eq.symm (IsElementary.measure_of_box B)
+
+/-
+Monotonicity of the Jordan outer measure (for a bounded ambient set).
+-/
+lemma Jordan_outer_measure_mono_of_subset {d:ℕ} {E F: Set (EuclideanSpace' d)}
+    (hEF: E ⊆ F) (hF: Bornology.IsBounded F) :
+    Jordan_outer_measure E ≤ Jordan_outer_measure F := by
+  apply_rules [ csInf_le_csInf ];
+  · exact ⟨ 0, by rintro x ⟨ A, hA, hEA, rfl ⟩ ; exact IsElementary.measure_nonneg hA ⟩;
+  · exact Exists.elim ( IsElementary.contains_bounded hF ) fun A hA => ⟨ _, ⟨ A, hA.1, hA.2, rfl ⟩ ⟩;
+  · exact fun m hm => by obtain ⟨ A, hA, hFA, rfl ⟩ := hm; exact ⟨ A, hA, hEF.trans hFA, rfl ⟩ ;
+
+/-
+A finite union of boxes is bounded.
+-/
+lemma isBounded_biUnion_box {d:ℕ} {ι: Type*} (s: Finset ι) (C: ι → Box d) :
+    Bornology.IsBounded (⋃ i ∈ s, (C i).toSet) := by
+  have h_bounded : ∀ i ∈ s, Bornology.IsBounded ((C i).toSet) := by
+    exact fun i hi => IsElementary.isBounded ( IsElementary.box _ );
+  exact (Bornology.isBounded_biUnion_finset s).mpr h_bounded
+
+/-
+Finite subadditivity of the Jordan outer measure over a finite family of boxes.
+-/
+lemma Jordan_outer_measure_biUnion_box_le {d:ℕ} {ι: Type*} (s: Finset ι) (C: ι → Box d) :
+    Jordan_outer_measure (⋃ i ∈ s, (C i).toSet) ≤ ∑ i ∈ s, |C i|ᵥ := by
+  induction' s using Finset.induction with a s ha ih;
+  all_goals try exact Classical.decEq _;
+  · simp +decide [ Jordan_outer_measure_empty ];
+  · convert le_trans ( Jordan_outer_subadd ( hE := ?_ ) ( hF := ?_ ) ) ( add_le_add ?_ ih ) using 1;
+    rotate_left;
+    convert Finset.sum_insert ha;
+    exact ( C a ).toSet;
+    · exact ( IsElementary.box ( C a ) ).isBounded;
+    · exact isBounded_biUnion_box s C;
+    · convert Jordan_outer_measure_of_box ( C a ) |> le_of_eq using 1;
+    · simp +decide
+
+/-
+A closed box (all sides `Icc`) has compact underlying set.
+-/
+lemma Box.isCompact_of_closed {d:ℕ} {B: Box d}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) : IsCompact B.toSet := by
+  -- The product of closed intervals is the intersection of the preimages of closed intervals under the coordinate projections.
+  have h_closed_intervals : B.toSet = ⋂ i, (fun x : EuclideanSpace' d => x i) ⁻¹' (Set.Icc (B.side i).a (B.side i).b) := by
+    ext x; simp [Box.toSet];
+    exact forall_congr' fun i => by obtain ⟨ a, b, h ⟩ := hB i; simp +decide [ h ] ;
+  have h_closed : IsClosed (B.toSet) := by
+    exact h_closed_intervals ▸ isClosed_iInter fun i => isClosed_Icc.preimage ( continuous_apply _ |> Continuous.comp <| continuous_induced_dom );
+  exact ( Metric.isCompact_iff_isClosed_bounded.mpr ⟨ h_closed, by simpa using IsElementary.isBounded ( IsElementary.box B ) ⟩ )
+
+/-
+The graph of a continuous function over a closed box is bounded.
+-/
+lemma graph_isBounded {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    Bornology.IsBounded { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
+  obtain ⟨ M, hM ⟩ := IsCompact.exists_bound_of_continuousOn ( Box.isCompact_of_closed hB ) hf;
+  refine' Bornology.IsBounded.subset _ _;
+  exact ( Box.prod B ( BoundedInterval.Icc ( -M ) M ) ).toSet;
+  · exact IsElementary.isBounded ( IsElementary.box _ );
+  · intro p hp; obtain ⟨ x, hx, hx' ⟩ := hp; simp_all +decide [ Box.prod_toSet, EuclideanSpace'.prod ] ;
+    exact ⟨ f x, abs_le.mp ( hM x hx ), rfl ⟩
+
+/-- Left endpoint of the {lit}`i`-th side of grid cell {lit}`k` in an {lit}`N`-fold subdivision of {lit}`∏ Icc (a i) (b i)`. -/
+noncomputable def GraphGrid.cornerLo {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (k : Fin d → Fin N) (i:Fin d) : ℝ :=
+  a i + (b i - a i) * (k i : ℝ) / (N:ℝ)
+
+/-- Right endpoint of the {lit}`i`-th side of grid cell {lit}`k`. -/
+noncomputable def GraphGrid.cornerHi {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (k : Fin d → Fin N) (i:Fin d) : ℝ :=
+  a i + (b i - a i) * ((k i : ℝ) + 1) / (N:ℝ)
+
+/-- The {lit}`d`-dimensional grid cell {lit}`k`. -/
+noncomputable def GraphGrid.Qbox {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (k : Fin d → Fin N) : Box d where
+  side i := BoundedInterval.Icc (GraphGrid.cornerLo a b N k i) (GraphGrid.cornerHi a b N k i)
+
+/-- The lower-left corner (sample point) of grid cell {lit}`k`. -/
+noncomputable def GraphGrid.corner {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (k : Fin d → Fin N) : EuclideanSpace' d :=
+  .toLp 2 (GraphGrid.cornerLo a b N k)
+
+/-- The {lit}`(d+1)`-dimensional covering box over grid cell {lit}`k`: the cell times the interval
+{lit}`[f(corner) - η, f(corner) + η]`. -/
+noncomputable def GraphGrid.Cbox {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (f: EuclideanSpace' d → ℝ) (η:ℝ)
+    (k : Fin d → Fin N) : Box (d+1) :=
+  Box.prod (GraphGrid.Qbox a b N k)
+    (BoundedInterval.Icc (f (GraphGrid.corner a b N k) - η) (f (GraphGrid.corner a b N k) + η))
+
+@[simp] lemma GraphGrid.corner_apply {d:ℕ} (a b : Fin d → ℝ) (N:ℕ) (k : Fin d → Fin N) (i:Fin d) :
+    (GraphGrid.corner a b N k) i = GraphGrid.cornerLo a b N k i := by
+  simp [GraphGrid.corner]
+
+/-
+One-dimensional cell selection: any point of `[a,b]` lies in some cell of the `N`-fold
+subdivision.
+-/
+lemma GraphGrid.exists_cell {a b : ℝ} (hab : a ≤ b) {N:ℕ} (hN: 0 < N) {t:ℝ}
+    (hlo: a ≤ t) (hhi: t ≤ b) :
+    ∃ m:Fin N, a + (b-a)*(m:ℝ)/(N:ℝ) ≤ t ∧ t ≤ a + (b-a)*((m:ℝ)+1)/(N:ℝ) := by
+  by_cases h : a = b;
+  · exact ⟨ ⟨ 0, hN ⟩, by norm_num [ h ] ; linarith, by norm_num [ h ] ; linarith ⟩;
+  · refine' ⟨ ⟨ Min.min ( Nat.floor ( ( t - a ) / ( b - a ) * N ) ) ( N - 1 ), _ ⟩, _, _ ⟩ <;> norm_num;
+    · exact Or.inr hN;
+    · rw [ add_div', div_le_iff₀ ] <;> norm_num [ hN ];
+      · cases min_cases ( ⌊ ( t - a ) / ( b - a ) * N⌋₊ : ℝ ) ( N - 1 ) <;> nlinarith [ Nat.floor_le ( show 0 ≤ ( t - a ) / ( b - a ) * N by exact mul_nonneg ( div_nonneg ( sub_nonneg.mpr hlo ) ( sub_nonneg.mpr hab ) ) ( Nat.cast_nonneg _ ) ), mul_div_cancel₀ ( t - a ) ( sub_ne_zero.mpr ( Ne.symm h ) ), show ( N : ℝ ) ≥ 1 by exact Nat.one_le_cast.mpr hN ];
+      · linarith;
+    · cases min_cases ( ⌊ ( t - a ) / ( b - a ) * N⌋₊ : ℝ ) ( N - 1 : ℕ ) <;> simp_all +decide;
+      · rw [ add_div', le_div_iff₀ ] <;> nlinarith [ Nat.lt_floor_add_one ( ( t - a ) / ( b - a ) * N ), mul_div_cancel₀ ( t - a ) ( sub_ne_zero_of_ne ( Ne.symm h ) ), show ( N : ℝ ) > 0 by positivity ];
+      · rw [ mul_div_cancel_right₀ _ ( by positivity ) ] ; linarith
+
+/-
+The volume of a grid cell is `∏ i, (b i - a i)/N`.
+-/
+lemma GraphGrid.Qbox_volume {d:ℕ} (a b : Fin d → ℝ) (hab: ∀ i, a i ≤ b i) {N:ℕ} (hN: 0 < N)
+    (k : Fin d → Fin N) :
+    |GraphGrid.Qbox a b N k|ᵥ = ∏ i, (b i - a i)/(N:ℝ) := by
+  refine' Finset.prod_congr rfl fun i _ => _;
+  unfold Qbox BoundedInterval.length; ring_nf;
+  unfold cornerLo cornerHi; ring_nf ;
+  exact max_eq_left ( by nlinarith [ hab i, show ( N : ℝ ) ⁻¹ ≥ 0 by positivity ] )
+
+/-
+The total volume of all covering boxes equals `(∏ i, (b i - a i)) * (2 * η)`.
+-/
+lemma GraphGrid.sum_vol {d:ℕ} (a b : Fin d → ℝ) (hab: ∀ i, a i ≤ b i) {N:ℕ} (hN: 0 < N)
+    (f: EuclideanSpace' d → ℝ) {η:ℝ} (hη: 0 ≤ η) :
+    ∑ k, |GraphGrid.Cbox a b N f η k|ᵥ = (∏ i, (b i - a i)) * (2 * η) := by
+  -- By definition of Cbox, we have that its volume is the product of the volumes of Qbox and the interval [c - η, c + η].
+  have h_volume_Cbox : ∀ k : Fin d → Fin N, (Cbox a b N f η k).volume = (∏ i, (b i - a i) / N) * (2 * η) := by
+    intro k
+    simp [Cbox, Box.volume_prod, Box.volume_of_interval];
+    rw [ GraphGrid.Qbox_volume a b hab hN k ];
+    norm_num [ Finset.prod_div_distrib, BoundedInterval.length ] ; ring_nf;
+    exact Or.inl <| max_eq_left <| by positivity;
+  simp_all +decide [ Finset.prod_div_distrib ];
+  rw [ ← mul_assoc, mul_div_cancel₀ _ ( by positivity ) ]
+
+/-
+The graph is covered by the grid of covering boxes for a suitable (large) `N`.
+-/
+lemma GraphGrid.graph_subset {d:ℕ} (a b : Fin d → ℝ) (hab: ∀ i, a i ≤ b i)
+    {B:Box d} (hBdef: ∀ i, B.side i = BoundedInterval.Icc (a i) (b i))
+    {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) {η:ℝ} (hη: 0 < η) :
+    ∃ N:ℕ, 0 < N ∧
+      { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } ⊆
+        (⋃ k : Fin d → Fin N, (GraphGrid.Cbox a b N f η k).toSet) := by
+  -- Let S := B.toSet. It is compact: hcompact := Box.isCompact_of_closed (fun i => ⟨a i, b i, hBdef i⟩).
+  set S := B.toSet
+  have hcompact : IsCompact S := by
+    exact Box.isCompact_of_closed ( fun i => ⟨ a i, b i, hBdef i ⟩ );
+  -- By `IsCompact.uniformContinuousOn_of_continuous hcompact hf`, `f` is uniformly continuous on `S`.
+  obtain ⟨δ, hδ_pos, hδ⟩ : ∃ δ > 0, ∀ u v : EuclideanSpace' d, u ∈ S → v ∈ S → dist u v < δ → |f u - f v| < η := by
+    have := Metric.uniformContinuousOn_iff.mp ( hcompact.uniformContinuousOn_of_continuous hf ) η hη; aesop;
+  -- Choose `N`: let `L := Real.sqrt (∑ i, (b i - a i)^2) ≥ 0`. By `exists_nat_gt (L/δ)` get `N` with `L/δ < N`; then `N > 0` (since `L/δ ≥ 0`) and `L/N < δ` (from `δ > 0`).
+  obtain ⟨N, hN_pos, hN⟩ : ∃ N : ℕ, 0 < N ∧ Real.sqrt (∑ i, (b i - a i)^2) / (N : ℝ) < δ := by
+    exact ⟨ ⌊Real.sqrt ( ∑ i, ( b i - a i ) ^ 2 ) / δ⌋₊ + 1, Nat.succ_pos _, by rw [ div_lt_iff₀ ] <;> push_cast <;> nlinarith [ Nat.lt_floor_add_one ( Real.sqrt ( ∑ i, ( b i - a i ) ^ 2 ) / δ ), mul_div_cancel₀ ( Real.sqrt ( ∑ i, ( b i - a i ) ^ 2 ) ) hδ_pos.ne' ] ⟩;
+  refine' ⟨ N, hN_pos, _ ⟩;
+  intro p hp
+  obtain ⟨x, hxS, hx⟩ := hp
+  have hx_coord : ∀ i, a i ≤ x i ∧ x i ≤ b i := by
+    exact fun i => by have := hxS i; rw [ hBdef ] at this; exact this;
+  have hx_corner : ∃ k : Fin d → Fin N, ∀ i, GraphGrid.cornerLo a b N k i ≤ x i ∧ x i ≤ GraphGrid.cornerHi a b N k i := by
+    exact ⟨ fun i => Classical.choose ( GraphGrid.exists_cell ( hab i ) hN_pos ( hx_coord i |>.1 ) ( hx_coord i |>.2 ) ), fun i => Classical.choose_spec ( GraphGrid.exists_cell ( hab i ) hN_pos ( hx_coord i |>.1 ) ( hx_coord i |>.2 ) ) ⟩
+  obtain ⟨k, hk⟩ := hx_corner
+  have hx_dist : dist x (GraphGrid.corner a b N k) ≤ Real.sqrt (∑ i, (b i - a i)^2) / (N : ℝ) := by
+    have hx_dist : dist x (GraphGrid.corner a b N k) = Real.sqrt (∑ i, (x i - GraphGrid.cornerLo a b N k i)^2) := by
+      simp +decide [ dist_eq_norm, EuclideanSpace.norm_eq ];
+    have hx_dist_le : ∀ i, (x i - GraphGrid.cornerLo a b N k i)^2 ≤ ((b i - a i) / (N : ℝ))^2 := by
+      intro i
+      have h_diff : x.ofLp i - GraphGrid.cornerLo a b N k i ≤ (b i - a i) / (N : ℝ) := by
+        have := hk i; rw [ show cornerHi a b N k i = cornerLo a b N k i + ( b i - a i ) / N from ?_ ] at this; ring_nf at *; linarith;
+        unfold cornerHi cornerLo; ring;
+      exact pow_le_pow_left₀ ( sub_nonneg.mpr ( hk i |>.1 ) ) h_diff 2;
+    rw [ hx_dist, Real.sqrt_le_iff ];
+    exact ⟨ by positivity, by rw [ div_pow, Real.sq_sqrt <| Finset.sum_nonneg fun _ _ => sq_nonneg _ ] ; exact le_trans ( Finset.sum_le_sum fun _ _ => hx_dist_le _ ) <| by simp +decide [ div_pow, Finset.sum_div _ _ _ ] ⟩
+  have hx_f : |f x - f (GraphGrid.corner a b N k)| < η := by
+    apply hδ x (GraphGrid.corner a b N k) hxS (by
+    simp +zetaDelta at *;
+    simp_all +decide [ cornerLo, cornerHi ];
+    exact fun i => ⟨ div_nonneg ( mul_nonneg ( sub_nonneg.mpr ( hab i ) ) ( Nat.cast_nonneg _ ) ) ( Nat.cast_nonneg _ ), by nlinarith [ hk i, hab i, show ( k i : ℝ ) + 1 ≤ N by norm_cast; linarith [ Fin.is_lt ( k i ) ], mul_div_cancel₀ ( ( b i - a i ) * ( k i : ℝ ) ) ( by positivity : ( N : ℝ ) ≠ 0 ) ] ⟩) (by
+    exact lt_of_le_of_lt hx_dist hN)
+  have hx_prod : p ∈ (Cbox a b N f η k).toSet := by
+    simp_all +decide [ Cbox, Box.prod ];
+    intro i; split_ifs <;> simp_all +decide [ Prod.ext_iff, EuclideanSpace'.prod_equiv ] ;
+    · convert hk ⟨ i, by linarith ⟩ using 1;
+      simp +decide [ ← hx.1, Qbox ];
+    · grind
+  exact Set.mem_iUnion.mpr ⟨k, hx_prod⟩
+
+/-
+Grid covering: for a closed box `B`, a continuous `f`, and `ε > 0`, there is a finite grid of
+`(d+1)`-boxes covering the graph of `f` with total volume at most `ε`.
+-/
+lemma graph_grid_cover {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet)
+    {ε:ℝ} (hε: 0 < ε) :
+    ∃ (N:ℕ) (C: (Fin d → Fin N) → Box (d+1)),
+      { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } ⊆ (⋃ j, (C j).toSet)
+        ∧ ∑ j, |C j|ᵥ ≤ ε := by
+  by_cases h : ∀ i : Fin d, ∃ a b : ℝ, B.side i = BoundedInterval.Icc a b ∧ a ≤ b;
+  · choose a b h₁ h₂ using h;
+    obtain ⟨N, hN⟩ : ∃ N : ℕ, 0 < N ∧ { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } ⊆ ⋃ k : Fin d → Fin N, (GraphGrid.Cbox a b N f (ε / (2 * (∏ i, (b i - a i) + 1))) k).toSet := by
+      apply GraphGrid.graph_subset a b h₂ h₁ hf (by
+      exact div_pos hε ( mul_pos zero_lt_two ( add_pos_of_nonneg_of_pos ( Finset.prod_nonneg fun _ _ => sub_nonneg.mpr ( h₂ _ ) ) zero_lt_one ) ));
+    refine' ⟨ N, _, hN.2, _ ⟩;
+    rw [ GraphGrid.sum_vol ];
+    · nlinarith [ mul_div_cancel₀ ε ( by linarith [ show 0 ≤ ∏ i, ( b i - a i ) from Finset.prod_nonneg fun _ _ => sub_nonneg.mpr ( h₂ _ ) ] : ( 2 * ( ∏ i, ( b i - a i ) + 1 ) ) ≠ 0 ), show 0 ≤ ∏ i, ( b i - a i ) from Finset.prod_nonneg fun _ _ => sub_nonneg.mpr ( h₂ _ ) ];
+    · assumption;
+    · linarith;
+    · exact div_nonneg hε.le ( mul_nonneg zero_le_two ( add_nonneg ( Finset.prod_nonneg fun _ _ => sub_nonneg.mpr ( h₂ _ ) ) zero_le_one ) );
+  · -- Since there exists an i such that B.side i is not a closed interval, B.toSet is empty.
+    have hB_empty : B.toSet = ∅ := by
+      simp_all +decide [ Set.ext_iff, Box.mem_toSet ];
+      obtain ⟨ i, hi ⟩ := h;
+      exact fun x => ⟨ i, by obtain ⟨ a, b, h ⟩ := hB i; specialize hi a b h; rw [ h ] ; exact fun ⟨ ha, hb ⟩ => by linarith ⟩;
+    refine' ⟨ 0, fun _ => ⟨ fun _ => BoundedInterval.Icc 0 0 ⟩, _, _ ⟩ <;> norm_num [ hB_empty ];
+    cases d <;> norm_num [ Box.volume ] at * ; linarith
+
+/-- The graph of a continuous function over a closed box has Jordan outer measure zero. -/
+lemma graph_outer_measure_zero {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    Jordan_outer_measure { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } = 0 := by
+  refine le_antisymm ?_ (Jordan_outer_measure_nonneg _)
+  refine le_of_forall_pos_le_add fun ε hε => ?_
+  obtain ⟨N, C, hcov, hsum⟩ := graph_grid_cover hB hf hε
+  have hbdd : Bornology.IsBounded (⋃ j, (C j).toSet) := by
+    have := isBounded_biUnion_box (Finset.univ : Finset (Fin d → Fin N)) C
+    simpa using this
+  calc Jordan_outer_measure { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ }
+      ≤ Jordan_outer_measure (⋃ j, (C j).toSet) := Jordan_outer_measure_mono_of_subset hcov hbdd
+    _ = Jordan_outer_measure (⋃ j ∈ (Finset.univ : Finset (Fin d → Fin N)), (C j).toSet) := by simp
+    _ ≤ ∑ j, |C j|ᵥ := Jordan_outer_measure_biUnion_box_le _ _
+    _ ≤ ε := hsum
+    _ ≤ 0 + ε := by linarith
+
+end GraphMeasurableAux
+
+/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable)
+
+Corrected statement: {lit}`B` is required to be a **closed** box (all sides {lit}`Icc`), matching Tao's
+Exercise 1.1.7.  Without this hypothesis the statement is false (see the commented-out original
+below and the note above). -/
+lemma JordanMeasurable.graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    JordanMeasurable { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
+  refine ⟨graph_isBounded hB hf, ?_⟩
+  have ho := graph_outer_measure_zero hB hf
+  have hio := Jordan_inner_le_outer (graph_isBounded hB hf)
+  have hin := Jordan_inner_measure_nonneg
+    { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ }
+  rw [ho] at hio ⊢
+  linarith
+
+-- Original (incorrect) statement of Exercise 1.1.7 (i), kept for reference.  It is FALSE for boxes
+-- with open sides: e.g. `f x = 1/x` is continuous on the open box `(0,1)` but its graph is
+-- unbounded, hence not Jordan measurable.
+-- lemma JordanMeasurable.graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : JordanMeasurable { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
+--   sorry
+
+/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable).
+
+Corrected statement: {lit}`B` is required to be a closed box (see {lit}`JordanMeasurable.graph`). -/
+lemma JordanMeasurable.measure_of_graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    (JordanMeasurable.graph hB hf).measure = 0 := by
   sorry
 
-/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
-lemma JordanMeasurable.measure_of_graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : (JordanMeasurable.graph hf).measure = 0 := by
-  sorry
+/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable).
 
-/-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
-lemma JordanMeasurable.undergraph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : JordanMeasurable { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by
+Corrected statement: {lit}`B` is required to be a closed box (see {lit}`JordanMeasurable.graph`).  As with the
+graph, the region under the graph of a continuous function on an *open* box need not be Jordan
+measurable, so closedness of {lit}`B` is needed. -/
+lemma JordanMeasurable.undergraph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
+    (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
+    JordanMeasurable { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by
   sorry
 
 /-- Exercise 1.1.8(i) (A triangle is Jordan measurable) -/
@@ -1494,7 +1798,7 @@ lemma BoundedInterval.closure_subset_Icc (I : BoundedInterval) : closure (I : Se
     · have heq : a = b := by exact not_not.mp h
       subst heq; simp [BoundedInterval.set_Ico]
 
-/-- Closing all sides of a box to `Icc`. Preserves volume. -/
+/-- Closing all sides of a box to {lit}`Icc`. Preserves volume. -/
 def Box.closure {d:ℕ} (B : Box d) : Box d :=
   ⟨fun i => BoundedInterval.Icc (B.side i).a (B.side i).b⟩
 
@@ -1509,7 +1813,7 @@ lemma closure_finset_biUnion {d : ℕ} (T : Finset (Box d)) : closure (⋃ B ∈
   classical
   induction' T using Finset.induction_on with B T hT ih
   · simp
-  · simp [Finset.biUnion_insert, closure_union, ih]
+  · simp [closure_union, ih]
 
 lemma box_closure_subset_closure {d:ℕ} (B : Box d) : closure (B : Set (EuclideanSpace' d)) ⊆ (Box.closure B).toSet := by
   intro x hx; rw [Box.mem_toSet]; intro i
@@ -1549,7 +1853,7 @@ lemma sum_image_volume_le_sum_volume' {d : ℕ} [DecidableEq (Box d)] (T : Finse
         ∑ B' ∈ T.image f, |B'|ᵥ ≤ ∑ B ∈ T, |B|ᵥ := ih
         _ ≤ |B|ᵥ + ∑ B ∈ T, |B|ᵥ := by nlinarith [Box.volume_nonneg B]
     · simp [h, ih, hf B]
-  
+
 lemma Finset.sum_image_le_sum' {α β : Type*} [DecidableEq α] [DecidableEq β] {s : Finset α} (f : α → β) (g : β → ℝ) (hg : ∀ x : β, 0 ≤ g x) :
     ∑ x ∈ s.image f, g x ≤ ∑ x ∈ s, g (f x) := by
   induction' s using Finset.induction_on with a s has ih
@@ -1559,7 +1863,7 @@ lemma Finset.sum_image_le_sum' {α β : Type*} [DecidableEq α] [DecidableEq β]
     · rw [Finset.insert_eq_of_mem hmem, Finset.sum_insert has]
       exact le_trans ih (by nlinarith [hg (f a)])
     · rw [Finset.sum_insert hmem, Finset.sum_insert has]
-      simp [hmem, ih, hg (f a)]
+      simp [ih]
 
 lemma Finset.sum_attach_image_eq_sum_image {α β : Type*} [DecidableEq α] [DecidableEq β] (s : Finset α) (f : α → β) (g : β → ℝ) :
     ∑ x ∈ s.image f, g x = ∑ y ∈ s.image f, g y := rfl
