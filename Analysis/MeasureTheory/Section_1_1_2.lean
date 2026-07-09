@@ -869,12 +869,6 @@ lemma JordanMeasurable.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
 
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
 lemma JordanMeasurable.graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ} (hf: ContinuousOn f B.toSet) : JordanMeasurable { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, f x ⟩ } := by
-  -- Note: This lemma requires f to be bounded on B.toSet for the graph to be Jordan measurable.
-  -- For boxes with all sides Icc (closed), B.toSet is compact and continuity implies boundedness.
-  -- For open boxes (Ioo, Ico, etc.), a continuous function may be unbounded (e.g., 1/x on (0,1)),
-  -- making the graph unbounded and thus not Jordan measurable.
-  -- The standard setting in Tao's book assumes closed boxes (Icc).
-  -- The proof uses IsCompact.exists_bound_of_continuousOn' and uniform continuity on compact sets.
   sorry
 
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable) -/
@@ -1479,10 +1473,183 @@ theorem JordanMeasurable.measure_of_equidecomposable {d n:ℕ} {E F: Set (Euclid
   (hQdisj: Set.PairwiseDisjoint .univ (fun i ↦ (interior (Q i)))) : hE.measure = hF.measure := by
   sorry
 
-/-- Exercise 1.1.18 (1) -/
--- The outer Jordan measure of a set equals the outer measure of its closure.
+/-- Helper: closure of a bounded interval is contained in the closed interval between its endpoints. -/
+lemma BoundedInterval.closure_subset_Icc (I : BoundedInterval) : closure (I : Set ℝ) ⊆ (Icc I.a I.b : Set ℝ) := by
+  cases I with
+  | Ioo a b =>
+    by_cases h : a ≠ b
+    · rw [BoundedInterval.set_Ioo, closure_Ioo h]; simp
+    · have heq : a = b := by exact not_not.mp h
+      subst heq; simp [BoundedInterval.set_Ioo]
+  | Icc a b =>
+    simp [BoundedInterval.set_Icc, isClosed_Icc.closure_eq]
+  | Ioc a b =>
+    by_cases h : a ≠ b
+    · rw [BoundedInterval.set_Ioc, closure_Ioc h]; simp
+    · have heq : a = b := by exact not_not.mp h
+      subst heq; simp [BoundedInterval.set_Ioc]
+  | Ico a b =>
+    by_cases h : a ≠ b
+    · rw [BoundedInterval.set_Ico, closure_Ico h]; simp
+    · have heq : a = b := by exact not_not.mp h
+      subst heq; simp [BoundedInterval.set_Ico]
+
+/-- Closing all sides of a box to `Icc`. Preserves volume. -/
+def Box.closure {d:ℕ} (B : Box d) : Box d :=
+  ⟨fun i => BoundedInterval.Icc (B.side i).a (B.side i).b⟩
+
+@[simp]
+lemma Box.volume_closure {d:ℕ} (B : Box d) : |B.closure|ᵥ = |B|ᵥ := by
+  simp [Box.volume, Box.closure, BoundedInterval.length]
+
+lemma Box.volume_nonneg {d:ℕ} (B : Box d) : 0 ≤ |B|ᵥ := by
+  apply Finset.prod_nonneg; intro i _; exact le_max_right _ _
+
+lemma closure_finset_biUnion {d : ℕ} (T : Finset (Box d)) : closure (⋃ B ∈ T, (B : Set (EuclideanSpace' d))) = ⋃ B ∈ T, closure (B : Set (EuclideanSpace' d)) := by
+  classical
+  induction' T using Finset.induction_on with B T hT ih
+  · simp
+  · simp [Finset.biUnion_insert, closure_union, ih]
+
+lemma box_closure_subset_closure {d:ℕ} (B : Box d) : closure (B : Set (EuclideanSpace' d)) ⊆ (Box.closure B).toSet := by
+  intro x hx; rw [Box.mem_toSet]; intro i
+  set f : EuclideanSpace' d → ℝ := fun y => y.ofLp i with hf
+  have hf_cont : Continuous f := by
+    simpa [hf] using PiLp.continuous_apply 2 (fun _ : Fin d => ℝ) i
+  have hf_maps : Set.MapsTo f (B : Set (EuclideanSpace' d)) ((B.side i : Set ℝ)) := by
+    intro y hy; rw [Box.mem_toSet] at hy; exact hy i
+  have hx_i : f x ∈ closure ((B.side i : Set ℝ)) := map_mem_closure hf_cont hx hf_maps
+  have h_sub' : closure ((B.side i : Set ℝ)) ⊆ (BoundedInterval.Icc (B.side i).a (B.side i).b : Set ℝ) :=
+    BoundedInterval.closure_subset_Icc (B.side i)
+  exact h_sub' hx_i
+
+noncomputable def elementary_measure {d:ℕ} (S : Set (EuclideanSpace' d)) : ℝ := by
+  classical
+  exact if h : IsElementary S then h.measure else 0
+
+lemma elementary_measure_nonneg {d:ℕ} (S : Set (EuclideanSpace' d)) : 0 ≤ elementary_measure S := by
+  classical
+  unfold elementary_measure; split
+  · exact IsElementary.measure_nonneg _
+  · exact le_refl 0
+
+lemma elementary_measure_eq {d:ℕ} {S : Set (EuclideanSpace' d)} (hS : IsElementary S) : elementary_measure S = hS.measure := by
+  classical
+  simp [elementary_measure, hS]
+
+lemma sum_image_volume_le_sum_volume' {d : ℕ} [DecidableEq (Box d)] (T : Finset (Box d)) (f : Box d → Box d) (hf : ∀ B, |f B|ᵥ = |B|ᵥ) :
+    ∑ B' ∈ T.image f, |B'|ᵥ ≤ ∑ B ∈ T, |B|ᵥ := by
+  induction' T using Finset.induction_on with B T hT ih
+  · simp
+  · rw [Finset.image_insert, Finset.sum_insert hT]
+    by_cases h : f B ∈ T.image f
+    · have h_insert : insert (f B) (T.image f) = T.image f := Finset.insert_eq_of_mem h
+      rw [h_insert]
+      calc
+        ∑ B' ∈ T.image f, |B'|ᵥ ≤ ∑ B ∈ T, |B|ᵥ := ih
+        _ ≤ |B|ᵥ + ∑ B ∈ T, |B|ᵥ := by nlinarith [Box.volume_nonneg B]
+    · simp [h, ih, hf B]
+  
+lemma Finset.sum_image_le_sum' {α β : Type*} [DecidableEq α] [DecidableEq β] {s : Finset α} (f : α → β) (g : β → ℝ) (hg : ∀ x : β, 0 ≤ g x) :
+    ∑ x ∈ s.image f, g x ≤ ∑ x ∈ s, g (f x) := by
+  induction' s using Finset.induction_on with a s has ih
+  · simp
+  · rw [Finset.image_insert]
+    by_cases hmem : f a ∈ s.image f
+    · rw [Finset.insert_eq_of_mem hmem, Finset.sum_insert has]
+      exact le_trans ih (by nlinarith [hg (f a)])
+    · rw [Finset.sum_insert hmem, Finset.sum_insert has]
+      simp [hmem, ih, hg (f a)]
+
+lemma Finset.sum_attach_image_eq_sum_image {α β : Type*} [DecidableEq α] [DecidableEq β] (s : Finset α) (f : α → β) (g : β → ℝ) :
+    ∑ x ∈ s.image f, g x = ∑ y ∈ s.image f, g y := rfl
+
 theorem JordanMeasurable.outer_measure_of_closure {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
-  Jordan_outer_measure (closure E) = Jordan_outer_measure E := by sorry
+  Jordan_outer_measure (closure E) = Jordan_outer_measure E := by
+  classical
+  apply le_antisymm
+  · -- J^*(closure E) ≤ J^*(E)
+    refine le_of_forall_pos_le_add fun ε hε => ?_
+    obtain ⟨A, hA, hEA, hA_measure⟩ : ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), E ⊆ A ∧ hA.measure < Jordan_outer_measure E + ε := by
+      have h_nonempty : { m : ℝ | ∃ (A : Set (EuclideanSpace' d)), ∃ hA : IsElementary A, E ⊆ A ∧ m = hA.measure }.Nonempty := by
+        obtain ⟨A, hA, hEA⟩ := IsElementary.contains_bounded hE
+        exact ⟨hA.measure, A, hA, hEA, rfl⟩
+      have h_lt : sInf { m : ℝ | ∃ (A : Set (EuclideanSpace' d)), ∃ hA : IsElementary A, E ⊆ A ∧ m = hA.measure } < Jordan_outer_measure E + ε := by
+        dsimp [Jordan_outer_measure]; nlinarith
+      obtain ⟨m, hm, hm_lt⟩ := exists_lt_of_csInf_lt h_nonempty h_lt
+      obtain ⟨A, hA, hEA, rfl⟩ := hm; exact ⟨A, hA, hEA, hm_lt⟩
+    obtain ⟨T, hT_disj, hA_eq⟩ := hA.partition
+    let C := ⋃ B ∈ T, (Box.closure B : Set (EuclideanSpace' d))
+    have hC_elem : IsElementary C := by
+      refine ⟨T.image Box.closure, ?_⟩
+      ext x; simp [C]
+    have h_closure_sub_C : closure E ⊆ C := by
+      have h_closure_A_sub_C : closure A ⊆ C := by
+        rw [hA_eq, closure_finset_biUnion T]
+        refine Set.biUnion_mono (Set.Subset.refl (T : Set (Box d))) (fun B hB => ?_)
+        exact box_closure_subset_closure B
+      exact Set.Subset.trans (closure_mono hEA) h_closure_A_sub_C
+    have h_outer_le_C : Jordan_outer_measure (closure E) ≤ hC_elem.measure := by
+      unfold Jordan_outer_measure
+      apply csInf_le
+      · refine ⟨0, ?_⟩
+        rintro m' ⟨A', hA', hA'_sub, rfl⟩; exact IsElementary.measure_nonneg hA'
+      · exact ⟨C, hC_elem, h_closure_sub_C, rfl⟩
+    have hC_measure_le_A : hC_elem.measure ≤ hA.measure := by
+      let Cs : Finset (Set (EuclideanSpace' d)) :=
+        T.image (fun (B : Box d) => (Box.closure B : Set (EuclideanSpace' d)))
+      have hCs_elem : ∀ (S : Set (EuclideanSpace' d)), S ∈ Cs → IsElementary S := by
+        intro S hS; rcases Finset.mem_image.mp hS with ⟨B, hB, rfl⟩; exact IsElementary.box (Box.closure B)
+      have h_union_Cs : (⋃ S ∈ Cs, S) = C := by
+        ext x; simp [C, Cs]
+      have h_union_elem : IsElementary (⋃ S ∈ Cs, S) := IsElementary.union' hCs_elem
+      have h_measure_eq : hC_elem.measure = h_union_elem.measure :=
+        IsElementary.measure_eq_of_set_eq hC_elem h_union_elem h_union_Cs.symm
+      have h_subadd : h_union_elem.measure ≤ ∑ S : Cs, (hCs_elem S.val S.property).measure :=
+        IsElementary.measure_of_union' hCs_elem
+      have h_sum_le : ∑ S : Cs, (hCs_elem S.val S.property).measure ≤ hA.measure := by
+        let f : Box d → Set (EuclideanSpace' d) := fun B => (Box.closure B : Set (EuclideanSpace' d))
+        have hCs_eq : Cs = T.image f := rfl
+        have h_sum_eq : ∑ S : Cs, (hCs_elem S.val S.property).measure = ∑ S ∈ Cs, elementary_measure S := by
+          -- Note: ∑ S : Cs, f = ∑ S ∈ Cs.attach, f S.val. Using Finset.sum_attach we convert to ∑ S ∈ Cs, f S.
+          -- But f = λ S.val => (hCs_elem S.val S.property).measure, which depends on the membership proof S.property.
+          -- We define an auxiliary function that doesn't depend on the proof.
+          let g (S : Set (EuclideanSpace' d)) : ℝ := elementary_measure S
+          have hg_eq : ∀ (S : Set (EuclideanSpace' d)) (hS : S ∈ Cs), (hCs_elem S hS).measure = g S := by
+            intro S hS; simp [g, elementary_measure_eq (hCs_elem S hS)]
+          calc
+            ∑ S : Cs, (hCs_elem S.val S.property).measure = ∑ S : Cs, g S.val := by
+              refine Finset.sum_congr rfl fun S hS => ?_
+              simp [g, hg_eq S.val S.property]
+            _ = ∑ S ∈ Cs, g S := by simp [Finset.sum_attach]
+            _ = ∑ S ∈ Cs, elementary_measure S := rfl
+        rw [h_sum_eq]
+        have h_image_sum : ∑ S ∈ T.image f, elementary_measure S ≤ ∑ B ∈ T, elementary_measure (f B) :=
+          Finset.sum_image_le_sum' f elementary_measure (fun _ => elementary_measure_nonneg _)
+        have h_f_measure : ∀ B, elementary_measure (f B) = |B|ᵥ := by
+          intro B; simp [f, elementary_measure_eq (IsElementary.box (Box.closure B)), IsElementary.measure_of_box, Box.volume_closure]
+        have h_measure_sum : ∑ B ∈ T, |B|ᵥ = hA.measure := (hA.measure_eq hT_disj hA_eq).symm
+        calc
+          ∑ S ∈ Cs, elementary_measure S = ∑ S ∈ T.image f, elementary_measure S := rfl
+          _ ≤ ∑ B ∈ T, elementary_measure (f B) := h_image_sum
+          _ = ∑ B ∈ T, |B|ᵥ := by simp [h_f_measure]
+          _ = hA.measure := h_measure_sum
+      calc
+        hC_elem.measure = h_union_elem.measure := h_measure_eq
+        _ ≤ ∑ S : Cs, (hCs_elem S.val S.property).measure := h_subadd
+        _ ≤ hA.measure := h_sum_le
+    nlinarith
+  · -- J^*(E) ≤ J^*(closure E)
+    unfold Jordan_outer_measure
+    apply csInf_le_csInf
+    · refine ⟨0, ?_⟩
+      rintro m ⟨A, hA, _, rfl⟩; exact IsElementary.measure_nonneg hA
+    · have h_bounded_cl : Bornology.IsBounded (closure E) := hE.closure
+      obtain ⟨A, hA, h_clEA⟩ := IsElementary.contains_bounded h_bounded_cl
+      exact ⟨hA.measure, A, hA, h_clEA, rfl⟩
+    · intro m hm
+      obtain ⟨A, hA, hA_sub, rfl⟩ := hm
+      exact ⟨A, hA, Set.Subset.trans (subset_closure (s := E)) hA_sub, rfl⟩
 
 /-- Exercise 1.1.18 (2) -/
 -- The inner Jordan measure of a set equals the inner measure of its interior.
