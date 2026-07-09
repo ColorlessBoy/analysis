@@ -1171,7 +1171,9 @@ Corrected statement: {lit}`B` is required to be a closed box (see {lit}`JordanMe
 lemma JordanMeasurable.measure_of_graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
     (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
     (JordanMeasurable.graph hB hf).measure = 0 := by
-  sorry
+  have hJM := JordanMeasurable.graph hB hf
+  rw [hJM.eq_outer]
+  exact graph_outer_measure_zero hB hf
 
 /-- Exercise 1.1.7 (i) (Regions under graphs are Jordan measurable).
 
