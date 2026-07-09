@@ -1501,22 +1501,408 @@ abbrev bullet_riddled_square : Set (EuclideanSpace' 2) := { x | ∀ i, x i ∈ S
 abbrev bullets : Set (EuclideanSpace' 2) := { x | ∀ i, x i ∈ Set.Icc 0 1 ∧ x i ∈ (fun (q:ℚ) ↦ (q:ℝ)) '' .univ}
 
 /-- The bullet-riddled square has inner Jordan measure 0 (no elementary subset). -/
-theorem bullet_riddled_square.inner : Jordan_inner_measure bullet_riddled_square = 0 := by sorry
+theorem bullet_riddled_square.inner : Jordan_inner_measure bullet_riddled_square = 0 := by
+  have h_zero_measure : ∀ (A : Set (EuclideanSpace' 2)) (hA : IsElementary A), A ⊆ bullet_riddled_square → hA.measure = 0 := by
+    intro A hA hA_sub
+    by_contra! hpos
+    have hpos' : 0 < hA.measure := by
+      have hnonneg := IsElementary.measure_nonneg hA
+      by_contra! hle; apply hpos; linarith
+    obtain ⟨T, hT_disj, hA_eq⟩ := hA.partition
+    have h_measure_eq : hA.measure = ∑ B ∈ T, |B|ᵥ := hA.measure_eq hT_disj hA_eq
+    rw [h_measure_eq] at hpos'
+    have h_pos_box : ∃ B ∈ T, 0 < |B|ᵥ := by
+      by_contra! h_all
+      have h_sum : ∑ B ∈ T, |B|ᵥ ≤ 0 := Finset.sum_nonpos fun B hB => h_all B hB
+      linarith
+    rcases h_pos_box with ⟨B, hB, hB_vol⟩
+    have h_side_len_pos : ∀ i : Fin 2, 0 < |B.side i|ₗ := by
+      intro i
+      have h_nonneg : 0 ≤ |B.side i|ₗ := BoundedInterval.length_nonneg (B.side i)
+      by_contra! hle
+      have h_zero : |B.side i|ₗ = 0 := by linarith
+      have h_vol_zero : |B|ᵥ = 0 := by
+        rw [Box.volume]
+        apply Finset.prod_eq_zero (Finset.mem_univ i) h_zero
+      linarith
+    have h_side_lt : ∀ i : Fin 2, (B.side i).a < (B.side i).b := by
+      intro i
+      have h_len : |B.side i|ₗ = max ((B.side i).b - (B.side i).a) 0 := rfl
+      have h_pos_len : 0 < |B.side i|ₗ := h_side_len_pos i
+      rw [h_len] at h_pos_len
+      by_contra! hle
+      have : max ((B.side i).b - (B.side i).a) 0 = 0 := by
+        apply max_eq_right; linarith
+      rw [this] at h_pos_len; linarith
+    have h_rationals : ∀ i : Fin 2, ∃ q : ℚ, (B.side i).a < (q : ℝ) ∧ (q : ℝ) < (B.side i).b :=
+      fun i => exists_rat_btwn (h_side_lt i)
+    choose q hq1 hq2 using h_rationals
+    let x : EuclideanSpace' 2 := .toLp 2 (fun i => (q i : ℝ))
+    have hx_box : x ∈ (B : Set (EuclideanSpace' 2)) := by
+      rw [Box.mem_toSet]
+      intro i
+      have h_open : (q i : ℝ) ∈ Set.Ioo ((B.side i).a) ((B.side i).b) :=
+        Set.mem_Ioo.mpr ⟨hq1 i, hq2 i⟩
+      have h_sub : Set.Ioo ((B.side i).a) ((B.side i).b) ⊆ (B.side i : Set ℝ) :=
+        BoundedInterval.Ioo_subset (B.side i)
+      simpa [x] using h_sub h_open
+    have hx_A : x ∈ A := by
+      rw [hA_eq]
+      refine Set.mem_iUnion₂.mpr ⟨B, hB, hx_box⟩
+    have hx_brs : x ∈ bullet_riddled_square := hA_sub hx_A
+    have h_no_rational : ∀ i : Fin 2, x i ∉ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ :=
+      fun i => (hx_brs i).2
+    have h_rational_0 : x 0 ∈ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ := by
+      simp [x]
+    exact h_no_rational 0 h_rational_0
+  apply le_antisymm
+  · unfold Jordan_inner_measure
+    apply csSup_le
+    · use 0; use ∅; use IsElementary.empty 2; simp [IsElementary.measure_of_empty]
+    · intro m hm
+      obtain ⟨A, hA, hA_sub, rfl⟩ := hm
+      have hzero : hA.measure = 0 := h_zero_measure A hA hA_sub
+      linarith
+  · exact Jordan_inner_measure_nonneg _
 
 /-- The bullet-riddled square has outer Jordan measure 1 (fills the unit square). -/
-theorem bullet_riddled_square.outer : Jordan_outer_measure bullet_riddled_square = 1 := by sorry
+theorem bullet_riddled_square.outer : Jordan_outer_measure bullet_riddled_square = 1 := by
+  let U : Box 2 := { side := fun _ => BoundedInterval.Icc (0 : ℝ) 1 }
+  have hU_elem : IsElementary (U : Set (EuclideanSpace' 2)) := IsElementary.box U
+  have hU_measure : hU_elem.measure = 1 := by
+    calc
+      hU_elem.measure = |U|ᵥ := IsElementary.measure_of_box U
+      _ = ∏ i : Fin 2, |U.side i|ₗ := rfl
+      _ = ∏ i : Fin 2, |(BoundedInterval.Icc (0 : ℝ) 1 : BoundedInterval)|ₗ := rfl
+      _ = ∏ i : Fin 2, max (1 - 0) 0 := rfl
+      _ = ∏ i : Fin 2, 1 := by simp
+      _ = 1 := by simp
+  have h_sub_brs_U : bullet_riddled_square ⊆ (U : Set (EuclideanSpace' 2)) := by
+    intro x hx i; exact (hx i).1
+  apply le_antisymm
+  · unfold Jordan_outer_measure
+    apply csInf_le
+    · refine ⟨0, ?_⟩
+      rintro m ⟨A, hA, _, rfl⟩; exact IsElementary.measure_nonneg hA
+    · refine ⟨U, hU_elem, h_sub_brs_U, hU_measure.symm⟩
+  · have h_ge_one : ∀ (A : Set (EuclideanSpace' 2)) (hA : IsElementary A), bullet_riddled_square ⊆ A → 1 ≤ hA.measure := by
+      intro A hA hA_sup
+      set D := (U : Set (EuclideanSpace' 2)) \ A with hD_def
+      have hD_elem : IsElementary D := IsElementary.sdiff hU_elem hA
+      have hD_measure_zero : hD_elem.measure = 0 := by
+        by_contra! hpos
+        have hpos' : 0 < hD_elem.measure := by
+          have hnonneg := IsElementary.measure_nonneg hD_elem
+          by_contra! hle; apply hpos; linarith
+        obtain ⟨T, hT_disj, hD_eq⟩ := hD_elem.partition
+        have h_measure_eq : hD_elem.measure = ∑ B ∈ T, |B|ᵥ := hD_elem.measure_eq hT_disj hD_eq
+        rw [h_measure_eq] at hpos'
+        have h_pos_box : ∃ B ∈ T, 0 < |B|ᵥ := by
+          by_contra! h_all
+          have h_sum : ∑ B ∈ T, |B|ᵥ ≤ 0 := Finset.sum_nonpos fun B hB => h_all B hB
+          linarith
+        rcases h_pos_box with ⟨B, hB, hB_vol⟩
+        have h_side_len_pos : ∀ i : Fin 2, 0 < |B.side i|ₗ := by
+          intro i
+          have h_nonneg : 0 ≤ |B.side i|ₗ := BoundedInterval.length_nonneg (B.side i)
+          by_contra! hle
+          have h_zero : |B.side i|ₗ = 0 := by linarith
+          have h_vol_zero : |B|ᵥ = 0 := by
+            rw [Box.volume]
+            apply Finset.prod_eq_zero (Finset.mem_univ i) h_zero
+          linarith
+        have h_side_lt : ∀ i : Fin 2, (B.side i).a < (B.side i).b := by
+          intro i
+          have h_len : |B.side i|ₗ = max ((B.side i).b - (B.side i).a) 0 := rfl
+          have h_pos_len : 0 < |B.side i|ₗ := h_side_len_pos i
+          rw [h_len] at h_pos_len
+          by_contra! hle
+          have : max ((B.side i).b - (B.side i).a) 0 = 0 := by
+            apply max_eq_right; linarith
+          rw [this] at h_pos_len; linarith
+        have h_irrational_point : ∃ x : EuclideanSpace' 2, x ∈ (B : Set (EuclideanSpace' 2)) ∧ x ∈ bullet_riddled_square := by
+          have h_irrationals : ∀ i : Fin 2, ∃ r : ℝ, Irrational r ∧ (B.side i).a < r ∧ r < (B.side i).b :=
+            fun i => exists_irrational_btwn (h_side_lt i)
+          choose r hir hr1 hr2 using h_irrationals
+          let x : EuclideanSpace' 2 := .toLp 2 r
+          have hx_box : x ∈ (B : Set (EuclideanSpace' 2)) := by
+            rw [Box.mem_toSet]
+            intro i
+            have h_open : r i ∈ Set.Ioo ((B.side i).a) ((B.side i).b) :=
+              Set.mem_Ioo.mpr ⟨hr1 i, hr2 i⟩
+            have h_sub : Set.Ioo ((B.side i).a) ((B.side i).b) ⊆ (B.side i : Set ℝ) :=
+              BoundedInterval.Ioo_subset (B.side i)
+            simpa [x] using h_sub h_open
+          have hx_brs : x ∈ bullet_riddled_square := by
+            intro i
+            have hB_sub_D : (B : Set (EuclideanSpace' 2)) ⊆ D := by
+              rw [hD_eq]
+              intro y hy; exact Set.mem_iUnion₂.mpr ⟨B, hB, hy⟩
+            have hB_sub_U : (B : Set (EuclideanSpace' 2)) ⊆ (U : Set (EuclideanSpace' 2)) :=
+              Set.Subset.trans hB_sub_D (Set.diff_subset (s := (U : Set (EuclideanSpace' 2))) (t := A))
+            have hxU : x ∈ (U : Set (EuclideanSpace' 2)) := hB_sub_U hx_box
+            have hx_i_Icc : x i ∈ Set.Icc (0 : ℝ) 1 := hxU i
+            have h_not_rational : x i ∉ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ := by
+              have hxi_eq : x i = r i := by simp [x]
+              rw [hxi_eq]
+              intro h; rcases h with ⟨q, _, hq⟩; exact hir i ⟨q, hq⟩
+            exact ⟨hx_i_Icc, h_not_rational⟩
+          exact ⟨x, hx_box, hx_brs⟩
+        obtain ⟨x, hx_B, hx_brs⟩ := h_irrational_point
+        have hx_D : x ∈ D := by
+          rw [hD_eq]
+          exact Set.mem_iUnion₂.mpr ⟨B, hB, hx_B⟩
+        have h_disjoint : D ∩ bullet_riddled_square = ∅ := by
+          ext x; exact ⟨by { rintro ⟨⟨hxU, hxA⟩, hxBr⟩; exact hxA (hA_sup hxBr) }, by { intro h; exfalso; exact h }⟩
+        have hx_mem : x ∈ D ∩ bullet_riddled_square := ⟨hx_D, hx_brs⟩
+        rw [h_disjoint] at hx_mem; simp at hx_mem
+      have h_inter_elem : IsElementary ((U : Set (EuclideanSpace' 2)) ∩ A) := IsElementary.inter hU_elem hA
+      have h_disjoint_union : Disjoint D ((U : Set (EuclideanSpace' 2)) ∩ A) := by
+        rw [hD_def]; exact Set.disjoint_sdiff_inter
+      have h_union_eq : (U : Set (EuclideanSpace' 2)) = D ∪ ((U : Set (EuclideanSpace' 2)) ∩ A) := by
+        ext x; constructor
+        · intro hxU
+          by_cases hxA : x ∈ A
+          · apply Or.inr; exact ⟨hxU, hxA⟩
+          · apply Or.inl; exact ⟨hxU, hxA⟩
+        · rintro (⟨hxU, hxA⟩ | ⟨hxU, hxA⟩)
+          · exact hxU
+          · exact hxU
+      have h_U_measure_eq : hU_elem.measure = hD_elem.measure + h_inter_elem.measure := by
+        have h_disj_measure : (hD_elem.union h_inter_elem).measure = hD_elem.measure + h_inter_elem.measure :=
+          IsElementary.measure_of_disjUnion hD_elem h_inter_elem h_disjoint_union
+        have h_eq_measure : hU_elem.measure = (hD_elem.union h_inter_elem).measure :=
+          IsElementary.measure_eq_of_set_eq hU_elem (hD_elem.union h_inter_elem) h_union_eq
+        rw [h_eq_measure, h_disj_measure]
+      have h1_eq_hinter : 1 = h_inter_elem.measure := by
+        rw [hU_measure, hD_measure_zero, zero_add] at h_U_measure_eq
+        exact h_U_measure_eq
+      have h_inter_sub_A : (U : Set (EuclideanSpace' 2)) ∩ A ⊆ A :=
+        Set.inter_subset_right (s := (U : Set (EuclideanSpace' 2))) (t := A)
+      have h_mono : h_inter_elem.measure ≤ hA.measure :=
+        IsElementary.measure_mono h_inter_elem hA h_inter_sub_A
+      rw [← h1_eq_hinter] at h_mono
+      exact h_mono
+    unfold Jordan_outer_measure
+    apply le_csInf
+    · have h_bounded : Bornology.IsBounded (bullet_riddled_square : Set (EuclideanSpace' 2)) := by
+        have hU_bounded : Bornology.IsBounded (U : Set (EuclideanSpace' 2)) :=
+          (IsElementary.box U).isBounded
+        exact hU_bounded.subset h_sub_brs_U
+      obtain ⟨B, hB, hB_sup⟩ := IsElementary.contains_bounded h_bounded
+      exact ⟨hB.measure, B, hB, hB_sup, rfl⟩
+    · intro m hm
+      obtain ⟨A, hA, hA_sup, rfl⟩ := hm
+      exact h_ge_one A hA hA_sup
 
 /-- The rational points in the unit square have inner Jordan measure 0. -/
-theorem bullets.inner : Jordan_inner_measure bullets = 0 := by sorry
+theorem bullets.inner : Jordan_inner_measure bullets = 0 := by
+  have h_zero_measure : ∀ (A : Set (EuclideanSpace' 2)) (hA : IsElementary A), A ⊆ bullets → hA.measure = 0 := by
+    intro A hA hA_sub
+    by_contra! hpos
+    have hpos' : 0 < hA.measure := by
+      have hnonneg := IsElementary.measure_nonneg hA
+      by_contra! hle; apply hpos; linarith
+    obtain ⟨T, hT_disj, hA_eq⟩ := hA.partition
+    have h_measure_eq : hA.measure = ∑ B ∈ T, |B|ᵥ := hA.measure_eq hT_disj hA_eq
+    rw [h_measure_eq] at hpos'
+    have h_pos_box : ∃ B ∈ T, 0 < |B|ᵥ := by
+      by_contra! h_all
+      have h_sum : ∑ B ∈ T, |B|ᵥ ≤ 0 := Finset.sum_nonpos fun B hB => h_all B hB
+      linarith
+    rcases h_pos_box with ⟨B, hB, hB_vol⟩
+    have h_side_len_pos : ∀ i : Fin 2, 0 < |B.side i|ₗ := by
+      intro i
+      have h_nonneg : 0 ≤ |B.side i|ₗ := BoundedInterval.length_nonneg (B.side i)
+      by_contra! hle
+      have h_zero : |B.side i|ₗ = 0 := by linarith
+      have h_vol_zero : |B|ᵥ = 0 := by
+        rw [Box.volume]
+        apply Finset.prod_eq_zero (Finset.mem_univ i) h_zero
+      linarith
+    have h_side_lt : ∀ i : Fin 2, (B.side i).a < (B.side i).b := by
+      intro i
+      have h_len : |B.side i|ₗ = max ((B.side i).b - (B.side i).a) 0 := rfl
+      have h_pos_len : 0 < |B.side i|ₗ := h_side_len_pos i
+      rw [h_len] at h_pos_len
+      by_contra! hle
+      have : max ((B.side i).b - (B.side i).a) 0 = 0 := by
+        apply max_eq_right; linarith
+      rw [this] at h_pos_len; linarith
+    have h_irrationals : ∀ i : Fin 2, ∃ r : ℝ, Irrational r ∧ (B.side i).a < r ∧ r < (B.side i).b :=
+      fun i => exists_irrational_btwn (h_side_lt i)
+    choose r hir hr1 hr2 using h_irrationals
+    let x : EuclideanSpace' 2 := .toLp 2 r
+    have hx_box : x ∈ (B : Set (EuclideanSpace' 2)) := by
+      rw [Box.mem_toSet]
+      intro i
+      have h_open : r i ∈ Set.Ioo ((B.side i).a) ((B.side i).b) :=
+        Set.mem_Ioo.mpr ⟨hr1 i, hr2 i⟩
+      have h_sub : Set.Ioo ((B.side i).a) ((B.side i).b) ⊆ (B.side i : Set ℝ) :=
+        BoundedInterval.Ioo_subset (B.side i)
+      simpa [x] using h_sub h_open
+    have hx_A : x ∈ A := by
+      rw [hA_eq]
+      refine Set.mem_iUnion₂.mpr ⟨B, hB, hx_box⟩
+    have hx_bullets : x ∈ bullets := hA_sub hx_A
+    have h_rational : ∀ i : Fin 2, x i ∈ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ :=
+      fun i => (hx_bullets i).2
+    have h_irrational_0 : x 0 ∉ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ := by
+      have hx0 : x 0 = r 0 := by simp [x]
+      rw [hx0]
+      intro h; rcases h with ⟨q, _, hq⟩; exact hir 0 ⟨q, hq⟩
+    exact h_irrational_0 (h_rational 0)
+  apply le_antisymm
+  · unfold Jordan_inner_measure
+    apply csSup_le
+    · use 0; use ∅; use IsElementary.empty 2; simp [IsElementary.measure_of_empty]
+    · intro m hm
+      obtain ⟨A, hA, hA_sub, rfl⟩ := hm
+      have hzero : hA.measure = 0 := h_zero_measure A hA hA_sub
+      linarith
+  · exact Jordan_inner_measure_nonneg _
 
 /-- The rational points in the unit square have outer Jordan measure 1. -/
-theorem bullets.outer : Jordan_outer_measure bullets = 1 := by sorry
+theorem bullets.outer : Jordan_outer_measure bullets = 1 := by
+  let U : Box 2 := { side := fun _ => BoundedInterval.Icc (0 : ℝ) 1 }
+  have hU_elem : IsElementary (U : Set (EuclideanSpace' 2)) := IsElementary.box U
+  have hU_measure : hU_elem.measure = 1 := by
+    calc
+      hU_elem.measure = |U|ᵥ := IsElementary.measure_of_box U
+      _ = ∏ i : Fin 2, |U.side i|ₗ := rfl
+      _ = ∏ i : Fin 2, |(BoundedInterval.Icc (0 : ℝ) 1 : BoundedInterval)|ₗ := rfl
+      _ = ∏ i : Fin 2, max (1 - 0) 0 := rfl
+      _ = ∏ i : Fin 2, 1 := by simp
+      _ = 1 := by simp
+  have h_sub_bullets_U : bullets ⊆ (U : Set (EuclideanSpace' 2)) := by
+    intro x hx i; exact (hx i).1
+  apply le_antisymm
+  · unfold Jordan_outer_measure
+    apply csInf_le
+    · refine ⟨0, ?_⟩
+      rintro m ⟨A, hA, _, rfl⟩; exact IsElementary.measure_nonneg hA
+    · refine ⟨U, hU_elem, h_sub_bullets_U, hU_measure.symm⟩
+  · have h_ge_one : ∀ (A : Set (EuclideanSpace' 2)) (hA : IsElementary A), bullets ⊆ A → 1 ≤ hA.measure := by
+      intro A hA hA_sup
+      set D := (U : Set (EuclideanSpace' 2)) \ A with hD_def
+      have hD_elem : IsElementary D := IsElementary.sdiff hU_elem hA
+      have hD_measure_zero : hD_elem.measure = 0 := by
+        by_contra! hpos
+        have hpos' : 0 < hD_elem.measure := by
+          have hnonneg := IsElementary.measure_nonneg hD_elem
+          by_contra! hle; apply hpos; linarith
+        obtain ⟨T, hT_disj, hD_eq⟩ := hD_elem.partition
+        have h_measure_eq : hD_elem.measure = ∑ B ∈ T, |B|ᵥ := hD_elem.measure_eq hT_disj hD_eq
+        rw [h_measure_eq] at hpos'
+        have h_pos_box : ∃ B ∈ T, 0 < |B|ᵥ := by
+          by_contra! h_all
+          have h_sum : ∑ B ∈ T, |B|ᵥ ≤ 0 := Finset.sum_nonpos fun B hB => h_all B hB
+          linarith
+        rcases h_pos_box with ⟨B, hB, hB_vol⟩
+        have h_side_len_pos : ∀ i : Fin 2, 0 < |B.side i|ₗ := by
+          intro i
+          have h_nonneg : 0 ≤ |B.side i|ₗ := BoundedInterval.length_nonneg (B.side i)
+          by_contra! hle
+          have h_zero : |B.side i|ₗ = 0 := by linarith
+          have h_vol_zero : |B|ᵥ = 0 := by
+            rw [Box.volume]
+            apply Finset.prod_eq_zero (Finset.mem_univ i) h_zero
+          linarith
+        have h_side_lt : ∀ i : Fin 2, (B.side i).a < (B.side i).b := by
+          intro i
+          have h_len : |B.side i|ₗ = max ((B.side i).b - (B.side i).a) 0 := rfl
+          have h_pos_len : 0 < |B.side i|ₗ := h_side_len_pos i
+          rw [h_len] at h_pos_len
+          by_contra! hle
+          have : max ((B.side i).b - (B.side i).a) 0 = 0 := by
+            apply max_eq_right; linarith
+          rw [this] at h_pos_len; linarith
+        have h_rational_point : ∃ x : EuclideanSpace' 2, x ∈ (B : Set (EuclideanSpace' 2)) ∧ x ∈ bullets := by
+          have h_rationals : ∀ i : Fin 2, ∃ q : ℚ, (B.side i).a < (q : ℝ) ∧ (q : ℝ) < (B.side i).b :=
+            fun i => exists_rat_btwn (h_side_lt i)
+          choose q hq1 hq2 using h_rationals
+          let x : EuclideanSpace' 2 := .toLp 2 (fun i => (q i : ℝ))
+          have hx_box : x ∈ (B : Set (EuclideanSpace' 2)) := by
+            rw [Box.mem_toSet]
+            intro i
+            have h_open : (q i : ℝ) ∈ Set.Ioo ((B.side i).a) ((B.side i).b) :=
+              Set.mem_Ioo.mpr ⟨hq1 i, hq2 i⟩
+            have h_sub : Set.Ioo ((B.side i).a) ((B.side i).b) ⊆ (B.side i : Set ℝ) :=
+              BoundedInterval.Ioo_subset (B.side i)
+            simpa [x] using h_sub h_open
+          have hx_bullets : x ∈ bullets := by
+            intro i
+            have hB_sub_D : (B : Set (EuclideanSpace' 2)) ⊆ D := by
+              rw [hD_eq]
+              intro y hy; exact Set.mem_iUnion₂.mpr ⟨B, hB, hy⟩
+            have hB_sub_U : (B : Set (EuclideanSpace' 2)) ⊆ (U : Set (EuclideanSpace' 2)) :=
+              Set.Subset.trans hB_sub_D (Set.diff_subset (s := (U : Set (EuclideanSpace' 2))) (t := A))
+            have hxU : x ∈ (U : Set (EuclideanSpace' 2)) := hB_sub_U hx_box
+            have hx_i_Icc : x i ∈ Set.Icc (0 : ℝ) 1 := hxU i
+            have h_rational : x i ∈ (fun (q : ℚ) ↦ (q : ℝ)) '' Set.univ := by
+              simp [x]
+            exact ⟨hx_i_Icc, h_rational⟩
+          exact ⟨x, hx_box, hx_bullets⟩
+        obtain ⟨x, hx_B, hx_bullets⟩ := h_rational_point
+        have hx_D : x ∈ D := by
+          rw [hD_eq]
+          exact Set.mem_iUnion₂.mpr ⟨B, hB, hx_B⟩
+        have h_disjoint : D ∩ bullets = ∅ := by
+          ext x; exact ⟨by { rintro ⟨⟨hxU, hxA⟩, hxBr⟩; exact hxA (hA_sup hxBr) }, by { intro h; exfalso; exact h }⟩
+        have hx_mem : x ∈ D ∩ bullets := ⟨hx_D, hx_bullets⟩
+        rw [h_disjoint] at hx_mem; simp at hx_mem
+      have h_inter_elem : IsElementary ((U : Set (EuclideanSpace' 2)) ∩ A) := IsElementary.inter hU_elem hA
+      have h_disjoint_union : Disjoint D ((U : Set (EuclideanSpace' 2)) ∩ A) := by
+        rw [hD_def]; exact Set.disjoint_sdiff_inter
+      have h_union_eq : (U : Set (EuclideanSpace' 2)) = D ∪ ((U : Set (EuclideanSpace' 2)) ∩ A) := by
+        ext x; constructor
+        · intro hxU
+          by_cases hxA : x ∈ A
+          · apply Or.inr; exact ⟨hxU, hxA⟩
+          · apply Or.inl; exact ⟨hxU, hxA⟩
+        · rintro (⟨hxU, hxA⟩ | ⟨hxU, hxA⟩)
+          · exact hxU
+          · exact hxU
+      have h_U_measure_eq : hU_elem.measure = hD_elem.measure + h_inter_elem.measure := by
+        have h_disj_measure : (hD_elem.union h_inter_elem).measure = hD_elem.measure + h_inter_elem.measure :=
+          IsElementary.measure_of_disjUnion hD_elem h_inter_elem h_disjoint_union
+        have h_eq_measure : hU_elem.measure = (hD_elem.union h_inter_elem).measure :=
+          IsElementary.measure_eq_of_set_eq hU_elem (hD_elem.union h_inter_elem) h_union_eq
+        rw [h_eq_measure, h_disj_measure]
+      have h1_eq_hinter : 1 = h_inter_elem.measure := by
+        rw [hU_measure, hD_measure_zero, zero_add] at h_U_measure_eq
+        exact h_U_measure_eq
+      have h_inter_sub_A : (U : Set (EuclideanSpace' 2)) ∩ A ⊆ A :=
+        Set.inter_subset_right (s := (U : Set (EuclideanSpace' 2))) (t := A)
+      have h_mono : h_inter_elem.measure ≤ hA.measure :=
+        IsElementary.measure_mono h_inter_elem hA h_inter_sub_A
+      rw [← h1_eq_hinter] at h_mono
+      exact h_mono
+    unfold Jordan_outer_measure
+    apply le_csInf
+    · have h_bounded : Bornology.IsBounded (bullets : Set (EuclideanSpace' 2)) := by
+        have hU_bounded : Bornology.IsBounded (U : Set (EuclideanSpace' 2)) :=
+          (IsElementary.box U).isBounded
+        exact hU_bounded.subset h_sub_bullets_U
+      obtain ⟨B, hB, hB_sup⟩ := IsElementary.contains_bounded h_bounded
+      exact ⟨hB.measure, B, hB, hB_sup, rfl⟩
+    · intro m hm
+      obtain ⟨A, hA, hA_sup, rfl⟩ := hm
+      exact h_ge_one A hA hA_sup
 
 /-- The bullet-riddled square is not Jordan measurable (inner ≠ outer). -/
-theorem bullet_riddled_square.not_jordanMeasurable : ¬ JordanMeasurable bullet_riddled_square := by sorry
+theorem bullet_riddled_square.not_jordanMeasurable : ¬ JordanMeasurable bullet_riddled_square := by
+  intro hJM
+  rcases hJM with ⟨_, h_eq⟩
+  rw [bullet_riddled_square.inner, bullet_riddled_square.outer] at h_eq
+  linarith
 
 /-- The set of rational points is not Jordan measurable (inner ≠ outer). -/
-theorem bullets.not_jordanMeasurable : ¬ JordanMeasurable bullets := by sorry
+theorem bullets.not_jordanMeasurable : ¬ JordanMeasurable bullets := by
+  intro hJM
+  rcases hJM with ⟨_, h_eq⟩
+  rw [bullets.inner, bullets.outer] at h_eq
+  linarith
 
 /-- Exercise 1.1.19 (Caratheodory property) -/
 theorem JordanMeasurable.caratheodory {d:ℕ} {E F: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) (hF: IsElementary F) :
