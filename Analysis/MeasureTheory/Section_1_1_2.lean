@@ -1,5 +1,8 @@
 import Analysis.MeasureTheory.Section_1_1_1
 import Mathlib.LinearAlgebra.AffineSpace.Simplex.Basic
+import Mathlib.Analysis.Convex.Combination
+import Mathlib.Analysis.Convex.Hull
+import Mathlib.Analysis.Normed.Module.Convex
 
 set_option maxHeartbeats 0
 
@@ -1653,8 +1656,9 @@ lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : J
 /-- The 2D wedge product (signed area parallelogram factor) of two vectors. -/
 abbrev EuclideanSpace'.plane_wedge (x y: EuclideanSpace' 2) := x 1 * y 0 - x 0 * y 1
 
-/-- Exercise 1.1.8(ii) (Jordan measure of a triangle) -/
-lemma JordanMeasurable.measure_triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : (JordanMeasurable.triangle T).measure = |(T.points 1 - T.points 0).plane_wedge (T.points 2 - T.points 0)| / 2 := by
+/-- Exercise 1.1.8 -/
+-- The Jordan measure of a triangle equals half the absolute value of the wedge product of two edge vectors.
+lemma JordanMeasurable.measure_triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : (JordanMeasurable.triangle T).measure = |EuclideanSpace'.plane_wedge (T.points 1 - T.points 0) (T.points 2 - T.points 0)| / 2 := by
   sorry
 
 /-- Exercise 1.1.9  A polytope is the convex hull of a finite set of vertices. -/
