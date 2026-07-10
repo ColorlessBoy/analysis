@@ -26,8 +26,8 @@ lemma Box.interior_toSet {d : ℕ} (B : Box d) :
 
 /-- The closure of {name}`Box.toSet` expressed as a preimage. -/
 lemma Box.closure_toSet {d : ℕ} (B : Box d) :
-    closure B.toSet = (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)) ⁻¹'
-      Set.univ.pi (fun i => closure (B.side i).toSet) := by
+    _root_.closure B.toSet = (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)) ⁻¹'
+      Set.univ.pi (fun i => _root_.closure (B.side i).toSet) := by
   rw [Box.toSet_eq_ofLp_preimage,
     ← (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)).preimage_closure,
     closure_pi_set]
@@ -1544,14 +1544,6 @@ lemma subdivide_iter_covers {d:ℕ} (B : Box d) (k : ℕ) (x : EuclideanSpace' d
         have hc : c i = false := decide_eq_false (not_le.mpr hm)
         simp only [hc]
         exact (BoundedInterval.mem_bisect_fst_iff (B''.side i) (x i) hx_i).mpr (le_of_lt hm)
-
-/-- Box volume is non-negative (product of non-negative interval lengths). -/
-lemma volume_nonneg {d : ℕ} (B : Box d) : 0 ≤ B.volume := by
-  unfold volume
-  apply Finset.prod_nonneg
-  intro i _
-  unfold BoundedInterval.length
-  exact le_max_right _ _
 
 /-- Closed boxes (all sides are {name}`BoundedInterval.Icc`) in Euclidean space are compact sets. -/
 lemma isCompact {d : ℕ} (B : Box d) (h_closed : ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) :

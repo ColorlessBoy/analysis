@@ -1178,7 +1178,7 @@ lemma JordanMeasurable.measure_of_graph {d:ℕ} {B:Box d} {f: EuclideanSpace' d 
   rw [hJM.eq_outer]
   exact graph_outer_measure_zero hB hf
 
-/-- If `u, η` are real and `η ≥ 0`, then `max(0, u+η) - max(0, u-η) ≤ 2*η`. -/
+/-- If {lit}`u` and {lit}`η` are real and {lit}`η ≥ 0`, then `max(0, u+η) - max(0, u-η) ≤ 2*η`. -/
 lemma max_sub_max_le {u η : ℝ} (hη : 0 ≤ η) : max 0 (u + η) - max 0 (u - η) ≤ 2 * η := by
   by_cases h : 0 ≤ u - η
   · -- u - η ≥ 0, so u + η ≥ 2η ≥ 0, both maxes equal to u±η
@@ -1220,7 +1220,7 @@ lemma GraphGrid.sum_vol_Qbox {d:ℕ} (a b : Fin d → ℝ) (hab: ∀ i, a i ≤ 
       field_simp [pow_ne_zero d hNpos.ne']
 
 
-/-- The undergraph of `f` over a closed box `B` is bounded. -/
+/-- The undergraph of {lean}`f` over a closed box {lean}`B` is bounded. -/
 lemma undergraph_isBounded {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
     (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet) :
     Bornology.IsBounded { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by
@@ -1243,8 +1243,9 @@ lemma undergraph_isBounded {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
             simp [hp_eq]
       _ = p := by simp
 
-/-- For `ε>0`, construct elementary `A` such that `Jordan_outer_measure (symmDiff U A) ≤ ε`.
-Used to prove `JordanMeasurable.undergraph` via `JordanMeasurable.equiv`. -/
+/-- For {lit}`ε>0`, construct elementary {lit}`A` such that
+{lit}`Jordan_outer_measure (symmDiff U A) ≤ ε`.
+Used to prove {lit}`JordanMeasurable.undergraph` via {lean}`JordanMeasurable.equiv`. -/
 lemma undergraph_approx {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
     (hB: ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) (hf: ContinuousOn f B.toSet)
     {ε:ℝ} (hε: 0 < ε) :
