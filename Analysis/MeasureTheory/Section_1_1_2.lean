@@ -1698,44 +1698,6 @@ lemma sandwich_jordan (B : Box 1) (hB : ∀ i : Fin 1, ∃ a b, B.side i = Bound
 
 /-- Exercise 1.1.8 -/
 lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
-  have hBnd : Bornology.IsBounded T.closedInterior := by
-    rw [← Affine.Simplex.convexHull_eq_closedInterior]
-    exact isBounded_convexHull.mpr (Set.finite_range T.points).isBounded
-  have h_range : Set.range T.points = ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) := by
-    ext x; constructor
-    · rintro ⟨i, rfl⟩
-      fin_cases i <;> simp
-    · intro h
-      rcases h with (rfl|rfl|rfl)
-      · exact ⟨0, rfl⟩
-      · exact ⟨1, rfl⟩
-      · exact ⟨2, rfl⟩
-  have h_conv : T.closedInterior = convexHull ℝ ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) := by
-    rw [← Affine.Simplex.convexHull_eq_closedInterior T, h_range]
-  rw [h_conv]
-  -- Sort vertices by x-coordinate
-  have hx_sort : ∃ (a b c : EuclideanSpace' 2), a 0 ≤ b 0 ∧ b 0 ≤ c 0 ∧
-      ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) = ({a, b, c} : Set (EuclideanSpace' 2)) := by
-    by_cases h0 : (T.points 0) 0 ≤ (T.points 1) 0
-    · by_cases h1 : (T.points 0) 0 ≤ (T.points 2) 0
-      · by_cases h2 : (T.points 1) 0 ≤ (T.points 2) 0
-        · exact ⟨T.points 0, T.points 1, T.points 2, h0, h2, rfl⟩
-        · exact ⟨T.points 0, T.points 2, T.points 1, h1, by linarith, by
-        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
-      · exact ⟨T.points 2, T.points 0, T.points 1, by linarith, h0, by
-        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
-    · by_cases h2 : (T.points 1) 0 ≤ (T.points 2) 0
-      · by_cases h3 : (T.points 0) 0 ≤ (T.points 2) 0
-        · exact ⟨T.points 1, T.points 0, T.points 2, by linarith, h3, by
-        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
-        · exact ⟨T.points 1, T.points 2, T.points 0, h2, by linarith, by
-        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
-      · exact ⟨T.points 2, T.points 1, T.points 0, by linarith, by linarith, by
-        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
-  rcases hx_sort with ⟨a, b, c, hx_ab, hx_bc, hx_set⟩
-  have h_conv2 : convexHull ℝ ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) = convexHull ℝ ({a, b, c} : Set (EuclideanSpace' 2)) := by
-    rw [hx_set]
-  rw [h_conv2]
   sorry
 
 /-- The 2D wedge product (signed area parallelogram factor) of two vectors. -/
