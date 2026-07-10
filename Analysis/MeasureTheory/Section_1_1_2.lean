@@ -1941,11 +1941,208 @@ lemma segment_outer_measure_zero (a b : EuclideanSpace' 2) :
     · exact vertical_segment_outer_measure_zero a b h_vert
     · exact nonvertical_segment_outer_measure_zero a b h_vert
 
+/-- A helper lemma: a bounded interval in ℝ is preconnected. -/
+lemma isPreconnected_boundedInterval (I : BoundedInterval) : IsPreconnected (I : Set ℝ) := by
+  rcases I with ⟨a, b⟩ | ⟨a, b⟩ | ⟨a, b⟩ | ⟨a, b⟩
+  · by_cases h : a < b
+    · simpa using (isConnected_Ioo h).isPreconnected
+    · have h_empty : (Set.Ioo a b : Set ℝ) = (∅ : Set ℝ) := Set.Ioo_eq_empty (by linarith)
+      simpa [h_empty] using isPreconnected_empty
+  · by_cases h : a ≤ b
+    · simpa using (isConnected_Icc h).isPreconnected
+    · have h_empty : (Set.Icc a b : Set ℝ) = (∅ : Set ℝ) := Set.Icc_eq_empty (by linarith)
+      simpa [h_empty] using isPreconnected_empty
+  · by_cases h : a < b
+    · simpa using (isConnected_Ioc h).isPreconnected
+    · have h_empty : (Set.Ioc a b : Set ℝ) = (∅ : Set ℝ) := Set.Ioc_eq_empty (by linarith)
+      simpa [h_empty] using isPreconnected_empty
+  · by_cases h : a < b
+    · simpa using (isConnected_Ico h).isPreconnected
+    · have h_empty : (Set.Ico a b : Set ℝ) = (∅ : Set ℝ) := Set.Ico_eq_empty (by linarith)
+      simpa [h_empty] using isPreconnected_empty
+
+/-- A helper lemma: a box is preconnected in Euclidean space. -/
+lemma isPreconnected_box (d : ℕ) (B : Box d) : IsPreconnected (B.toSet : Set (EuclideanSpace' d)) := by
+  let e : EuclideanSpace ℝ (Fin d) ≃L[ℝ] (Fin d → ℝ) := EuclideanSpace.equiv (Fin d) ℝ
+  have he_preimg : B.toSet = e.symm '' (Set.pi Set.univ (fun i : Fin d => (B.side i : Set ℝ))) := by
+    ext x
+    constructor
+    · intro hx
+      have hx' := (Box.mem_toSet.mp hx)
+      have hx_coord (i : Fin d) : (e x) i ∈ (B.side i : Set ℝ) := by
+        simpa [e] using hx' i
+      refine ⟨e x, ?_, ?_⟩
+      · simp [Set.mem_pi, hx_coord]
+      · simp [e]
+    · rintro ⟨y, hy, rfl⟩
+      have hx_coord' (i : Fin d) : (e.symm y).ofLp i ∈ (B.side i : Set ℝ) := by
+        have hy_i : y i ∈ (B.side i : Set ℝ) := hy i (Set.mem_univ i)
+        simp [e, hy_i]
+      simpa [Box.mem_toSet] using hx_coord'
+  rw [he_preimg]
+  have h_preconn : IsPreconnected (Set.pi Set.univ (fun i : Fin d => (B.side i : Set ℝ))) :=
+    isPreconnected_univ_pi (fun i => isPreconnected_boundedInterval (B.side i))
+  have h_cont : ContinuousOn (e.symm : (Fin d → ℝ) → EuclideanSpace ℝ (Fin d))
+    (Set.pi Set.univ (fun i : Fin d => (B.side i : Set ℝ))) :=
+    (e.symm).continuous.continuousOn
+  exact h_preconn.image (e.symm : (Fin d → ℝ) → EuclideanSpace ℝ (Fin d)) h_cont
+
 /-- If a bounded set has Jordan null frontier, then it is Jordan measurable. -/
 lemma JordanMeasurable.if_frontier_null {d:ℕ} {E : Set (EuclideanSpace' d)}
     (hBounded : Bornology.IsBounded E)
     (hfrontier : Jordan_outer_measure (frontier E) = 0) : JordanMeasurable E := by
-  sorry
+  classical
+  have h_inner_le_outer : Jordan_inner_measure E ≤ Jordan_outer_measure E :=
+    Jordan_inner_le_outer hBounded
+  have h_outer_le_inner : Jordan_outer_measure E ≤ Jordan_inner_measure E := by
+    refine le_of_forall_pos_le_add fun ε hε => ?_
+    have hε2 : ε/2 > 0 := by linarith
+    have h_lt : Jordan_outer_measure (frontier E) < ε/2 := by
+      rw [hfrontier]; linarith
+    have h_bounded_frontier : Bornology.IsBounded (frontier E) :=
+      hBounded.closure.subset frontier_subset_closure
+    obtain ⟨C, hC, hC_frontier, hC_measure⟩ := le_Jordan_outer h_lt h_bounded_frontier
+    have h_bounded_cl : Bornology.IsBounded (closure E) := hBounded.closure
+    obtain ⟨B, hB, hB_closure⟩ := IsElementary.contains_bounded h_bounded_cl
+    let C' := C ∩ B
+    have hC'_elem : IsElementary C' := hC.inter hB
+    have hC'_frontier : frontier E ⊆ C' := by
+      intro x hx
+      have hx_cl : x ∈ closure E :=
+        Set.mem_of_subset_of_mem (frontier_subset_closure) hx
+      exact ⟨hC_frontier hx, hB_closure hx_cl⟩
+    have hC'_measure_lt : hC'_elem.measure < ε/2 := by
+      have hC'_sub_C : C' ⊆ C :=
+        show C ∩ B ⊆ C from Set.inter_subset_left (s := C) (t := B)
+      have hC'_measure_le : hC'_elem.measure ≤ hC.measure :=
+        IsElementary.measure_mono hC'_elem hC hC'_sub_C
+      linarith
+    have hB_sdiff_C'_elem : IsElementary (B \ C') := hB.sdiff hC'_elem
+    obtain ⟨T_boxes, hT_disj, hT_eq⟩ := hB_sdiff_C'_elem.partition
+    have hT_eq' : (B \ C' : Set (EuclideanSpace' d)) = ⋃ J ∈ T_boxes, (J : Set (EuclideanSpace' d)) := hT_eq
+    let A_sets : Finset (Set (EuclideanSpace' d)) :=
+      (T_boxes.image fun (J : Box d) => (J : Set (EuclideanSpace' d))).filter fun S =>
+        S ⊆ interior E
+    let A := ⋃ S ∈ A_sets, S
+    have hA_elem : IsElementary A := by
+      refine IsElementary.union' (fun S hS => ?_)
+      rcases Finset.mem_filter.mp hS with ⟨hS_img, hS_int⟩
+      rcases Finset.mem_image.mp hS_img with ⟨J, hJ, rfl⟩
+      exact IsElementary.box J
+    have hA_sub_int : A ⊆ interior E := by
+      intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨S, hS, hxS⟩
+      have hS_int : S ⊆ interior E := (Finset.mem_filter.mp hS).2
+      exact hS_int hxS
+    have hA_sub_E : A ⊆ E := Set.Subset.trans hA_sub_int interior_subset
+    have hE_sub_AC' : E ⊆ A ∪ C' := by
+      intro x hx
+      have hx_cl : x ∈ closure E := subset_closure hx
+      have hx_B : x ∈ B := hB_closure hx_cl
+      by_cases hx_C' : x ∈ C'
+      · exact Or.inr hx_C'
+      · have hx_sdiff : x ∈ B \ C' := ⟨hx_B, hx_C'⟩
+        rw [hT_eq'] at hx_sdiff
+        simp at hx_sdiff
+        rcases hx_sdiff with ⟨J_box, hJ_box, hxJ⟩
+        have hJ_preconn : IsPreconnected ((J_box : Set (EuclideanSpace' d))) :=
+          isPreconnected_box d J_box
+        have hy_not_frontier (y : EuclideanSpace' d) (hyJ : y ∈ (J_box : Set (EuclideanSpace' d))) : y ∉ frontier E := by
+          intro hy_front
+          have hy_C' : y ∈ C' := hC'_frontier hy_front
+          have hy_sdiff' : y ∈ B \ C' := by
+            have hy_union : y ∈ ⋃ J' ∈ T_boxes, (J' : Set (EuclideanSpace' d)) := by
+              simpa using ⟨J_box, hJ_box, hyJ⟩
+            rw [← hT_eq'] at hy_union
+            exact hy_union
+          exact hy_sdiff'.2 hy_C'
+        have hJ_sub_union : (J_box : Set (EuclideanSpace' d)) ⊆ interior E ∪ (closure E)ᶜ := by
+          intro y hy
+          by_cases hy_cl : y ∈ closure E
+          · by_cases hy_int : y ∈ interior E
+            · exact Or.inl hy_int
+            · exfalso
+              have hy_front : y ∈ frontier E := by
+                rw [frontier, Set.diff_eq]
+                exact ⟨hy_cl, hy_int⟩
+              exact hy_not_frontier y hy hy_front
+          · exact Or.inr hy_cl
+        have h_int_open : IsOpen (interior E : Set (EuclideanSpace' d)) := isOpen_interior
+        have h_ext_open : IsOpen ((closure E)ᶜ : Set (EuclideanSpace' d)) :=
+          isOpen_compl_iff.mpr isClosed_closure
+        have h_disjoint_int_ext : Disjoint (interior E) ((closure E)ᶜ : Set (EuclideanSpace' d)) := by
+          refine Set.disjoint_left.mpr fun y hy_int hy_ext => ?_
+          exact hy_ext (subset_closure (interior_subset hy_int))
+        rcases hJ_preconn.subset_or_subset h_int_open h_ext_open h_disjoint_int_ext hJ_sub_union with
+          (hJ_int' | hJ_ext')
+        · have hJ_set : (J_box : Set (EuclideanSpace' d)) ∈ T_boxes.image (fun J' : Box d => (J' : Set (EuclideanSpace' d))) := by
+            apply Finset.mem_image.mpr
+            exact ⟨J_box, hJ_box, rfl⟩
+          have hJ_A_sets : (J_box : Set (EuclideanSpace' d)) ∈ A_sets :=
+            Finset.mem_filter.mpr ⟨hJ_set, hJ_int'⟩
+          exact Or.inl (Set.mem_iUnion₂.mpr ⟨(J_box : Set (EuclideanSpace' d)), hJ_A_sets, hxJ⟩)
+        · exfalso
+          exact hJ_ext' hxJ hx_cl
+    let C'' := C' \ A
+    have hC''_elem : IsElementary C'' := hC'_elem.sdiff hA_elem
+    have hC''_frontier : frontier E ⊆ C'' := by
+      intro x hx
+      have hx_C' : x ∈ C' := hC'_frontier hx
+      have hx_not_A : x ∉ A := by
+        intro hxA
+        have hx_int : x ∈ interior E := hA_sub_int hxA
+        have hx_not_int : x ∉ interior E := by
+          rw [frontier, Set.mem_diff] at hx
+          exact hx.2
+        exact hx_not_int hx_int
+      exact ⟨hx_C', hx_not_A⟩
+    have hC''_measure_lt : hC''_elem.measure < ε/2 := by
+      have hC''_sub_C' : C'' ⊆ C' :=
+        show C' \ A ⊆ C' from fun x hx => hx.1
+      have hC''_measure_le : hC''_elem.measure ≤ hC'_elem.measure :=
+        IsElementary.measure_mono hC''_elem hC'_elem hC''_sub_C'
+      linarith
+    have h_disjoint_AC'' : Disjoint A C'' := by
+      refine Set.disjoint_left.mpr fun x hxA hxC'' => ?_
+      exact hxC''.2 hxA
+    have hE_sub_AC'' : E ⊆ A ∪ C'' := by
+      intro x hx
+      rcases hE_sub_AC' hx with (hxA | hxC')
+      · exact Or.inl hxA
+      · by_cases hxA' : x ∈ A
+        · exact Or.inl hxA'
+        · exact Or.inr ⟨hxC', hxA'⟩
+    have h_outer_bound : Jordan_outer_measure E ≤ (hA_elem.union hC''_elem).measure := by
+      have h_sub : Jordan_outer_measure E ≤ Jordan_outer_measure (A ∪ C'') :=
+        Jordan_outer_measure_mono_of_subset hE_sub_AC'' ((hA_elem.union hC''_elem).isBounded)
+      have h_outer_AC : Jordan_outer_measure (A ∪ C'') ≤ (hA_elem.union hC''_elem).measure :=
+        Jordan_outer_le (hA_elem.union hC''_elem) (Set.Subset.refl _)
+      exact le_trans h_sub h_outer_AC
+    have h_measure_eq : (hA_elem.union hC''_elem).measure = hA_elem.measure + hC''_elem.measure :=
+      IsElementary.measure_of_disjUnion hA_elem hC''_elem h_disjoint_AC''
+    have hA_measure_le_inner : hA_elem.measure ≤ Jordan_inner_measure E := by
+      have h_nonempty : { m : ℝ | ∃ (X : Set (EuclideanSpace' d)) (hX : IsElementary X), X ⊆ E ∧ m = hX.measure }.Nonempty :=
+        ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, Eq.symm (IsElementary.measure_of_empty d)⟩
+      have h_bdd : BddAbove { m : ℝ | ∃ (X : Set (EuclideanSpace' d)) (hX : IsElementary X), X ⊆ E ∧ m = hX.measure } := by
+        obtain ⟨U, hU, hEU⟩ := IsElementary.contains_bounded hBounded
+        refine ⟨hU.measure, ?_⟩
+        rintro m' ⟨X, hX, hXE, rfl⟩
+        exact IsElementary.measure_mono hX hU (hXE.trans hEU)
+      apply le_csSup h_bdd
+      exact ⟨A, hA_elem, hA_sub_E, rfl⟩
+    have h_goal : Jordan_outer_measure E ≤ Jordan_inner_measure E + ε := by
+      calc
+        Jordan_outer_measure E ≤ (hA_elem.union hC''_elem).measure := h_outer_bound
+        _ = hA_elem.measure + hC''_elem.measure := h_measure_eq
+        _ ≤ Jordan_inner_measure E + hC''_elem.measure := by nlinarith
+        _ ≤ Jordan_inner_measure E + ε/2 := by
+          have : hC''_elem.measure < ε/2 := hC''_measure_lt
+          linarith
+        _ ≤ Jordan_inner_measure E + ε := by nlinarith
+    exact h_goal
+  have h_eq : Jordan_inner_measure E = Jordan_outer_measure E :=
+    le_antisymm h_inner_le_outer h_outer_le_inner
+  exact ⟨hBounded, h_eq⟩
 
 /-- The boundary of a triangle is a union of three line segments, hence has Jordan outer
 measure zero. -/
