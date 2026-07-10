@@ -2280,7 +2280,7 @@ lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSp
             · calc
                 w 2 • (T.points 2) + w 0 • (T.points 0) =
                   w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
-                  simp [hi0, add_comm, add_left_comm, add_assoc]
+                  simp [hi0, add_comm]
                 _ = ∑ i : Fin 3, w i • T.points i := by
                   rw [h_univ_fin3]; simp [add_assoc]
                 _ = x := Eq.symm hx_eq_sum
@@ -2588,7 +2588,7 @@ lemma sphere_outer_measure_zero {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 
           nlinarith
         have hx_last_nonneg : 0 ≤ x (Fin.last d') := by
           have hproj_val : ((EuclideanSpace'.prod_equiv d' 1 x).2 0) = x (Fin.last d') := by
-            simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+            simp [EuclideanSpace'.prod_equiv]
             apply congrArg x.ofLp; ext; simp
           rw [hproj_val] at hx_upper
           exact hx_upper
@@ -2656,7 +2656,7 @@ lemma sphere_outer_measure_zero {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 
           nlinarith
         have hx_last_nonpos : x (Fin.last d') ≤ 0 := by
           have hproj_val : ((EuclideanSpace'.prod_equiv d' 1 x).2 0) = x (Fin.last d') := by
-            simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+            simp [EuclideanSpace'.prod_equiv]
             apply congrArg x.ofLp; ext; simp
           rw [hproj_val] at hx_lower
           exact hx_lower
@@ -2730,7 +2730,7 @@ lemma sphere_outer_measure_zero {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 
     _ = Jordan_outer_measure (Metric.sphere (0 : EuclideanSpace' d) r + {x₀}) := by
       have h_comm : ({x₀} : Set (EuclideanSpace' d)) + Metric.sphere (0 : EuclideanSpace' d) r =
           Metric.sphere (0 : EuclideanSpace' d) r + ({x₀} : Set (EuclideanSpace' d)) := by
-        ext x; simp [Set.mem_add, add_comm]
+        ext x; simp [add_comm]
       rw [h_comm]
     _ = Jordan_outer_measure (Metric.sphere (0 : EuclideanSpace' d) r) := Jord_trans _ _
     _ = 0 := sphere_zero_zero
