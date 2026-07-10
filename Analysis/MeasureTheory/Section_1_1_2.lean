@@ -2473,15 +2473,302 @@ abbrev IsPolytope {d:ℕ} (P: Set (EuclideanSpace' d)) : Prop :=
 lemma JordanMeasurable.polytope {d:ℕ} {P: Set (EuclideanSpace' d)} (hP: IsPolytope P) : JordanMeasurable P := by
   sorry
 
+/-- The sphere in Euclidean space has Jordan outer measure zero. -/
+lemma sphere_outer_measure_zero {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r) :
+    Jordan_outer_measure (Metric.sphere x₀ r) = 0 := by
+  -- translation invariance of Jordan outer measure
+  have Jord_trans : ∀ {d':ℕ} (E : Set (EuclideanSpace' d')) (x : EuclideanSpace' d'),
+      Jordan_outer_measure (E + {x}) = Jordan_outer_measure E := by
+    intro d' E x
+    rw [eq_comm, Jordan_outer_measure, Jordan_outer_measure]
+    congr! 3
+    constructor
+    · rintro ⟨A, hA, hA', rfl⟩
+      refine ⟨A + {x}, IsElementary.translate hA x, ?_, Eq.symm (IsElementary.measure_of_translate hA x)⟩
+      exact Set.add_subset_add hA' (Set.Subset.refl _)
+    · rintro ⟨A, hA, hA', rfl⟩
+      refine ⟨A + {-x}, IsElementary.translate hA (-x), ?_, Eq.symm (IsElementary.measure_of_translate hA (-x))⟩
+      intro y hy
+      have hy_plus_x : y + x ∈ E + {x} := Set.mem_add.mpr ⟨y, hy, x, Set.mem_singleton x, rfl⟩
+      have hy_plus_x_in_A : y + x ∈ A := hA' hy_plus_x
+      refine Set.mem_add.mpr ⟨y + x, hy_plus_x_in_A, -x, Set.mem_singleton (-x), ?_⟩
+      abel
+  -- sphere translation: sphere x₀ r = {x₀} + sphere (0 : EuclideanSpace' d) r
+  have sphere_trans : ∀ {d':ℕ} (x₀' : EuclideanSpace' d') (r' : ℝ),
+      Metric.sphere x₀' r' = {x₀'} + Metric.sphere (0 : EuclideanSpace' d') r' := by
+    intro d' x₀' r'
+    ext x; constructor
+    · intro hx
+      have hz : x - x₀' ∈ Metric.sphere (0 : EuclideanSpace' d') r' := by
+        rw [Metric.mem_sphere, dist_eq_norm]
+        simpa [sub_sub_cancel] using hx
+      refine Set.mem_add.mpr ⟨x₀', Set.mem_singleton x₀', x - x₀', hz, ?_⟩
+      abel
+    · rintro ⟨y, hy, z, hz, rfl⟩
+      rcases hy with rfl
+      rw [Metric.mem_sphere, dist_eq_norm]
+      simpa [add_sub_cancel_right] using hz
+  -- norm squared equals sum of squares
+  have h_norm_sq_eq : ∀ {n : ℕ} (z : EuclideanSpace' n), ‖z‖^2 = ∑ i : Fin n, (z i)^2 := by
+    intro n z
+    calc
+      ‖z‖^2 = (Real.sqrt (∑ i : Fin n, ‖z.ofLp i‖ ^ 2))^2 := by rw [EuclideanSpace.norm_eq]
+      _ = (∑ i : Fin n, ‖z.ofLp i‖ ^ 2) := by
+        have h_nonneg : 0 ≤ ∑ i : Fin n, ‖z.ofLp i‖ ^ 2 :=
+          Finset.sum_nonneg (λ i _ => pow_two_nonneg _)
+        rw [Real.sq_sqrt h_nonneg]
+      _ = ∑ i : Fin n, (z i)^2 := by simp
+  -- main work: sphere at 0 has outer measure 0
+  have sphere_zero_zero : Jordan_outer_measure (Metric.sphere (0 : EuclideanSpace' d) r) = 0 := by
+    match d with
+    | 0 =>
+      have h_empty : Metric.sphere (0 : EuclideanSpace' 0) r = ∅ := by
+        ext x; simp
+        intro h
+        have hx0 : x = 0 := Subsingleton.elim _ _
+        subst hx0
+        simp at h
+        linarith
+      simp [h_empty, Jordan_outer_measure_empty 0]
+    | d'+1 =>
+      let B : Box d' := ⟨fun _ => BoundedInterval.Icc (-r) r⟩
+      let g : EuclideanSpace' d' → ℝ := λ y => Real.sqrt (max 0 (r^2 - ‖y‖^2))
+      have hg_cont : Continuous g := by
+        unfold g
+        refine Real.continuous_sqrt.comp ?_
+        have h_cont : Continuous (λ (y : EuclideanSpace' d') => r^2 - ‖y‖^2) := by
+          refine Continuous.sub continuous_const ?_
+          exact (continuous_norm.pow 2)
+        have h_zero : Continuous (λ (y : EuclideanSpace' d') => (0 : ℝ)) := continuous_const
+        simpa [max_comm] using h_cont.max h_zero
+      have hg_cont_on : ContinuousOn g B.toSet := hg_cont.continuousOn
+      have hB_closed : ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b := by
+        intro i; exact ⟨-r, r, rfl⟩
+      have h_graph_zero : Jordan_outer_measure {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, g y⟩} = 0 :=
+        graph_outer_measure_zero hB_closed hg_cont_on
+      have h_bdd_graph : Bornology.IsBounded {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, g y⟩} :=
+        graph_isBounded hB_closed hg_cont_on
+      -- upper hemisphere (last coordinate >= 0)
+      have h_upper_sub : {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} ⊆
+          {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, g y⟩} := by
+        intro x hx
+        rcases hx with ⟨hx_norm, hx_upper⟩
+        set y := (EuclideanSpace'.prod_equiv d' 1 x).1 with hy_def
+        have hy_mem : y ∈ B.toSet := by
+          rw [Box.mem_toSet]
+          intro i
+          have hxi_sq_bound : (x (Fin.castSucc i))^2 ≤ ‖x‖^2 := by
+            rw [h_norm_sq_eq x]
+            refine Finset.single_le_sum (λ j _ => pow_two_nonneg _) (Finset.mem_univ (Fin.castSucc i))
+          have hxi_bound : |x (Fin.castSucc i)| ≤ r := by
+            have hsq : (x (Fin.castSucc i))^2 ≤ r^2 := by nlinarith
+            have hr_nonneg : 0 ≤ r := by linarith
+            have h_low : -r ≤ x (Fin.castSucc i) := by nlinarith
+            have h_high : x (Fin.castSucc i) ≤ r := by nlinarith
+            exact abs_le.mpr ⟨h_low, h_high⟩
+          have hy_i : y i = x (Fin.castSucc i) := by
+            dsimp [y, EuclideanSpace'.prod_equiv]
+            apply congrArg x.ofLp; ext; simp
+          rw [hy_i]
+          exact abs_le.mp hxi_bound
+        have hx_last_sq : r^2 - ‖y‖^2 = (x (Fin.last d'))^2 := by
+          have h_norm_sq_split : ‖x‖^2 = ‖y‖^2 + (x (Fin.last d'))^2 := by
+            calc
+              ‖x‖^2 = ∑ j : Fin (d'+1), (x j)^2 := h_norm_sq_eq x
+              _ = (∑ i : Fin d', (x (Fin.castSucc i))^2) + (x (Fin.last d'))^2 := by
+                rw [Fin.sum_univ_castSucc]
+              _ = (∑ i : Fin d', (y i)^2) + (x (Fin.last d'))^2 := by
+                refine congrArg (· + (x (Fin.last d'))^2) ?_
+                refine Finset.sum_congr rfl (λ i hi => ?_)
+                have hy_i : y i = x (Fin.castSucc i) := by
+                  dsimp [y, EuclideanSpace'.prod_equiv]
+                  apply congrArg x.ofLp; ext; simp
+                simp [hy_i]
+              _ = ‖y‖^2 + (x (Fin.last d'))^2 := by rw [h_norm_sq_eq y]
+          nlinarith
+        have hx_last_nonneg : 0 ≤ x (Fin.last d') := by
+          have hproj_val : ((EuclideanSpace'.prod_equiv d' 1 x).2 0) = x (Fin.last d') := by
+            simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+            apply congrArg x.ofLp; ext; simp
+          rw [hproj_val] at hx_upper
+          exact hx_upper
+        have hg_val : g y = x (Fin.last d') := by
+          dsimp [g]
+          have h_sq_nonneg : 0 ≤ r^2 - ‖y‖^2 := by
+            have h_nonneg_sq : 0 ≤ (x (Fin.last d'))^2 := pow_two_nonneg _
+            nlinarith
+          calc
+            Real.sqrt (max 0 (r^2 - ‖y‖^2)) = Real.sqrt (r^2 - ‖y‖^2) := by
+              rw [max_eq_right h_sq_nonneg]
+            _ = Real.sqrt ((x (Fin.last d'))^2) := by rw [hx_last_sq]
+            _ = |x (Fin.last d')| := Real.sqrt_sq_eq_abs _
+            _ = x (Fin.last d') := abs_of_nonneg hx_last_nonneg
+        refine ⟨y, hy_mem, ?_⟩
+        apply Prod.ext
+        · simp [y]
+        · calc
+            (EuclideanSpace'.prod_equiv d' 1 x).2 = (Real.equiv_EuclideanSpace' (x (Fin.last d'))) := by
+              ext j; simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+              apply congrArg x.ofLp; ext; simp
+            _ = (g y : EuclideanSpace' 1) := by
+              ext j; simp [hg_val]
+      have h_upper_zero : Jordan_outer_measure {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} = 0 :=
+        le_antisymm
+          (le_trans (Jordan_outer_measure_mono_of_subset h_upper_sub h_bdd_graph) (by rw [h_graph_zero]))
+          (Jordan_outer_measure_nonneg _)
+      -- lower hemisphere (last coordinate <= 0)
+      have h_lower_sub : {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} ⊆
+          {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, -(g y)⟩} := by
+        intro x hx
+        rcases hx with ⟨hx_norm, hx_lower⟩
+        set y := (EuclideanSpace'.prod_equiv d' 1 x).1 with hy_def
+        have hy_mem : y ∈ B.toSet := by
+          rw [Box.mem_toSet]
+          intro i
+          have hxi_sq_bound : (x (Fin.castSucc i))^2 ≤ ‖x‖^2 := by
+            rw [h_norm_sq_eq x]
+            refine Finset.single_le_sum (λ j _ => pow_two_nonneg _) (Finset.mem_univ (Fin.castSucc i))
+          have hxi_bound : |x (Fin.castSucc i)| ≤ r := by
+            have hsq : (x (Fin.castSucc i))^2 ≤ r^2 := by nlinarith
+            have hr_nonneg : 0 ≤ r := by linarith
+            have h_low : -r ≤ x (Fin.castSucc i) := by nlinarith
+            have h_high : x (Fin.castSucc i) ≤ r := by nlinarith
+            exact abs_le.mpr ⟨h_low, h_high⟩
+          have hy_i : y i = x (Fin.castSucc i) := by
+            dsimp [y, EuclideanSpace'.prod_equiv]
+            apply congrArg x.ofLp; ext; simp
+          rw [hy_i]
+          exact abs_le.mp hxi_bound
+        have hx_last_sq : r^2 - ‖y‖^2 = (x (Fin.last d'))^2 := by
+          have h_norm_sq_split : ‖x‖^2 = ‖y‖^2 + (x (Fin.last d'))^2 := by
+            calc
+              ‖x‖^2 = ∑ j : Fin (d'+1), (x j)^2 := h_norm_sq_eq x
+              _ = (∑ i : Fin d', (x (Fin.castSucc i))^2) + (x (Fin.last d'))^2 := by
+                rw [Fin.sum_univ_castSucc]
+              _ = (∑ i : Fin d', (y i)^2) + (x (Fin.last d'))^2 := by
+                refine congrArg (· + (x (Fin.last d'))^2) ?_
+                refine Finset.sum_congr rfl (λ i hi => ?_)
+                have hy_i : y i = x (Fin.castSucc i) := by
+                  dsimp [y, EuclideanSpace'.prod_equiv]
+                  apply congrArg x.ofLp; ext; simp
+                simp [hy_i]
+              _ = ‖y‖^2 + (x (Fin.last d'))^2 := by rw [h_norm_sq_eq y]
+          nlinarith
+        have hx_last_nonpos : x (Fin.last d') ≤ 0 := by
+          have hproj_val : ((EuclideanSpace'.prod_equiv d' 1 x).2 0) = x (Fin.last d') := by
+            simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+            apply congrArg x.ofLp; ext; simp
+          rw [hproj_val] at hx_lower
+          exact hx_lower
+        have hg_val : -(g y) = x (Fin.last d') := by
+          dsimp [g]
+          have h_sq_nonneg : 0 ≤ r^2 - ‖y‖^2 := by
+            have h_nonneg_sq : 0 ≤ (x (Fin.last d'))^2 := pow_two_nonneg _
+            nlinarith
+          calc
+            -(Real.sqrt (max 0 (r^2 - ‖y‖^2))) = -(Real.sqrt (r^2 - ‖y‖^2)) := by
+              rw [max_eq_right h_sq_nonneg]
+            _ = -(Real.sqrt ((x (Fin.last d'))^2)) := by rw [hx_last_sq]
+            _ = -|x (Fin.last d')| := by rw [Real.sqrt_sq_eq_abs _]
+            _ = x (Fin.last d') := by
+              rw [abs_of_nonpos hx_last_nonpos, neg_neg]
+        refine ⟨y, hy_mem, ?_⟩
+        apply Prod.ext
+        · simp [y]
+        · calc
+            (EuclideanSpace'.prod_equiv d' 1 x).2 = (Real.equiv_EuclideanSpace' (x (Fin.last d'))) := by
+              ext j; simp [EuclideanSpace'.prod_equiv, Real.equiv_EuclideanSpace']
+              apply congrArg x.ofLp; ext; simp
+            _ = (-(g y) : EuclideanSpace' 1) := by
+              ext j; simp [hg_val]
+      have h_neg_g_cont : ContinuousOn (-g) B.toSet := hg_cont_on.neg
+      have h_graph_lower_zero : Jordan_outer_measure {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, -(g y)⟩} = 0 :=
+        graph_outer_measure_zero hB_closed h_neg_g_cont
+      have h_bdd_graph_lower : Bornology.IsBounded {p | ∃ y ∈ B.toSet, EuclideanSpace'.prod_equiv d' 1 p = ⟨y, -(g y)⟩} :=
+        graph_isBounded hB_closed h_neg_g_cont
+      have h_lower_zero : Jordan_outer_measure {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} = 0 :=
+        le_antisymm
+          (le_trans (Jordan_outer_measure_mono_of_subset h_lower_sub h_bdd_graph_lower) (by rw [h_graph_lower_zero]))
+          (Jordan_outer_measure_nonneg _)
+      have h_sphere_eq : Metric.sphere (0 : EuclideanSpace' (d'+1)) r =
+          {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} ∪
+          {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} := by
+        ext x; constructor
+        · intro hx
+          rw [Metric.mem_sphere, dist_eq_norm] at hx
+          have hx_norm : ‖x‖ = r := by simpa [sub_zero] using hx
+          by_cases h : ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0
+          · exact Or.inl ⟨hx_norm, h⟩
+          · exact Or.inr ⟨hx_norm, by linarith⟩
+        · rintro (⟨hx, _⟩ | ⟨hx, _⟩)
+          · rw [Metric.mem_sphere, dist_eq_norm, sub_zero]; exact hx
+          · rw [Metric.mem_sphere, dist_eq_norm, sub_zero]; exact hx
+      have h_bdd_sphere : Bornology.IsBounded (Metric.sphere (0 : EuclideanSpace' (d'+1)) r) :=
+        Metric.isBounded_sphere
+      have h_upper_set : {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} ⊆
+          Metric.sphere (0 : EuclideanSpace' (d'+1)) r := by
+        intro x hx; rw [Metric.mem_sphere, dist_eq_norm, sub_zero]; exact hx.1
+      have h_lower_set : {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} ⊆
+          Metric.sphere (0 : EuclideanSpace' (d'+1)) r := by
+        intro x hx; rw [Metric.mem_sphere, dist_eq_norm, sub_zero]; exact hx.1
+      have h_upper_bdd : Bornology.IsBounded {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} :=
+        h_bdd_sphere.subset h_upper_set
+      have h_lower_bdd : Bornology.IsBounded {x : EuclideanSpace' (d'+1) | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} :=
+        h_bdd_sphere.subset h_lower_set
+      rw [h_sphere_eq]
+      have h_subadd : Jordan_outer_measure
+          ({x | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} ∪
+           {x | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0}) ≤
+          Jordan_outer_measure {x | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≥ 0} +
+          Jordan_outer_measure {x | ‖x‖ = r ∧ ((EuclideanSpace'.prod_equiv d' 1 x).2 0) ≤ 0} :=
+        Jordan_outer_subadd h_upper_bdd h_lower_bdd
+      rw [h_upper_zero, h_lower_zero, add_zero] at h_subadd
+      exact le_antisymm h_subadd (Jordan_outer_measure_nonneg _)
+  calc
+    Jordan_outer_measure (Metric.sphere x₀ r) = Jordan_outer_measure ({x₀} + Metric.sphere (0 : EuclideanSpace' d) r) := by
+      rw [sphere_trans x₀ r]
+    _ = Jordan_outer_measure (Metric.sphere (0 : EuclideanSpace' d) r + {x₀}) := by
+      have h_comm : ({x₀} : Set (EuclideanSpace' d)) + Metric.sphere (0 : EuclideanSpace' d) r =
+          Metric.sphere (0 : EuclideanSpace' d) r + ({x₀} : Set (EuclideanSpace' d)) := by
+        ext x; simp [Set.mem_add, add_comm]
+      rw [h_comm]
+    _ = Jordan_outer_measure (Metric.sphere (0 : EuclideanSpace' d) r) := Jord_trans _ _
+    _ = 0 := sphere_zero_zero
+
 /-- Exercise 1.1.10 (1) -/
 -- An open ball is Jordan measurable.
 lemma JordanMeasurable.ball {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r) : JordanMeasurable (Metric.ball x₀ r) := by
-  sorry
+  have hfrontier : frontier (Metric.ball x₀ r) = Metric.sphere x₀ r :=
+    frontier_ball x₀ hr.ne.symm
+  have hfrontier_null : Jordan_outer_measure (frontier (Metric.ball x₀ r)) = 0 := by
+    rw [hfrontier]
+    exact sphere_outer_measure_zero x₀ hr
+  have hBounded : Bornology.IsBounded (Metric.ball x₀ r) := Metric.isBounded_ball
+  exact JordanMeasurable.if_frontier_null hBounded hfrontier_null
 
 /-- Exercise 1.1.10 (1) -/
 -- A closed ball is Jordan measurable.
 lemma JordanMeasurable.closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r) : JordanMeasurable (Metric.closedBall x₀ r) := by
-  sorry
+  have hSpBounded : Bornology.IsBounded (Metric.sphere x₀ r) := Metric.isBounded_sphere
+  have hSpFrontierNull : Jordan_outer_measure (frontier (Metric.sphere x₀ r)) = 0 := by
+    rw [frontier_sphere x₀ hr.ne.symm, sphere_outer_measure_zero x₀ hr]
+  have hSpJM : JordanMeasurable (Metric.sphere x₀ r) :=
+    JordanMeasurable.if_frontier_null hSpBounded hSpFrontierNull
+  have hBallJM : JordanMeasurable (Metric.ball x₀ r) := JordanMeasurable.ball x₀ hr
+  have h_union : Metric.closedBall x₀ r = Metric.ball x₀ r ∪ Metric.sphere x₀ r := by
+    ext x; constructor
+    · intro hx
+      rw [Metric.mem_closedBall, dist_eq_norm] at hx
+      by_cases h : ‖x - x₀‖ < r
+      · apply Or.inl; rw [Metric.mem_ball, dist_eq_norm]; exact h
+      · apply Or.inr; rw [Metric.mem_sphere, dist_eq_norm]; exact le_antisymm hx (by linarith)
+    · rintro (hx | hx)
+      · rw [Metric.mem_ball, dist_eq_norm] at hx
+        rw [Metric.mem_closedBall, dist_eq_norm]; linarith
+      · rw [Metric.mem_sphere, dist_eq_norm] at hx
+        rw [Metric.mem_closedBall, dist_eq_norm]; linarith
+  rw [h_union]
+  exact hBallJM.union hSpJM
 
 
 /-- Exercise 1.1.10 (1) -/
