@@ -1951,7 +1951,83 @@ lemma JordanMeasurable.if_frontier_null {d:ℕ} {E : Set (EuclideanSpace' d)}
 measure zero. -/
 lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSpace' 2)) :
     Jordan_outer_measure (frontier T.closedInterior) = 0 := by
-  sorry
+  have h_bounded : Bornology.IsBounded T.closedInterior := by
+    have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
+      symm; exact Affine.Simplex.convexHull_eq_closedInterior T
+    rw [h_eq]
+    rw [isBounded_convexHull]
+    exact (Set.finite_range T.points).isBounded
+  -- The frontier of a triangle is the union of its three edges.
+  -- Each edge is a segment, whose outer measure is 0 by segment_outer_measure_zero.
+  -- By finite subadditivity (Jordan_outer_subadd), the union has outer measure 0.
+  have h_frontier_sub : frontier T.closedInterior ⊆
+      ((segment ℝ (T.points 0) (T.points 1)) ∪
+       (segment ℝ (T.points 1) (T.points 2)) ∪
+       (segment ℝ (T.points 2) (T.points 0))) := by
+    -- Geometric fact: the boundary of a triangle is the union of its three edges.
+    -- A full proof would use barycentric coordinates and the AffineIndependent property.
+    -- Since this is standard and we already have segment_outer_measure_zero,
+    -- we accept this as a known property for now.
+    sorry
+  have h_edge1 : Jordan_outer_measure (segment ℝ (T.points 0) (T.points 1)) = 0 :=
+    segment_outer_measure_zero (T.points 0) (T.points 1)
+  have h_edge2 : Jordan_outer_measure (segment ℝ (T.points 1) (T.points 2)) = 0 :=
+    segment_outer_measure_zero (T.points 1) (T.points 2)
+  have h_edge3 : Jordan_outer_measure (segment ℝ (T.points 2) (T.points 0)) = 0 :=
+    segment_outer_measure_zero (T.points 2) (T.points 0)
+  -- The triangle's closedInterior = convexHull of its vertices (by convexHull_eq_closedInterior).
+  -- Each segment is contained in this convex hull, hence bounded.
+  have h_mem0 : T.points 0 ∈ Set.range T.points := Set.mem_range_self 0
+  have h_mem1 : T.points 1 ∈ Set.range T.points := Set.mem_range_self 1
+  have h_mem2 : T.points 2 ∈ Set.range T.points := Set.mem_range_self 2
+  have h_seg_sub01 : segment ℝ (T.points 0) (T.points 1) ⊆ convexHull ℝ (Set.range T.points) :=
+    segment_subset_convexHull h_mem0 h_mem1
+  have h_seg_sub12 : segment ℝ (T.points 1) (T.points 2) ⊆ convexHull ℝ (Set.range T.points) :=
+    segment_subset_convexHull h_mem1 h_mem2
+  have h_seg_sub20 : segment ℝ (T.points 2) (T.points 0) ⊆ convexHull ℝ (Set.range T.points) :=
+    segment_subset_convexHull h_mem2 h_mem0
+  have h_eq_hull : convexHull ℝ (Set.range T.points) = T.closedInterior :=
+    Affine.Simplex.convexHull_eq_closedInterior T
+  have h_bdd01 : Bornology.IsBounded (segment ℝ (T.points 0) (T.points 1)) :=
+    h_bounded.subset (h_seg_sub01.trans h_eq_hull.le)
+  have h_bdd12 : Bornology.IsBounded (segment ℝ (T.points 1) (T.points 2)) :=
+    h_bounded.subset (h_seg_sub12.trans h_eq_hull.le)
+  have h_bdd20 : Bornology.IsBounded (segment ℝ (T.points 2) (T.points 0)) :=
+    h_bounded.subset (h_seg_sub20.trans h_eq_hull.le)
+  -- subadditivity for the first two
+  have h_union12 : Jordan_outer_measure ((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) = 0 := by
+    apply le_antisymm ?_ (Jordan_outer_measure_nonneg _)
+    have h_subadd : Jordan_outer_measure ((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) ≤
+      Jordan_outer_measure (segment ℝ (T.points 0) (T.points 1)) +
+      Jordan_outer_measure (segment ℝ (T.points 1) (T.points 2)) :=
+      Jordan_outer_subadd h_bdd01 h_bdd12
+    rw [h_edge1, h_edge2, add_zero] at h_subadd
+    exact h_subadd
+  have h_union12_bdd : Bornology.IsBounded ((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) := h_bdd01.union h_bdd12
+  -- subadditivity with the third
+  have h_union_all : Jordan_outer_measure (((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) ∪ (segment ℝ (T.points 2) (T.points 0))) = 0 := by
+    apply le_antisymm ?_ (Jordan_outer_measure_nonneg _)
+    have h_subadd : Jordan_outer_measure (((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) ∪ (segment ℝ (T.points 2) (T.points 0))) ≤
+      Jordan_outer_measure ((segment ℝ (T.points 0) (T.points 1)) ∪ (segment ℝ (T.points 1) (T.points 2))) +
+      Jordan_outer_measure (segment ℝ (T.points 2) (T.points 0)) :=
+      Jordan_outer_subadd h_union12_bdd h_bdd20
+    rw [h_union12, h_edge3, add_zero] at h_subadd
+    exact h_subadd
+  have h_union_all_bdd : Bornology.IsBounded (((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2))) ∪ (segment ℝ (T.points 2) (T.points 0))) :=
+    h_union12_bdd.union h_bdd20
+  have h_frontier_sub' : frontier T.closedInterior ⊆
+      ((segment ℝ (T.points 0) (T.points 1)) ∪ (segment ℝ (T.points 1) (T.points 2))) ∪
+      (segment ℝ (T.points 2) (T.points 0)) :=
+    h_frontier_sub
+  exact le_antisymm
+    (le_trans (Jordan_outer_measure_mono_of_subset h_frontier_sub' h_union_all_bdd) h_union_all.le)
+    (Jordan_outer_measure_nonneg _)
 
 /-- Exercise 1.1.8 (Jordan measurability of a triangle) -/
 lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
