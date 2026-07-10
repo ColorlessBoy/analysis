@@ -2776,7 +2776,30 @@ lemma JordanMeasurable.closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr
 lemma JordanMeasurable.measure_ball (d:ℕ) : ∃ c, ∀ (x₀: EuclideanSpace' d) (r: ℝ) (hr: 0 < r), (ball x₀ hr).measure = c * r^d := by sorry
 
 /-- The Jordan measure of a closed ball equals that of the open ball. -/
-lemma JordanMeasurable.measure_closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r): (closedBall x₀ hr).measure = (ball x₀ hr).measure := by sorry
+lemma JordanMeasurable.measure_closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r): (closedBall x₀ hr).measure = (ball x₀ hr).measure := by
+  have hDisj : Disjoint (Metric.ball x₀ r) (Metric.sphere x₀ r) := by
+    rw [Set.disjoint_iff]
+    intro x hx
+    rcases hx with ⟨hx1, hx2⟩
+    rw [Metric.mem_ball] at hx1
+    rw [Metric.mem_sphere] at hx2
+    linarith
+  have hSphereJM : JordanMeasurable (Metric.sphere x₀ r) := by
+    have hBounded : Bornology.IsBounded (Metric.sphere x₀ r) := Metric.isBounded_sphere
+    have hFrontierNull : Jordan_outer_measure (frontier (Metric.sphere x₀ r)) = 0 := by
+      rw [frontier_sphere x₀ hr.ne.symm, sphere_outer_measure_zero x₀ hr]
+    exact JordanMeasurable.if_frontier_null hBounded hFrontierNull
+  have hSphereMeasure : hSphereJM.measure = 0 := by
+    rw [JordanMeasurable.eq_outer hSphereJM, sphere_outer_measure_zero x₀ hr]
+  have hEq : Metric.closedBall x₀ r = Metric.ball x₀ r ∪ Metric.sphere x₀ r := by
+    ext x; simp [le_iff_lt_or_eq]
+  calc
+    (closedBall x₀ hr).measure = Jordan_inner_measure (Metric.closedBall x₀ r) := rfl
+    _ = Jordan_inner_measure (Metric.ball x₀ r ∪ Metric.sphere x₀ r) := by rw [hEq]
+    _ = ((ball x₀ hr).union hSphereJM).measure := rfl
+    _ = (ball x₀ hr).measure + hSphereJM.measure := by
+      rw [JordanMeasurable.mes_of_disjUnion (ball x₀ hr) hSphereJM hDisj]
+    _ = (ball x₀ hr).measure := by rw [hSphereMeasure, add_zero]
 
 /-- Exercise 1.1.10 (2) -/
 -- The ball measure constant is bounded above by 2^d.
