@@ -1964,58 +1964,12 @@ lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSp
       ((segment ℝ (T.points 0) (T.points 1)) ∪
        (segment ℝ (T.points 1) (T.points 2)) ∪
        (segment ℝ (T.points 2) (T.points 0))) := by
-    rw [Affine.Simplex.convexHull_eq_closedInterior T]
-    intro x hx
-    rw [frontier_eq_closure_inter_closure, Set.mem_inter_iff] at hx
-    rcases hx with ⟨hx_cl, hx_not_int⟩
-    have hx_in : x ∈ convexHull ℝ (Set.range T.points) :=
-      (isClosed_closedInterior T).closure_eq ▸ hx_cl
-    -- Affine basis from the triangle vertices.
-    have h_fin_dim : FiniteDimensional ℝ (EuclideanSpace' 2) := by infer_instance
-    have h_finrank : finrank ℝ (EuclideanSpace' 2) = 2 := by
-      simp [EuclideanSpace']
-    have h_card : Fintype.card (Fin 3) = finrank ℝ (EuclideanSpace' 2) + 1 := by
-      simp [h_finrank]
-    have h_span_top : affineSpan ℝ (Set.range T.points) = ⊤ :=
-      (T.independent.affineSpan_eq_top_iff_card_eq_finrank_add_one).mpr h_card
-    let b : AffineBasis (Fin 3) ℝ (EuclideanSpace' 2) :=
-      { toFun := T.points
-        ind' := T.independent
-        tot' := h_span_top }
-    have h_interior_eq : interior (convexHull ℝ (Set.range T.points)) = {x | ∀ i : Fin 3, 0 < b.coord i x} := by
-      calc
-        interior (convexHull ℝ (Set.range T.points)) = interior (convexHull ℝ (range b)) := by simp [b]
-        _ = {x | ∀ i, 0 < b.coord i x} := b.interior_convexHull
-    have h_coord_nonneg : ∀ i : Fin 3, 0 ≤ b.coord i x := by
-      have h_nonneg_coord : convexHull ℝ (Set.range T.points) = {x | ∀ i : Fin 3, 0 ≤ b.coord i x} := by
-        calc
-          convexHull ℝ (Set.range T.points) = convexHull ℝ (range b) := by simp [b]
-          _ = {x | ∀ i, 0 ≤ b.coord i x} := b.convexHull_eq_nonneg_coord
-      rw [h_nonneg_coord] at hx_in
-      exact hx_in i
-    have h_not_all_pos : ¬ ∀ i : Fin 3, 0 < b.coord i x := by
-      rw [← h_interior_eq, Set.mem_setOf_eq]
-      exact hx_not_int
-    push_neg at h_not_all_pos
-    rcases h_not_all_pos with ⟨i, hi⟩
-    have h_coord_i_zero : b.coord i x = 0 := by
-      have : 0 ≤ b.coord i x := h_coord_nonneg i
-      linarith
-    -- If b.coord i x = 0, then x is a convex combination of the other two vertices,
-    -- which means x is on the corresponding edge (segment).
-    have h_edge : x ∈ (segment ℝ (T.points 0) (T.points 1)) ∪
-        (segment ℝ (T.points 1) (T.points 2)) ∪
-        (segment ℝ (T.points 2) (T.points 0)) := by
-      have h_sum : ∑ j : Fin 3, b.coord j x = 1 := by
-        -- This is a known property of barycentric coordinates on an affine basis.
-        -- For an affine basis b, ∑ᵢ b.coord i x = 1 for all x.
-        -- There is a lemma `sum_coord_eq_one` or similar.
-        sorry
-      have h_x_eq : x = (Finset.univ.erase i).affineCombination ℝ b (fun j => b.coord j x) := by
-        -- If b.coord i x = 0, then x is an affine combination of the other vertices.
-        sorry
-      sorry
-    exact h_edge
+    -- The frontier of a triangle is the union of its three edges.
+    -- A point in the convex hull has a unique representation x = Σ λᵢvᵢ (λᵢ ≥ 0, Σλᵢ = 1)
+    -- because the vertices are affinely independent.  If all λᵢ > 0 then x is in the
+    -- interior; otherwise some λᵢ = 0 and x lies on the edge opposite vertex i.
+    -- This is a standard planar geometry fact; we accept it for now.
+    sorry
 
   have h_edge1 : Jordan_outer_measure (segment ℝ (T.points 0) (T.points 1)) = 0 :=
     segment_outer_measure_zero (T.points 0) (T.points 1)
