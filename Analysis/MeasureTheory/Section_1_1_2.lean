@@ -1825,7 +1825,98 @@ it is the graph of an affine function over the interval from min(a₀,b₀) to m
 {lit}`graph_outer_measure_zero` applies. -/
 lemma nonvertical_segment_outer_measure_zero (a b : EuclideanSpace' 2) (h : a 0 ≠ b 0) :
     Jordan_outer_measure (segment ℝ a b) = 0 := by
-  sorry
+  let f : EuclideanSpace' 1 → ℝ := λ x => a 1 + ((EuclideanSpace'.equiv_Real x) - a 0) * (b 1 - a 1) / (b 0 - a 0)
+  let B : Box 1 := BoundedInterval.Icc (min (a 0) (b 0)) (max (a 0) (b 0))
+  have hB : ∀ i : Fin 1, ∃ a' b' : ℝ, B.side i = BoundedInterval.Icc a' b' := by
+    intro i; simp [B]
+  have hf_cont : ContinuousOn f B.toSet := by
+    refine Continuous.continuousOn ?_
+    have h_cont : Continuous EuclideanSpace'.equiv_Real :=
+      PiLp.continuous_apply 2 (fun _ : Fin 1 => ℝ) _
+    have h_f_cont : Continuous f := by
+      dsimp [f]
+      have h_mul : Continuous fun (x : EuclideanSpace' 1) => (EuclideanSpace'.equiv_Real x - a 0) * ((b 1 - a 1) / (b 0 - a 0)) :=
+        (h_cont.sub continuous_const).mul continuous_const
+      simpa [mul_div_assoc] using continuous_const.add h_mul
+    exact h_f_cont
+  have h_sub1 : segment ℝ a b ⊆ { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv 1 1 p = ⟨ x, f x ⟩ } := by
+    rintro p ⟨s, t, hs, ht, hst, hp⟩
+    let x : EuclideanSpace' 1 := Real.equiv_EuclideanSpace' (s * a 0 + t * b 0)
+    have hx_range : min (a 0) (b 0) ≤ s * a 0 + t * b 0 ∧ s * a 0 + t * b 0 ≤ max (a 0) (b 0) := by
+      rcases le_total (a 0) (b 0) with (horder | horder)
+      · have hmin : min (a 0) (b 0) = a 0 := min_eq_left horder
+        have hmax : max (a 0) (b 0) = b 0 := max_eq_right horder
+        rw [hmin, hmax]
+        have h_temp1 : t * a 0 ≤ t * b 0 := mul_le_mul_of_nonneg_left horder ht
+        have h_temp2 : s * a 0 ≤ s * b 0 := mul_le_mul_of_nonneg_left horder hs
+        have h1 : a 0 ≤ s * a 0 + t * b 0 := by
+          calc a 0 = (s + t) * a 0 := by simp [hst]
+            _ = s * a 0 + t * a 0 := by ring
+            _ ≤ s * a 0 + t * b 0 := by nlinarith
+        have h2 : s * a 0 + t * b 0 ≤ b 0 := by
+          calc s * a 0 + t * b 0 ≤ s * b 0 + t * b 0 := by nlinarith
+            _ = (s + t) * b 0 := by ring
+            _ = b 0 := by simp [hst]
+        exact ⟨h1, h2⟩
+      · have hmin : min (a 0) (b 0) = b 0 := min_eq_right horder
+        have hmax : max (a 0) (b 0) = a 0 := max_eq_left horder
+        rw [hmin, hmax]
+        have h_temp1 : s * b 0 ≤ s * a 0 := mul_le_mul_of_nonneg_left horder hs
+        have h_temp2 : t * b 0 ≤ t * a 0 := mul_le_mul_of_nonneg_left horder ht
+        have h1 : b 0 ≤ s * a 0 + t * b 0 := by
+          calc b 0 = (s + t) * b 0 := by simp [hst]
+            _ = s * b 0 + t * b 0 := by ring
+            _ ≤ s * a 0 + t * b 0 := by nlinarith
+        have h2 : s * a 0 + t * b 0 ≤ a 0 := by
+          calc s * a 0 + t * b 0 ≤ s * a 0 + t * a 0 := by nlinarith
+            _ = (s + t) * a 0 := by ring
+            _ = a 0 := by simp [hst]
+        exact ⟨h1, h2⟩
+    have hx_mem : x ∈ B.toSet := by
+      rw [Box.mem_toSet]
+      intro i; fin_cases i
+      simp [B, x, hx_range.1, hx_range.2]
+    refine ⟨x, hx_mem, ?_⟩
+    -- show EuclideanSpace'.prod_equiv 1 1 p = ⟨x, f x⟩
+    ext i : 2
+    · -- first coordinate
+      calc (EuclideanSpace'.prod_equiv 1 1 p).1 i = p 0 := by simp [EuclideanSpace'.prod_equiv]
+        _ = (s • a + t • b) 0 := by rw [hp]
+        _ = s * a 0 + t * b 0 := by simp
+        _ = x i := by simp [x]
+    · -- second coordinate
+      have h_den_ne_zero : b 0 - a 0 ≠ 0 := by
+        intro hzero
+        apply h
+        nlinarith
+      have : f x = s * a 1 + t * b 1 := by
+        dsimp [f, x]
+        have h_eq : ((s * a 0 + t * b 0) : ℝ) - a 0 = t * (b 0 - a 0) := by
+          calc
+            ((s * a 0 + t * b 0) : ℝ) - a 0 = (s - 1) * a 0 + t * b 0 := by ring
+            _ = (-t) * a 0 + t * b 0 := by rw [show s - 1 = -t from by linarith]
+            _ = t * (b 0 - a 0) := by ring
+        calc
+          a 1 + (((s * a 0 + t * b 0) : ℝ) - a 0) * (b 1 - a 1) / (b 0 - a 0)
+              = a 1 + (t * (b 0 - a 0)) * (b 1 - a 1) / (b 0 - a 0) := by rw [h_eq]
+          _ = a 1 + t * (b 1 - a 1) := by
+            field_simp [h_den_ne_zero]
+          _ = s * a 1 + t * b 1 := by
+            have hs' : s = 1 - t := by linarith
+            rw [hs']
+            ring
+      calc (EuclideanSpace'.prod_equiv 1 1 p).2 i = p 1 := by simp [EuclideanSpace'.prod_equiv]
+        _ = (s • a + t • b) 1 := by rw [hp]
+        _ = s * a 1 + t * b 1 := by simp
+        _ = f x := by rw [this]
+        _ = (⟨x, f x⟩ : EuclideanSpace' 1 × EuclideanSpace' 1).2 i := by simp
+  have h_bounded : Bornology.IsBounded { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv 1 1 p = ⟨ x, f x ⟩ } :=
+    graph_isBounded hB hf_cont
+  have h_graph_zero : Jordan_outer_measure { p | ∃ x ∈ B.toSet, EuclideanSpace'.prod_equiv 1 1 p = ⟨ x, f x ⟩ } = 0 :=
+    graph_outer_measure_zero hB hf_cont
+  have h_le : Jordan_outer_measure (segment ℝ a b) ≤ 0 :=
+    le_trans (Jordan_outer_measure_mono_of_subset h_sub1 h_bounded) (by rw [h_graph_zero])
+  exact le_antisymm h_le (Jordan_outer_measure_nonneg _)
 
 /-- A line segment in ℝ² has Jordan outer measure zero. -/
 lemma segment_outer_measure_zero (a b : EuclideanSpace' 2) :
