@@ -1,5 +1,7 @@
 import Analysis.MeasureTheory.Section_1_1_1
 import Mathlib.LinearAlgebra.AffineSpace.Simplex.Basic
+import Mathlib.LinearAlgebra.AffineSpace.FiniteDimensional
+import Mathlib.Analysis.Normed.Affine.AddTorsorBases
 import Mathlib.Analysis.Convex.Combination
 import Mathlib.Analysis.Convex.Hull
 import Mathlib.Analysis.Normed.Module.Convex
@@ -2157,16 +2159,230 @@ lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSp
   -- The frontier of a triangle is the union of its three edges.
   -- Each edge is a segment, whose outer measure is 0 by segment_outer_measure_zero.
   -- By finite subadditivity (Jordan_outer_subadd), the union has outer measure 0.
+  have h_span_top : affineSpan ℝ (Set.range T.points) = ⊤ := by
+    have h_card : Fintype.card (Fin 3) = Module.finrank ℝ (EuclideanSpace' 2) + 1 := by
+      have h_finrank : Module.finrank ℝ (EuclideanSpace' 2) = 2 := by
+        simpa using finrank_euclideanSpace (𝕜 := ℝ) (ι := Fin 2)
+      have h_card3 : Fintype.card (Fin 3) = 3 := by decide
+      calc
+        Fintype.card (Fin 3) = 3 := h_card3
+        _ = 2 + 1 := by norm_num
+        _ = Module.finrank ℝ (EuclideanSpace' 2) + 1 := by rw [h_finrank]
+    exact ((T.independent).affineSpan_eq_top_iff_card_eq_finrank_add_one).mpr h_card
+
+  let b : AffineBasis (Fin 3) ℝ (EuclideanSpace' 2) :=
+    ⟨T.points, T.independent, h_span_top⟩
+
+  have h_interior_sub : T.interior ⊆ interior T.closedInterior := by
+    have h_interior_convexHull : interior (convexHull ℝ (Set.range T.points)) = {x | ∀ i, 0 < b.coord i x} := by
+      have h_range : Set.range (b : Fin 3 → EuclideanSpace' 2) = Set.range T.points := rfl
+      rw [← h_range]
+      exact AffineBasis.interior_convexHull b
+    have h_interior_closedInterior : interior T.closedInterior = {x | ∀ i, 0 < b.coord i x} := by
+      have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
+        symm; exact Affine.Simplex.convexHull_eq_closedInterior T
+      rw [h_eq, h_interior_convexHull]
+    rw [h_interior_closedInterior]
+    intro x hx_int
+    rcases hx_int with ⟨w, hw_sum, hw01, hx_eq⟩
+    intro i
+    have hw_pos : 0 < w i := (hw01 i).1
+    have h_coord_eq : b.coord i x = w i := by
+      calc
+        b.coord i x = b.coord i (Finset.univ.affineCombination ℝ T.points w) := by rw [hx_eq]
+        _ = w i := b.coord_apply_combination_of_mem (Finset.mem_univ i) hw_sum
+    rw [h_coord_eq]
+    exact hw_pos
+
   have h_frontier_sub : frontier T.closedInterior ⊆
       ((segment ℝ (T.points 0) (T.points 1)) ∪
        (segment ℝ (T.points 1) (T.points 2)) ∪
        (segment ℝ (T.points 2) (T.points 0))) := by
-    -- The frontier of a triangle is the union of its three edges.
-    -- A point in the convex hull has a unique representation x = Σ λᵢvᵢ (λᵢ ≥ 0, Σλᵢ = 1)
-    -- because the vertices are affinely independent.  If all λᵢ > 0 then x is in the
-    -- interior; otherwise some λᵢ = 0 and x lies on the edge opposite vertex i.
-    -- This is a standard planar geometry fact; we accept it for now.
-    sorry
+    intro x hx
+    have hx_cl : x ∈ closure T.closedInterior := hx.1
+    have hx_not_int : x ∉ interior T.closedInterior := hx.2
+    have h_compact : IsCompact T.closedInterior := by
+      have h_finite : Set.Finite (Set.range T.points) := Set.finite_range T.points
+      have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
+        symm; exact Affine.Simplex.convexHull_eq_closedInterior T
+      rw [h_eq]
+      exact h_finite.isCompact_convexHull (𝕜 := ℝ)
+    have h_closed : IsClosed T.closedInterior := h_compact.isClosed
+    have hx_clInt : x ∈ T.closedInterior := by
+      rw [h_closed.closure_eq] at hx_cl
+      exact hx_cl
+    rcases hx_clInt with ⟨w, hw_sum, hw01, hx_eq⟩
+    have h_not_all_open : ¬ ∀ i : Fin 3, w i ∈ Set.Ioo (0 : ℝ) 1 := by
+      intro h_all_open
+      apply hx_not_int
+      have h_mem : Finset.univ.affineCombination ℝ T.points w ∈ T.interior := by
+        rw [Affine.Simplex.affineCombination_mem_interior_iff hw_sum]
+        exact h_all_open
+      have hx_int : x ∈ T.interior := by
+        rw [← hx_eq]
+        exact h_mem
+      exact h_interior_sub hx_int
+    rcases not_forall.mp h_not_all_open with ⟨i, hi⟩
+    -- hi : ¬(w i ∈ Set.Ioo (0 : ℝ) 1)
+    have hi_not_open : w i ∉ Set.Ioo (0 : ℝ) 1 := hi
+    have hi_cc : w i ∈ Set.Icc (0 : ℝ) 1 := hw01 i
+    rcases hi_cc with ⟨hi_lo, hi_hi⟩
+    have hi_zero_or_one : w i = 0 ∨ w i = 1 := by
+      by_cases hpos : 0 < w i
+      · by_cases hlt1 : w i < 1
+        · exfalso; exact hi_not_open ⟨hpos, hlt1⟩
+        · have : w i = 1 := by linarith
+          right; exact this
+      · have : w i = 0 := by linarith
+        left; exact this
+    have h_affine_eq_sum : Finset.univ.affineCombination ℝ T.points w = ∑ i : Fin 3, w i • T.points i := by
+      rw [Finset.affineCombination_eq_weightedVSubOfPoint_vadd_of_sum_eq_one
+        (s := Finset.univ) w T.points hw_sum 0]
+      simp [Finset.weightedVSubOfPoint_apply, vsub_eq_sub]
+    have hx_eq_sum : x = ∑ i : Fin 3, w i • T.points i := by
+      calc
+        x = Finset.univ.affineCombination ℝ T.points w := Eq.symm hx_eq
+        _ = ∑ i : Fin 3, w i • T.points i := h_affine_eq_sum
+    have h_univ_fin3 : (Finset.univ : Finset (Fin 3)) = {0,1,2} := by decide
+    have h_in_union : x ∈ ((segment ℝ (T.points 0) (T.points 1)) ∪
+      (segment ℝ (T.points 1) (T.points 2)) ∪
+      (segment ℝ (T.points 2) (T.points 0))) := by
+      rcases hi_zero_or_one with (hi0 | hi1)
+      · -- w i = 0
+        match i with
+        | 0 =>
+          have hsum12 : w 1 + w 2 = 1 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi0] at htemp
+            exact htemp
+          have hx_in_seg : x ∈ segment ℝ (T.points 1) (T.points 2) := by
+            rw [segment, Set.mem_setOf_eq]
+            refine ⟨w 1, w 2, (hw01 1).1, (hw01 2).1, hsum12, ?_⟩
+            calc
+              w 1 • (T.points 1) + w 2 • (T.points 2) =
+                w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                simp [hi0]
+              _ = ∑ i : Fin 3, w i • T.points i := by
+                rw [h_univ_fin3]; simp [add_assoc]
+              _ = x := Eq.symm hx_eq_sum
+          exact Or.inl (Or.inr hx_in_seg)
+        | 1 =>
+          have hsum02 : w 0 + w 2 = 1 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi0] at htemp
+            exact htemp
+          have hx_in_seg : x ∈ segment ℝ (T.points 2) (T.points 0) := by
+            rw [segment, Set.mem_setOf_eq]
+            refine ⟨w 2, w 0, (hw01 2).1, (hw01 0).1, ?_, ?_⟩
+            · rw [add_comm]; exact hsum02
+            · calc
+                w 2 • (T.points 2) + w 0 • (T.points 0) =
+                  w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                  simp [hi0, add_comm, add_left_comm, add_assoc]
+                _ = ∑ i : Fin 3, w i • T.points i := by
+                  rw [h_univ_fin3]; simp [add_assoc]
+                _ = x := Eq.symm hx_eq_sum
+          exact Or.inr hx_in_seg
+        | 2 =>
+          have hsum01 : w 0 + w 1 = 1 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi0] at htemp
+            exact htemp
+          have hx_in_seg : x ∈ segment ℝ (T.points 0) (T.points 1) := by
+            rw [segment, Set.mem_setOf_eq]
+            refine ⟨w 0, w 1, (hw01 0).1, (hw01 1).1, hsum01, ?_⟩
+            calc
+              w 0 • (T.points 0) + w 1 • (T.points 1) =
+                w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                simp [hi0]
+              _ = ∑ i : Fin 3, w i • T.points i := by
+                rw [h_univ_fin3]; simp [add_assoc]
+              _ = x := Eq.symm hx_eq_sum
+          exact Or.inl (Or.inl hx_in_seg)
+      · -- w i = 1
+        match i with
+        | 0 =>
+          have hw1_eq_0 : w 1 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg1 : 0 ≤ w 1 := (hw01 1).1
+            have h_nonneg2 : 0 ≤ w 2 := (hw01 2).1
+            nlinarith
+          have hw2_eq_0 : w 2 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg1 : 0 ≤ w 1 := (hw01 1).1
+            have h_nonneg2 : 0 ≤ w 2 := (hw01 2).1
+            nlinarith
+          have hx_eq_point : x = T.points 0 := by
+            calc
+              x = ∑ j : Fin 3, w j • T.points j := hx_eq_sum
+              _ = w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                rw [h_univ_fin3]; simp [add_assoc]
+              _ = 1 • (T.points 0) + 0 • (T.points 1) + 0 • (T.points 2) := by simp [hi1, hw1_eq_0, hw2_eq_0]
+              _ = T.points 0 := by simp
+          have hx_in_seg : x ∈ segment ℝ (T.points 0) (T.points 1) := by
+            rw [hx_eq_point, segment, Set.mem_setOf_eq]
+            exact ⟨1, 0, by norm_num, by norm_num, by norm_num, by simp⟩
+          exact Or.inl (Or.inl hx_in_seg)
+        | 1 =>
+          have hw0_eq_0 : w 0 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg0 : 0 ≤ w 0 := (hw01 0).1
+            have h_nonneg2 : 0 ≤ w 2 := (hw01 2).1
+            nlinarith
+          have hw2_eq_0 : w 2 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg0 : 0 ≤ w 0 := (hw01 0).1
+            have h_nonneg2 : 0 ≤ w 2 := (hw01 2).1
+            nlinarith
+          have hx_eq_point : x = T.points 1 := by
+            calc
+              x = ∑ j : Fin 3, w j • T.points j := hx_eq_sum
+              _ = w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                rw [h_univ_fin3]; simp [add_assoc]
+              _ = 0 • (T.points 0) + 1 • (T.points 1) + 0 • (T.points 2) := by simp [hi1, hw0_eq_0, hw2_eq_0]
+              _ = T.points 1 := by simp
+          have hx_in_seg : x ∈ segment ℝ (T.points 1) (T.points 2) := by
+            rw [hx_eq_point, segment, Set.mem_setOf_eq]
+            exact ⟨1, 0, by norm_num, by norm_num, by norm_num, by simp⟩
+          exact Or.inl (Or.inr hx_in_seg)
+        | 2 =>
+          have hw0_eq_0 : w 0 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg0 : 0 ≤ w 0 := (hw01 0).1
+            have h_nonneg1 : 0 ≤ w 1 := (hw01 1).1
+            nlinarith
+          have hw1_eq_0 : w 1 = 0 := by
+            have htemp : (Finset.univ : Finset (Fin 3)).sum w = 1 := hw_sum
+            rw [h_univ_fin3] at htemp
+            simp [hi1] at htemp
+            have h_nonneg0 : 0 ≤ w 0 := (hw01 0).1
+            have h_nonneg1 : 0 ≤ w 1 := (hw01 1).1
+            nlinarith
+          have hx_eq_point : x = T.points 2 := by
+            calc
+              x = ∑ j : Fin 3, w j • T.points j := hx_eq_sum
+              _ = w 0 • (T.points 0) + w 1 • (T.points 1) + w 2 • (T.points 2) := by
+                rw [h_univ_fin3]; simp [add_assoc]
+              _ = 0 • (T.points 0) + 0 • (T.points 1) + 1 • (T.points 2) := by simp [hi1, hw0_eq_0, hw1_eq_0]
+              _ = T.points 2 := by simp
+          have hx_in_seg : x ∈ segment ℝ (T.points 2) (T.points 0) := by
+            rw [hx_eq_point, segment, Set.mem_setOf_eq]
+            exact ⟨1, 0, by norm_num, by norm_num, by norm_num, by simp⟩
+          exact Or.inr hx_in_seg
+    exact h_in_union
 
   have h_edge1 : Jordan_outer_measure (segment ℝ (T.points 0) (T.points 1)) = 0 :=
     segment_outer_measure_zero (T.points 0) (T.points 1)
