@@ -3205,7 +3205,87 @@ theorem JordanMeasurable.inner_measure_of_interior {d:ℕ} {E: Set (EuclideanSpa
 /-- Exercise 1.1.18 (3) -/
 -- A bounded set is Jordan measurable if and only if its boundary is Jordan null.
 theorem JordanMeasurable.iff_boundary_null {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
-  JordanMeasurable E ↔ JordanMeasurable.null (frontier E) := by sorry
+  JordanMeasurable E ↔ JordanMeasurable.null (frontier E) := by
+  constructor
+  · intro hJM
+    have hBounded_frontier : Bornology.IsBounded (frontier E) :=
+      hE.closure.subset frontier_subset_closure
+    have h_inner_mono : Jordan_inner_measure E ≤ Jordan_inner_measure (closure E) := by
+      unfold Jordan_inner_measure
+      refine csSup_le_csSup ?_ ?_ ?_
+      · obtain ⟨C, hC, hC_cover⟩ := IsElementary.contains_bounded hE.closure
+        refine ⟨hC.measure, ?_⟩
+        rintro m ⟨A, hA, hA_sub, rfl⟩
+        exact IsElementary.measure_mono hA hC (Set.Subset.trans hA_sub hC_cover)
+      · refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+        exact (IsElementary.measure_of_empty d).symm
+      · rintro m ⟨A, hA, hA_sub, rfl⟩
+        exact ⟨A, hA, Set.Subset.trans hA_sub subset_closure, rfl⟩
+    have hCl_outer_eq : Jordan_outer_measure (closure E) = hJM.measure := by
+      rw [JordanMeasurable.outer_measure_of_closure hE, hJM.eq_outer]
+    have hCl_inner_eq : Jordan_inner_measure (closure E) = hJM.measure := by
+      apply le_antisymm
+      · calc
+          Jordan_inner_measure (closure E) ≤ Jordan_outer_measure (closure E) :=
+            Jordan_inner_le_outer hE.closure
+          _ = hJM.measure := hCl_outer_eq
+      · calc
+          hJM.measure = Jordan_inner_measure E := hJM.eq_inner.symm
+          _ ≤ Jordan_inner_measure (closure E) := h_inner_mono
+    have hClJM : JordanMeasurable (closure E) :=
+      ⟨hE.closure, hCl_inner_eq.trans hCl_outer_eq.symm⟩
+    have hInt_inner_eq : Jordan_inner_measure (interior E) = hJM.measure := by
+      rw [JordanMeasurable.inner_measure_of_interior hE, hJM.eq_inner]
+    have hInt_bdd : Bornology.IsBounded (interior E) :=
+      hE.closure.subset interior_subset_closure
+    have hInt_outer_ge : hJM.measure ≤ Jordan_outer_measure (interior E) := by
+      calc
+        hJM.measure = Jordan_inner_measure (interior E) := hInt_inner_eq.symm
+        _ ≤ Jordan_outer_measure (interior E) := Jordan_inner_le_outer hInt_bdd
+    have hInt_outer_le : Jordan_outer_measure (interior E) ≤ hJM.measure := by
+      calc
+        Jordan_outer_measure (interior E) ≤ Jordan_outer_measure E :=
+          Jordan_outer_measure_mono_of_subset interior_subset hE
+        _ = hJM.measure := hJM.eq_outer.symm
+    have hInt_outer_eq : Jordan_outer_measure (interior E) = hJM.measure :=
+      le_antisymm hInt_outer_le hInt_outer_ge
+    have hIntJM : JordanMeasurable (interior E) :=
+      ⟨hInt_bdd, hInt_inner_eq.trans hInt_outer_eq.symm⟩
+    have hFrJM : JordanMeasurable (frontier E) := JordanMeasurable.sdiff hClJM hIntJM
+    have h_disjoint : Disjoint (interior E) (frontier E) := by
+      rw [frontier]
+      exact Set.disjoint_iff_inter_eq_empty.mpr (Set.inter_diff_self (interior E) (closure E))
+    have h_add : (hIntJM.union hFrJM).measure = hIntJM.measure + hFrJM.measure :=
+      JordanMeasurable.mes_of_disjUnion hIntJM hFrJM h_disjoint
+    have h_union_eq : closure E = interior E ∪ frontier E :=
+      closure_eq_interior_union_frontier E
+    have h_eq_measure : (hIntJM.union hFrJM).measure = hClJM.measure := by
+      calc
+        (hIntJM.union hFrJM).measure = Jordan_inner_measure (interior E ∪ frontier E) := rfl
+        _ = Jordan_inner_measure (closure E) := by rw [h_union_eq]
+        _ = hClJM.measure := rfl
+    have h_sum : hClJM.measure = hIntJM.measure + hFrJM.measure := by
+      rw [← h_eq_measure, h_add]
+    have h_int_measure_eq : hIntJM.measure = hClJM.measure := by
+      calc
+        hIntJM.measure = Jordan_inner_measure (interior E) := rfl
+        _ = hJM.measure := hInt_inner_eq
+        _ = Jordan_inner_measure (closure E) := hCl_inner_eq.symm
+        _ = hClJM.measure := rfl
+    have h_fr_measure_zero : hFrJM.measure = 0 := by
+      linarith
+    have h_outer_zero : Jordan_outer_measure (frontier E) = 0 := by
+      calc
+        Jordan_outer_measure (frontier E) = hFrJM.measure := hFrJM.eq_outer.symm
+        _ = 0 := h_fr_measure_zero
+    rw [JordanMeasurable.null_iff]
+    exact ⟨hBounded_frontier, h_outer_zero⟩
+  · rintro ⟨hFrJM, hFr_measure⟩
+    have h_frontier_outer_zero : Jordan_outer_measure (frontier E) = 0 := by
+      calc
+        Jordan_outer_measure (frontier E) = hFrJM.measure := hFrJM.eq_outer.symm
+        _ = 0 := hFr_measure
+    exact JordanMeasurable.if_frontier_null hE h_frontier_outer_zero
 
 /-- The unit square with all rational points removed (not Jordan measurable). -/
 abbrev bullet_riddled_square : Set (EuclideanSpace' 2) := { x | ∀ i, x i ∈ Set.Icc 0 1 ∧ x i ∉ (fun (q:ℚ) ↦ (q:ℝ)) '' .univ}
