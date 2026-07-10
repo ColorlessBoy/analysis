@@ -1650,8 +1650,92 @@ lemma JordanMeasurable.undergraph {d:ℕ} {B:Box d} {f: EuclideanSpace' d → �
   -- Actually, h_bound's type is Jordan_outer_measure (symmDiff ?U A) ≤ ε where ?U = U
   simpa [hU] using h_bound
 
-/-- Exercise 1.1.8(i) (A triangle is Jordan measurable) -/
+
+/-- The sandwich region between lo and hi over a 1D closed box is Jordan measurable. -/
+lemma sandwich_jordan (B : Box 1) (hB : ∀ i : Fin 1, ∃ a b, B.side i = BoundedInterval.Icc a b)
+    (lo hi : EuclideanSpace' 1 → ℝ) (hlo_cont : ContinuousOn lo B.toSet) (hhi_cont : ContinuousOn hi B.toSet)
+    (hlo_nonneg : ∀ x ∈ B.toSet, 0 ≤ lo x) (hlo_le_hi : ∀ x ∈ B.toSet, lo x ≤ hi x) :
+    JordanMeasurable {p : EuclideanSpace' 2 | ∃ x ∈ B.toSet, ∃ t : ℝ,
+      EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ lo x ≤ t ∧ t ≤ hi x} := by
+  set UG_hi := {p : EuclideanSpace' 2 | ∃ x ∈ B.toSet, ∃ t : ℝ,
+    EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ 0 ≤ t ∧ t ≤ hi x}
+  set UG_lo := {p : EuclideanSpace' 2 | ∃ x ∈ B.toSet, ∃ t : ℝ,
+    EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ 0 ≤ t ∧ t ≤ lo x}
+  set G_lo := {p : EuclideanSpace' 2 | ∃ x ∈ B.toSet,
+    EuclideanSpace'.prod_equiv 1 1 p = ((x, (lo x : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1)}
+  have h_UG_hi : JordanMeasurable UG_hi := JordanMeasurable.undergraph hB hhi_cont
+  have h_UG_lo : JordanMeasurable UG_lo := JordanMeasurable.undergraph hB hlo_cont
+  have h_G_lo : JordanMeasurable G_lo := JordanMeasurable.graph hB hlo_cont
+  have h_sub1 : ∀ p, (∃ x ∈ B.toSet, ∃ t : ℝ, EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ lo x ≤ t ∧ t ≤ hi x) →
+      p ∈ ((UG_hi \ UG_lo) ∪ G_lo) := by
+    intro p; rintro ⟨x, hx, t, hxyt, h_lo, h_hi⟩
+    by_cases h : t = lo x
+    · refine Or.inr ⟨x, hx, ?_⟩; simpa [h] using hxyt
+    · have h_nonneg_t : 0 ≤ t := by
+        have : 0 ≤ lo x := hlo_nonneg x hx; nlinarith
+      refine Or.inl ⟨⟨x, hx, t, hxyt, h_nonneg_t, h_hi⟩, ?_⟩
+      intro hp; rcases hp with ⟨x', hx', t', hxyt', ht0', ht'_lo⟩
+      have h_pair : ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) = ((x', (t' : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) :=
+        hxyt.symm.trans (hxyt' : EuclideanSpace'.prod_equiv 1 1 p = ((x', (t' : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1))
+      have hx_eq : x' = x := congr_arg Prod.fst h_pair.symm
+      have ht_val_eq : (t' : EuclideanSpace' 1) = (t : EuclideanSpace' 1) := congr_arg Prod.snd h_pair.symm
+      have ht_eq : t' = t := Real.equiv_EuclideanSpace'.injective ht_val_eq
+      rw [hx_eq, ht_eq] at ht'_lo
+      have : t = lo x := le_antisymm ht'_lo h_lo
+      exact h this
+  have h_sub2 : ∀ p, p ∈ ((UG_hi \ UG_lo) ∪ G_lo) →
+      (∃ x ∈ B.toSet, ∃ t : ℝ, EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ lo x ≤ t ∧ t ≤ hi x) := by
+    intro p; rintro (⟨⟨x, hx, t, hxyt, ht0, ht_hi⟩, hp_not_lo⟩ | ⟨x, hx, hxyt⟩)
+    · have h_lo_t : lo x ≤ t := by
+        by_contra! h; exact hp_not_lo ⟨x, hx, t, hxyt, ht0, h.le⟩
+      exact ⟨x, hx, t, hxyt, h_lo_t, ht_hi⟩
+    · exact ⟨x, hx, lo x, hxyt, le_refl (lo x), hlo_le_hi x hx⟩
+  have h_eq : {p | ∃ x ∈ B.toSet, ∃ t : ℝ, EuclideanSpace'.prod_equiv 1 1 p = ((x, (t : EuclideanSpace' 1)) : EuclideanSpace' 1 × EuclideanSpace' 1) ∧ lo x ≤ t ∧ t ≤ hi x}
+      = (UG_hi \ UG_lo) ∪ G_lo := by
+    ext p; constructor; exact h_sub1 p; exact h_sub2 p
+  rw [h_eq]
+  exact ((h_UG_hi.sdiff h_UG_lo).union h_G_lo)
+
+/-- Exercise 1.1.8 -/
 lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
+  have hBnd : Bornology.IsBounded T.closedInterior := by
+    rw [← Affine.Simplex.convexHull_eq_closedInterior]
+    exact isBounded_convexHull.mpr (Set.finite_range T.points).isBounded
+  have h_range : Set.range T.points = ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) := by
+    ext x; constructor
+    · rintro ⟨i, rfl⟩
+      fin_cases i <;> simp
+    · intro h
+      rcases h with (rfl|rfl|rfl)
+      · exact ⟨0, rfl⟩
+      · exact ⟨1, rfl⟩
+      · exact ⟨2, rfl⟩
+  have h_conv : T.closedInterior = convexHull ℝ ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) := by
+    rw [← Affine.Simplex.convexHull_eq_closedInterior T, h_range]
+  rw [h_conv]
+  -- Sort vertices by x-coordinate
+  have hx_sort : ∃ (a b c : EuclideanSpace' 2), a 0 ≤ b 0 ∧ b 0 ≤ c 0 ∧
+      ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) = ({a, b, c} : Set (EuclideanSpace' 2)) := by
+    by_cases h0 : (T.points 0) 0 ≤ (T.points 1) 0
+    · by_cases h1 : (T.points 0) 0 ≤ (T.points 2) 0
+      · by_cases h2 : (T.points 1) 0 ≤ (T.points 2) 0
+        · exact ⟨T.points 0, T.points 1, T.points 2, h0, h2, rfl⟩
+        · exact ⟨T.points 0, T.points 2, T.points 1, h1, by linarith, by
+        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
+      · exact ⟨T.points 2, T.points 0, T.points 1, by linarith, h0, by
+        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
+    · by_cases h2 : (T.points 1) 0 ≤ (T.points 2) 0
+      · by_cases h3 : (T.points 0) 0 ≤ (T.points 2) 0
+        · exact ⟨T.points 1, T.points 0, T.points 2, by linarith, h3, by
+        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
+        · exact ⟨T.points 1, T.points 2, T.points 0, h2, by linarith, by
+        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
+      · exact ⟨T.points 2, T.points 1, T.points 0, by linarith, by linarith, by
+        ext x; simp [or_comm, or_assoc, or_left_comm]⟩
+  rcases hx_sort with ⟨a, b, c, hx_ab, hx_bc, hx_set⟩
+  have h_conv2 : convexHull ℝ ({T.points 0, T.points 1, T.points 2} : Set (EuclideanSpace' 2)) = convexHull ℝ ({a, b, c} : Set (EuclideanSpace' 2)) := by
+    rw [hx_set]
+  rw [h_conv2]
   sorry
 
 /-- The 2D wedge product (signed area parallelogram factor) of two vectors. -/
