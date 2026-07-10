@@ -1696,9 +1696,184 @@ lemma sandwich_jordan (B : Box 1) (hB : ∀ i : Fin 1, ∃ a b, B.side i = Bound
   rw [h_eq]
   exact ((h_UG_hi.sdiff h_UG_lo).union h_G_lo)
 
-/-- Exercise 1.1.8 -/
-lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
+/-! ### Auxiliary lemmas for Exercise 1.1.8 -/
+
+/-- A singleton in the plane has Jordan outer measure zero, via a degenerate box
+whose second side has length 0. -/
+lemma singleton_outer_measure_zero (x : EuclideanSpace' 2) :
+    Jordan_outer_measure ({x} : Set (EuclideanSpace' 2)) = 0 := by
+  refine le_antisymm ?_ (Jordan_outer_measure_nonneg _)
+  let B : Box 2 := {
+    side := λ i => match i with
+    | ⟨0, h⟩ => BoundedInterval.Icc (x 0 - 1) (x 0 + 1)
+    | ⟨1, h⟩ => BoundedInterval.Icc (x 1) (x 1)
+  }
+  have h_sub : ({x} : Set (EuclideanSpace' 2)) ⊆ B.toSet := by
+    intro y hy
+    simp at hy; subst y
+    simp [B, Box.mem_toSet]
+  have hbdd : Bornology.IsBounded B.toSet := (IsElementary.box B).isBounded
+  have hvol : Jordan_outer_measure B.toSet = 0 := by
+    rw [Jordan_outer_measure_of_box, Box.volume]
+    simp [B, Box.volume_of_interval, BoundedInterval.length]
+  have hle : Jordan_outer_measure ({x} : Set (EuclideanSpace' 2)) ≤ 0 :=
+    le_trans (Jordan_outer_measure_mono_of_subset h_sub hbdd) (by rw [hvol])
+  exact hle
+
+/-- A vertical line segment (a₀ = b₀) in R² has Jordan outer measure zero.
+For any ε > 0, the segment is contained in a box \[a₀-δ, a₀+δ\] × \[ymin, ymax\]
+whose volume 2δ·(ymax-ymin) < ε when δ is chosen small enough. -/
+lemma vertical_segment_outer_measure_zero (a b : EuclideanSpace' 2) (h : a 0 = b 0) :
+    Jordan_outer_measure (segment ℝ a b) = 0 := by
+  refine le_antisymm (le_of_forall_pos_le_add fun ε hε => ?_) (Jordan_outer_measure_nonneg _)
+  let ymin := min (a 1) (b 1)
+  let ymax := max (a 1) (b 1)
+  have hy_diff_nonneg : 0 ≤ ymax - ymin := by
+    have : ymin ≤ ymax := le_trans (min_le_left _ _) (le_max_left _ _)
+    linarith
+  let δ := ε / (2 * (ymax - ymin + 1))
+  have hδ_pos : 0 < δ := div_pos hε (by nlinarith)
+  let B1 : Box 1 := BoundedInterval.Icc (a 0 - δ) (a 0 + δ)
+  let B2 : Box 1 := BoundedInterval.Icc ymin ymax
+  let B : Box 2 := {
+    side := λ i => match i with
+    | ⟨0, h⟩ => BoundedInterval.Icc (a 0 - δ) (a 0 + δ)
+    | ⟨1, h⟩ => BoundedInterval.Icc ymin ymax
+  }
+  have h_seg_sub : segment ℝ a b ⊆ B.toSet := by
+    rintro x ⟨s, t, hs, ht, hst, hx⟩
+    have hx0 : x 0 = a 0 := by
+      calc x 0 = (s • a + t • b) 0 := by rw [hx]
+        _ = s * a 0 + t * b 0 := by simp
+        _ = s * a 0 + t * a 0 := by rw [h]
+        _ = (s + t) * a 0 := by ring
+        _ = a 0 := by simp [hst]
+    have hx0_low : a 0 - δ ≤ x 0 := by rw [hx0]; nlinarith
+    have hx0_high : x 0 ≤ a 0 + δ := by rw [hx0]; nlinarith
+    have hx1_val : x 1 = s * a 1 + t * b 1 := by
+      calc x 1 = (s • a + t • b) 1 := by rw [hx]
+        _ = s * a 1 + t * b 1 := by simp
+    have hx1_low : ymin ≤ x 1 := by
+      rw [hx1_val]
+      rcases le_total (a 1) (b 1) with (horder | horder)
+      · rw [show ymin = a 1 from by dsimp [ymin]; simp [horder]]
+        calc a 1 = (s + t) * a 1 := by simp [hst]
+          _ = s * a 1 + t * a 1 := by ring
+          _ = t * a 1 + s * a 1 := by ring
+          _ ≤ t * b 1 + s * a 1 := add_le_add_left (mul_le_mul_of_nonneg_left horder ht) (s * a 1)
+          _ = s * a 1 + t * b 1 := by ring
+      · rw [show ymin = b 1 from by dsimp [ymin]; simp [horder]]
+        calc b 1 = (s + t) * b 1 := by simp [hst]
+          _ = s * b 1 + t * b 1 := by ring
+          _ ≤ s * a 1 + t * b 1 := by nlinarith
+    have hx1_high : x 1 ≤ ymax := by
+      rw [hx1_val]
+      rcases le_total (a 1) (b 1) with (horder | horder)
+      · rw [show ymax = b 1 from by dsimp [ymax]; simp [horder]]
+        have hAB : s * a 1 + t * b 1 ≤ s * b 1 + t * b 1 := by
+          have htemp : s * a 1 ≤ s * b 1 := mul_le_mul_of_nonneg_left horder hs
+          nlinarith
+        calc
+          s * a 1 + t * b 1 ≤ s * b 1 + t * b 1 := hAB
+          _ = (s + t) * b 1 := by ring
+          _ = b 1 := by simp [hst]
+      · rw [show ymax = a 1 from by dsimp [ymax]; simp [horder]]
+        have hBA : t * b 1 + s * a 1 ≤ t * a 1 + s * a 1 := by
+          nlinarith
+        calc
+          s * a 1 + t * b 1 = t * b 1 + s * a 1 := by ring
+          _ ≤ t * a 1 + s * a 1 := hBA
+          _ = s * a 1 + t * a 1 := by ring
+          _ = (s + t) * a 1 := by ring
+          _ = a 1 := by simp [hst]
+    simp [B, Box.mem_toSet, hx0_low, hx0_high, hx1_low, hx1_high]
+  have hbdd : Bornology.IsBounded B.toSet := (IsElementary.box B).isBounded
+  have hvol : Jordan_outer_measure B.toSet = 2 * δ * (ymax - ymin) := by
+    rw [Jordan_outer_measure_of_box, Box.volume]
+    have hy_order : ymin ≤ ymax := le_trans (min_le_left _ _) (le_max_left _ _)
+    have h_side0 : |B.side 0|ₗ = 2 * δ := by
+      dsimp [B, Box.volume_of_interval, BoundedInterval.length]
+      have h : (a 0 + δ) - (a 0 - δ) = 2 * δ := by ring
+      rw [h]
+      exact max_eq_left (by nlinarith)
+    have h_side1 : |B.side 1|ₗ = ymax - ymin := by
+      dsimp [B, Box.volume_of_interval, BoundedInterval.length]
+      rw [max_eq_left (sub_nonneg.mpr hy_order)]
+    simp [h_side0, h_side1, Fin.prod_univ_two]
+  calc
+    Jordan_outer_measure (segment ℝ a b) ≤ Jordan_outer_measure B.toSet :=
+      Jordan_outer_measure_mono_of_subset h_seg_sub hbdd
+    _ = 2 * δ * (ymax - ymin) := hvol
+    _ ≤ ε := by
+      have : 2 * δ * (ymax - ymin) < ε := by
+        dsimp [δ]
+        have hA_nonneg : 0 ≤ ymax - ymin := hy_diff_nonneg
+        set A := ymax - ymin with hA_def
+        have hApos' : 0 < A + 1 := by nlinarith
+        have hineq : 2 * (ε / (2 * (A + 1))) * A < ε := by
+          apply (div_lt_one hε).mp
+          calc
+            (2 * (ε / (2 * (A + 1))) * A) / ε = A / (A + 1) := by
+              field_simp [hε.ne']
+            _ < 1 := (div_lt_one hApos').mpr (by nlinarith)
+        exact hineq
+      exact this.le
+    _ = 0 + ε := by ring
+
+/-- A non-vertical line segment (a₀ ≠ b₀) in R² has Jordan outer measure zero, because
+it is the graph of an affine function over the interval from min(a₀,b₀) to max(a₀,b₀) and
+`graph_outer_measure_zero` applies. -/
+lemma nonvertical_segment_outer_measure_zero (a b : EuclideanSpace' 2) (h : a 0 ≠ b 0) :
+    Jordan_outer_measure (segment ℝ a b) = 0 := by
   sorry
+
+/-- A line segment in ℝ² has Jordan outer measure zero. -/
+lemma segment_outer_measure_zero (a b : EuclideanSpace' 2) :
+    Jordan_outer_measure (segment ℝ a b) = 0 := by
+  by_cases h_eq : a = b
+  · subst b
+    have h_singleton : segment ℝ a a = {a} := by
+      ext x; constructor
+      · rintro ⟨s, t, hs, ht, hst, hx⟩
+        have hx_eq : x = a := by
+          calc x = s • a + t • a := hx.symm
+            _ = (s + t) • a := by rw [add_smul]
+            _ = 1 • a := by simpa [hst]
+            _ = a := by simp
+        simp [hx_eq]
+      · intro hx; simp at hx; subst x
+        refine ⟨1, 0, by norm_num, by norm_num, by norm_num, ?_⟩
+        simp [one_smul, zero_smul]
+    rw [h_singleton]
+    exact singleton_outer_measure_zero a
+  · by_cases h_vert : a 0 = b 0
+    · exact vertical_segment_outer_measure_zero a b h_vert
+    · exact nonvertical_segment_outer_measure_zero a b h_vert
+
+/-- If a bounded set has Jordan null frontier, then it is Jordan measurable. -/
+lemma JordanMeasurable.if_frontier_null {d:ℕ} {E : Set (EuclideanSpace' d)}
+    (hBounded : Bornology.IsBounded E)
+    (hfrontier : Jordan_outer_measure (frontier E) = 0) : JordanMeasurable E := by
+  sorry
+
+/-- The boundary of a triangle is a union of three line segments, hence has Jordan outer
+measure zero. -/
+lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSpace' 2)) :
+    Jordan_outer_measure (frontier T.closedInterior) = 0 := by
+  sorry
+
+/-- Exercise 1.1.8 (Jordan measurability of a triangle) -/
+lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : JordanMeasurable T.closedInterior := by
+  have hBounded : Bornology.IsBounded T.closedInterior := by
+    have : Bornology.IsBounded (Set.range T.points) := (Set.finite_range T.points).isBounded
+    have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
+      symm; exact Affine.Simplex.convexHull_eq_closedInterior T
+    rw [h_eq]
+    rw [isBounded_convexHull]
+    exact this
+  have hfrontier_null : Jordan_outer_measure (frontier T.closedInterior) = 0 :=
+    triangle_frontier_outer_measure_zero T
+  exact JordanMeasurable.if_frontier_null hBounded hfrontier_null
 
 /-- The 2D wedge product (signed area parallelogram factor) of two vectors. -/
 abbrev EuclideanSpace'.plane_wedge (x y: EuclideanSpace' 2) := x 1 * y 0 - x 0 * y 1
