@@ -1715,7 +1715,7 @@ lemma singleton_outer_measure_zero (x : EuclideanSpace' 2) :
   have hbdd : Bornology.IsBounded B.toSet := (IsElementary.box B).isBounded
   have hvol : Jordan_outer_measure B.toSet = 0 := by
     rw [Jordan_outer_measure_of_box, Box.volume]
-    simp [B, Box.volume_of_interval, BoundedInterval.length]
+    simp [B, BoundedInterval.length]
   have hle : Jordan_outer_measure ({x} : Set (EuclideanSpace' 2)) ≤ 0 :=
     le_trans (Jordan_outer_measure_mono_of_subset h_sub hbdd) (by rw [hvol])
   exact hle
@@ -1822,7 +1822,7 @@ lemma vertical_segment_outer_measure_zero (a b : EuclideanSpace' 2) (h : a 0 = b
 
 /-- A non-vertical line segment (a₀ ≠ b₀) in R² has Jordan outer measure zero, because
 it is the graph of an affine function over the interval from min(a₀,b₀) to max(a₀,b₀) and
-`graph_outer_measure_zero` applies. -/
+{lit}`graph_outer_measure_zero` applies. -/
 lemma nonvertical_segment_outer_measure_zero (a b : EuclideanSpace' 2) (h : a 0 ≠ b 0) :
     Jordan_outer_measure (segment ℝ a b) = 0 := by
   sorry
@@ -1838,7 +1838,7 @@ lemma segment_outer_measure_zero (a b : EuclideanSpace' 2) :
         have hx_eq : x = a := by
           calc x = s • a + t • a := hx.symm
             _ = (s + t) • a := by rw [add_smul]
-            _ = 1 • a := by simpa [hst]
+            _ = 1 • a := by simp [hst]
             _ = a := by simp
         simp [hx_eq]
       · intro hx; simp at hx; subst x
