@@ -2161,8 +2161,8 @@ lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSp
   -- By finite subadditivity (Jordan_outer_subadd), the union has outer measure 0.
   have h_span_top : affineSpan ℝ (Set.range T.points) = ⊤ := by
     have h_card : Fintype.card (Fin 3) = Module.finrank ℝ (EuclideanSpace' 2) + 1 := by
-      have h_finrank : Module.finrank ℝ (EuclideanSpace' 2) = 2 := by
-        simpa using finrank_euclideanSpace (𝕜 := ℝ) (ι := Fin 2)
+      have h_finrank : Module.finrank ℝ (EuclideanSpace' 2) = 2 :=
+        finrank_euclideanSpace (𝕜 := ℝ) (ι := Fin 2)
       have h_card3 : Fintype.card (Fin 3) = 3 := by decide
       calc
         Fintype.card (Fin 3) = 3 := h_card3
@@ -2809,8 +2809,8 @@ lemma JordanMeasurable.measure_ball_le (d:ℕ) : (measure_ball d).choose ≤ 2^d
 -- The ball measure constant is bounded below by 2^d / d!.
 lemma JordanMeasurable.le_measure_ball (d:ℕ) : 2^d/d.factorial ≤ (measure_ball d).choose := by sorry
 
-/-- For a cube of side `h` centered at `x0`, its image under `T` is contained in an axis-aligned box
-`A` with volume `|A|ᵥ ≤ h ^ d * C(T)`, where `C(T) = ∏_i ∑_j |T(e_j)ᵢ|`. -/
+/-- For a cube of side {lit}`h` centered at {lit}`x0`, its image under {lit}`T` is contained in an axis-aligned box
+{lit}`A` with volume `|A|ᵥ ≤ h ^ d * C(T)`, where `C(T) = ∏_i ∑_j |T(e_j)ᵢ|`. -/
 lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
     (x0 : EuclideanSpace' d) (h : ℝ) (hpos : 0 ≤ h) :
     ∃ (A : Box d), (T '' {x | ∀ i, |x i - x0 i| ≤ h/2}) ⊆ A.toSet ∧ |A|ᵥ ≤ h ^ d * 
