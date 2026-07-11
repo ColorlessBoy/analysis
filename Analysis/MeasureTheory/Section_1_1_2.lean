@@ -2770,6 +2770,179 @@ lemma JordanMeasurable.closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr
   rw [h_union]
   exact hBallJM.union hSpJM
 
+/-! ### Scaling properties of Jordan measure -/
+
+/-- scale a bounded interval by a positive scalar. -/
+def scaleInterval (r : ℝ) (I : BoundedInterval) : BoundedInterval :=
+  match I with
+  | BoundedInterval.Ioo a b => BoundedInterval.Ioo (r*a) (r*b)
+  | BoundedInterval.Icc a b => BoundedInterval.Icc (r*a) (r*b)
+  | BoundedInterval.Ioc a b => BoundedInterval.Ioc (r*a) (r*b)
+  | BoundedInterval.Ico a b => BoundedInterval.Ico (r*a) (r*b)
+
+lemma scaleInterval_toSet (r : ℝ) (hr : 0 < r) (I : BoundedInterval) : (scaleInterval r I : Set ℝ) = (fun x => r*x) '' (I : Set ℝ) := by
+  cases I with
+  | Ioo a b =>
+    ext x; constructor
+    · rintro ⟨h1, h2⟩; refine ⟨x / r, ⟨by field_simp [hr.ne.symm]; nlinarith, by field_simp [hr.ne.symm]; nlinarith⟩, ?_⟩; field_simp [hr.ne.symm]
+    · rintro ⟨y, ⟨hy1, hy2⟩, rfl⟩; exact ⟨by nlinarith, by nlinarith⟩
+  | Icc a b =>
+    ext x; constructor
+    · rintro ⟨h1, h2⟩; refine ⟨x / r, ⟨by field_simp [hr.ne.symm]; nlinarith, by field_simp [hr.ne.symm]; nlinarith⟩, ?_⟩; field_simp [hr.ne.symm]
+    · rintro ⟨y, ⟨hy1, hy2⟩, rfl⟩; exact ⟨by nlinarith, by nlinarith⟩
+  | Ioc a b =>
+    ext x; constructor
+    · rintro ⟨h1, h2⟩; refine ⟨x / r, ⟨by field_simp [hr.ne.symm]; nlinarith, by field_simp [hr.ne.symm]; nlinarith⟩, ?_⟩; field_simp [hr.ne.symm]
+    · rintro ⟨y, ⟨hy1, hy2⟩, rfl⟩; exact ⟨by nlinarith, by nlinarith⟩
+  | Ico a b =>
+    ext x; constructor
+    · rintro ⟨h1, h2⟩; refine ⟨x / r, ⟨by field_simp [hr.ne.symm]; nlinarith, by field_simp [hr.ne.symm]; nlinarith⟩, ?_⟩; field_simp [hr.ne.symm]
+    · rintro ⟨y, ⟨hy1, hy2⟩, rfl⟩; exact ⟨by nlinarith, by nlinarith⟩
+
+lemma scaleInterval_length (r : ℝ) (hr : 0 < r) (ivl : BoundedInterval) : |scaleInterval r ivl|ₗ = r * |ivl|ₗ := by
+  cases ivl with
+  | Ioo a b =>
+    simp [scaleInterval, BoundedInterval.length]
+    calc
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      _ = r * max (b-a) 0 := by
+        simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
+  | Icc a b =>
+    simp [scaleInterval, BoundedInterval.length]
+    calc
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      _ = r * max (b-a) 0 := by
+        simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
+  | Ioc a b =>
+    simp [scaleInterval, BoundedInterval.length]
+    calc
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      _ = r * max (b-a) 0 := by
+        simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
+  | Ico a b =>
+    simp [scaleInterval, BoundedInterval.length]
+    calc
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      _ = r * max (b-a) 0 := by
+        simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
+
+/-- Scale an entire box by a scalar. -/
+def scaleBox (r : ℝ) {d : ℕ} (B : Box d) : Box d :=
+  { side := fun i => scaleInterval r (B.side i) }
+
+lemma scaleBox_toSet (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : (scaleBox r B).toSet = r • B.toSet := by
+  sorry
+
+lemma scaleBox_volume (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : |scaleBox r B|ᵥ = r ^ d * |B|ᵥ := by
+  simp [scaleBox, Box.volume, scaleInterval_length r hr, Finset.prod_mul_distrib, Finset.prod_const, Finset.card_fin]
+
+lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (scaleInterval r) := by
+  intro i1 i2 h
+  have h' : scaleInterval r i1 = scaleInterval r i2 := h
+  simp [scaleInterval] at h'
+  cases i1 with
+  | Ioo a b =>
+    cases i2 with
+    | Ioo a' b' => 
+      simp at h'
+      rcases h' with ⟨ha, hb⟩
+      rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
+      rcases hb with (hb | hr'') <;> try { exact (hr hr'').elim }
+      simp [ha, hb]
+    | _ => simp at h'
+  | Icc a b =>
+    cases i2 with
+    | Icc a' b' => 
+      simp at h'
+      rcases h' with ⟨ha, hb⟩
+      rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
+      rcases hb with (hb | hr'') <;> try { exact (hr hr'').elim }
+      simp [ha, hb]
+    | _ => simp at h'
+  | Ioc a b =>
+    cases i2 with
+    | Ioc a' b' => 
+      simp at h'
+      rcases h' with ⟨ha, hb⟩
+      rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
+      rcases hb with (hb | hr'') <;> try { exact (hr hr'').elim }
+      simp [ha, hb]
+    | _ => simp at h'
+  | Ico a b =>
+    cases i2 with
+    | Ico a' b' => 
+      simp at h'
+      rcases h' with ⟨ha, hb⟩
+      rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
+      rcases hb with (hb | hr'') <;> try { exact (hr hr'').elim }
+      simp [ha, hb]
+    | _ => simp at h'
+
+lemma scaleBox_injective (r : ℝ) (hr : r ≠ 0) {d : ℕ} : Function.Injective (scaleBox r : Box d → Box d) := by
+  intro B₁ B₂ h
+  ext i
+  have hside : (scaleBox r B₁).side i = (scaleBox r B₂).side i := by rw [h]
+  simp [scaleBox] at hside
+  exact scaleInterval_injective r hr hside
+
+/-- Lemma 1: Scaling an elementary set by a positive scalar yields an elementary set. -/
+lemma IsElementary.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) : IsElementary (r • E) := by
+  sorry
+
+lemma scaleBox_smul_disj (r : ℝ) (hr : 0 < r) {d : ℕ} (B₁ B₂ : Box d)
+    (h : Disjoint (B₁.toSet) (B₂.toSet)) : Disjoint ((scaleBox r B₁).toSet) ((scaleBox r B₂).toSet) := by
+  sorry
+
+/-- Lemma 2: The elementary measure of a scaled elementary set equals r^d times the original. -/
+lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) : 
+    (hE.smul hr).measure = r^d * hE.measure := by
+  obtain ⟨T, hTdisj, hE_eq⟩ := hE.partition
+  let f : Box d ↪ Box d := ⟨scaleBox r, scaleBox_injective r (by linarith)⟩
+  have h_scale_eq : r • E = ⋃ B' ∈ T.map f, B'.toSet := by
+    calc
+      r • E = r • (⋃ B ∈ T, B.toSet) := by rw [hE_eq]
+      _ = ⋃ B ∈ T, r • B.toSet := by
+        have : r • (⋃ B ∈ T, B.toSet) = ⋃ B ∈ T, r • B.toSet := by
+          ext x
+          simp only [Set.mem_smul_set, Set.mem_iUnion, smul_eq_mul, Box.mem_toSet, exists_prop, and_assoc]
+          constructor
+          · rintro ⟨y, ⟨B, hB, hy⟩, rfl⟩; exact ⟨B, hB, y, hy, rfl⟩
+          · rintro ⟨B, hB, y, hy, rfl⟩; exact ⟨y, ⟨B, hB, hy⟩, rfl⟩
+        rw [this]
+      _ = ⋃ B ∈ T, (scaleBox r B).toSet := by
+        simp [scaleBox_toSet r hr]
+      _ = ⋃ B' ∈ T.map f, B'.toSet := by
+        simp [Finset.mem_map, f]
+  have h_T'_disj : ((T.map f : Set (Box d)).PairwiseDisjoint Box.toSet) := by
+    intro B₁ hB₁ B₂ hB₂ hne
+    rcases Finset.mem_map.mp hB₁ with ⟨B₁₀, hB₁₀, rfl⟩
+    rcases Finset.mem_map.mp hB₂ with ⟨B₂₀, hB₂₀, rfl⟩
+    have hne' : B₁₀ ≠ B₂₀ := by
+      intro h; apply hne; simp [h]
+    have h_disj : Disjoint (B₁₀.toSet) (B₂₀.toSet) := hTdisj hB₁₀ hB₂₀ hne'
+    exact scaleBox_smul_disj r hr B₁₀ B₂₀ h_disj
+  rw [(hE.smul hr).measure_eq h_T'_disj h_scale_eq, hE.measure_eq hTdisj hE_eq]
+  simp [scaleBox_volume r hr, Finset.mul_sum, f]
+
+/-- Lemma 3: The inner Jordan measure of r • E equals r^d times the inner measure of E. -/
+lemma Jordan_inner_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) : 
+    Jordan_inner_measure (r • E) = r^d * Jordan_inner_measure E := by
+  sorry
+
+/-- Lemma 4: The outer Jordan measure of r • E equals r^d times the outer measure of E. -/
+lemma Jordan_outer_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) : 
+    Jordan_outer_measure (r • E) = r^d * Jordan_outer_measure E := by
+  sorry
+
+/-- Scaling preserves Jordan measurability. -/
+lemma JordanMeasurable.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) : 
+    JordanMeasurable (r • E) := by
+  sorry
+
+/-- Lemma 5: The Jordan measure of a scaled Jordan measurable set equals r^d times the original. -/
+lemma JordanMeasurable.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) : 
+    (hE.smul hr).measure = r^d * hE.measure := by
+  sorry
 
 /-- Exercise 1.1.10 (1) -/
 -- The Jordan measure of a ball is proportional to r^d with a dimension-dependent constant.
