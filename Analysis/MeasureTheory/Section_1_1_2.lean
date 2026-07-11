@@ -2834,7 +2834,7 @@ lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace'
       |A|ᵥ = ∏ i, |A.side i|ₗ := rfl
       _ = ∏ i, max (((T x0) i + (h/2) * s i) - ((T x0) i - (h/2) * s i)) 0 := by
         simp [A, BoundedInterval.length]
-      _ = ∏ i, max (h * s i) 0 := by ring
+      _ = ∏ i, max (h * s i) 0 := by ring_nf
       _ = ∏ i, h * s i := by
         refine Finset.prod_congr rfl fun i _ => ?_
         rw [max_eq_left (mul_nonneg hpos (hs_nonneg i))]
