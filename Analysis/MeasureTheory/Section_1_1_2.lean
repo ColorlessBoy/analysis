@@ -5,6 +5,7 @@ import Mathlib.Analysis.Normed.Affine.AddTorsorBases
 import Mathlib.Analysis.Convex.Combination
 import Mathlib.Analysis.Convex.Hull
 import Mathlib.Analysis.Normed.Module.Convex
+import Mathlib.Analysis.Convex.Caratheodory
 
 set_option maxHeartbeats 0
 
@@ -2471,7 +2472,25 @@ abbrev IsPolytope {d:ℕ} (P: Set (EuclideanSpace' d)) : Prop :=
 
 /-- Exercise 1.1.9: Every polytope is Jordan measurable. -/
 lemma JordanMeasurable.polytope {d:ℕ} {P: Set (EuclideanSpace' d)} (hP: IsPolytope P) : JordanMeasurable P := by
-  sorry
+  rcases hP with ⟨V, hP_eq⟩
+  have hBounded : Bornology.IsBounded P := by
+    rw [hP_eq]
+    rw [isBounded_convexHull]
+    exact V.finite_toSet.isBounded
+  have hfrontier_null : Jordan_outer_measure (frontier P) = 0 := by
+    rw [hP_eq]
+    -- By Carathéodory (convexHull_eq_union), every point in convexHull(V) lies in convexHull(t)
+    -- for some affinely independent t ⊆ V.  A frontier point cannot have |t| = d+1 with all
+    -- coefficients > 0 (otherwise it would be interior), hence some coefficient is 0, placing it
+    -- in convexHull(t \ {v}) for some v ∈ t.  Iterating, the frontier is covered by convex hulls
+    -- of subsets W ⊆ V with |W| ≤ d.  Since V is finite, this is a finite union.
+    -- Each convexHull(W) with |W| ≤ d is a compact subset of a proper affine subspace, hence
+    -- contained in some hyperplane ker f (f ≠ 0 linear).  A bounded subset of a hyperplane has
+    -- Jordan outer measure 0: after an invertible linear transformation mapping the hyperplane
+    -- to {x_k = 0}, we can cover the image by a thin box [-R,R]^{d-1} × [-η/2, η/2] with
+    -- volume (2R)^{d-1}·η → 0.  The constant factor contributed by the linear map is harmless.
+    sorry
+  exact JordanMeasurable.if_frontier_null hBounded hfrontier_null
 
 /-- The sphere in Euclidean space has Jordan outer measure zero. -/
 lemma sphere_outer_measure_zero {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r) :
