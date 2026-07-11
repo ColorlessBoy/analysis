@@ -2887,11 +2887,34 @@ lemma scaleBox_injective (r : ℝ) (hr : r ≠ 0) {d : ℕ} : Function.Injective
 
 /-- Lemma 1: Scaling an elementary set by a positive scalar yields an elementary set. -/
 lemma IsElementary.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) : IsElementary (r • E) := by
-  sorry
+  classical
+  rcases hE with ⟨S, hE_eq⟩
+  refine ⟨S.image (scaleBox r), ?_⟩
+  calc
+    r • E = r • (⋃ B ∈ S, (B : Set (EuclideanSpace' d))) := by rw [hE_eq]
+    _ = ⋃ B ∈ S, (r • (B : Set (EuclideanSpace' d))) := by
+      have h_smash : r • (⋃ B ∈ S, (B : Set (EuclideanSpace' d))) = ⋃ B ∈ S, r • (B : Set (EuclideanSpace' d)) := by
+        ext x
+        simp only [Set.mem_smul_set, Set.mem_iUnion, smul_eq_mul, Box.mem_toSet, exists_prop, and_assoc]
+        constructor
+        · rintro ⟨y, ⟨B, hB, hy⟩, rfl⟩; exact ⟨B, hB, y, hy, rfl⟩
+        · rintro ⟨B, hB, y, hy, rfl⟩; exact ⟨y, ⟨B, hB, hy⟩, rfl⟩
+      rw [h_smash]
+    _ = ⋃ B ∈ S, ((scaleBox r B).toSet : Set (EuclideanSpace' d)) := by
+      simp [scaleBox_toSet r hr]
+    _ = ⋃ B' ∈ S.image (scaleBox r), (B' : Set (EuclideanSpace' d)) := by
+      simp
 
 lemma scaleBox_smul_disj (r : ℝ) (hr : 0 < r) {d : ℕ} (B₁ B₂ : Box d)
     (h : Disjoint (B₁.toSet) (B₂.toSet)) : Disjoint ((scaleBox r B₁).toSet) ((scaleBox r B₂).toSet) := by
-  sorry
+  rw [scaleBox_toSet r hr, scaleBox_toSet r hr]
+  refine Set.disjoint_left.mpr fun x hx1 hx2 => ?_
+  rcases Set.mem_smul_set.mp hx1 with ⟨y₁, hy₁, hx_eq₁⟩
+  rcases Set.mem_smul_set.mp hx2 with ⟨y₂, hy₂, hx_eq₂⟩
+  have hy_eq : y₁ = y₂ := by
+    have hsmul_eq : r • y₁ = r • y₂ := by rw [hx_eq₁, hx_eq₂]
+    exact (smul_right_injective (M := EuclideanSpace' d) hr.ne.symm) hsmul_eq
+  exact h.ne_of_mem hy₁ (by simpa [hy_eq] using hy₂) hy_eq
 
 /-- Lemma 2: The elementary measure of a scaled elementary set equals r^d times the original. -/
 lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) : 
