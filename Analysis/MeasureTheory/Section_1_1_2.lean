@@ -2804,25 +2804,25 @@ lemma scaleInterval_length (r : ℝ) (hr : 0 < r) (ivl : BoundedInterval) : |sca
   | Ioo a b =>
     simp [scaleInterval, BoundedInterval.length]
     calc
-      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring_nf
       _ = r * max (b-a) 0 := by
         simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
   | Icc a b =>
     simp [scaleInterval, BoundedInterval.length]
     calc
-      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring_nf
       _ = r * max (b-a) 0 := by
         simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
   | Ioc a b =>
     simp [scaleInterval, BoundedInterval.length]
     calc
-      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring_nf
       _ = r * max (b-a) 0 := by
         simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
   | Ico a b =>
     simp [scaleInterval, BoundedInterval.length]
     calc
-      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring
+      max (r*b - r*a) 0 = max (r*(b-a)) 0 := by ring_nf
       _ = r * max (b-a) 0 := by
         simpa [mul_zero] using (mul_max_of_nonneg (a := r) (b := b-a) (c := 0) (by linarith)).symm
 
@@ -2834,7 +2834,7 @@ lemma scaleBox_toSet (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : (scaleBox r 
   sorry
 
 lemma scaleBox_volume (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : |scaleBox r B|ᵥ = r ^ d * |B|ᵥ := by
-  simp [scaleBox, Box.volume, scaleInterval_length r hr, Finset.prod_mul_distrib, Finset.prod_const, Finset.card_fin]
+  simp [scaleBox, Box.volume, scaleInterval_length r hr, Finset.prod_mul_distrib, Finset.prod_const]
 
 lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (scaleInterval r) := by
   intro i1 i2 h
@@ -2895,7 +2895,7 @@ lemma IsElementary.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace'
     _ = ⋃ B ∈ S, (r • (B : Set (EuclideanSpace' d))) := by
       have h_smash : r • (⋃ B ∈ S, (B : Set (EuclideanSpace' d))) = ⋃ B ∈ S, r • (B : Set (EuclideanSpace' d)) := by
         ext x
-        simp only [Set.mem_smul_set, Set.mem_iUnion, smul_eq_mul, Box.mem_toSet, exists_prop, and_assoc]
+        simp only [Set.mem_smul_set, Set.mem_iUnion, Box.mem_toSet, exists_prop]
         constructor
         · rintro ⟨y, ⟨B, hB, hy⟩, rfl⟩; exact ⟨B, hB, y, hy, rfl⟩
         · rintro ⟨B, hB, y, hy, rfl⟩; exact ⟨y, ⟨B, hB, hy⟩, rfl⟩
@@ -2927,7 +2927,7 @@ lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (Euclide
       _ = ⋃ B ∈ T, r • B.toSet := by
         have : r • (⋃ B ∈ T, B.toSet) = ⋃ B ∈ T, r • B.toSet := by
           ext x
-          simp only [Set.mem_smul_set, Set.mem_iUnion, smul_eq_mul, Box.mem_toSet, exists_prop, and_assoc]
+          simp only [Set.mem_smul_set, Set.mem_iUnion, Box.mem_toSet, exists_prop]
           constructor
           · rintro ⟨y, ⟨B, hB, hy⟩, rfl⟩; exact ⟨B, hB, y, hy, rfl⟩
           · rintro ⟨B, hB, y, hy, rfl⟩; exact ⟨y, ⟨B, hB, hy⟩, rfl⟩
