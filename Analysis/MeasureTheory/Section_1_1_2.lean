@@ -2809,6 +2809,83 @@ lemma JordanMeasurable.measure_ball_le (d:ℕ) : (measure_ball d).choose ≤ 2^d
 -- The ball measure constant is bounded below by 2^d / d!.
 lemma JordanMeasurable.le_measure_ball (d:ℕ) : 2^d/d.factorial ≤ (measure_ball d).choose := by sorry
 
+/-- For a cube of side `h` centered at `x0`, its image under `T` is contained in an axis-aligned box
+`A` with volume `|A|ᵥ ≤ h ^ d * C(T)`, where `C(T) = ∏_i ∑_j |T(e_j)ᵢ|`. -/
+lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    (x0 : EuclideanSpace' d) (h : ℝ) (hpos : 0 ≤ h) :
+    ∃ (A : Box d), (T '' {x | ∀ i, |x i - x0 i| ≤ h/2}) ⊆ A.toSet ∧ |A|ᵥ ≤ h ^ d * 
+      (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
+  have h_expand (v : EuclideanSpace' d) : v = ∑ j, (v j) • ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis j) := by
+    calc
+      v = ∑ j, (((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis).repr v) j • ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis j) := by
+        symm; exact ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis).sum_repr v
+      _ = ∑ j, (v j) • ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis j) := by
+        ext i
+        simp
+  have h_s_i_nonneg (i : Fin d) : 0 ≤ ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| :=
+    Finset.sum_nonneg fun j _ => abs_nonneg _
+  set s := fun i : Fin d => ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| with hs
+  have hs_nonneg (i : Fin d) : 0 ≤ s i := h_s_i_nonneg i
+  let A : Box d := {
+    side := fun i : Fin d => BoundedInterval.Icc ((T x0) i - (h/2) * s i) ((T x0) i + (h/2) * s i)
+  }
+  have h_vol_eq : |A|ᵥ = h ^ d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
+    calc
+      |A|ᵥ = ∏ i, |A.side i|ₗ := rfl
+      _ = ∏ i, max (((T x0) i + (h/2) * s i) - ((T x0) i - (h/2) * s i)) 0 := by
+        simp [A, BoundedInterval.length]
+      _ = ∏ i, max (h * s i) 0 := by ring
+      _ = ∏ i, h * s i := by
+        refine Finset.prod_congr rfl fun i _ => ?_
+        rw [max_eq_left (mul_nonneg hpos (hs_nonneg i))]
+      _ = (∏ i, h) * (∏ i, s i) := by
+        rw [Finset.prod_mul_distrib]
+      _ = h ^ d * (∏ i, s i) := by
+        simp
+      _ = h ^ d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
+        simp [hs]
+  refine ⟨A, ?_, h_vol_eq.le⟩
+  intro y hy
+  rcases hy with ⟨x, hx, rfl⟩
+  rw [Box.mem_toSet]
+  intro i
+  have h_cube : ∀ j, |x j - x0 j| ≤ h/2 := hx
+  set v := x - x0 with hv
+  have h_expand_v : T v = ∑ j, (v j) • (T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) := by
+    calc
+      T v = T (∑ j, (v j) • ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis j)) := by
+        conv => lhs; rw [h_expand v]
+      _ = ∑ j, (v j) • (T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) := by
+        simp
+  have h_diff : (T x) i - (T x0) i = (T v) i := by
+    simp [hv]
+  have h_bound : |(T x) i - (T x0) i| ≤ (h/2) * s i := by
+    calc
+      |(T x) i - (T x0) i| = |(T v) i| := by rw [h_diff]
+      _ = |(∑ j, (v j) • (T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j))) i| := by rw [h_expand_v]
+      _ = |∑ j, (v j) * ((T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i)| := by
+        simp
+      _ ≤ ∑ j, |(v j) * ((T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i)| :=
+        Finset.abs_sum_le_sum_abs (fun j => (v j) * ((T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i)) (Finset.univ : Finset (Fin d))
+      _ = ∑ j, |v j| * |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| := by
+        simp [abs_mul]
+      _ ≤ ∑ j, (h/2) * |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| := by
+        refine Finset.sum_le_sum fun j _ => ?_
+        have hvj : |v j| ≤ h/2 := by
+          dsimp [v]
+          simpa using h_cube j
+        have h_nonneg_abs : 0 ≤ |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| := abs_nonneg _
+        gcongr
+      _ = (h/2) * ∑ j, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i| := by
+        simp [Finset.mul_sum]
+      _ = (h/2) * s i := by rfl
+  have h_mem : (T x) i ∈ (A.side i : Set ℝ) := by
+    dsimp [A]
+    simp
+    rcases abs_le.mp h_bound with ⟨h_low, h_high⟩
+    constructor <;> linarith
+  exact h_mem
+
 /-- Exercise 1.1.11 (1) -/
 -- The linear image of an elementary set is Jordan measurable.
 lemma JordanMeasurable.linear_of_elem {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
