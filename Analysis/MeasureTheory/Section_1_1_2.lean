@@ -3081,7 +3081,37 @@ def scaleBox (r : ℝ) {d : ℕ} (B : Box d) : Box d :=
   { side := fun i => scaleInterval r (B.side i) }
 
 lemma scaleBox_toSet (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : (scaleBox r B).toSet = r • B.toSet := by
-  sorry
+  ext x
+  constructor
+  · intro hx
+    rw [Box.mem_toSet] at hx
+    have hy : ∀ i : Fin d, ∃ y, y ∈ (B.side i : Set ℝ) ∧ x i = r * y := by
+      intro i
+      have hxi : x i ∈ (scaleInterval r (B.side i) : Set ℝ) := hx i
+      rw [scaleInterval_toSet r hr (B.side i)] at hxi
+      rcases hxi with ⟨y, hy, h⟩
+      exact ⟨y, hy, h.symm⟩
+    let y : EuclideanSpace' d := .toLp 2 (fun i => (hy i).choose)
+    have hy_mem : y ∈ B.toSet := by
+      rw [Box.mem_toSet]
+      intro i
+      exact (hy i).choose_spec.1
+    have hx_eq : r • y = x := by
+      ext i
+      calc
+        (r • y) i = r * y i := by simp
+        _ = r * (hy i).choose := by simp [y]
+        _ = x i := (hy i).choose_spec.2.symm
+    exact ⟨y, hy_mem, hx_eq⟩
+  · intro hx
+    rcases hx with ⟨y, hy, rfl⟩
+    rw [Box.mem_toSet]
+    intro i
+    dsimp [scaleBox]
+    rw [scaleInterval_toSet r hr (B.side i)]
+    refine ⟨y i, ?_, ?_⟩
+    · rw [Box.mem_toSet] at hy; exact hy i
+    · simp
 
 lemma scaleBox_volume (r : ℝ) (hr : 0 < r) {d : ℕ} (B : Box d) : |scaleBox r B|ᵥ = r ^ d * |B|ᵥ := by
   simp [scaleBox, Box.volume, scaleInterval_length r hr, Finset.prod_mul_distrib, Finset.prod_const]
@@ -3199,27 +3229,211 @@ lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (Euclide
 
 /-- Lemma 3: The inner Jordan measure of r • E equals r^d times the inner measure of E. -/
 lemma Jordan_inner_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) :
-    Jordan_inner_measure (r • E) = r^d * Jordan_inner_measure E := by
-  sorry
+    Jordan_inner_measure (r • E) = r ^ d * Jordan_inner_measure E := by
+  unfold Jordan_inner_measure
+  set S := { m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure }
+  set T := { m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ r • E ∧ m = hA.measure }
+  have hST : T = (r ^ d) • S := by
+    ext m; constructor
+    · intro hm
+      rcases hm with ⟨A, hA, hA_sub, rfl⟩
+      have h_inv_sub : ((1 / r) • A) ⊆ E := by
+        intro x hx
+        rcases Set.mem_smul_set.mp hx with ⟨y, hy, rfl⟩
+        rcases hA_sub hy with ⟨z, hz, hz_eq⟩
+        have hy_eq : r • z = y := by simpa using hz_eq
+        have hx_eq : (1 / r) • y = z := by
+          calc
+            (1 / r) • y = (1 / r) • (r • z) := by rw [hy_eq]
+            _ = ((1 / r) * r) • z := by simp [smul_smul]
+            _ = 1 • z := by field_simp [hr.ne.symm]; simp
+            _ = z := by simp
+        rw [hx_eq]
+        exact hz
+      have h_inv_measure : (hA.smul (by positivity : 0 < 1 / r)).measure = (1 / r) ^ d * hA.measure :=
+        IsElementary.measure_smul (by positivity) hA
+      have h_mem : (1 / r) ^ d * hA.measure ∈ S := by
+        refine ⟨(1 / r) • A, hA.smul (by positivity : 0 < 1 / r), h_inv_sub, ?_⟩
+        exact h_inv_measure.symm
+      refine ⟨(1 / r) ^ d * hA.measure, h_mem, ?_⟩
+      simp
+      field_simp [pow_ne_zero d hr.ne.symm]
+    · intro hm
+      rcases hm with ⟨n, hn, rfl⟩
+      rcases hn with ⟨A, hA, hA_sub, rfl⟩
+      have h_scale_sub : r • A ⊆ r • E := by
+        intro x hx
+        rcases Set.mem_smul_set.mp hx with ⟨y, hy, rfl⟩
+        exact Set.mem_smul_set.mpr ⟨y, hA_sub hy, rfl⟩
+      have h_scale_measure : (hA.smul hr).measure = r ^ d * hA.measure :=
+        IsElementary.measure_smul hr hA
+      refine ⟨r • A, hA.smul hr, h_scale_sub, ?_⟩
+      simp [h_scale_measure]
+  rw [hST]
+  have h_nonneg : 0 ≤ r ^ d := by positivity
+  calc
+    sSup ((r ^ d) • S) = (r ^ d) • sSup S := Real.sSup_smul_of_nonneg h_nonneg S
+    _ = r ^ d * sSup S := by simp
 
 /-- Lemma 4: The outer Jordan measure of r • E equals r^d times the outer measure of E. -/
 lemma Jordan_outer_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) :
-    Jordan_outer_measure (r • E) = r^d * Jordan_outer_measure E := by
-  sorry
+    Jordan_outer_measure (r • E) = r ^ d * Jordan_outer_measure E := by
+  unfold Jordan_outer_measure
+  set S := { m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), E ⊆ A ∧ m = hA.measure }
+  set T := { m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), r • E ⊆ A ∧ m = hA.measure }
+  have hST : T = (r ^ d) • S := by
+    ext m; constructor
+    · intro hm
+      rcases hm with ⟨A, hA, hA_sub, rfl⟩
+      have h_inv_sub : E ⊆ (1 / r) • A := by
+        intro x hx
+        have hx_rE : r • x ∈ r • E := Set.mem_smul_set.mpr ⟨x, hx, rfl⟩
+        have hx_A : r • x ∈ A := hA_sub hx_rE
+        have hx_eq : x = (1 / r) • (r • x) := by simp [hr.ne.symm]
+        have hx_mem : (1 / r) • (r • x) ∈ (1 / r) • A :=
+          Set.mem_smul_set.mpr ⟨r • x, hx_A, rfl⟩
+        rw [hx_eq]
+        exact hx_mem
+      have h_inv_measure : (hA.smul (by positivity : 0 < 1 / r)).measure = (1 / r) ^ d * hA.measure :=
+        IsElementary.measure_smul (by positivity) hA
+      have h_mem : (1 / r) ^ d * hA.measure ∈ S := by
+        refine ⟨(1 / r) • A, hA.smul (by positivity : 0 < 1 / r), h_inv_sub, ?_⟩
+        exact h_inv_measure.symm
+      refine ⟨(1 / r) ^ d * hA.measure, h_mem, ?_⟩
+      simp
+      field_simp [pow_ne_zero d hr.ne.symm]
+    · intro hm
+      rcases hm with ⟨n, hn, rfl⟩
+      rcases hn with ⟨A, hA, hA_sub, rfl⟩
+      have h_scale_sub : r • E ⊆ r • A := by
+        intro x hx
+        rcases Set.mem_smul_set.mp hx with ⟨y, hy, rfl⟩
+        exact Set.mem_smul_set.mpr ⟨y, hA_sub hy, rfl⟩
+      have h_scale_measure : (hA.smul hr).measure = r ^ d * hA.measure :=
+        IsElementary.measure_smul hr hA
+      refine ⟨r • A, hA.smul hr, h_scale_sub, ?_⟩
+      simp [h_scale_measure]
+  rw [hST]
+  have h_nonneg : 0 ≤ r ^ d := by positivity
+  calc
+    sInf ((r ^ d) • S) = (r ^ d) • sInf S := Real.sInf_smul_of_nonneg h_nonneg S
+    _ = r ^ d * sInf S := by simp
 
 /-- Scaling preserves Jordan measurability. -/
 lemma JordanMeasurable.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) :
     JordanMeasurable (r • E) := by
-  sorry
+  have h_bounded : Bornology.IsBounded (r • E) := by
+    rw [isBounded_iff_forall_norm_le]
+    have hE_bounded : Bornology.IsBounded E := hE.1
+    rw [isBounded_iff_forall_norm_le] at hE_bounded
+    rcases hE_bounded with ⟨M, hM⟩
+    refine ⟨|r| * M, ?_⟩
+    intro x hx
+    rcases hx with ⟨y, hy, rfl⟩
+    have hy' : ‖y‖ ≤ M := hM y hy
+    calc
+      ‖r • y‖ = |r| * ‖y‖ := norm_smul _ _
+      _ ≤ |r| * M := mul_le_mul_of_nonneg_left hy' (abs_nonneg _)
+  have h_eq : Jordan_inner_measure (r • E) = Jordan_outer_measure (r • E) := by
+    calc
+      Jordan_inner_measure (r • E) = r ^ d * Jordan_inner_measure E :=
+        Jordan_inner_measure_smul hr E
+      _ = r ^ d * Jordan_outer_measure E := by rw [hE.2]
+      _ = Jordan_outer_measure (r • E) := by rw [Jordan_outer_measure_smul hr E]
+  exact ⟨h_bounded, h_eq⟩
 
 /-- Lemma 5: The Jordan measure of a scaled Jordan measurable set equals r^d times the original. -/
 lemma JordanMeasurable.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) :
-    (hE.smul hr).measure = r^d * hE.measure := by
-  sorry
+    (hE.smul hr).measure = r ^ d * hE.measure := by
+  calc
+    (hE.smul hr).measure = Jordan_inner_measure (r • E) := rfl
+    _ = r ^ d * Jordan_inner_measure E := Jordan_inner_measure_smul hr E
+    _ = r ^ d * hE.measure := rfl
 
 /-- Exercise 1.1.10 (1) -/
 -- The Jordan measure of a ball is proportional to r^d with a dimension-dependent constant.
-lemma JordanMeasurable.measure_ball (d:ℕ) : ∃ c, ∀ (x₀: EuclideanSpace' d) (r: ℝ) (hr: 0 < r), (ball x₀ hr).measure = c * r^d := by sorry
+lemma Jordan_inner_measure_translate {d:ℕ} (E : Set (EuclideanSpace' d)) (x : EuclideanSpace' d) :
+    Jordan_inner_measure (E + {x}) = Jordan_inner_measure E := by
+  unfold Jordan_inner_measure
+  congr! 3
+  constructor <;> rintro ⟨A, hA, hA_sub, h⟩
+  · refine ⟨A + {-x}, hA.translate (-x), ?_, ?_⟩
+    · intro y hy
+      rcases Set.mem_add.mp hy with ⟨a, ha, b, hb, rfl⟩
+      simp at hb; subst b
+      have ha_sum : a ∈ E + {x} := hA_sub ha
+      rcases Set.mem_add.mp ha_sum with ⟨e, he, c, hc, ha_eq⟩
+      simp at hc; subst c
+      have h_eq : a + (-x) = e := by
+        calc
+          a + (-x) = (e + x) + (-x) := by rw [ha_eq]
+          _ = e := by abel
+      rw [h_eq]
+      exact he
+    · rw [h, IsElementary.measure_of_translate hA (-x)]
+  · refine ⟨A + {x}, hA.translate x, Set.add_subset_add hA_sub (Set.Subset.refl _), ?_⟩
+    rw [h, IsElementary.measure_of_translate hA x]
+
+lemma JordanMeasurable.measure_ball (d:ℕ) : ∃ c, ∀ (x₀: EuclideanSpace' d) (r: ℝ) (hr: 0 < r), (ball x₀ hr).measure = c * r ^ d := by
+  have h1pos : (0 : ℝ) < 1 := by norm_num
+  have hball0 : JordanMeasurable (Metric.ball (0 : EuclideanSpace' d) 1) := JordanMeasurable.ball 0 h1pos
+  refine ⟨hball0.measure, λ x₀ r hr => ?_⟩
+  calc
+    (ball x₀ hr).measure = Jordan_inner_measure (Metric.ball x₀ r) := rfl
+    _ = Jordan_inner_measure ((Metric.ball (0 : EuclideanSpace' d) r) + {x₀}) := by
+      have h_eq : Metric.ball x₀ r = (Metric.ball (0 : EuclideanSpace' d) r) + {x₀} := by
+        ext x; constructor
+        · intro hx
+          have hx' : ‖(x - x₀)‖ < r := by
+            rw [Metric.mem_ball, dist_eq_norm] at hx; exact hx
+          have hy_mem : x - x₀ ∈ Metric.ball (0 : EuclideanSpace' d) r := by
+            rw [Metric.mem_ball, dist_eq_norm, sub_zero]; exact hx'
+          refine Set.mem_add.mpr ⟨x - x₀, hy_mem, x₀, Set.mem_singleton x₀, ?_⟩
+          abel
+        · intro hx
+          rcases Set.mem_add.mp hx with ⟨y, hy, z, hz, rfl⟩
+          simp at hz; subst z
+          rw [Metric.mem_ball, dist_eq_norm]
+          have hy' : ‖y‖ < r := by
+            rw [Metric.mem_ball, dist_eq_norm, sub_zero] at hy; exact hy
+          simpa [sub_add_cancel] using hy'
+      rw [h_eq]
+    _ = Jordan_inner_measure (Metric.ball (0 : EuclideanSpace' d) r) :=
+      Jordan_inner_measure_translate (Metric.ball (0 : EuclideanSpace' d) r) x₀
+    _ = Jordan_inner_measure (r • Metric.ball (0 : EuclideanSpace' d) 1) := by
+      have h_eq : Metric.ball (0 : EuclideanSpace' d) r = r • Metric.ball (0 : EuclideanSpace' d) 1 := by
+        ext x; constructor
+        · intro hx
+          rw [Metric.mem_ball, dist_eq_norm, sub_zero] at hx
+          have hy : ‖(1 / r) • x‖ < 1 := by
+            calc
+              ‖(1 / r) • x‖ = ‖(1 / r)‖ * ‖x‖ := norm_smul _ _
+              _ = (1 / r) * ‖x‖ := by simp [hr.le]
+              _ < (1 / r) * r := mul_lt_mul_of_pos_left hx (by positivity : 0 < 1/r)
+              _ = 1 := by field_simp [hr.ne.symm]
+          refine Set.mem_smul_set.mpr ⟨(1 / r) • x, ?_, ?_⟩
+          · rw [Metric.mem_ball, dist_eq_norm, sub_zero]; exact hy
+          · calc
+              r • ((1 / r) • x) = (r * (1 / r)) • x := by simp [smul_smul]
+              _ = 1 • x := by field_simp [hr.ne.symm]; simp
+              _ = x := by simp
+        · intro hx
+          rcases Set.mem_smul_set.mp hx with ⟨y, hy, rfl⟩
+          rw [Metric.mem_ball, dist_eq_norm, sub_zero]
+          have hy' : ‖y‖ < 1 := by
+            rw [Metric.mem_ball, dist_eq_norm, sub_zero] at hy; exact hy
+          calc
+            ‖r • y‖ = |r| * ‖y‖ := norm_smul _ _
+            _ = r * ‖y‖ := by simp [hr.le]
+            _ < r * 1 := mul_lt_mul_of_pos_left hy' hr
+            _ = r := by simp
+      rw [h_eq]
+    _ = r ^ d * Jordan_inner_measure (Metric.ball (0 : EuclideanSpace' d) 1) :=
+      Jordan_inner_measure_smul hr (Metric.ball (0 : EuclideanSpace' d) 1)
+    _ = hball0.measure * r ^ d := by
+      calc
+        r ^ d * Jordan_inner_measure (Metric.ball (0 : EuclideanSpace' d) 1) = r ^ d * hball0.measure := rfl
+        _ = hball0.measure * r ^ d := mul_comm _ _
 
 /-- The Jordan measure of a closed ball equals that of the open ball. -/
 lemma JordanMeasurable.measure_closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: ℝ} (hr: 0 < r): (closedBall x₀ hr).measure = (ball x₀ hr).measure := by
@@ -3249,7 +3463,60 @@ lemma JordanMeasurable.measure_closedBall {d:ℕ} (x₀: EuclideanSpace' d) {r: 
 
 /-- Exercise 1.1.10 (2) -/
 -- The ball measure constant is bounded above by 2^d.
-lemma JordanMeasurable.measure_ball_le (d:ℕ) : (measure_ball d).choose ≤ 2^d := by sorry
+lemma JordanMeasurable.measure_ball_le (d:ℕ) : (measure_ball d).choose ≤ 2^d := by
+  have hball0 : JordanMeasurable (Metric.ball (0 : EuclideanSpace' d) 1) := JordanMeasurable.ball 0 (by norm_num)
+  let cube : Box d := { side := fun _ => BoundedInterval.Icc (-1 : ℝ) 1 }
+  have hbox : IsElementary (cube.toSet : Set (EuclideanSpace' d)) := IsElementary.box cube
+  have hbox_JM : JordanMeasurable (cube.toSet : Set (EuclideanSpace' d)) := hbox.jordanMeasurable
+  have h_sub : Metric.ball (0 : EuclideanSpace' d) 1 ⊆ cube.toSet := by
+    intro x hx
+    rw [Metric.mem_ball, dist_eq_norm, sub_zero] at hx
+    rw [Box.mem_toSet]
+    intro i
+    have hxi_sq_bound : (x i)^2 ≤ ‖x‖^2 := by
+      have h_norm_sq_eq : ‖x‖^2 = ∑ j : Fin d, (x j)^2 := by
+        calc
+          ‖x‖^2 = (Real.sqrt (∑ j : Fin d, ‖x j‖ ^ 2))^2 := by rw [EuclideanSpace.norm_eq]
+          _ = ∑ j : Fin d, ‖x j‖ ^ 2 := by
+            have h_nonneg : 0 ≤ ∑ j : Fin d, ‖x j‖ ^ 2 :=
+              Finset.sum_nonneg (fun j _ => pow_two_nonneg _)
+            rw [Real.sq_sqrt h_nonneg]
+          _ = ∑ j : Fin d, (x j)^2 := by simp
+      rw [h_norm_sq_eq]
+      refine Finset.single_le_sum (fun j _ => sq_nonneg (x j)) (Finset.mem_univ i)
+    have hxi_bound : |x i| ≤ ‖x‖ := by
+      have hx_sq : (x i)^2 ≤ ‖x‖^2 := hxi_sq_bound
+      have h_norm_nonneg : 0 ≤ ‖x‖ := norm_nonneg _
+      calc
+        |x i| = Real.sqrt ((x i)^2) := by rw [Real.sqrt_sq_eq_abs]
+        _ ≤ Real.sqrt (‖x‖^2) := Real.sqrt_le_sqrt hx_sq
+        _ = |‖x‖| := Real.sqrt_sq_eq_abs _
+        _ = ‖x‖ := abs_of_nonneg h_norm_nonneg
+    have hx_i_low : -1 ≤ x i := by
+      by_contra! h
+      have : |x i| > 1 := by
+        have : x i < -1 := h
+        nlinarith [abs_of_neg (by nlinarith : x i < 0)]
+      nlinarith
+    have hx_i_high : x i ≤ 1 := by
+      by_contra! h
+      have : |x i| > 1 := by
+        have : x i > 1 := h
+        nlinarith [abs_of_pos (by nlinarith : 0 < x i)]
+      nlinarith
+    exact ⟨hx_i_low, hx_i_high⟩
+  have h_measure_box : hbox_JM.measure = 2 ^ d := by
+    rw [JordanMeasurable.mes_of_elementary hbox, IsElementary.measure_of_box cube]
+    simp [cube, Box.volume, BoundedInterval.length, show (BoundedInterval.Icc (-1 : ℝ) 1).a = (-1 : ℝ) from rfl,
+      show (BoundedInterval.Icc (-1 : ℝ) 1).b = (1 : ℝ) from rfl]
+    norm_num
+  have h_c_eq_ball0 : (measure_ball d).choose = hball0.measure := by
+    have h1 := (measure_ball d).choose_spec 0 1 (by norm_num : (0 : ℝ) < 1)
+    simpa using h1.symm
+  calc
+    (measure_ball d).choose = hball0.measure := h_c_eq_ball0
+    _ ≤ hbox_JM.measure := JordanMeasurable.mono hball0 hbox_JM h_sub
+    _ = 2^d := h_measure_box
 
 /-- Exercise 1.1.10 (2) -/
 -- The ball measure constant is bounded below by 2^d / d!.
