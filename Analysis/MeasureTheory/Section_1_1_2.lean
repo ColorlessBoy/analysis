@@ -3746,7 +3746,7 @@ theorem JordanMeasure.measure_uniq' {d:â„•} {m': (E: Set (EuclideanSpace' d)) â†
     have h_cube_measure : (IsElementary.box (Box.unit_cube d)).jordanMeasurable.measure = 1 := by
       rw [JordanMeasurable.mes_of_elementary (IsElementary.box (Box.unit_cube d)),
         IsElementary.measure_of_box (Box.unit_cube d), Box.volume]
-      simp [Box.unit_cube, BoundedInterval.length]
+      simp [BoundedInterval.length]
     calc
       c = c * ((IsElementary.box (Box.unit_cube d)).jordanMeasurable.measure) := by
         simp [h_cube_measure]
