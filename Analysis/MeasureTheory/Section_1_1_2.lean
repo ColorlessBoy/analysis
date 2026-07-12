@@ -3599,15 +3599,12 @@ lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace'
     constructor <;> linarith
   exact h_mem
 
-/-- For an invertible linear map T and an axis-aligned (d-1)-dimensional face, the image has
-Jordan outer measure zero. -/
+/-- The image of a (d-1)-dimensional face under an invertible linear map has Jordan outer measure zero. -/
 lemma face_image_outer_measure_zero {d:ℕ} (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
     (j : Fin d) (a b : Fin d → ℝ) (hab : ∀ i, a i ≤ b i) :
     Jordan_outer_measure (T '' {x | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j}) = 0 := by
   sorry
 
-/-- Exercise 1.1.11 (1) -/
--- The linear image of an elementary set is Jordan measurable.
 lemma JordanMeasurable.linear_of_elem {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
 {E: Set (EuclideanSpace' d)} (hE: IsElementary E): JordanMeasurable (T '' E) := by
   sorry
