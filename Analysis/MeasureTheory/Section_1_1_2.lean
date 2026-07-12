@@ -3736,7 +3736,24 @@ theorem JordanMeasure.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) �
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: JordanMeasurable E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE)
   (hcube : m' (Box.unit_cube d) (IsElementary.box _).jordanMeasurable = 1) :
   ∀ E: Set (EuclideanSpace' d), ∀ hE: JordanMeasurable E, m' E hE = hE.measure := by
-    sorry
+  have h_uniq := JordanMeasure.measure_uniq (m' := m') hnonneg hadd htrans
+  rcases h_uniq with ⟨c, hc_nonneg, hc_eq⟩
+  have hc_one : c = 1 := by
+    have h_cube_measure : (IsElementary.box (Box.unit_cube d)).jordanMeasurable.measure = 1 := by
+      rw [JordanMeasurable.mes_of_elementary (IsElementary.box (Box.unit_cube d)),
+        IsElementary.measure_of_box (Box.unit_cube d), Box.volume]
+      simp [Box.unit_cube, BoundedInterval.length]
+    calc
+      c = c * ((IsElementary.box (Box.unit_cube d)).jordanMeasurable.measure) := by
+        simp [h_cube_measure]
+      _ = m' (Box.unit_cube d) ((IsElementary.box (Box.unit_cube d)).jordanMeasurable) :=
+        (hc_eq (Box.unit_cube d) ((IsElementary.box (Box.unit_cube d)).jordanMeasurable)).symm
+      _ = 1 := hcube
+  intro E hE
+  calc
+    m' E hE = c * hE.measure := hc_eq E hE
+    _ = 1 * hE.measure := by rw [hc_one]
+    _ = hE.measure := by simp
 
 
 /-- Exercise 1.1.16 -/
