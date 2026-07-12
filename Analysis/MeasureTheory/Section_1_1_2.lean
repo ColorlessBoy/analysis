@@ -2654,7 +2654,7 @@ lemma volume_triangle (T : Affine.Triangle ℝ (EuclideanSpace' 2)) :
   set u := T.points 1 - p0
   set v := T.points 2 - p0
   have h_det : LinearMap.det (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) = u 0 * v 1 - u 1 * v 0 := by
-    rw [Matrix.toEuclideanLin_eq_toLin, LinearMap.det_toLin, Matrix.det_fin_two_of]; ring
+    dsimp [Matrix.toEuclideanLin]; rw [Matrix.toLpLin_eq_toLin (2 : ENNReal) (2 : ENNReal), LinearMap.det_toLin, Matrix.det_fin_two_of]; ring
   -- By definition of $f$, we know that $T.closedInterior = (fun x => f x + p0) '' stdTri2$.
   have h_closedInterior : T.closedInterior = (fun x => (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) x + p0) '' stdTri2 := by
     have h_closedInterior : T.closedInterior = (fun x => (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) x + p0) '' (convexHull ℝ ({0, EuclideanSpace.single 0 1, EuclideanSpace.single 1 1} : Set (EuclideanSpace' 2))) := by
