@@ -3599,6 +3599,13 @@ lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace'
     constructor <;> linarith
   exact h_mem
 
+lemma mem_bounded_interval_iff_le (I : BoundedInterval) (x : ℝ) : x ∈ (I : Set ℝ) → I.a ≤ x ∧ x ≤ I.b := by
+  match I with
+  | BoundedInterval.Ioo a b => intro h; simp at h; exact ⟨by nlinarith, by nlinarith⟩
+  | BoundedInterval.Icc a b => intro h; simp at h; exact h
+  | BoundedInterval.Ioc a b => intro h; simp at h; exact ⟨by nlinarith, h.2⟩
+  | BoundedInterval.Ico a b => intro h; simp at h; exact ⟨h.1, by nlinarith⟩
+
 /-- The image of a (d-1)-dimensional face under an invertible linear map has Jordan outer measure zero. -/
 lemma face_image_outer_measure_zero {d:ℕ} (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
     (j : Fin d) (a b : Fin d → ℝ) (hab : ∀ i, a i ≤ b i) :
