@@ -3723,9 +3723,6 @@ theorem JordanMeasure.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) →
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: JordanMeasurable E) (hF: JordanMeasurable F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: JordanMeasurable E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: JordanMeasurable E, m' E hE = c * hE.measure := by
-  set c := m' (Box.unit_cube d) ((IsElementary.box (Box.unit_cube d)).jordanMeasurable) with hc_def
-  have hc_nonneg : 0 ≤ c := hnonneg _ _
-  refine ⟨c, hc_nonneg, λ E hE => ?_⟩
   sorry
 
 /-- With unit cube normalization, the unique such function equals Jordan measure. -/
