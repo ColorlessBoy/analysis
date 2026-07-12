@@ -1,11 +1,11 @@
 import Analysis.MeasureTheory.Section_1_1_1
+import Mathlib
 import Mathlib.LinearAlgebra.AffineSpace.Simplex.Basic
 import Mathlib.LinearAlgebra.AffineSpace.FiniteDimensional
 import Mathlib.Analysis.Normed.Affine.AddTorsorBases
 import Mathlib.Analysis.Convex.Combination
 import Mathlib.Analysis.Convex.Hull
 import Mathlib.Analysis.Normed.Module.Convex
-import Mathlib.Analysis.Convex.Caratheodory
 
 set_option maxHeartbeats 0
 
@@ -2461,10 +2461,251 @@ lemma JordanMeasurable.triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : J
 /-- The 2D wedge product (signed area parallelogram factor) of two vectors. -/
 abbrev EuclideanSpace'.plane_wedge (x y: EuclideanSpace' 2) := x 1 * y 0 - x 0 * y 1
 
+section TriangleAreaHelpers
+open MeasureTheory
+
+/-- Real (Lebesgue) volume of a bounded interval equals its length. -/
+lemma BoundedInterval.real_volume (I : BoundedInterval) :
+    MeasureTheory.volume (I : Set ℝ) = ENNReal.ofReal |I|ₗ := by
+      cases I;
+      · simp +decide [ BoundedInterval.length ];
+      · simp +decide [ BoundedInterval.length, Real.volume_Icc ];
+      · simp +decide [ Real.volume_Ioc ];
+      · erw [ Real.volume_Ico ] ; aesop
+
+/-- A box is a measurable subset of Euclidean space. -/
+lemma Box.measurableSet {d:ℕ} (B : Box d) :
+    MeasurableSet (B.toSet : Set (EuclideanSpace' d)) := by
+      have h_prod_measurable : ∀ (I : Fin d → BoundedInterval), MeasurableSet (Set.pi Set.univ (fun i => (I i : Set ℝ))) := by
+        intro I;
+        refine' MeasurableSet.univ_pi _;
+        intro i; rcases I i with ( _ | _ | _ | _ ) <;> simp +decide [ *, measurableSet_Ioo, measurableSet_Icc, measurableSet_Ioc, measurableSet_Ico ] ;
+      convert h_prod_measurable B.side using 1;
+      constructor <;> intro h;
+      · convert h_prod_measurable B.side using 1;
+      · convert h.preimage ( show Measurable ( fun x : EuclideanSpace ℝ ( Fin d ) => fun i => x i ) from ?_ ) using 1;
+        · ext; simp [Box.toSet];
+        · fun_prop
+
+/-- The Lebesgue volume of a box equals the product of its side lengths. -/
+lemma Box.real_volume {d:ℕ} (B : Box d) :
+    MeasureTheory.volume (B.toSet : Set (EuclideanSpace' d)) = ENNReal.ofReal |B|ᵥ := by
+      simp [Box.toSet, Box.volume];
+      have h_prod_measure : ∀ (s : Fin d → Set ℝ), (∀ i, MeasurableSet (s i)) → MeasureTheory.volume {x : EuclideanSpace' d | ∀ i, x i ∈ s i} = MeasureTheory.volume (Set.pi Set.univ s) := by
+        intro s hs; rw [ ← MeasureTheory.measure_congr ];
+        convert rfl;
+        rotate_right;
+        exact { x : EuclideanSpace' d | ∀ i, x.ofLp i ∈ s i };
+        · convert rfl;
+          convert MeasureTheory.MeasurePreserving.measure_preimage _ _;
+          rotate_left;
+          exact fun x => x.ofLp;
+          · exact (PiLp.volume_preserving_ofLp (ι := Fin d));
+          · exact MeasurableSet.nullMeasurableSet ( MeasurableSet.univ_pi hs );
+          · aesop;
+        · rfl;
+      rw [ h_prod_measure _ fun i => ?_ ];
+      · erw [ MeasureTheory.Measure.pi_pi ] ; norm_num [ BoundedInterval.real_volume ];
+        rw [ ENNReal.ofReal_prod_of_nonneg ] ; aesop;
+        exact fun i _ => BoundedInterval.length_nonneg _;
+      · cases h : B.side i <;> simp_all +decide
+
+/-- An elementary set is measurable. -/
+lemma IsElementary.measurableSet' {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : IsElementary E) :
+    MeasurableSet E := by
+      obtain ⟨ S, rfl ⟩ := hE;
+      exact MeasurableSet.biUnion ( Finset.countable_toSet S ) fun B hB => B.measurableSet
+
+/-- The Lebesgue volume of an elementary set equals its elementary measure. -/
+lemma IsElementary.real_volume {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : IsElementary E) :
+    MeasureTheory.volume E = ENNReal.ofReal hE.measure := by
+      obtain ⟨T, hT⟩ := hE.partition;
+      have h_volume : volume E = ∑ J ∈ T, volume (J.toSet : Set (EuclideanSpace' d)) := by
+        rw [ hT.2, MeasureTheory.measure_biUnion_finset ];
+        · exact hT.1;
+        · exact fun _ _ => Box.measurableSet _;
+      rw [ h_volume, IsElementary.measure_eq hE hT.1 hT.2 ];
+      rw [ ENNReal.ofReal_sum_of_nonneg ];
+      · exact Finset.sum_congr rfl fun _ _ => Box.real_volume _;
+      · exact fun _ _ => Finset.prod_nonneg (fun i _ => BoundedInterval.length_nonneg _)
+
+/-
+A bounded set has finite Lebesgue volume.
+-/
+lemma volume_lt_top_of_bounded {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : Bornology.IsBounded E) :
+    MeasureTheory.volume E < ⊤ := by
+      obtain ⟨ A, hA₁, hA₂ ⟩ := IsElementary.contains_bounded hE;
+      exact lt_of_le_of_lt ( MeasureTheory.measure_mono hA₂ ) ( by rw [ hA₁.real_volume ] ; exact ENNReal.ofReal_lt_top )
+
+/-
+Bridge: the Jordan measure of a Jordan measurable set equals its Lebesgue volume.
+-/
+lemma JordanMeasurable.measure_eq_volume {d:ℕ} {E : Set (EuclideanSpace' d)}
+    (hE : JordanMeasurable E) :
+    hE.measure = (MeasureTheory.volume E).toReal := by
+      -- By definition of Jordan measure, we know that $m(E) = \sup \{ m(A) : A \subseteq E, A \text{ is elementary} \}$.
+      have h_sup : (volume E).toReal ≤ hE.measure := by
+        -- Let `vR := (MeasureTheory.volume E).toReal`. Note `volume E ≠ ⊤` since `E` is bounded.
+        set vR := (MeasureTheory.volume E).toReal with hvR
+        have hvR_finite : MeasureTheory.volume E ≠ ⊤ := by
+          exact ne_of_lt ( volume_lt_top_of_bounded hE.1 );
+        -- By definition of Jordan measure, we know that $vR \leq \inf \{ m(A) : A \supseteq E, A \text{ is elementary} \}$.
+        have h_inf : vR ≤ sInf {m : ℝ | ∃ A : Set (EuclideanSpace' d), ∃ hA : IsElementary A, E ⊆ A ∧ m = hA.measure} := by
+          refine' le_csInf _ _;
+          · exact Exists.elim ( IsElementary.contains_bounded hE.1 ) fun A hA => ⟨ _, ⟨ A, hA.1, hA.2, rfl ⟩ ⟩;
+          · rintro _ ⟨ A, hA, hEA, rfl ⟩;
+            convert ENNReal.toReal_mono _ ( MeasureTheory.measure_mono hEA ) using 1;
+            · rw [ IsElementary.real_volume hA ];
+              rw [ ENNReal.toReal_ofReal ( IsElementary.measure_nonneg hA ) ];
+            · exact ne_of_lt ( volume_lt_top_of_bounded ( hA.isBounded ) );
+            · infer_instance;
+        grind +locals;
+      refine' le_antisymm _ h_sup;
+      refine' csSup_le _ _;
+      · exact ⟨ _, ⟨ ∅, IsElementary.empty d, Set.empty_subset _, rfl ⟩ ⟩;
+      · rintro _ ⟨ A, hA, hAE, rfl ⟩;
+        convert ENNReal.toReal_mono _ ( MeasureTheory.measure_mono hAE ) using 1;
+        · rw [ IsElementary.real_volume hA ];
+          rw [ ENNReal.toReal_ofReal ( IsElementary.measure_nonneg hA ) ];
+        · exact ne_of_lt ( volume_lt_top_of_bounded hE.1 );
+        · infer_instance
+
+/-- The standard triangle (2-simplex) in the plane. -/
+def stdTri2 : Set (EuclideanSpace' 2) := {p | 0 ≤ p 0 ∧ 0 ≤ p 1 ∧ p 0 + p 1 ≤ 1}
+
+lemma stdTri2_eq_convexHull :
+    stdTri2 = convexHull ℝ ({0, EuclideanSpace.single (0:Fin 2) (1:ℝ),
+      EuclideanSpace.single (1:Fin 2) (1:ℝ)} : Set (EuclideanSpace' 2)) := by
+        refine' Set.Subset.antisymm _ _;
+        · intro p hp
+          obtain ⟨hx0, hx1, hsum⟩ := hp
+          have h_comb : p = (1 - p 0 - p 1) • 0 + p 0 • EuclideanSpace.single 0 1 + p 1 • EuclideanSpace.single 1 1 := by
+            ext i; fin_cases i <;> simp +decide [ * ] ;
+          rw [ convexHull_eq ];
+          refine' ⟨ Fin 3, { 0, 1, 2 }, fun i => if i = 0 then 1 - p.ofLp 0 - p.ofLp 1 else if i = 1 then p.ofLp 0 else p.ofLp 1, fun i => if i = 0 then 0 else if i = 1 then EuclideanSpace.single 0 1 else EuclideanSpace.single 1 1, _, _, _, _ ⟩ <;> simp +decide [ Finset.centerMass ];
+          · exact ⟨ by linarith, hx0, hx1 ⟩;
+          · convert h_comb.symm using 1 ; norm_num [ Fin.sum_univ_two ];
+        · refine' convexHull_min _ _ <;> norm_num [ stdTri2 ];
+          · norm_num [ Set.insert_subset_iff ];
+          · intro p hp q hq a b ha hb hab; simp_all +decide [ add_nonneg, mul_nonneg ] ;
+            nlinarith
+
+lemma volume_stdTri2 : MeasureTheory.volume stdTri2 = ENNReal.ofReal (1/2) := by
+  norm_num [ stdTri2 ];
+  have h_volume : ∫⁻ (p : Fin 2 → ℝ) in {p : Fin 2 → ℝ | 0 ≤ p 0 ∧ 0 ≤ p 1 ∧ p 0 + p 1 ≤ 1}, 1 = ENNReal.ofReal (1 / 2) := by
+    have h_volume : ∫⁻ (p : ℝ × ℝ) in {p : ℝ × ℝ | 0 ≤ p.1 ∧ 0 ≤ p.2 ∧ p.1 + p.2 ≤ 1}, 1 = ENNReal.ofReal (1 / 2) := by
+      have h_triangle : {p : ℝ × ℝ | 0 ≤ p.1 ∧ 0 ≤ p.2 ∧ p.1 + p.2 ≤ 1} = {p : ℝ × ℝ | 0 ≤ p.1 ∧ p.1 ≤ 1 ∧ 0 ≤ p.2 ∧ p.2 ≤ 1 - p.1} := by
+        grind +qlia
+      generalize_proofs at *; (
+      rw [ h_triangle, ← MeasureTheory.lintegral_indicator ] <;> norm_num [ Set.indicator ];
+      · erw [ MeasureTheory.lintegral_prod ] <;> norm_num [ MeasureTheory.lintegral_const ];
+        · rw [ MeasureTheory.lintegral_congr_ae, MeasureTheory.lintegral_indicator ];
+          change ∫⁻ x in Set.Icc 0 1, ENNReal.ofReal ( 1 - x ) = ENNReal.ofReal ( 1 / 2 );
+          · rw [ ← MeasureTheory.ofReal_integral_eq_lintegral_ofReal ] <;> norm_num [ MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le zero_le_one, intervalIntegral.integral_comp_sub_left ];
+            · rw [ intervalIntegral.integral_sub ] <;> norm_num;
+            · exact Continuous.integrableOn_Icc ( by continuity );
+            · exact Filter.eventually_inf_principal.mpr ( Filter.Eventually.of_forall fun x hx => sub_nonneg.mpr hx.2 );
+          · norm_num +zetaDelta at *;
+          · filter_upwards [ ] with x ; by_cases hx : 0 ≤ x <;> by_cases hx' : x ≤ 1 <;> simp +decide [ hx, hx' ];
+            rw [ show ( ∫⁻ y : ℝ, if 0 ≤ y ∧ y ≤ 1 - x then 1 else 0 ) = ∫⁻ y : ℝ in Set.Icc 0 ( 1 - x ), 1 by rw [ ← MeasureTheory.lintegral_indicator ] <;> norm_num [ Set.indicator ] ] ; norm_num [ hx, hx' ];
+        · exact Measurable.aemeasurable ( by exact Measurable.ite ( by exact MeasurableSet.inter ( measurableSet_le measurable_const measurable_fst ) ( MeasurableSet.inter ( measurableSet_le measurable_fst measurable_const ) ( MeasurableSet.inter ( measurableSet_le measurable_const measurable_snd ) ( measurableSet_le measurable_snd ( measurable_const.sub measurable_fst ) ) ) ) ) measurable_const measurable_const );
+      · exact MeasurableSet.mem ( MeasurableSet.inter ( measurableSet_le measurable_const measurable_fst ) ( MeasurableSet.inter ( measurableSet_le measurable_fst measurable_const ) ( MeasurableSet.inter ( measurableSet_le measurable_const measurable_snd ) ( measurableSet_le measurable_snd ( measurable_const.sub measurable_fst ) ) ) ) ));
+    rw [ ← h_volume, ← MeasureTheory.lintegral_indicator, ← MeasureTheory.lintegral_indicator ];
+    · have h_iso : (MeasureTheory.volume : MeasureTheory.Measure (Fin 2 → ℝ)) = MeasureTheory.Measure.map (fun p : ℝ × ℝ => ![p.1, p.2]) (MeasureTheory.volume : MeasureTheory.Measure (ℝ × ℝ)) := by
+        simp +decide [ MeasureTheory.volume ];
+        erw [ MeasureTheory.Measure.pi_eq ];
+        intro s hs; erw [ MeasureTheory.Measure.map_apply ];
+        · simp +decide [ Set.preimage, Fin.forall_fin_two ];
+          erw [ show { x : ℝ × ℝ | x.1 ∈ s 0 ∧ x.2 ∈ s 1 } = s 0 ×ˢ s 1 by rfl, MeasureTheory.Measure.prod_prod ];
+        · exact measurable_pi_iff.mpr fun i => by fin_cases i <;> [ exact measurable_fst; exact measurable_snd ];
+        · exact MeasurableSet.univ_pi hs;
+      rw [ h_iso, MeasureTheory.lintegral_map ];
+      · simp +decide [ Set.indicator ];
+      · exact Measurable.indicator measurable_const ( MeasurableSet.inter ( measurableSet_le measurable_const ( measurable_pi_apply 0 ) ) ( MeasurableSet.inter ( measurableSet_le measurable_const ( measurable_pi_apply 1 ) ) ( measurableSet_le ( measurable_pi_apply 0 |> Measurable.add <| measurable_pi_apply 1 ) measurable_const ) ) );
+      · exact measurable_pi_iff.mpr fun i => by fin_cases i <;> [ exact measurable_fst; exact measurable_snd ];
+    · exact MeasurableSet.inter ( measurableSet_le measurable_const measurable_fst ) ( MeasurableSet.inter ( measurableSet_le measurable_const measurable_snd ) ( measurableSet_le ( measurable_fst.add measurable_snd ) measurable_const ) );
+    · exact MeasurableSet.inter ( measurableSet_le measurable_const ( measurable_pi_apply 0 ) ) ( MeasurableSet.inter ( measurableSet_le measurable_const ( measurable_pi_apply 1 ) ) ( measurableSet_le ( measurable_pi_apply 0 |> Measurable.add <| measurable_pi_apply 1 ) measurable_const ) );
+  convert h_volume using 1;
+  have h_volume_measure : MeasureTheory.volume = MeasureTheory.Measure.map (fun p : Fin 2 → ℝ => WithLp.toLp 2 p) MeasureTheory.volume := by
+    ext s hs;
+    convert MeasureTheory.Measure.map_apply _ hs using 1;
+    · erw [ MeasureTheory.Measure.map_apply ];
+      · rw [ MeasureTheory.Measure.map_apply ];
+        · convert rfl;
+          convert MeasureTheory.MeasurePreserving.measure_preimage _ _;
+          · exact (PiLp.volume_preserving_toLp (ι := Fin 2));
+          · exact hs.nullMeasurableSet;
+        · fun_prop (disch := norm_num);
+        · exact hs;
+      · exact measurable_id;
+      · exact hs;
+    · exact measurable_id;
+  rw [ h_volume_measure, MeasureTheory.Measure.map_apply ] <;> norm_num [ Set.preimage ];
+  · fun_prop;
+  · fun_prop (disch := norm_num)
+
+/-
+The Lebesgue volume of a triangle equals half the absolute value of the plane wedge.
+-/
+lemma volume_triangle (T : Affine.Triangle ℝ (EuclideanSpace' 2)) :
+    (MeasureTheory.volume (T.closedInterior)).toReal
+      = |EuclideanSpace'.plane_wedge (T.points 1 - T.points 0) (T.points 2 - T.points 0)| / 2 := by
+  set p0 := T.points 0
+  set u := T.points 1 - p0
+  set v := T.points 2 - p0
+  have h_det : LinearMap.det (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) = u 0 * v 1 - u 1 * v 0 := by
+    rw [Matrix.toEuclideanLin_eq_toLin, LinearMap.det_toLin, Matrix.det_fin_two_of]; ring
+  -- By definition of $f$, we know that $T.closedInterior = (fun x => f x + p0) '' stdTri2$.
+  have h_closedInterior : T.closedInterior = (fun x => (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) x + p0) '' stdTri2 := by
+    have h_closedInterior : T.closedInterior = (fun x => (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) x + p0) '' (convexHull ℝ ({0, EuclideanSpace.single 0 1, EuclideanSpace.single 1 1} : Set (EuclideanSpace' 2))) := by
+      have h_closedInterior : T.closedInterior = (convexHull ℝ (Set.range T.points)) := by
+        rw [ convexHull_eq ];
+        ext; simp [Finset.centerMass];
+        constructor;
+        · rintro ⟨ w, hw₁, hw₂, rfl ⟩;
+          refine' ⟨ Fin 3, Finset.univ, w, _, _, _ ⟩ <;> simp_all +decide [ Fin.sum_univ_three ];
+          exact ⟨ _, fun i => ⟨ i, rfl ⟩, rfl ⟩;
+        · rintro ⟨ ι, t, w, hw₁, hw₂, x, hx₁, hx₂ ⟩;
+          choose! y hy using hx₁;
+          refine' ⟨ fun i => ∑ j ∈ t.filter ( fun j => y j = i ), w j, _, _, _ ⟩ <;> simp_all +decide [ Finset.sum_filter ];
+          · rw [ ← hw₂, Finset.sum_comm ] ; aesop;
+          · exact fun i => ⟨ Finset.sum_nonneg fun _ _ => by split_ifs <;> linarith [ hw₁ _ ‹_› ], hw₂ ▸ Finset.sum_le_sum fun _ _ => by split_ifs <;> linarith [ hw₁ _ ‹_› ] ⟩;
+          · rw [ ← hx₂, Finset.affineCombination_eq_linear_combination ];
+            · simp +decide [ Finset.sum_comm, Finset.sum_smul ];
+              exact Finset.sum_congr rfl fun i hi => by rw [ hy i hi ] ;
+            · rw [ ← hw₂, Finset.sum_comm ] ; aesop;
+      convert h_closedInterior using 1;
+      convert AffineMap.image_convexHull _ _ using 2;
+      rotate_right;
+      exact ( Matrix.toEuclideanLin ( Matrix.of ![![u 0, v 0], ![u 1, v 1]] ) ).toAffineMap + AffineMap.const ℝ _ p0;
+      · ext; simp [AffineMap.coe_add, LinearMap.coe_toAffineMap];
+      · ext; simp [p0, u, v];
+        constructor;
+        · rintro ⟨ i, rfl ⟩ ; fin_cases i <;> simp +decide [ Matrix.toEuclideanLin ] ;
+          · exact Or.inr <| Or.inl <| by ext i; fin_cases i <;> simp +decide [ Matrix.mulVec ] ;
+          · exact Or.inr <| Or.inr <| by ext i; fin_cases i <;> simp +decide [ Matrix.toLpLin ] ;
+        · rintro ( rfl | rfl | rfl ) <;> [ exact ⟨ 0, rfl ⟩ ; exact ⟨ 1, by ext i; fin_cases i <;> norm_num [ Matrix.toEuclideanLin ] ⟩ ; exact ⟨ 2, by ext i; fin_cases i <;> norm_num [ Matrix.toEuclideanLin ] ⟩ ];
+    rw [ h_closedInterior, stdTri2_eq_convexHull ];
+  -- By definition of $f$, we know that $volume ((fun x => f x + p0) '' stdTri2) = volume (f '' stdTri2)$.
+  have h_volume : volume ((fun x => (Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) x + p0) '' stdTri2) = volume ((Matrix.toEuclideanLin (Matrix.of ![![u 0, v 0], ![u 1, v 1]])) '' stdTri2) := by
+    rw [ show ( fun x => ( Matrix.toEuclideanLin !![u.ofLp 0, v.ofLp 0; u.ofLp 1, v.ofLp 1] ) x + p0 ) '' stdTri2 = ( fun y => y + p0 ) '' ( ( Matrix.toEuclideanLin !![u.ofLp 0, v.ofLp 0; u.ofLp 1, v.ofLp 1] ) '' stdTri2 ) from ?_ ];
+    · rw [ ← MeasureTheory.measure_preimage_add_right ];
+      rw [ Set.preimage_image_eq _ ( add_left_injective p0 ) ];
+    · ext; simp [Set.mem_image];
+      grind;
+  rw [ h_closedInterior, h_volume, MeasureTheory.Measure.addHaar_image_linearMap, volume_stdTri2,
+    ← ENNReal.ofReal_mul (abs_nonneg _), ENNReal.toReal_ofReal (by positivity), h_det,
+    EuclideanSpace'.plane_wedge,
+    show u 1 * v 0 - u 0 * v 1 = -(u 0 * v 1 - u 1 * v 0) by ring, abs_neg ]
+  ring
+
+end TriangleAreaHelpers
+
 /-- Exercise 1.1.8 -/
 -- The Jordan measure of a triangle equals half the absolute value of the wedge product of two edge vectors.
 lemma JordanMeasurable.measure_triangle (T: Affine.Triangle ℝ (EuclideanSpace' 2)) : (JordanMeasurable.triangle T).measure = |EuclideanSpace'.plane_wedge (T.points 1 - T.points 0) (T.points 2 - T.points 0)| / 2 := by
-  sorry
+  rw [JordanMeasurable.measure_eq_volume]
+  exact volume_triangle T
 
 /-- Exercise 1.1.9  A polytope is the convex hull of a finite set of vertices. -/
 abbrev IsPolytope {d:ℕ} (P: Set (EuclideanSpace' d)) : Prop :=
@@ -2479,16 +2720,6 @@ lemma JordanMeasurable.polytope {d:ℕ} {P: Set (EuclideanSpace' d)} (hP: IsPoly
     exact V.finite_toSet.isBounded
   have hfrontier_null : Jordan_outer_measure (frontier P) = 0 := by
     rw [hP_eq]
-    -- By Carathéodory (convexHull_eq_union), every point in convexHull(V) lies in convexHull(t)
-    -- for some affinely independent t ⊆ V.  A frontier point cannot have |t| = d+1 with all
-    -- coefficients > 0 (otherwise it would be interior), hence some coefficient is 0, placing it
-    -- in convexHull(t \ {v}) for some v ∈ t.  Iterating, the frontier is covered by convex hulls
-    -- of subsets W ⊆ V with |W| ≤ d.  Since V is finite, this is a finite union.
-    -- Each convexHull(W) with |W| ≤ d is a compact subset of a proper affine subspace, hence
-    -- contained in some hyperplane ker f (f ≠ 0 linear).  A bounded subset of a hyperplane has
-    -- Jordan outer measure 0: after an invertible linear transformation mapping the hyperplane
-    -- to {x_k = 0}, we can cover the image by a thin box [-R,R]^{d-1} × [-η/2, η/2] with
-    -- volume (2R)^{d-1}·η → 0.  The constant factor contributed by the linear map is harmless.
     sorry
   exact JordanMeasurable.if_frontier_null hBounded hfrontier_null
 
@@ -2862,7 +3093,7 @@ lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (sca
   cases i1 with
   | Ioo a b =>
     cases i2 with
-    | Ioo a' b' => 
+    | Ioo a' b' =>
       simp at h'
       rcases h' with ⟨ha, hb⟩
       rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
@@ -2871,7 +3102,7 @@ lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (sca
     | _ => simp at h'
   | Icc a b =>
     cases i2 with
-    | Icc a' b' => 
+    | Icc a' b' =>
       simp at h'
       rcases h' with ⟨ha, hb⟩
       rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
@@ -2880,7 +3111,7 @@ lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (sca
     | _ => simp at h'
   | Ioc a b =>
     cases i2 with
-    | Ioc a' b' => 
+    | Ioc a' b' =>
       simp at h'
       rcases h' with ⟨ha, hb⟩
       rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
@@ -2889,7 +3120,7 @@ lemma scaleInterval_injective (r : ℝ) (hr : r ≠ 0) : Function.Injective (sca
     | _ => simp at h'
   | Ico a b =>
     cases i2 with
-    | Ico a' b' => 
+    | Ico a' b' =>
       simp at h'
       rcases h' with ⟨ha, hb⟩
       rcases ha with (ha | hr') <;> try { exact (hr hr').elim }
@@ -2936,7 +3167,7 @@ lemma scaleBox_smul_disj (r : ℝ) (hr : 0 < r) {d : ℕ} (B₁ B₂ : Box d)
   exact h.ne_of_mem hy₁ (by simpa [hy_eq] using hy₂) hy_eq
 
 /-- Lemma 2: The elementary measure of a scaled elementary set equals r^d times the original. -/
-lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) : 
+lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : IsElementary E) :
     (hE.smul hr).measure = r^d * hE.measure := by
   obtain ⟨T, hTdisj, hE_eq⟩ := hE.partition
   let f : Box d ↪ Box d := ⟨scaleBox r, scaleBox_injective r (by linarith)⟩
@@ -2967,22 +3198,22 @@ lemma IsElementary.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (Euclide
   simp [scaleBox_volume r hr, Finset.mul_sum, f]
 
 /-- Lemma 3: The inner Jordan measure of r • E equals r^d times the inner measure of E. -/
-lemma Jordan_inner_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) : 
+lemma Jordan_inner_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) :
     Jordan_inner_measure (r • E) = r^d * Jordan_inner_measure E := by
   sorry
 
 /-- Lemma 4: The outer Jordan measure of r • E equals r^d times the outer measure of E. -/
-lemma Jordan_outer_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) : 
+lemma Jordan_outer_measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) (E : Set (EuclideanSpace' d)) :
     Jordan_outer_measure (r • E) = r^d * Jordan_outer_measure E := by
   sorry
 
 /-- Scaling preserves Jordan measurability. -/
-lemma JordanMeasurable.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) : 
+lemma JordanMeasurable.smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) :
     JordanMeasurable (r • E) := by
   sorry
 
 /-- Lemma 5: The Jordan measure of a scaled Jordan measurable set equals r^d times the original. -/
-lemma JordanMeasurable.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) : 
+lemma JordanMeasurable.measure_smul {d:ℕ} {r : ℝ} (hr : 0 < r) {E : Set (EuclideanSpace' d)} (hE : JordanMeasurable E) :
     (hE.smul hr).measure = r^d * hE.measure := by
   sorry
 
@@ -3028,7 +3259,7 @@ lemma JordanMeasurable.le_measure_ball (d:ℕ) : 2^d/d.factorial ≤ (measure_ba
 {lit}`A` with volume `|A|ᵥ ≤ h ^ d * C(T)`, where `C(T) = ∏_i ∑_j |T(e_j)ᵢ|`. -/
 lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
     (x0 : EuclideanSpace' d) (h : ℝ) (hpos : 0 ≤ h) :
-    ∃ (A : Box d), (T '' {x | ∀ i, |x i - x0 i| ≤ h/2}) ⊆ A.toSet ∧ |A|ᵥ ≤ h ^ d * 
+    ∃ (A : Box d), (T '' {x | ∀ i, |x i - x0 i| ≤ h/2}) ⊆ A.toSet ∧ |A|ᵥ ≤ h ^ d *
       (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
   have h_expand (v : EuclideanSpace' d) : v = ∑ j, (v j) • ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)).toBasis j) := by
     calc
@@ -3104,7 +3335,7 @@ lemma cube_image_bounding_box (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace'
 /-- For an invertible linear map T and an axis-aligned (d-1)-dimensional face, the image has
 Jordan outer measure zero. -/
 lemma face_image_outer_measure_zero {d:ℕ} (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
-    (j : Fin d) (a b : Fin d → ℝ) (hab : ∀ i, a i ≤ b i) : 
+    (j : Fin d) (a b : Fin d → ℝ) (hab : ∀ i, a i ≤ b i) :
     Jordan_outer_measure (T '' {x | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j}) = 0 := by
   sorry
 
