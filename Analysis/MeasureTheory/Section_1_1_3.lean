@@ -1311,7 +1311,254 @@ theorem PiecewiseConstantOn.indicator_of_elem (I: BoundedInterval) {E:Set ℝ} (
 
 /-- Exercise 1.1.21 (c) (Piecewise constant integral of indicator functions) -/
 -- The integral of an indicator function of an elementary set equals its elementary measure.
-theorem PiecewiseConstantFunction.integral_of_elem {I: BoundedInterval} {E:Set ℝ} (hE: IsElementary (Real.equiv_EuclideanSpace' '' E) ) (hsub: E ⊆ I.toSet) : (PiecewiseConstantOn.indicator_of_elem I hE).integral = hE.measure := by sorry
+theorem PiecewiseConstantFunction.integral_of_elem {I: BoundedInterval} {E:Set ℝ} (hE: IsElementary (Real.equiv_EuclideanSpace' '' E) ) (hsub: E ⊆ I.toSet) : (PiecewiseConstantOn.indicator_of_elem I hE).integral = hE.measure := by
+  have hE_copy := hE
+  rcases hE_copy with ⟨S, hS⟩
+  let intervals : Finset BoundedInterval := S.image (λ (B : Box 1) => B.side 0)
+  have hE_union : E = ⋃ J ∈ intervals, (J : Set ℝ) := by
+    ext x; constructor
+    · intro hx
+      have hx_image : Real.equiv_EuclideanSpace' x ∈ Real.equiv_EuclideanSpace' '' E := ⟨x, hx, rfl⟩
+      rw [hS] at hx_image
+      rcases Set.mem_iUnion₂.mp hx_image with ⟨B, hB, hx_box⟩
+      have hx_side : x ∈ (B.side 0 : Set ℝ) := by
+        have h0 := (Box.mem_toSet.mp hx_box) 0
+        simpa using h0
+      apply Set.mem_iUnion₂.mpr
+      refine ⟨B.side 0, ?_, hx_side⟩
+      apply Finset.mem_image.mpr
+      exact ⟨B, hB, rfl⟩
+    · intro hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx⟩
+      have hJ_finset : J ∈ intervals := by simpa using hJ
+      rcases Finset.mem_image.mp hJ_finset with ⟨B, hB, rfl⟩
+      have hx_box' : Real.equiv_EuclideanSpace' x ∈ ((B : Box 1) : Set (EuclideanSpace' 1)) := by
+        rw [Box.mem_toSet]
+        intro i
+        fin_cases i
+        simpa using hx
+      have hx_in_image : Real.equiv_EuclideanSpace' x ∈ Real.equiv_EuclideanSpace' '' E := by
+        rw [hS]
+        exact Set.mem_iUnion₂.mpr ⟨B, hB, hx_box'⟩
+      rcases hx_in_image with ⟨y, hy, hy_eq⟩
+      symm at hy_eq
+      have hxy : x = y := Real.equiv_EuclideanSpace'.injective hy_eq
+      subst hxy; exact hy
+  classical
+  let all_intervals : Finset BoundedInterval := {I} ∪ intervals
+  rcases BoundedInterval.partition all_intervals with ⟨T, hT_disj, hT_partition⟩
+  let T_I : Finset BoundedInterval := T.filter (λ J => (J : Set ℝ) ⊆ I.toSet)
+  have hT_I_sub_T : (T_I : Set BoundedInterval) ⊆ (T : Set BoundedInterval) := by
+    intro J hJ
+    have hJ_finset : J ∈ T_I := by simpa using hJ
+    rcases Finset.mem_filter.mp hJ_finset with ⟨hJ_T, _⟩
+    exact Finset.mem_coe.mpr hJ_T
+  have hT_I_disj : (T_I : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet :=
+    hT_disj.subset hT_I_sub_T
+  have hcover : I.toSet = ⋃ J ∈ T_I, (J : Set ℝ) := by
+    have hI_mem : I ∈ all_intervals := by simp [all_intervals]
+    rcases hT_partition I hI_mem with ⟨U, hU⟩
+    apply Set.Subset.antisymm
+    · intro x hx
+      rw [hU] at hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ_T_I_sub : (J.val : Set ℝ) ⊆ I.toSet := by
+        intro y hy
+        rw [hU]
+        exact Set.mem_iUnion₂.mpr ⟨J, hJ, hy⟩
+      have hJ_T_I : J.val ∈ T_I :=
+        Finset.mem_filter.mpr ⟨J.property, hJ_T_I_sub⟩
+      apply Set.mem_iUnion₂.mpr
+      refine ⟨J.val, hJ_T_I, hx_J⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx⟩
+      have hJ_finset : J ∈ T_I := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ_finset with ⟨hJ_T, hJ_sub⟩
+      exact hJ_sub hx
+  let val : BoundedInterval → ℝ := λ J => if (J : Set ℝ) ⊆ E then 1 else 0
+  let T_E : Finset BoundedInterval := T_I.filter (λ J => (J : Set ℝ) ⊆ E)
+
+  have h_cell_subset_of_mem_E : ∀ (x : ℝ), x ∈ E → ∀ (J : BoundedInterval), J ∈ T_I → x ∈ (J : Set ℝ) → (J : Set ℝ) ⊆ E := by
+    intro x hx J hJ_finset hx_J
+    rw [hE_union] at hx
+    rcases Set.mem_iUnion₂.mp hx with ⟨B_side, hB_side, hx_B_side⟩
+    have hB_side_finset : B_side ∈ intervals := by simpa using hB_side
+    rcases Finset.mem_image.mp hB_side_finset with ⟨B, hB, rfl⟩
+    have hB_side_mem : (B.side 0) ∈ all_intervals := by
+      dsimp [all_intervals, intervals]
+      apply Finset.mem_union_right {I}
+      exact Finset.mem_image.mpr ⟨B, hB, rfl⟩
+    rcases hT_partition (B.side 0) hB_side_mem with ⟨U_B, hU_B⟩
+    have hx_in_U_B : x ∈ ⋃ K ∈ U_B, (K.val : Set ℝ) := by
+      rw [← hU_B]
+      exact hx_B_side
+    rcases Set.mem_iUnion₂.mp hx_in_U_B with ⟨K, hK, hx_K⟩
+    have hJ_T : J ∈ T := by
+      rcases Finset.mem_filter.mp hJ_finset with ⟨hJ_T, _⟩
+      exact hJ_T
+    by_cases h_eq : K.val = J
+    · subst h_eq
+      intro y hy
+      have hy_side : y ∈ (B.side 0 : Set ℝ) := by
+        rw [hU_B]
+        exact Set.mem_iUnion₂.mpr ⟨K, hK, hy⟩
+      rw [hE_union]
+      exact Set.mem_iUnion₂.mpr ⟨B.side 0, hB_side_finset, hy_side⟩
+    · have h_disjoint : Disjoint (K.val : Set ℝ) (J : Set ℝ) :=
+        hT_disj (Finset.mem_coe.mpr K.property) (Finset.mem_coe.mpr hJ_T) h_eq
+      have hx_inter : x ∈ (K.val : Set ℝ) ∩ (J : Set ℝ) := ⟨hx_K, hx_J⟩
+      have h_inter_empty : (K.val : Set ℝ) ∩ (J : Set ℝ) = ∅ :=
+        Set.disjoint_iff_inter_eq_empty.mp h_disjoint
+      rw [h_inter_empty] at hx_inter
+      simp at hx_inter
+
+  have hE_partition : E = ⋃ J ∈ T_E, (J : Set ℝ) := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx_sub : x ∈ I.toSet := hsub hx
+      have hx_cover : x ∈ ⋃ J ∈ T_I, (J : Set ℝ) := by
+        rw [← hcover]; exact hx_sub
+      rcases Set.mem_iUnion₂.mp hx_cover with ⟨J, hJ, hx_J⟩
+      have hJ_finset : J ∈ T_I := by simpa using hJ
+      have hJ_sub_E : (J : Set ℝ) ⊆ E := h_cell_subset_of_mem_E x hx J hJ_finset hx_J
+      have hJ_T_E : J ∈ T_E := Finset.mem_filter.mpr ⟨hJ_finset, hJ_sub_E⟩
+      exact Set.mem_iUnion₂.mpr ⟨J, hJ_T_E, hx_J⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ_T_E : J ∈ T_E := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ_T_E with ⟨hJ_T_I, hJ_sub_E⟩
+      exact hJ_sub_E hx_J
+
+  let F' : PiecewiseConstantFunction I := {
+    f := λ x => by
+      classical
+      exact if h : ∃ J' ∈ T_I, x ∈ (J' : Set ℝ) then val (Classical.choose h) else 0
+    T := T_I
+    c := λ J => val J.val
+    disjoint := hT_I_disj
+    cover := hcover
+    const := by
+      intro J x hx
+      classical
+      have h_exists : ∃ J' ∈ T_I, x ∈ (J' : Set ℝ) := ⟨J.val, J.property, hx⟩
+      have h_unique : ∀ (J' : BoundedInterval), J' ∈ T_I → x ∈ (J' : Set ℝ) → J' = J.val := by
+        intro J' hJ' hx'
+        by_contra hne
+        have h_disj : Disjoint (J' : Set ℝ) (J.val : Set ℝ) :=
+          hT_I_disj (Finset.mem_coe.mpr hJ') (Finset.mem_coe.mpr J.property) hne
+        have hx_inter : x ∈ (J' : Set ℝ) ∩ (J.val : Set ℝ) := ⟨hx', hx⟩
+        have h_inter_empty : (J' : Set ℝ) ∩ (J.val : Set ℝ) = ∅ :=
+          Set.disjoint_iff_inter_eq_empty.mp h_disj
+        rw [h_inter_empty] at hx_inter
+        simp at hx_inter
+      by_cases hcond : ∃ J' ∈ T_I, x ∈ (J' : Set ℝ)
+      · simp [hcond]
+        have h_choose_spec := Classical.choose_spec hcond
+        rcases h_choose_spec with ⟨h_choose_mem, h_choose_x⟩
+        rw [h_unique (Classical.choose hcond) h_choose_mem h_choose_x]
+      · exfalso; exact hcond h_exists
+  }
+  have h_F'_integral : F'.integral = ∑ J ∈ T_I, val J * |J|ₗ := by
+    unfold PiecewiseConstantFunction.integral
+    dsimp [F']
+    simpa using Finset.sum_attach (s := T_I) (f := λ J : BoundedInterval => val J * |J|ₗ)
+  have hagrees : F'.agreesWith E.indicator' := by
+    intro x hx
+    have hx_cover : x ∈ ⋃ J ∈ T_I, (J : Set ℝ) := by
+      rw [← hcover]; exact hx
+    rcases Set.mem_iUnion₂.mp hx_cover with ⟨J, hJ, hx_J⟩
+    have hJ_finset : J ∈ T_I := by simpa using hJ
+    have hfx : F'.f x = val J := by
+      dsimp [F']
+      classical
+      have h_exists : ∃ J' ∈ T_I, x ∈ (J' : Set ℝ) := ⟨J, hJ_finset, hx_J⟩
+      have h_unique : ∀ (J' : BoundedInterval), J' ∈ T_I → x ∈ (J' : Set ℝ) → J' = J := by
+        intro J' hJ' hx'
+        by_contra hne
+        have h_disj : Disjoint (J' : Set ℝ) (J : Set ℝ) :=
+          hT_I_disj (Finset.mem_coe.mpr hJ') (Finset.mem_coe.mpr hJ_finset) hne
+        have hx_inter : x ∈ (J' : Set ℝ) ∩ (J : Set ℝ) := ⟨hx', hx_J⟩
+        have h_inter_empty : (J' : Set ℝ) ∩ (J : Set ℝ) = ∅ :=
+          Set.disjoint_iff_inter_eq_empty.mp h_disj
+        rw [h_inter_empty] at hx_inter
+        simp at hx_inter
+      by_cases hcond : ∃ J' ∈ T_I, x ∈ (J' : Set ℝ)
+      · simp [hcond]
+        have h_choose_spec := Classical.choose_spec hcond
+        rcases h_choose_spec with ⟨h_choose_mem, h_choose_x⟩
+        rw [h_unique (Classical.choose hcond) h_choose_mem h_choose_x]
+      · exfalso; exact hcond h_exists
+    rw [hfx]
+    by_cases hxE : x ∈ E
+    · rw [Set.indicator'_of_mem hxE]
+      dsimp [val]
+      have h_sub : (J : Set ℝ) ⊆ E := h_cell_subset_of_mem_E x hxE J hJ_finset hx_J
+      simp [h_sub]
+    · rw [Set.indicator'_of_notMem hxE]
+      dsimp [val]
+      have h_not_sub : ¬ (J : Set ℝ) ⊆ E := by
+        intro h_sub
+        exact hxE (h_sub hx_J)
+      simp [h_not_sub]
+
+  have h_integral_eq : (PiecewiseConstantOn.indicator_of_elem I hE).integral = F'.integral :=
+    PiecewiseConstantOn.integral_eq (E.indicator') (PiecewiseConstantOn.indicator_of_elem I hE) F' hagrees
+  rw [h_integral_eq, h_F'_integral]
+
+  have h_sum_val : ∑ J ∈ T_I, val J * |J|ₗ = ∑ J ∈ T_E, |J|ₗ := by
+    calc
+      ∑ J ∈ T_I, val J * |J|ₗ = ∑ J ∈ T_I, (if (J : Set ℝ) ⊆ E then 1 else 0) * |J|ₗ := rfl
+      _ = ∑ J ∈ T_I, (if (J : Set ℝ) ⊆ E then |J|ₗ else 0) := by
+        refine Finset.sum_congr rfl fun J hJ => ?_
+        split_ifs with h
+        · simp
+        · simp
+      _ = ∑ J ∈ T_E, |J|ₗ := by
+        have h_filter := Finset.sum_filter (s := T_I) (p := λ J : BoundedInterval => (J : Set ℝ) ⊆ E) (f := λ J : BoundedInterval => |J|ₗ)
+        simpa [T_E] using h_filter.symm
+
+  rw [h_sum_val]
+
+  have h_T_E_disj_boxes : ((T_E.image (λ J : BoundedInterval => (J : Box 1))) : Set (Box 1)).PairwiseDisjoint Box.toSet := by
+    rw [Finset.coe_image]
+    intro B₁ hB₁ B₂ hB₂ hne
+    rcases hB₁ with ⟨J₁, hJ₁, rfl⟩
+    rcases hB₂ with ⟨J₂, hJ₂, rfl⟩
+    have hJ_ne : J₁ ≠ J₂ := by
+      contrapose! hne
+      subst hne; rfl
+    have hJ₁_T_I : J₁ ∈ T_I := (Finset.mem_filter.mp hJ₁).1
+    have hJ₂_T_I : J₂ ∈ T_I := (Finset.mem_filter.mp hJ₂).1
+    have h_disj : Disjoint (J₁ : Set ℝ) (J₂ : Set ℝ) :=
+      hT_I_disj (Finset.mem_coe.mpr hJ₁_T_I) (Finset.mem_coe.mpr hJ₂_T_I) hJ_ne
+    have h_disj_boxes : Disjoint ((J₁ : Box 1).toSet) ((J₂ : Box 1).toSet) := by
+      rw [BoundedInterval.coe_of_box, BoundedInterval.coe_of_box]
+      refine Set.disjoint_image_of_injective Real.equiv_EuclideanSpace'.injective h_disj
+    exact h_disj_boxes
+
+  have h_boxes_cover : Real.equiv_EuclideanSpace' '' E = ⋃ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), B.toSet := by
+    calc
+      Real.equiv_EuclideanSpace' '' E = Real.equiv_EuclideanSpace' '' (⋃ J ∈ T_E, (J : Set ℝ)) := by rw [hE_partition]
+      _ = ⋃ J ∈ T_E, Real.equiv_EuclideanSpace' '' (J : Set ℝ) := by rw [Set.image_iUnion₂]
+      _ = ⋃ J ∈ T_E, ((J : Box 1).toSet) := by
+        simp [BoundedInterval.coe_of_box]
+      _ = ⋃ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), B.toSet := by
+        simp
+
+  have h_measure_eq : hE.measure = ∑ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), |B|ᵥ :=
+    hE.measure_eq h_T_E_disj_boxes h_boxes_cover
+
+  have h_vol_sum : ∑ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), |B|ᵥ = ∑ J ∈ T_E, |J|ₗ := by
+    calc
+      ∑ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), |B|ᵥ = ∑ J ∈ T_E, |(J : Box 1)|ᵥ := by
+        refine Finset.sum_image ?_
+        intro x hx y hy h
+        exact BoundedInterval.toBox_inj.mp h
+      _ = ∑ J ∈ T_E, |J|ₗ := by simp [Box.volume_of_interval]
+
+  calc
+    ∑ J ∈ T_E, |J|ₗ = ∑ B ∈ (T_E.image (λ J : BoundedInterval => (J : Box 1))), |B|ᵥ := by rw [h_vol_sum]
+    _ = hE.measure := by rw [h_measure_eq]
 
 /-- Definition 1.1.6 (Darboux integral) -/
 -- The lower Darboux integral: supremum of integrals of piecewise constant functions that underestimate f.
