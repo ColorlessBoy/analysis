@@ -832,7 +832,280 @@ lemma BoundedInterval.refinement_subset (S: Finset BoundedInterval) (T': Finset 
 /-- Exercise 1.1.20 (Piecewise constant functions) -/
 -- The integral is well-defined: different representations of the same piecewise constant function have the same integral.
 theorem PiecewiseConstantFunction.integral_eq (f: ℝ → ℝ) {I: BoundedInterval} (F F': PiecewiseConstantFunction I) (hF: F.agreesWith f) (hF': F'.agreesWith f) : F.integral = F'.integral := by
-  sorry
+  let S := F.T ∪ F'.T
+  obtain ⟨T, hT_disj, hT_refine⟩ := BoundedInterval.partition S
+  have hF_refine : ∀ (K : BoundedInterval), K ∈ F.T → ∃ U : Set (Subtype (· ∈ T)), (K : Set ℝ) = ⋃ J ∈ U, (J.val : Set ℝ) := by
+    intro K hK
+    exact hT_refine K (by simp [S, hK])
+  have hF'_refine : ∀ (K : BoundedInterval), K ∈ F'.T → ∃ U : Set (Subtype (· ∈ T)), (K : Set ℝ) = ⋃ J ∈ U, (J.val : Set ℝ) := by
+    intro K hK
+    exact hT_refine K (by simp [S, hK])
+  choose U hU_cover using hF_refine
+  choose U' hU'_cover using hF'_refine
+  classical
+    let uK (K : BoundedInterval) : Finset BoundedInterval :=
+      T.filter (λ J : BoundedInterval => (J : Set ℝ) ⊆ (K : Set ℝ))
+    have huK_cover (K : BoundedInterval) (hK : K ∈ F.T) : (K : Set ℝ) = ⋃ J ∈ uK K, (J : Set ℝ) := by
+      ext x; constructor
+      · intro hx
+        rw [hU_cover K hK] at hx
+        obtain ⟨J', hJ', hx'⟩ := Set.mem_iUnion₂.mp hx
+        have hJ'_sub : (J'.val : Set ℝ) ⊆ (K : Set ℝ) := by
+          intro y hy
+          rw [hU_cover K hK]
+          exact Set.mem_iUnion₂.mpr ⟨J', hJ', hy⟩
+        have hJ'_val_mem : J'.val ∈ uK K := by
+          apply Finset.mem_filter.mpr
+          exact ⟨J'.property, hJ'_sub⟩
+        refine Set.mem_iUnion₂.mpr ⟨J'.val, hJ'_val_mem, hx'⟩
+      · intro hx
+        obtain ⟨J, hJ, hx'⟩ := Set.mem_iUnion₂.mp hx
+        have hJ_sub : (J : Set ℝ) ⊆ (K : Set ℝ) := (Finset.mem_filter.mp hJ).2
+        exact hJ_sub hx'
+    have huK_cover' (K : BoundedInterval) (hK : K ∈ F'.T) : (K : Set ℝ) = ⋃ J ∈ uK K, (J : Set ℝ) := by
+      ext x; constructor
+      · intro hx
+        rw [hU'_cover K hK] at hx
+        obtain ⟨J', hJ', hx'⟩ := Set.mem_iUnion₂.mp hx
+        have hJ'_sub : (J'.val : Set ℝ) ⊆ (K : Set ℝ) := by
+          intro y hy
+          rw [hU'_cover K hK]
+          exact Set.mem_iUnion₂.mpr ⟨J', hJ', hy⟩
+        have hJ'_val_mem : J'.val ∈ uK K := by
+          apply Finset.mem_filter.mpr
+          exact ⟨J'.property, hJ'_sub⟩
+        refine Set.mem_iUnion₂.mpr ⟨J'.val, hJ'_val_mem, hx'⟩
+      · intro hx
+        obtain ⟨J, hJ, hx'⟩ := Set.mem_iUnion₂.mp hx
+        have hJ_sub : (J : Set ℝ) ⊆ (K : Set ℝ) := (Finset.mem_filter.mp hJ).2
+        exact hJ_sub hx'
+    have hT_sub (K : BoundedInterval) : (uK K : Set BoundedInterval) ⊆ (T : Set BoundedInterval) := by
+      intro I hI
+      have hI' : I ∈ uK K := hI
+      have hI_T : I ∈ T := (Finset.mem_filter.mp hI').1
+      exact hI_T
+    have huK_disj (K : BoundedInterval) : (uK K : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet :=
+      hT_disj.subset (hT_sub K)
+    have h_length (K : BoundedInterval) (hK : K ∈ F.T) : |K|ₗ = ∑ J : uK K, |J.val|ₗ := by
+      rw [BoundedInterval.length_of_partition K (uK K) (huK_cover K hK) (huK_disj K)]
+    have h_length' (K : BoundedInterval) (hK : K ∈ F'.T) : |K|ₗ = ∑ J : uK K, |J.val|ₗ := by
+      rw [BoundedInterval.length_of_partition K (uK K) (huK_cover' K hK) (huK_disj K)]
+
+    have h_len_set_zero (I : BoundedInterval) (h_empty : (I : Set ℝ) = ∅) : |I|ₗ = 0 := by
+      unfold BoundedInterval.length
+      have h_ba : I.b ≤ I.a := by
+        by_contra! h_lt
+        have h_nonempty : (I : Set ℝ).Nonempty := by
+          apply Set.Nonempty.mono (Ioo_subset I)
+          refine ⟨(I.a + I.b) / 2, ?_⟩
+          constructor <;> nlinarith
+        exact h_nonempty.ne_empty h_empty
+      simp [h_ba]
+
+    have h_term_eq (J : Subtype (· ∈ T)) :
+      (∑ K : F.T, (if (J.val : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K else 0)) * |J|ₗ =
+      (∑ K' : F'.T, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' else 0)) * |J|ₗ := by
+      by_cases h_zero : |J|ₗ = 0
+      · simp [h_zero]
+      · have h_nonempty : (J.val : Set ℝ).Nonempty := by
+          by_contra h_empty
+          have h_len_zero : |J|ₗ = 0 := h_len_set_zero J.val (Set.not_nonempty_iff_eq_empty.mp h_empty)
+          exact h_zero h_len_zero
+        obtain ⟨x, hx⟩ := h_nonempty
+        by_cases h_exists_F : ∃ (K : F.T), (J.val : Set ℝ) ⊆ (K.val : Set ℝ)
+        · obtain ⟨K, hK_sub⟩ := h_exists_F
+          have hx_I : x ∈ (I : Set ℝ) := by
+            rw [F.cover]
+            exact Set.mem_iUnion₂.mpr ⟨K.val, K.property, hK_sub hx⟩
+          have hx_I' : x ∈ (I : Set ℝ) := hx_I
+          rw [F'.cover] at hx_I'
+          obtain ⟨K'_B, hK'_mem, hx_K'⟩ := Set.mem_iUnion₂.mp hx_I'
+          have hK'_sub : (J.val : Set ℝ) ⊆ (K'_B : Set ℝ) := by
+            rw [hU'_cover K'_B hK'_mem] at hx_K'
+            obtain ⟨J'', hJ'', hx_J''⟩ := Set.mem_iUnion₂.mp hx_K'
+            have hJ_eq : J = J'' := by
+              by_contra h_ne
+              have h_val_ne : J.val ≠ J''.val := Subtype.val_injective.ne h_ne
+              have h_inter_empty : (BoundedInterval.toSet J.val) ∩ (BoundedInterval.toSet J''.val) = ∅ := by
+                rw [Set.disjoint_iff_inter_eq_empty.mp ?_]
+                exact hT_disj (Finset.mem_coe.mpr J.property) (Finset.mem_coe.mpr J''.property) h_val_ne
+              have hx_inter : x ∈ (BoundedInterval.toSet J.val) ∩ (BoundedInterval.toSet J''.val) := ⟨hx, hx_J''⟩
+              rw [h_inter_empty] at hx_inter
+              simp at hx_inter
+            intro y hy
+            rw [hU'_cover K'_B hK'_mem]
+            have hy_J'' : y ∈ (J''.val : Set ℝ) := by
+              subst hJ_eq
+              exact hy
+            exact Set.mem_iUnion₂.mpr ⟨J'', hJ'', hy_J''⟩
+          have h_unique_F : ∀ (K₁ K₂ : F.T), (J.val : Set ℝ) ⊆ (K₁.val : Set ℝ) → (J.val : Set ℝ) ⊆ (K₂.val : Set ℝ) → K₁ = K₂ := by
+            intro K₁ K₂ h_sub₁ h_sub₂
+            by_contra h_ne
+            have h_val_ne : K₁.val ≠ K₂.val := Subtype.val_injective.ne h_ne
+            have h_inter_empty : (BoundedInterval.toSet K₁.val) ∩ (BoundedInterval.toSet K₂.val) = ∅ := by
+              rw [Set.disjoint_iff_inter_eq_empty.mp ?_]
+              exact F.disjoint (Finset.mem_coe.mpr K₁.property) (Finset.mem_coe.mpr K₂.property) h_val_ne
+            have hx_in₁ : x ∈ BoundedInterval.toSet K₁.val := h_sub₁ hx
+            have hx_in₂ : x ∈ BoundedInterval.toSet K₂.val := h_sub₂ hx
+            have hx_inter : x ∈ (BoundedInterval.toSet K₁.val) ∩ (BoundedInterval.toSet K₂.val) := ⟨hx_in₁, hx_in₂⟩
+            rw [h_inter_empty] at hx_inter
+            simp at hx_inter
+          have h_unique_F' : ∀ (K₁ K₂ : F'.T), (J.val : Set ℝ) ⊆ (K₁.val : Set ℝ) → (J.val : Set ℝ) ⊆ (K₂.val : Set ℝ) → K₁ = K₂ := by
+            intro K₁ K₂ h_sub₁ h_sub₂
+            by_contra h_ne
+            have h_val_ne : K₁.val ≠ K₂.val := Subtype.val_injective.ne h_ne
+            have h_inter_empty : (BoundedInterval.toSet K₁.val) ∩ (BoundedInterval.toSet K₂.val) = ∅ := by
+              rw [Set.disjoint_iff_inter_eq_empty.mp ?_]
+              exact F'.disjoint (Finset.mem_coe.mpr K₁.property) (Finset.mem_coe.mpr K₂.property) h_val_ne
+            have hx_in₁ : x ∈ BoundedInterval.toSet K₁.val := h_sub₁ hx
+            have hx_in₂ : x ∈ BoundedInterval.toSet K₂.val := h_sub₂ hx
+            have hx_inter : x ∈ (BoundedInterval.toSet K₁.val) ∩ (BoundedInterval.toSet K₂.val) := ⟨hx_in₁, hx_in₂⟩
+            rw [h_inter_empty] at hx_inter
+            simp at hx_inter
+          have h_const_eq : F.c K = F'.c ⟨K'_B, hK'_mem⟩ := by
+            have h_fx : F.f x = f x := (hF hx_I).symm
+            have h_f'x : F'.f x = f x := (hF' hx_I).symm
+            have h_F_const : F.f x = F.c K := F.const K x (hK_sub hx)
+            have h_F'_const : F'.f x = F'.c ⟨K'_B, hK'_mem⟩ := F'.const ⟨K'_B, hK'_mem⟩ x (hK'_sub hx)
+            calc
+              F.c K = F.f x := (h_F_const.symm)
+              _ = f x := h_fx
+              _ = F'.f x := (h_f'x.symm)
+              _ = F'.c ⟨K'_B, hK'_mem⟩ := h_F'_const
+          have h_inner_F : (∑ K : F.T, (if (J.val : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K else 0)) = F.c K := by
+            have h_sum_attach : (∑ K : F.T, (if (J.val : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K else 0)) =
+              Finset.sum (Finset.attach F.T) (fun (K' : F.T) => if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F.c K' else 0) := by
+              simp
+            rw [h_sum_attach]
+            have h_temp : Finset.sum (Finset.attach F.T) (fun (K' : F.T) => if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F.c K' else 0) =
+              (if (J.val : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K else 0) :=
+              Finset.sum_eq_single (a := K) (by
+                intro K' hK' h_ne
+                have h_not_sub : ¬ (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) := by
+                  intro h_sub
+                  have : K' = K := h_unique_F K' K h_sub hK_sub
+                  exact h_ne this
+                simp [h_not_sub]
+              ) (by
+                intro h_not
+                exfalso
+                exact h_not (by simp))
+            simpa [hK_sub] using h_temp
+          have h_inner_F' : (∑ K' : F'.T, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' else 0)) = F'.c ⟨K'_B, hK'_mem⟩ := by
+            let a : F'.T := ⟨K'_B, hK'_mem⟩
+            have h_sum_attach : (∑ K' : F'.T, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' else 0)) =
+              Finset.sum (Finset.attach F'.T) (fun (K'' : F'.T) => if (J.val : Set ℝ) ⊆ (K''.val : Set ℝ) then F'.c K'' else 0) := by
+              simp
+            rw [h_sum_attach]
+            have h_temp : Finset.sum (Finset.attach F'.T) (fun (K'' : F'.T) => if (J.val : Set ℝ) ⊆ (K''.val : Set ℝ) then F'.c K'' else 0) =
+              (if (J.val : Set ℝ) ⊆ (a.val : Set ℝ) then F'.c a else 0) :=
+              Finset.sum_eq_single (a := a) (by
+                intro K'' hK'' h_ne
+                have h_not_sub : ¬ (J.val : Set ℝ) ⊆ (K''.val : Set ℝ) := by
+                  intro h_sub
+                  have : K'' = a := h_unique_F' K'' a h_sub hK'_sub
+                  exact h_ne this
+                simp [h_not_sub]
+              ) (by
+                intro h_not
+                exfalso
+                exact h_not (by simp))
+            have h_cond : (J.val : Set ℝ) ⊆ (a.val : Set ℝ) := hK'_sub
+            simpa [h_cond, a] using h_temp
+          rw [h_inner_F, h_inner_F', h_const_eq]
+        · have h_inner_F_zero : (∑ K : F.T, (if (J.val : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K else 0)) = 0 := by
+            apply Finset.sum_eq_zero
+            intro K hK
+            have h_not_sub : ¬ (J.val : Set ℝ) ⊆ (K.val : Set ℝ) := by
+              intro h_sub
+              apply h_exists_F
+              exact ⟨K, h_sub⟩
+            simp [h_not_sub]
+          have h_inner_F'_zero : (∑ K' : F'.T, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' else 0)) = 0 := by
+            apply Finset.sum_eq_zero
+            intro K' hK'
+            have h_not_sub : ¬ (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) := by
+              intro h_sub
+              have hx_I : x ∈ (I : Set ℝ) := by
+                rw [F'.cover]
+                exact Set.mem_iUnion₂.mpr ⟨K'.val, K'.property, h_sub hx⟩
+              rw [F.cover] at hx_I
+              obtain ⟨K_B, hK_B, hx_K⟩ := Set.mem_iUnion₂.mp hx_I
+              have hK_B_sub : (J.val : Set ℝ) ⊆ (K_B : Set ℝ) := by
+                rw [hU_cover K_B hK_B] at hx_K
+                obtain ⟨J'', hJ'', hx_J''⟩ := Set.mem_iUnion₂.mp hx_K
+                have hJ_eq : J = J'' := by
+                  by_contra h_ne
+                  have h_val_ne : J.val ≠ J''.val := Subtype.val_injective.ne h_ne
+                  have h_inter_empty : (BoundedInterval.toSet J.val) ∩ (BoundedInterval.toSet J''.val) = ∅ := by
+                    rw [Set.disjoint_iff_inter_eq_empty.mp ?_]
+                    exact hT_disj (Finset.mem_coe.mpr J.property) (Finset.mem_coe.mpr J''.property) h_val_ne
+                  have hx_inter : x ∈ (BoundedInterval.toSet J.val) ∩ (BoundedInterval.toSet J''.val) := ⟨hx, hx_J''⟩
+                  rw [h_inter_empty] at hx_inter
+                  simp at hx_inter
+                intro y hy
+                rw [hU_cover K_B hK_B]
+                have hy_J'' : y ∈ (J''.val : Set ℝ) := by
+                  subst hJ_eq
+                  exact hy
+                exact Set.mem_iUnion₂.mpr ⟨J'', hJ'', hy_J''⟩
+              exact h_exists_F ⟨⟨K_B, hK_B⟩, hK_B_sub⟩
+            simp [h_not_sub]
+          rw [h_inner_F_zero, h_inner_F'_zero]
+
+    have h_inner_conv (K : F.T) : (∑ J : uK (K.val), F.c K * |J|ₗ) = (∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K * |J|ₗ else 0)) := by
+      calc
+        (∑ J : uK (K.val), F.c K * |J|ₗ) = Finset.sum (uK (K.val)) (fun J : BoundedInterval => F.c K * |J|ₗ) := by
+          simpa using Finset.sum_attach (uK (K.val)) (fun J : BoundedInterval => F.c K * |J|ₗ)
+        _ = Finset.sum T (fun J : BoundedInterval => if (J : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K * |J|ₗ else 0) := by
+          dsimp [uK]
+          simp [Finset.sum_filter]
+        _ = (∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K * |J|ₗ else 0)) := by
+          simpa using (Finset.sum_attach T (fun J : BoundedInterval => if (J : Set ℝ) ⊆ (K.val : Set ℝ) then F.c K * |J|ₗ else 0)).symm
+
+    have h_inner_conv' (K' : F'.T) : (∑ J : uK (K'.val), F'.c K' * |J|ₗ) = (∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' * |J|ₗ else 0)) := by
+      calc
+        (∑ J : uK (K'.val), F'.c K' * |J|ₗ) = Finset.sum (uK (K'.val)) (fun J : BoundedInterval => F'.c K' * |J|ₗ) := by
+          simpa using Finset.sum_attach (uK (K'.val)) (fun J : BoundedInterval => F'.c K' * |J|ₗ)
+        _ = Finset.sum T (fun J : BoundedInterval => if (J : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' * |J|ₗ else 0) := by
+          dsimp [uK]
+          simp [Finset.sum_filter]
+        _ = (∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' * |J|ₗ else 0)) := by
+          simpa using (Finset.sum_attach T (fun J : BoundedInterval => if (J : Set ℝ) ⊆ (K'.val : Set ℝ) then F'.c K' * |J|ₗ else 0)).symm
+
+    unfold PiecewiseConstantFunction.integral
+    calc
+      (∑ K : F.T, F.c K * |K|ₗ) = (∑ K : F.T, F.c K * (∑ J : uK (K.val), |J|ₗ)) := by
+        apply Finset.sum_congr rfl
+        intro K hK
+        rw [h_length (K.val) K.property]
+      _ = (∑ K : F.T, ∑ J : uK (K.val), F.c K * |J|ₗ) := by
+        simp_rw [Finset.mul_sum]
+      _ = (∑ K : F.T, ∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K * |J|ₗ else 0)) := by
+        simp_rw [h_inner_conv]
+      _ = (∑ J : Subtype (· ∈ T), ∑ K : F.T, (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K * |J|ₗ else 0)) := by
+        rw [Finset.sum_comm]
+      _ = (∑ J : Subtype (· ∈ T), ∑ K' : F'.T, (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' * |J|ₗ else 0)) := by
+        apply Finset.sum_congr rfl
+        intro J hJ
+        calc
+          (∑ K : F.T, (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K * |J|ₗ else 0)) =
+            ((∑ K : F.T, (if (↑J : Set ℝ) ⊆ (↑(K.val) : Set ℝ) then F.c K else 0)) * |J|ₗ) := by
+            simp [Finset.mul_sum, mul_comm]
+          _ = ((∑ K' : F'.T, (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' else 0)) * |J|ₗ) := by
+            rw [h_term_eq J]
+          _ = (∑ K' : F'.T, (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' * |J|ₗ else 0)) := by
+            simp [Finset.mul_sum, mul_comm]
+      _ = (∑ K' : F'.T, ∑ J : Subtype (· ∈ T), (if (↑J : Set ℝ) ⊆ (↑(K'.val) : Set ℝ) then F'.c K' * |J|ₗ else 0)) := by
+        rw [Finset.sum_comm]
+      _ = (∑ K' : F'.T, ∑ J : uK (K'.val), F'.c K' * |J|ₗ) := by
+        simp_rw [h_inner_conv']
+      _ = (∑ K' : F'.T, F'.c K' * (∑ J : uK (K'.val), |J|ₗ)) := by
+        simp_rw [Finset.mul_sum]
+      _ = (∑ K' : F'.T, F'.c K' * |K'.val|ₗ) := by
+        apply Finset.sum_congr rfl
+        intro K' hK'
+        rw [h_length' (K'.val) K'.property]
 
 -- The integral of a piecewise constant function on I.
 noncomputable def PiecewiseConstantOn.integral (f: ℝ → ℝ) {I: BoundedInterval} (h: PiecewiseConstantOn f I) : ℝ := h.choose.integral
