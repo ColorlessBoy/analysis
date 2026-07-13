@@ -771,11 +771,55 @@ lemma PiecewiseConstantFunction.integral_smul_pcf {I: BoundedInterval} (c: ℝ) 
   simp [smul_eq_mul, Finset.mul_sum, mul_assoc]
 
 
+private lemma ennreal_ofReal_toReal_eq_max (x : ℝ) : (ENNReal.ofReal x).toReal = max x 0 := by
+  by_cases h : 0 ≤ x
+  · rw [ENNReal.toReal_ofReal h, max_eq_left h]
+  · have h' : x ≤ 0 := by linarith
+    rw [max_eq_right h']
+    have : ENNReal.ofReal x = 0 := by
+      rw [ENNReal.ofReal_eq_zero]; exact h'
+    simp [this]
+
+/-- The length of a BoundedInterval equals the Lebesgue measure (volume) of its underlying set. -/
+lemma BoundedInterval.length_eq_volume (I : BoundedInterval) : |I|ₗ = (MeasureTheory.volume).real (I.toSet) := by
+  cases I with
+  | Ioo a b =>
+    unfold MeasureTheory.Measure.real
+    simp [BoundedInterval.set_Ioo, BoundedInterval.length, Real.volume_Ioo]
+    exact ennreal_ofReal_toReal_eq_max (b - a)
+  | Icc a b =>
+    unfold MeasureTheory.Measure.real
+    simp [BoundedInterval.set_Icc, BoundedInterval.length, Real.volume_Icc]
+    exact ennreal_ofReal_toReal_eq_max (b - a)
+  | Ioc a b =>
+    unfold MeasureTheory.Measure.real
+    simp [BoundedInterval.set_Ioc, BoundedInterval.length, Real.volume_Ioc]
+    exact ennreal_ofReal_toReal_eq_max (b - a)
+  | Ico a b =>
+    unfold MeasureTheory.Measure.real
+    simp [BoundedInterval.set_Ico, BoundedInterval.length, Real.volume_Ico]
+    exact ennreal_ofReal_toReal_eq_max (b - a)
+
 /-- Helper: When an interval K is partitioned by pairwise-disjoint subintervals T, its length is the sum. -/
 lemma BoundedInterval.length_of_partition (K: BoundedInterval) (T: Finset BoundedInterval)
     (hcover: K.toSet = ⋃ J ∈ T, J.toSet)
     (hdisjoint: (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet) : |K|ₗ = ∑ J: T, |J.val|ₗ := by
-  sorry
+  have h_sum_conv : (∑ J : T, |J.val|ₗ) = ∑ J ∈ T, |J|ₗ := by
+    simpa using Finset.sum_attach (s := T) (f := fun (J : BoundedInterval) => |J|ₗ)
+  rw [h_sum_conv]
+  have h_measurable (J : BoundedInterval) : MeasurableSet (J.toSet) := by
+    cases J with
+    | Ioo a b => exact measurableSet_Ioo
+    | Icc a b => exact measurableSet_Icc
+    | Ioc a b => exact measurableSet_Ioc
+    | Ico a b => exact measurableSet_Ico
+  have h_volume_finite (J : BoundedInterval) : (MeasureTheory.volume : MeasureTheory.Measure ℝ) (J.toSet) ≠ ⊤ := by
+    cases J <;> simp
+  rw [BoundedInterval.length_eq_volume K, hcover]
+  rw [MeasureTheory.measureReal_biUnion_finset hdisjoint (by
+    intro J hJ; exact h_measurable J) (by
+    intro J hJ; exact h_volume_finite J)]
+  simp [BoundedInterval.length_eq_volume]
 
 /-- Each refined subinterval J in T' is contained in some original interval I in S. -/
 lemma BoundedInterval.refinement_subset (S: Finset BoundedInterval) (T': Finset BoundedInterval)
