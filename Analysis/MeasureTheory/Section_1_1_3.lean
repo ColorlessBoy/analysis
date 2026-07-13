@@ -1194,6 +1194,56 @@ lemma integral_mkConst (I: BoundedInterval) (c: ℝ) :
   unfold PiecewiseConstantFunction.integral PiecewiseConstantFunction.mkConst
   simp [Finset.sum_singleton]
 
+/-- Construct a PiecewiseConstantFunction from a Finset of intervals that partition I,
+    where the function value on each interval J is val J.val. -/
+noncomputable def mkPCF {I: BoundedInterval} (T: Finset BoundedInterval) (val: BoundedInterval → ℝ)
+    (hdisj: (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
+    (hcover: I.toSet = ⋃ J ∈ T, J.toSet) : PiecewiseConstantFunction I :=
+  { f := λ x => by
+      classical
+      exact if h : ∃ J' ∈ T, x ∈ (J' : Set ℝ) then val (Classical.choose h) else 0
+    T := T
+    c := λ J => val J.val
+    disjoint := hdisj
+    cover := hcover
+    const := by
+      intro J x hx
+      classical
+      have h_exists : ∃ J' ∈ T, x ∈ (J' : Set ℝ) := ⟨J.val, J.property, hx⟩
+      have h_unique : ∀ (J' : BoundedInterval), J' ∈ T → x ∈ (J' : Set ℝ) → J' = J.val := by
+        intro J' hJ' hx'
+        by_contra hne
+        have h_disj : Disjoint (J' : Set ℝ) (J.val : Set ℝ) :=
+          hdisj (Finset.mem_coe.mpr hJ') (Finset.mem_coe.mpr J.property) hne
+        have hx_inter : x ∈ (J' : Set ℝ) ∩ (J.val : Set ℝ) := ⟨hx', hx⟩
+        have h_inter_empty : (J' : Set ℝ) ∩ (J.val : Set ℝ) = ∅ :=
+          Set.disjoint_iff_inter_eq_empty.mp h_disj
+        rw [h_inter_empty] at hx_inter
+        simp at hx_inter
+      by_cases hcond : ∃ J' ∈ T, x ∈ (J' : Set ℝ)
+      · simp [hcond]
+        have h_choose_spec := Classical.choose_spec hcond
+        rcases h_choose_spec with ⟨h_choose_mem, h_choose_x⟩
+        rw [h_unique (Classical.choose hcond) h_choose_mem h_choose_x]
+      · exfalso; exact hcond h_exists
+  }
+
+lemma mkPCF_integral {I: BoundedInterval} (T: Finset BoundedInterval) (val: BoundedInterval → ℝ)
+    (hdisj: (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
+    (hcover: I.toSet = ⋃ J ∈ T, J.toSet) :
+    (mkPCF T val hdisj hcover).integral = ∑ J ∈ T, val J * |J|ₗ := by
+  calc
+    (mkPCF T val hdisj hcover).integral
+        = ∑ J : (mkPCF T val hdisj hcover).T, (mkPCF T val hdisj hcover).c J * |J|ₗ := rfl
+    _ = ∑ J : T, val J.val * |J.val|ₗ := by
+      dsimp [mkPCF]; rfl
+    _ = ∑ J ∈ T, val J * |J|ₗ := by
+      have hL : (∑ J : T, val J.val * |J.val|ₗ) = (∑ x ∈ T.attach, val (x : BoundedInterval) * |(x : BoundedInterval)|ₗ) := by
+        simp
+      have hR : (∑ x ∈ T.attach, val (x : BoundedInterval) * |(x : BoundedInterval)|ₗ) = (∑ J ∈ T, val J * |J|ₗ) := by
+        rw [Finset.sum_attach T (fun (y : BoundedInterval) => val y * |y|ₗ)]
+      rw [hL, hR]
+
 /-- Helper: Construct the negation of a piecewise constant function -/
 def neg {I: BoundedInterval} (g: PiecewiseConstantFunction I) : PiecewiseConstantFunction I where
   f := fun x => -g.f x
