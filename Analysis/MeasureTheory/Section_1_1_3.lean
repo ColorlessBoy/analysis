@@ -1158,9 +1158,6 @@ theorem PiecewiseConstantOn.add {I: BoundedInterval} {f g: ℝ → ℝ} (hf: Pie
 -- The integral is linear: integral(f + g) = integral(f) + integral(g).
 theorem PiecewiseConstantFunction.integral_add {I: BoundedInterval} {f g: ℝ → ℝ} (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) : (hf.add hg).integral = hf.integral + hg.integral := by sorry
 
-/-- Exercise 1.1.21 (b) (Monotonicity of the piecewise constant integral) -/
--- The integral is monotone: if f ≤ g pointwise, then integral(f) ≤ integral(g).
-theorem PiecewiseConstantFunction.integral_mono {I: BoundedInterval} {f g: ℝ → ℝ} (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) (hmono: ∀ x ∈ I.toSet, f x ≤ g x): hf.integral ≤ hg.integral := by sorry
 
 
 
@@ -1226,8 +1223,8 @@ lemma to_PiecewiseConstantOn {I: BoundedInterval} (g: PiecewiseConstantFunction 
   exact PiecewiseConstantOn.integral_eq g.f ⟨g, hg_agrees⟩ g hg_agrees
 
 /--
-Helper: Apply {name}`PiecewiseConstantFunction.integral_mono` between two
-{name}`PiecewiseConstantFunction`s via {name}`PiecewiseConstantOn`.
+Helper: Apply integral monotonicity between two
+PiecewiseConstantFunctions via PiecewiseConstantOn.
 -/
 lemma integral_mono' {I: BoundedInterval}
     (g h: PiecewiseConstantFunction I) (h_pointwise: ∀ x ∈ I.toSet, g.f x ≤ h.f x) :
@@ -1511,6 +1508,21 @@ lemma integral_mono' {I: BoundedInterval}
         rw [h_length' (K'.val) K'.property]
 
 
+
+/-- Exercise 1.1.21 (b) (Monotonicity of the piecewise constant integral) -/
+-- The integral is monotone: if f ≤ g pointwise, then integral(f) ≤ integral(g).
+theorem integral_mono {I: BoundedInterval} {f g: ℝ → ℝ} (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) (hmono: ∀ x ∈ I.toSet, f x ≤ g x): hf.integral ≤ hg.integral := by
+  have hF_agrees : hf.choose.agreesWith f := hf.choose_spec
+  have hG_agrees : hg.choose.agreesWith g := hg.choose_spec
+  have h_pointwise : ∀ x ∈ I.toSet, (hf.choose : PiecewiseConstantFunction I).f x ≤ (hg.choose : PiecewiseConstantFunction I).f x := by
+    intro x hx
+    have h_eq_f : (hf.choose : PiecewiseConstantFunction I).f x = f x := (hF_agrees hx).symm
+    have h_eq_g : (hg.choose : PiecewiseConstantFunction I).f x = g x := (hG_agrees hx).symm
+    rw [h_eq_f, h_eq_g]
+    exact hmono x hx
+  have h := integral_mono' (hf.choose : PiecewiseConstantFunction I) (hg.choose : PiecewiseConstantFunction I) h_pointwise
+  dsimp [PiecewiseConstantOn.integral]
+  exact h
 
 end PiecewiseConstantFunction
 
