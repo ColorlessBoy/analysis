@@ -2143,6 +2143,81 @@ lemma RiemannIntegrableOn.iff_darbouxIntegrable {f:ℝ → ℝ} {I: BoundedInter
 -- For Riemann integrable functions, the Riemann integral equals the Darboux integral.
 lemma riemann_integral_eq_darboux_integral {f:ℝ → ℝ} {I: BoundedInterval} (hf: RiemannIntegrableOn f I) : riemannIntegral f I = darbouxIntegral f I := by sorry
 
+/-- The subintervals of a tagged partition as a Finset of right-half-open intervals. -/
+noncomputable def TaggedPartition.intervals {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) : Finset BoundedInterval :=
+  Finset.image (fun (i : Fin n) => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ {Icc I.b I.b}
+
+/-- For i ≠ j, Ico(P.x i.castSucc, P.x i.succ) and Ico(P.x j.castSucc, P.x j.succ) are disjoint. -/
+lemma TaggedPartition.Ico_disjoint {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) {i j : Fin n} (hne : i ≠ j) :
+    Disjoint (Set.Ico (P.x i.castSucc) (P.x i.succ)) (Set.Ico (P.x j.castSucc) (P.x j.succ)) := by
+  have h_lt_or : i < j ∨ j < i := by
+    by_cases hij : i < j
+    · exact Or.inl hij
+    · have hji : j < i := by
+        apply lt_of_le_of_ne (by exact not_lt.mp hij) hne.symm
+      exact Or.inr hji
+  rcases h_lt_or with (h_lt | h_lt)
+  · have hv : (i.succ : Fin (n+1)).val ≤ (j.castSucc : Fin (n+1)).val := by
+      simp; omega
+    have hx_le : P.x i.succ ≤ P.x j.castSucc := P.x_mono.monotone hv
+    rw [Set.disjoint_iff_inter_eq_empty]
+    apply Set.not_nonempty_iff_eq_empty.mp
+    rintro ⟨x, hx⟩
+    rcases hx with ⟨⟨hx1, hx2⟩, ⟨hx3, hx4⟩⟩
+    linarith
+  · have hv : (j.succ : Fin (n+1)).val ≤ (i.castSucc : Fin (n+1)).val := by
+      simp; omega
+    have hx_le : P.x j.succ ≤ P.x i.castSucc := P.x_mono.monotone hv
+    rw [Set.disjoint_iff_inter_eq_empty]
+    apply Set.not_nonempty_iff_eq_empty.mp
+    rintro ⟨x, hx⟩
+    rcases hx with ⟨⟨hx1, hx2⟩, ⟨hx3, hx4⟩⟩
+    linarith
+
+lemma TaggedPartition.intervals_disjoint {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) :
+    (P.intervals : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet := by
+  intro A hA B hB hne
+  have hA_mem : A ∈ Finset.image (fun (i : Fin n) => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ {Icc I.b I.b} := hA
+  have hB_mem : B ∈ Finset.image (fun (i : Fin n) => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ {Icc I.b I.b} := hB
+  rcases Finset.mem_union.mp hA_mem with (hA_img | hA_sing)
+  · rcases Finset.mem_image.mp hA_img with ⟨i, _, rfl⟩
+    rcases Finset.mem_union.mp hB_mem with (hB_img | hB_sing)
+    · rcases Finset.mem_image.mp hB_img with ⟨j, _, rfl⟩
+      by_cases hij : i = j
+      · exfalso; exact hne (by subst hij; rfl)
+      · exact P.Ico_disjoint hij
+    · have hB_val : B = Icc I.b I.b := Finset.mem_singleton.mp hB_sing
+      subst hB_val
+      show Disjoint (toSet (Ico (P.x i.castSucc) (P.x i.succ))) (toSet (Icc I.b I.b))
+      rw [Set.disjoint_iff_inter_eq_empty]
+      apply Set.not_nonempty_iff_eq_empty.mp
+      rintro ⟨x, hx⟩
+      rcases hx with ⟨⟨hx1, hx2⟩, ⟨hx3, hx4⟩⟩
+      have hv_val : (i.succ : Fin (n+1)).val ≤ (Fin.last n : Fin (n+1)).val := by
+        simpa [Fin.val_succ, Fin.val_last] using Nat.succ_le_of_lt (Fin.is_lt i)
+      have hv : (i.succ : Fin (n+1)) ≤ (Fin.last n : Fin (n+1)) := hv_val
+      have hx_le : P.x i.succ ≤ I.b :=
+        le_trans (P.x_mono.monotone hv) (by rw [P.x_end])
+      linarith
+  · have hA_val : A = Icc I.b I.b := Finset.mem_singleton.mp hA_sing
+    subst hA_val
+    rcases Finset.mem_union.mp hB_mem with (hB_img | hB_sing)
+    · rcases Finset.mem_image.mp hB_img with ⟨j, _, rfl⟩
+      show Disjoint (toSet (Icc I.b I.b)) (toSet (Ico (P.x j.castSucc) (P.x j.succ)))
+      rw [Set.disjoint_iff_inter_eq_empty]
+      apply Set.not_nonempty_iff_eq_empty.mp
+      rintro ⟨x, hx⟩
+      rcases hx with ⟨⟨hx1, hx2⟩, ⟨hx3, hx4⟩⟩
+      have hv_val : (j.succ : Fin (n+1)).val ≤ (Fin.last n : Fin (n+1)).val := by
+        simpa [Fin.val_succ, Fin.val_last] using Nat.succ_le_of_lt (Fin.is_lt j)
+      have hv : (j.succ : Fin (n+1)) ≤ (Fin.last n : Fin (n+1)) := hv_val
+      have hx_le : P.x j.succ ≤ I.b :=
+        le_trans (P.x_mono.monotone hv) (by rw [P.x_end])
+      linarith
+    · have hB_val : B = Icc I.b I.b := Finset.mem_singleton.mp hB_sing
+      subst hB_val
+      exfalso; exact hne rfl
+
 /-- Exercise 1.1.23 -/
 -- Any function continuous on a nonempty closed interval is Riemann integrable.
 lemma RiemannIntegrableOn.continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I = Icc I.a I.b)
