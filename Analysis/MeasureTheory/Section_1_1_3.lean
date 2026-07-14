@@ -1,5 +1,7 @@
 import Analysis.MeasureTheory.Section_1_1_2
 
+set_option linter.unnecessarySimpa false
+
 /-!
 # Introduction to Measure Theory, Section 1.1.3: Connections with the Riemann integral
 
@@ -2029,8 +2031,8 @@ lemma integral_mono' {I: BoundedInterval}
             simpa using h_inner_g_zero
           have h_inner_h_zero_attach : (∑ K' ∈ h.T.attach, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then h.c K' else 0)) = 0 := by
             simpa using h_inner_h_zero
-          simpa [h_inner_g_zero_attach, h_inner_h_zero_attach]
-
+          simp [h_inner_g_zero_attach, h_inner_h_zero_attach]
+    
     have h_inner_conv (b : g.T) : (∑ J : uK (b.val), g.c b * |J|ₗ) =
       (∑ J : Subtype (· ∈ T), (if (J.val : Set ℝ) ⊆ (b.val : Set ℝ) then g.c b * |J|ₗ else 0)) := by
       calc
@@ -2331,7 +2333,7 @@ lemma TaggedPartition.intervals_disjoint {I: BoundedInterval} {n:ℕ} (P: Tagged
       rintro ⟨x, hx⟩
       rcases hx with ⟨⟨hx1, hx2⟩, ⟨hx3, hx4⟩⟩
       have hv_val : (i.succ : Fin (n+1)).val ≤ (Fin.last n : Fin (n+1)).val := by
-        simpa [Fin.val_succ, Fin.val_last] using Nat.succ_le_of_lt (Fin.is_lt i)
+        simp [Fin.val_succ, Fin.val_last, Nat.succ_le_of_lt (Fin.is_lt i)]
       have hv : (i.succ : Fin (n+1)) ≤ (Fin.last n : Fin (n+1)) := hv_val
       have hx_le : P.x i.succ ≤ I.b :=
         le_trans (P.x_mono.monotone hv) (by rw [P.x_end])
@@ -2358,6 +2360,7 @@ lemma TaggedPartition.intervals_disjoint {I: BoundedInterval} {n:ℕ} (P: Tagged
 /-- For a tagged partition P with n > 0 and I.a ≤ I.b, its subintervals cover I. -/
 lemma TaggedPartition.intervals_cover (hI : I = Icc I.a I.b) (h_ab : I.a ≤ I.b) {n:ℕ} (hn : n > 0) (P : TaggedPartition I n) :
     I.toSet = ⋃ J ∈ (P.intervals : Set BoundedInterval), J.toSet := by
+  have hn' : n > 0 := hn
   ext x; constructor
   · intro hx
     rw [hI] at hx
