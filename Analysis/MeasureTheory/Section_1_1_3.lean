@@ -2218,6 +2218,83 @@ lemma TaggedPartition.intervals_disjoint {I: BoundedInterval} {n:ℕ} (P: Tagged
       subst hB_val
       exfalso; exact hne rfl
 
+/-- For a tagged partition P with n > 0 and I.a ≤ I.b, its subintervals cover I. -/
+lemma TaggedPartition.intervals_cover (hI : I = Icc I.a I.b) (h_ab : I.a ≤ I.b) {n:ℕ} (hn : n > 0) (P : TaggedPartition I n) :
+    I.toSet = ⋃ J ∈ (P.intervals : Set BoundedInterval), J.toSet := by
+  ext x; constructor
+  · intro hx
+    rw [hI] at hx
+    rcases hx with ⟨hx1, hx2⟩
+    by_cases hx_end : x = I.b
+    · subst x
+      refine Set.mem_iUnion₂.mpr ⟨Icc I.b I.b, ?_, by simp⟩
+      simp [TaggedPartition.intervals]
+    · have hx_lt_Ib : x < I.b := lt_of_le_of_ne hx2 hx_end
+      have h_exists : (Finset.filter (λ (k : Fin (n+1)) => x < P.x k) Finset.univ).Nonempty := by
+        refine ⟨Fin.last n, ?_⟩
+        simp; rw [P.x_end]; exact hx_lt_Ib
+      let k := Finset.min' (Finset.filter (λ (k : Fin (n+1)) => x < P.x k) Finset.univ) h_exists
+      have hk_mem : k ∈ Finset.filter (λ (k : Fin (n+1)) => x < P.x k) Finset.univ :=
+        Finset.min'_mem _ h_exists
+      have hx_lt_Pk : x < P.x k := (Finset.mem_filter.mp hk_mem).2
+      have hk0 : k ≠ (0 : Fin (n+1)) := by
+        intro hk0; rw [hk0, P.x_start] at hx_lt_Pk; linarith
+      have hi_pred : ∃ (i : Fin n), i.succ = k := by
+        refine ⟨Fin.pred k hk0, ?_⟩; simp
+      rcases hi_pred with ⟨i, hi⟩
+      have hx_ge_Px_castSucc : P.x i.castSucc ≤ x := by
+        by_contra! hlt
+        have : (i.castSucc : Fin (n+1)) ∈ Finset.filter (λ (k' : Fin (n+1)) => x < P.x k') Finset.univ := by
+          simp; exact hlt
+        have hk_le : k ≤ (i.castSucc : Fin (n+1)) := Finset.min'_le _ _ this
+        have h_val : k.val = i.val + 1 := by
+          have h_succ_val : i.succ.val = i.val + 1 := by simp
+          have h_k_val : k.val = i.succ.val := by simpa [hi] using rfl
+          rw [h_succ_val] at h_k_val; exact h_k_val
+        have h_cast_val : (i.castSucc : Fin (n+1)).val = i.val := by simp
+        omega
+      have hx_lt_Pi_succ : x < P.x i.succ := by rw [hi]; exact hx_lt_Pk
+      have hJ_mem : Ico (P.x i.castSucc) (P.x i.succ) ∈ (P.intervals : Set BoundedInterval) := by
+        dsimp [TaggedPartition.intervals]
+        apply Finset.mem_coe.mpr
+        apply Finset.mem_union_left
+        apply Finset.mem_image.mpr
+        exact ⟨i, Finset.mem_univ _, rfl⟩
+      refine Set.mem_iUnion₂.mpr ⟨Ico (P.x i.castSucc) (P.x i.succ), hJ_mem, ⟨hx_ge_Px_castSucc, hx_lt_Pi_succ⟩⟩
+  · intro hx
+    rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hxJ⟩
+    have hJ_mem_finset : J ∈ P.intervals := hJ
+    have hJ_cases : J ∈ Finset.image (fun (i : Fin n) => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∨ J ∈ {Icc I.b I.b} :=
+      Finset.mem_union.mp hJ_mem_finset
+    rcases hJ_cases with (hJ_img | hJ_sing)
+    · rcases Finset.mem_image.mp hJ_img with ⟨i, _, rfl⟩
+      rw [hI]
+      have hxJ_pair : x ∈ Set.Ico (P.x i.castSucc) (P.x i.succ) := by
+        simpa using hxJ
+      rcases hxJ_pair with ⟨hxJ_low, hxJ_high⟩
+      -- Show I.a ≤ x
+      have h_cast_val_nat : (0 : ℕ) ≤ i.val := Nat.zero_le _
+      have h_cast_val : (0 : Fin (n+1)).val ≤ (i.castSucc : Fin (n+1)).val := by
+        simpa using h_cast_val_nat
+      have h_cast : P.x 0 ≤ P.x i.castSucc := P.x_mono.monotone h_cast_val
+      have hx_lower : I.a ≤ x := le_trans (le_trans (by rw [P.x_start]) h_cast) hxJ_low
+      -- Show x ≤ I.b
+      have h_succ_val_nat : i.val + 1 ≤ n := by
+        have : i.val < n := Fin.is_lt i; omega
+      have h_succ_val : (i.succ : Fin (n+1)).val ≤ (Fin.last n : Fin (n+1)).val := by
+        simpa using h_succ_val_nat
+      have h_succ : P.x i.succ ≤ P.x (Fin.last n) := P.x_mono.monotone h_succ_val
+      have hx_upper : x ≤ I.b := le_trans (le_of_lt hxJ_high) (le_trans h_succ (by rw [P.x_end]))
+      exact ⟨hx_lower, hx_upper⟩
+    · have hJ_val : J = Icc I.b I.b := Finset.mem_singleton.mp hJ_sing
+      subst hJ_val
+      rw [hI]
+      have hx_eq_b : x = I.b := by
+        have : x ∈ (Icc I.b I.b : Set ℝ) := hxJ
+        simp at this; exact this
+      subst hx_eq_b
+      exact ⟨h_ab, le_refl I.b⟩
+
 /-- Exercise 1.1.23 -/
 -- Any function continuous on a nonempty closed interval is Riemann integrable.
 lemma RiemannIntegrableOn.continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I = Icc I.a I.b)
