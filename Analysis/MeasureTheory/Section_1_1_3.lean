@@ -2462,10 +2462,6 @@ lemma UpperDarbouxIntegral.neg {f:ℝ → ℝ} {I: BoundedInterval} (hbound: ∃
 -- Riemann integrability is equivalent to Darboux integrability for bounded functions.
 lemma RiemannIntegrableOn.iff_darbouxIntegrable {f:ℝ → ℝ} {I: BoundedInterval} (hbound: ∃ M, ∀ x ∈ I, |f x| ≤ M) : RiemannIntegrableOn f I ↔ DarbouxIntegrableOn f I := by sorry
 
-/-- Exercise 1.1.22 -/
--- For Riemann integrable functions, the Riemann integral equals the Darboux integral.
-lemma riemann_integral_eq_darboux_integral {f:ℝ → ℝ} {I: BoundedInterval} (hf: RiemannIntegrableOn f I) : riemannIntegral f I = darbouxIntegral f I := by sorry
-
 /-- The subintervals of a tagged partition as a Finset of right-half-open intervals. -/
 noncomputable def TaggedPartition.intervals {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) : Finset BoundedInterval :=
   Finset.image (fun (i : Fin n) => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ {Icc I.b I.b}
@@ -2804,4 +2800,63 @@ theorem RiemannIntegrableOn.eq_measure {I: BoundedInterval}
   {f: ℝ → ℝ} (hfint: RiemannIntegrableOn f I) :
   riemannIntegral f I = hfint.measurable_upper.measure - hfint.measurable_lower.measure := by sorry
 
+
+/-- Exercise 1.1.22 -/
+-- For Riemann integrable functions, the Riemann integral equals the Darboux integral.
+lemma riemann_integral_eq_darboux_integral {f:ℝ → ℝ} {I: BoundedInterval} (hf: RiemannIntegrableOn f I) : riemannIntegral f I = darbouxIntegral f I := by
+  have hI : I = Icc I.a I.b := hf.1
+  have h_nonempty : I.toSet.Nonempty := hf.2.1
+  rcases hf.2.2 with ⟨R, hR⟩
+  have hR' : riemannIntegral f I = R := ((riemann_integral_eq_iff_of_integrable hf R).mp hR).symm
+  rw [darbouxIntegral]
+  by_cases h_eq : I.a = I.b
+  · rcases RiemannIntegrable.bounded hf with ⟨M, hM⟩
+    have h_len : |I|ₗ = 0 := by unfold BoundedInterval.length; simp [h_eq]
+    have hR_zero : R = 0 := riemann_integral_eq_zero_of_zero_length h_eq h_len hR
+    have h_all_zero (g : PiecewiseConstantFunction I) : g.integral = 0 := by
+      have h_total : |I|ₗ = ∑ J : g.T, |J.val|ₗ := BoundedInterval.length_of_partition I g.T g.cover g.disjoint
+      have h_zero_sum : ∑ J : g.T, |J.val|ₗ = 0 := by rw [← h_total, h_len]
+      have h_nonneg_len : ∀ J : g.T, 0 ≤ |J.val|ₗ := fun J => BoundedInterval.length_nonneg J.val
+      have h_all_len : ∀ J : g.T, |J.val|ₗ = 0 := by
+        intro J
+        have h_conv : ∑ J' : g.T, |J'.val|ₗ = ∑ J' ∈ g.T, |J'|ₗ := by
+          simpa using Finset.sum_attach (s := g.T) (f := fun (J : BoundedInterval) => |J|ₗ)
+        rw [h_conv] at h_zero_sum
+        have h_term : |J.val|ₗ ≤ ∑ J' ∈ g.T, |J'|ₗ :=
+          Finset.single_le_sum (fun J' hJ' => BoundedInterval.length_nonneg J') J.property
+        rw [h_zero_sum] at h_term; nlinarith [BoundedInterval.length_nonneg J.val]
+      unfold PiecewiseConstantFunction.integral; simp [h_all_len]
+    have h_lower_zero : LowerDarbouxIntegral f I = 0 := by
+      apply le_antisymm
+      · apply csSup_le
+        · let g0 := PiecewiseConstantFunction.mkConst I (-M)
+          have hg0 : ∀ x ∈ I.toSet, g0.f x ≤ f x := by
+            intro x hx; have ha : |f x| ≤ M := hM x hx
+            simp [g0, PiecewiseConstantFunction.mkConst]; rcases abs_le.mp ha with ⟨h1, _⟩; linarith
+          exact ⟨g0.integral, g0, rfl, hg0⟩
+        · intro r hr; rcases hr with ⟨g, rfl, _⟩; rw [h_all_zero g]
+      · have h0m : (0 : ℝ) ∈ {R | ∃ g : PiecewiseConstantFunction I, g.integral = R ∧ ∀ x ∈ I.toSet, g.f x ≤ f x} := by
+          let g0 := PiecewiseConstantFunction.mkConst I (-M)
+          have hg0 : ∀ x ∈ I.toSet, g0.f x ≤ f x := by
+            intro x hx; have ha : |f x| ≤ M := hM x hx
+            simp [g0, PiecewiseConstantFunction.mkConst]; rcases abs_le.mp ha with ⟨h1, _⟩; linarith
+          have hi0 : g0.integral = 0 := h_all_zero g0
+          exact ⟨g0, hi0, hg0⟩
+        exact le_csSup (LowerDarbouxIntegral.bddAbove M hM) h0m
+    rw [hR', hR_zero, h_lower_zero.symm]
+  · have h_lt : I.a < I.b := by
+      rw [hI] at h_nonempty
+      rcases h_nonempty with ⟨x, hx1, hx2⟩
+      by_contra! hge
+      have : I.a = I.b := by linarith
+      exact h_eq this
+    rcases RiemannIntegrable.bounded hf with ⟨M, hM⟩
+    have h_eps_delta : ∀ ε > 0, ∃ δ > 0, ∀ n, ∀ (P : TaggedPartition I n), P.norm ≤ δ → |P.RiemannSum f - R| ≤ ε :=
+      (riemann_integral_eq_iff R).mp hR
+    have h_lower_upper : LowerDarbouxIntegral f I ≤ UpperDarbouxIntegral f I :=
+      lower_darboux_le_upper_darboux ⟨M, hM⟩
+    -- Need to prove: LowerDarbouxIntegral f I = R
+    -- Strategy: UpperDarbouxIntegral f I = -LowerDarbouxIntegral (-f) I
+    -- and the same equality for -f
+    sorry
 /- Exercise 1.1.26: Extend the definition of the Riemann and Darboux integrals to higher dimensions, in such a way that analogues of all the previous results hold; state and prove those analogues. -/
