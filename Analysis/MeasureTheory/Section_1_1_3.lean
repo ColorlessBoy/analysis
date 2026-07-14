@@ -1295,7 +1295,191 @@ theorem PiecewiseConstantOn.add {I: BoundedInterval} {f g: ℝ → ℝ} (hf: Pie
 
 /-- Exercise 1.1.21 (a) (Linearity of the piecewise constant integral) -/
 -- The integral is linear: integral(f + g) = integral(f) + integral(g).
-theorem PiecewiseConstantFunction.integral_add {I: BoundedInterval} {f g: ℝ → ℝ} (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) : (hf.add hg).integral = hf.integral + hg.integral := by sorry
+theorem PiecewiseConstantFunction.integral_add {I: BoundedInterval} {f g: ℝ → ℝ} (hf: PiecewiseConstantOn f I) (hg: PiecewiseConstantOn g I) : (hf.add hg).integral = hf.integral + hg.integral := by
+  let F := hf.choose
+  let G := hg.choose
+  have hF_agrees : F.agreesWith f := hf.choose_spec
+  have hG_agrees : G.agreesWith g := hg.choose_spec
+  let pairs := Finset.product F.T G.T
+  let T := Finset.image (λ (p : BoundedInterval × BoundedInterval) => p.1 ∩ p.2) pairs
+  have h_disjoint : (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet := by
+    intro A hA B hB h_ne
+    rcases Finset.mem_image.mp (Finset.mem_coe.mp hA) with ⟨p, hpA, hpA_eq⟩
+    rcases p with ⟨K₁, K'₁⟩
+    rcases Finset.mem_image.mp (Finset.mem_coe.mp hB) with ⟨q, hpB, hpB_eq⟩
+    rcases q with ⟨K₂, K'₂⟩
+    have hA_eq : A = (K₁ ∩ K'₁ : BoundedInterval) := hpA_eq.symm
+    have hB_eq : B = (K₂ ∩ K'₂ : BoundedInterval) := hpB_eq.symm
+    rcases Finset.mem_product.mp hpA with ⟨hK₁, hK'₁⟩
+    rcases Finset.mem_product.mp hpB with ⟨hK₂, hK'₂⟩
+    by_cases hK_eq : K₁ = K₂
+    · subst hK_eq
+      have hK'_ne : K'₁ ≠ K'₂ := by
+        intro h_eq
+        apply h_ne
+        calc
+          A = (K₁ ∩ K'₁ : BoundedInterval) := hA_eq
+          _ = (K₁ ∩ K'₂ : BoundedInterval) := by simp [h_eq]
+          _ = B := by symm; exact hB_eq
+      have h_disj_G : Disjoint ((K'₁ : BoundedInterval).toSet) ((K'₂ : BoundedInterval).toSet) :=
+        G.disjoint (Finset.mem_coe.mpr hK'₁) (Finset.mem_coe.mpr hK'₂) hK'_ne
+      have h_empty : (A.toSet ∩ B.toSet) = ∅ := by
+        calc
+          A.toSet ∩ B.toSet = ((K₁ : Set ℝ) ∩ (K'₁ : Set ℝ)) ∩ ((K₁ : Set ℝ) ∩ (K'₂ : Set ℝ)) := by
+            simp [hA_eq, hB_eq, BoundedInterval.inter_eq]
+          _ = ∅ := by
+            apply Set.eq_empty_iff_forall_notMem.mpr
+            intro x hx
+            rw [Set.mem_inter_iff] at hx
+            rcases hx with ⟨hx_left, hx_right⟩
+            rw [Set.mem_inter_iff] at hx_left hx_right
+            rcases hx_left with ⟨hx1, hx2⟩
+            rcases hx_right with ⟨hx3, hx4⟩
+            have hx_cap : x ∈ (K'₁ : Set ℝ) ∩ (K'₂ : Set ℝ) := ⟨hx2, hx4⟩
+            have h_cap_empty : (K'₁ : Set ℝ) ∩ (K'₂ : Set ℝ) = ∅ :=
+              Set.disjoint_iff_inter_eq_empty.mp h_disj_G
+            rw [h_cap_empty] at hx_cap
+            simp at hx_cap
+      exact Set.disjoint_iff_inter_eq_empty.mpr h_empty
+    · have h_disj_F : Disjoint ((K₁ : BoundedInterval).toSet) ((K₂ : BoundedInterval).toSet) :=
+        F.disjoint (Finset.mem_coe.mpr hK₁) (Finset.mem_coe.mpr hK₂) hK_eq
+      have h_empty : (A.toSet ∩ B.toSet) = ∅ := by
+        calc
+          A.toSet ∩ B.toSet = ((K₁ : Set ℝ) ∩ (K'₁ : Set ℝ)) ∩ ((K₂ : Set ℝ) ∩ (K'₂ : Set ℝ)) := by
+            simp [hA_eq, hB_eq, BoundedInterval.inter_eq]
+          _ = ∅ := by
+            apply Set.eq_empty_iff_forall_notMem.mpr
+            intro x hx
+            rw [Set.mem_inter_iff] at hx
+            rcases hx with ⟨hx_left, hx_right⟩
+            rw [Set.mem_inter_iff] at hx_left hx_right
+            rcases hx_left with ⟨hx1, hx2⟩
+            rcases hx_right with ⟨hx3, hx4⟩
+            have hx_cap : x ∈ (K₁ : Set ℝ) ∩ (K₂ : Set ℝ) := ⟨hx1, hx3⟩
+            have h_cap_empty : (K₁ : Set ℝ) ∩ (K₂ : Set ℝ) = ∅ :=
+              Set.disjoint_iff_inter_eq_empty.mp h_disj_F
+            rw [h_cap_empty] at hx_cap
+            simp at hx_cap
+      exact Set.disjoint_iff_inter_eq_empty.mpr h_empty
+  have h_cover : I.toSet = ⋃ J ∈ T, J.toSet := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx_F : x ∈ ⋃ K ∈ F.T, (K : Set ℝ) := by
+        rw [← F.cover]; exact hx
+      obtain ⟨K, hK, hx_K⟩ := Set.mem_iUnion₂.mp hx_F
+      have hx_G : x ∈ ⋃ K' ∈ G.T, (K' : Set ℝ) := by
+        rw [← G.cover]; exact hx
+      obtain ⟨K', hK', hx_K'⟩ := Set.mem_iUnion₂.mp hx_G
+      have h_mem_pairs : (K, K') ∈ pairs := Finset.mem_product.mpr ⟨hK, hK'⟩
+      have h_mem_T : K ∩ K' ∈ T := by
+        apply Finset.mem_image.mpr
+        exact ⟨(K, K'), h_mem_pairs, rfl⟩
+      refine Set.mem_iUnion₂.mpr ⟨K ∩ K', h_mem_T, ?_⟩
+      simpa [BoundedInterval.inter_eq] using ⟨hx_K, hx_K'⟩
+    · intro x hx
+      obtain ⟨J, hJ, hx_J⟩ := Set.mem_iUnion₂.mp hx
+      rcases Finset.mem_image.mp hJ with ⟨p, hp, hp_eq⟩
+      rcases p with ⟨K, K'⟩
+      have hp_eq' : K ∩ K' = J := hp_eq
+      rw [← hp_eq'] at hx_J
+      have hx_K : x ∈ (K : Set ℝ) := by
+        have hx_inter : x ∈ (K : Set ℝ) ∩ (K' : Set ℝ) := by
+          simpa [BoundedInterval.inter_eq] using hx_J
+        exact hx_inter.1
+      rw [F.cover]
+      exact Set.mem_iUnion₂.mpr ⟨K, (Finset.mem_product.mp hp).1, hx_K⟩
+  have h_mem_image_J (J : T) : ∃ (p : BoundedInterval × BoundedInterval), p.1 ∈ F.T ∧ p.2 ∈ G.T ∧ J.val = p.1 ∩ p.2 := by
+    rcases Finset.mem_image.mp J.property with ⟨p, hp, hp_eq⟩
+    rcases Finset.mem_product.mp hp with ⟨hK, hK'⟩
+    exact ⟨p, hK, hK', hp_eq.symm⟩
+  let p_of_J (J : T) : BoundedInterval × BoundedInterval := (h_mem_image_J J).choose
+  have hp_J_spec (J : T) : (p_of_J J).1 ∈ F.T ∧ (p_of_J J).2 ∈ G.T ∧ J.val = (p_of_J J).1 ∩ (p_of_J J).2 :=
+    (h_mem_image_J J).choose_spec
+  let chooseF (J : T) : F.T := ⟨(p_of_J J).1, (hp_J_spec J).1⟩
+  let chooseG (J : T) : G.T := ⟨(p_of_J J).2, (hp_J_spec J).2.1⟩
+  have h_choose_val (J : T) : J.val = (chooseF J).val ∩ (chooseG J).val := by
+    simpa [chooseF, chooseG] using (hp_J_spec J).2.2
+  have h_J_sub_K (J : T) : J.val.toSet ⊆ (chooseF J).val.toSet := by
+    rw [h_choose_val J, BoundedInterval.inter_eq]
+    apply Set.inter_subset_left
+  have h_J_sub_K' (J : T) : J.val.toSet ⊆ (chooseG J).val.toSet := by
+    rw [h_choose_val J, BoundedInterval.inter_eq]
+    apply Set.inter_subset_right
+  let SumF : PiecewiseConstantFunction I := {
+    f := f
+    T := T
+    c := λ J => F.c (chooseF J)
+    disjoint := h_disjoint
+    cover := h_cover
+    const := by
+      intro J x hx
+      have hx_I : x ∈ I.toSet := by
+        rw [h_cover]
+        exact Set.mem_iUnion₂.mpr ⟨J.val, J.property, hx⟩
+      have hx_K : x ∈ (chooseF J).val.toSet := h_J_sub_K J hx
+      calc
+        f x = F.f x := hF_agrees hx_I
+        _ = F.c (chooseF J) := F.const (chooseF J) x hx_K
+  }
+  let SumG : PiecewiseConstantFunction I := {
+    f := g
+    T := T
+    c := λ J => G.c (chooseG J)
+    disjoint := h_disjoint
+    cover := h_cover
+    const := by
+      intro J x hx
+      have hx_I : x ∈ I.toSet := by
+        rw [h_cover]
+        exact Set.mem_iUnion₂.mpr ⟨J.val, J.property, hx⟩
+      have hx_K' : x ∈ (chooseG J).val.toSet := h_J_sub_K' J hx
+      calc
+        g x = G.f x := hG_agrees hx_I
+        _ = G.c (chooseG J) := G.const (chooseG J) x hx_K'
+  }
+  let Sum : PiecewiseConstantFunction I := {
+    f := f + g
+    T := T
+    c := λ J => F.c (chooseF J) + G.c (chooseG J)
+    disjoint := h_disjoint
+    cover := h_cover
+    const := by
+      intro J x hx
+      have hx_I : x ∈ I.toSet := by
+        rw [h_cover]
+        exact Set.mem_iUnion₂.mpr ⟨J.val, J.property, hx⟩
+      have hx_K : x ∈ (chooseF J).val.toSet := h_J_sub_K J hx
+      have hx_K' : x ∈ (chooseG J).val.toSet := h_J_sub_K' J hx
+      calc
+        (f + g) x = f x + g x := rfl
+        _ = F.f x + G.f x := by simp [hF_agrees hx_I, hG_agrees hx_I]
+        _ = F.c (chooseF J) + G.c (chooseG J) := by
+          simp [F.const (chooseF J) x hx_K, G.const (chooseG J) x hx_K']
+  }
+  have hSumF_agrees : SumF.agreesWith f := by intro x hx; rfl
+  have hSumG_agrees : SumG.agreesWith g := by intro x hx; rfl
+  have hSum_agrees : Sum.agreesWith (f + g) := by intro x hx; rfl
+  have hF_int_eq : F.integral = SumF.integral :=
+    PiecewiseConstantFunction.integral_eq f F SumF hF_agrees hSumF_agrees
+  have hG_int_eq : G.integral = SumG.integral :=
+    PiecewiseConstantFunction.integral_eq g G SumG hG_agrees hSumG_agrees
+  have hSum_int_eq : (hf.add hg).integral = Sum.integral :=
+    PiecewiseConstantOn.integral_eq (f + g) (hf.add hg) Sum hSum_agrees
+  have h_sum_eq : Sum.integral = SumF.integral + SumG.integral := by
+    unfold PiecewiseConstantFunction.integral
+    calc
+      (∑ J : Sum.T, Sum.c J * |J|ₗ) = (∑ J : T, (F.c (chooseF J) + G.c (chooseG J)) * |J|ₗ) := rfl
+      _ = (∑ J : T, (F.c (chooseF J) * |J|ₗ + G.c (chooseG J) * |J|ₗ)) := by
+        refine Finset.sum_congr rfl fun J hJ => ?_
+        ring
+      _ = (∑ J : T, F.c (chooseF J) * |J|ₗ) + (∑ J : T, G.c (chooseG J) * |J|ₗ) := by
+        simp [Finset.sum_add_distrib]
+      _ = (∑ J : SumF.T, SumF.c J * |J|ₗ) + (∑ J : SumG.T, SumG.c J * |J|ₗ) := rfl
+  calc
+    (hf.add hg).integral = Sum.integral := hSum_int_eq
+    _ = SumF.integral + SumG.integral := h_sum_eq
+    _ = F.integral + G.integral := by rw [hF_int_eq, hG_int_eq]
+    _ = hf.integral + hg.integral := rfl
 
 
 
