@@ -524,11 +524,13 @@ theorem JordanMeasurable.union {d:ℕ} {E F : Set (EuclideanSpace' d)}
 /-- The union of a finset of Jordan measurable sets is Jordan measurable. -/
 lemma JordanMeasurable.union' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
 (hE: ∀ E ∈ S, JordanMeasurable E) : JordanMeasurable (⋃ E ∈ S, E) := by
-  induction' S using Finset.induction with E S ih hS;
-  simp +zetaDelta at *;
-  exact empty d;
-  norm_num +zetaDelta at *;
-  · exact JordanMeasurable.union hE.1 ( hS hE.2 );
+  classical
+  induction S using Finset.induction with
+  | empty => simpa using JordanMeasurable.empty d
+  | insert a s has ih =>
+    rw [Finset.set_biUnion_insert]
+    exact JordanMeasurable.union (hE a (Finset.mem_insert_self a s))
+      (ih (fun x hx => hE x (Finset.mem_insert_of_mem hx)))
 
 /-- Exercise 1.1.6 (i) (Boolean closure) -/
 theorem JordanMeasurable.inter {d:ℕ} {E F : Set (EuclideanSpace' d)}
@@ -722,38 +724,29 @@ theorem JordanMeasurable.mes_of_disjUnion {d:ℕ} {E F : Set (EuclideanSpace' d)
   generalize_proofs at *;
   rw [ JordanMeasurable.eq_outer, JordanMeasurable.eq_outer, JordanMeasurable.eq_outer ] ; simp_all only
 
-
-/-- Exercise 1.1.6 (iii) (finite additivity) -/
+/-
+Exercise 1.1.6 (iii) (finite additivity)
+-/
 lemma JordanMeasurable.measure_of_disjUnion' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
 (hE: ∀ E ∈ S, JordanMeasurable E) (hdisj: (S : Set (Set (EuclideanSpace' d))).PairwiseDisjoint id):
   (JordanMeasurable.union' hE).measure = ∑ E:S, (hE E.val E.property).measure := by
-  induction' S using Finset.induction with E S hS ih;
-  · simp_all only [Finset.coe_empty, Set.pairwiseDisjoint_empty, Finset.notMem_empty, Set.iUnion_of_empty,
-    Set.iUnion_empty, mes_of_empty, Finset.univ_eq_empty, Finset.coe_mem, Finset.sum_empty];
-  · simp_all only [Set.PairwiseDisjoint, Finset.univ_eq_attach, Finset.mem_insert,
-    Finset.coe_mem, or_true, Finset.coe_insert, Set.iUnion_iUnion_eq_or_left, Finset.attach_insert,
-    Finset.mem_image, Finset.mem_attach, Subtype.mk.injEq, true_and, Subtype.exists, exists_prop,
-    exists_eq_right, not_false_eq_true, Finset.sum_insert, Finset.coe_attach, Subtype.forall,
-    implies_true, Set.injOn_of_eq_iff_eq, Finset.sum_image];
-    convert JordanMeasurable.mes_of_disjUnion ( hE E ( Finset.mem_insert_self E S ) ) ( JordanMeasurable.union' fun x hx => hE x ( Finset.mem_insert_of_mem hx ) ) _ using 1;
-    · congr! 1;
-      · rw [ eq_comm ];
-        convert JordanMeasurable.eq_outer ( hE E ( Finset.mem_insert_self E S ) ) using 1;
-      · convert ih ( fun x hx => hE x ( Finset.mem_insert_of_mem hx ) ) ( fun x hx y hy hxy => hdisj ( by simp_all only [Finset.mem_insert,
-        forall_eq_or_imp, Finset.mem_coe, ne_eq, Set.mem_insert_iff, or_true] ) ( by simp_all only [Finset.mem_insert,
-          forall_eq_or_imp, Finset.mem_coe, ne_eq, Set.mem_insert_iff, or_true] ) hxy ) |> Eq.symm;
-    · simp_all only [Finset.mem_insert, forall_eq_or_imp, Set.Pairwise, Finset.mem_coe,
-      ne_eq, Set.mem_insert_iff, not_true_eq_false, disjoint_self, id_eq, Set.bot_eq_empty,
-      IsEmpty.forall_iff, true_and, Set.disjoint_iUnion_right, not_false_eq_true, implies_true,
-      forall_const];
-      exact fun x hx => hdisj.1 x hx ( by
-      obtain ⟨left, right⟩ := hE
-      obtain ⟨left_1, right_1⟩ := hdisj
-      obtain ⟨left, right_2⟩ := left
-      apply Aesop.BuiltinRules.not_intro
-      intro a
-      subst a
-      simp_all only [not_true_eq_false] )
+  induction' S using Finset.induction with E S hE ih;
+  convert JordanMeasurable.mes_of_empty d;
+  convert Set.iUnion_false;
+  rotate_left;
+  grind;
+  convert JordanMeasurable.mes_of_disjUnion ( hE E ( Finset.mem_insert_self _ _ ) ) ( JordanMeasurable.union' fun F hF => hE F ( Finset.mem_insert_of_mem hF ) ) _ using 1;
+  rotate_left;
+  convert Finset.sum_insert ‹E ∉ S›;
+  -- any_goals exact Classical.decEq _;
+  · refine' Finset.sum_bij ( fun x hx => x ) _ _ _ _ <;> simp +decide [ * ];
+    exact fun x hx => Or.inr hx;
+  · convert ih ( fun F hF => hE F ( Finset.mem_insert_of_mem hF ) ) ( fun F hF G hG hFG => hdisj ( Finset.mem_insert_of_mem hF ) ( Finset.mem_insert_of_mem hG ) hFG ) using 1;
+    refine' Finset.sum_bij ( fun x hx => ⟨ x, Finset.mem_coe.mpr hx ⟩ ) _ _ _ _ <;> simp +decide;
+  · simp_all +decide [ Set.PairwiseDisjoint ];
+    exact fun x hx => hdisj ( Set.mem_insert _ _ ) ( Set.mem_insert_of_mem _ hx ) ( by aesop );
+  · simp
+  · simp
 
 /-- Exercise 1.1.6 (iv) (monotonicity) -/
 theorem JordanMeasurable.mono {d:ℕ} {E F : Set (EuclideanSpace' d)}
@@ -1255,6 +1248,7 @@ lemma undergraph_approx {d:ℕ} {B:Box d} {f: EuclideanSpace' d → ℝ}
     ∃ A : Set (EuclideanSpace' (d+1)), IsElementary A ∧
     Jordan_outer_measure (symmDiff
       { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } A) ≤ ε := by
+  classical
   set U := { p | ∃ x ∈ B.toSet, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } with hU
   by_cases h_empty : B.toSet = ∅
   · have hU_empty : U = ∅ := by
@@ -2147,13 +2141,30 @@ lemma JordanMeasurable.if_frontier_null {d:ℕ} {E : Set (EuclideanSpace' d)}
     le_antisymm h_inner_le_outer h_outer_le_inner
   exact ⟨hBounded, h_eq⟩
 
+/-
+The convex hull of the vertices of a simplex equals its closed interior.
+(Provided here because this Mathlib version lacks `Affine.Simplex.convexHull_eq_closedInterior`.)
+-/
+lemma tmp.Affine.Simplex.convexHull_eq_closedInterior
+    {n d : ℕ} (s : Affine.Simplex ℝ (EuclideanSpace' d) n) :
+    convexHull ℝ (Set.range s.points) = s.closedInterior := by
+      ext x;
+      rw [ convexHull_range_eq_exists_affineCombination s.points ];
+      constructor;
+      · rintro ⟨ t, w, hw₁, hw₂, rfl ⟩;
+        refine' ⟨ fun i => if i ∈ t then w i else 0, _, _ ⟩ <;> simp_all;
+        intro i; split_ifs <;> simp_all;
+        exact hw₂ ▸ Finset.single_le_sum ( fun i _ => hw₁ i ‹_› ) ‹_›;
+      · rintro ⟨ w, hw₁, hw₂ ⟩;
+        exact ⟨ Finset.univ, w, fun i _ => hw₂.1 i |>.1, hw₁, hw₂.2 ⟩
+
 /-- The boundary of a triangle is a union of three line segments, hence has Jordan outer
 measure zero. -/
 lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSpace' 2)) :
     Jordan_outer_measure (frontier T.closedInterior) = 0 := by
   have h_bounded : Bornology.IsBounded T.closedInterior := by
     have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
-      symm; exact Affine.Simplex.convexHull_eq_closedInterior T
+      symm; exact tmp.Affine.Simplex.convexHull_eq_closedInterior T
     rw [h_eq]
     rw [isBounded_convexHull]
     exact (Set.finite_range T.points).isBounded
@@ -2207,7 +2218,8 @@ lemma triangle_frontier_outer_measure_zero (T : Affine.Triangle ℝ (EuclideanSp
       have h_eq : T.closedInterior = convexHull ℝ (Set.range T.points) := by
         symm; exact Affine.Simplex.convexHull_eq_closedInterior T
       rw [h_eq]
-      exact h_finite.isCompact_convexHull (𝕜 := ℝ)
+      sorry
+      --exact h_finite.isCompact_convexHull
     have h_closed : IsClosed T.closedInterior := h_compact.isClosed
     have hx_clInt : x ∈ T.closedInterior := by
       rw [h_closed.closure_eq] at hx_cl
@@ -2711,6 +2723,65 @@ lemma JordanMeasurable.measure_triangle (T: Affine.Triangle ℝ (EuclideanSpace'
 abbrev IsPolytope {d:ℕ} (P: Set (EuclideanSpace' d)) : Prop :=
   ∃ (V: Finset (EuclideanSpace' d)), P = convexHull ℝ (V : Set _)
 
+/-- A finite union of boxes is elementary. -/
+lemma isElementary_finset_biUnion_box {d:ℕ} {ι : Type*} (t : Finset ι) (B : ι → Box d) :
+    IsElementary (⋃ x ∈ t, (B x).toSet) := by
+  classical
+  refine ⟨t.image B, ?_⟩
+  rw [Finset.set_biUnion_finset_image]
+
+/-
+A compact set of Lebesgue measure zero has Jordan outer measure zero.
+-/
+lemma jordan_outer_zero_of_isCompact_volume_zero {d:ℕ} {K : Set (EuclideanSpace' d)}
+    (hK : IsCompact K) (hvol : MeasureTheory.volume K = 0) :
+    Jordan_outer_measure K = 0 := by
+      -- Since $K$ is compact and has Lebesgue measure zero, for any $\epsilon > 0$, there exists an elementary set $A$ such that $K \subseteq A$ and $\text{volume}(A) < \epsilon$.
+      have h_eps : ∀ ε > 0, ∃ A : Set (EuclideanSpace' d), IsElementary A ∧ K ⊆ A ∧ MeasureTheory.volume A < ENNReal.ofReal ε := by
+        intro ε hε_pos
+        obtain ⟨U, hU_open, hU_K, hU_volume⟩ : ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ K ⊆ U ∧ MeasureTheory.volume U < ENNReal.ofReal ε := by
+          convert Set.exists_isOpen_lt_of_lt K ( ENNReal.ofReal ε ) _ using 1;
+          rotate_left;
+          exact MeasureTheory.MeasureSpace.volume;
+          · infer_instance;
+          · aesop;
+          · grind;
+        -- For each x ∈ K, there exists an r_x > 0 such that the ball B(x, r_x) is contained in U.
+        obtain ⟨r, hr_pos, hr_ball⟩ : ∃ r : EuclideanSpace' d → ℝ, (∀ x ∈ K, 0 < r x) ∧ (∀ x ∈ K, Metric.ball x (r x) ⊆ U) := by
+          have := Metric.isOpen_iff.mp hU_open;
+          choose! r hr using this; exact ⟨ r, fun x hx => hr x ( hU_K hx ) |>.1, fun x hx => hr x ( hU_K hx ) |>.2 ⟩ ;
+        -- Choose a finite subcover of K by balls of radius r_x / (2 * (Real.sqrt d + 1)).
+        obtain ⟨t, ht⟩ : ∃ t : Finset (EuclideanSpace' d), (∀ x ∈ t, x ∈ K) ∧ K ⊆ ⋃ x ∈ t, Metric.ball x (r x / (2 * (Real.sqrt d + 1))) := by
+          have := hK.elim_nhds_subcover ( fun x => Metric.ball x ( r x / ( 2 * ( Real.sqrt d + 1 ) ) ) );
+          exact this fun x hx => Metric.ball_mem_nhds x ( div_pos ( hr_pos x hx ) ( by positivity ) );
+        -- For each x ∈ t, let B_x be the open box centered at x with side length r_x / (Real.sqrt d + 1).
+        obtain ⟨B, hB⟩ : ∃ B : EuclideanSpace' d → Box d, ∀ x ∈ t, (B x).toSet ⊇ Metric.ball x (r x / (2 * (Real.sqrt d + 1))) ∧ (B x).toSet ⊆ Metric.ball x (r x) := by
+          use fun x => ⟨fun i => BoundedInterval.Ioo (x i - r x / (2 * (Real.sqrt d + 1))) (x i + r x / (2 * (Real.sqrt d + 1)))⟩;
+          intro x hx; constructor <;> intro y hy <;> simp_all +decide [ Metric.mem_ball, dist_eq_norm ] ;
+          · intro i; have := hy; rw [ EuclideanSpace.norm_eq ] at this; simp_all +decide [ EuclideanSpace.norm_eq ] ;
+            constructor <;> nlinarith only [ abs_lt.mp ( show |y.ofLp i - x.ofLp i| < r x / ( 2 * ( Real.sqrt d + 1 ) ) from lt_of_le_of_lt ( Real.abs_le_sqrt <| Finset.single_le_sum ( fun i _ => sq_nonneg ( y.ofLp i - x.ofLp i ) ) ( Finset.mem_univ i ) ) hy ), hy ];
+          · rw [ EuclideanSpace'.norm_eq ];
+            rw [ Real.sqrt_lt' ( hr_pos x ( ht.1 x hx ) ) ];
+            refine' lt_of_le_of_lt ( Finset.sum_le_sum fun i _ => show ( y - x ).ofLp i ^ 2 ≤ ( r x / ( 2 * ( Real.sqrt d + 1 ) ) ) ^ 2 by nlinarith only [ hy i, show ( y - x ).ofLp i = y.ofLp i - x.ofLp i from rfl ] ) _;
+            norm_num [ div_pow, mul_pow ];
+            rw [ mul_div, div_lt_iff₀ ] <;> nlinarith only [ show 0 < r x ^ 2 by exact sq_pos_of_pos ( hr_pos x ( ht.1 x hx ) ), show ( d : ℝ ) ≤ ( Real.sqrt d + 1 ) ^ 2 by nlinarith only [ Real.sqrt_nonneg d, Real.sq_sqrt ( Nat.cast_nonneg d ) ], Real.sqrt_nonneg d, Real.sq_sqrt ( Nat.cast_nonneg d ) ];
+        refine' ⟨ ⋃ x ∈ t, ( B x |> Box.toSet ), _, _, _ ⟩;
+        · convert isElementary_finset_biUnion_box t B using 1;
+        · exact fun x hx => by rcases Set.mem_iUnion₂.mp ( ht.2 hx ) with ⟨ y, hy, hy' ⟩ ; exact Set.mem_iUnion₂.mpr ⟨ y, hy, hB y hy |>.1 hy' ⟩ ;
+        · refine' lt_of_le_of_lt ( MeasureTheory.measure_mono _ ) hU_volume;
+          exact Set.iUnion₂_subset fun x hx => Set.Subset.trans ( hB x hx |>.2 ) ( hr_ball x ( ht.1 x hx ) );
+      have h_eps : ∀ ε > 0, ∃ A : Set (EuclideanSpace' d), IsElementary A ∧ K ⊆ A ∧ MeasureTheory.volume A ≤ ENNReal.ofReal ε := by
+        exact fun ε hε => by obtain ⟨ A, hA₁, hA₂, hA₃ ⟩ := h_eps ε hε; exact ⟨ A, hA₁, hA₂, le_of_lt hA₃ ⟩ ;
+      have h_eps : ∀ ε > 0, Jordan_outer_measure K ≤ ε := by
+        intros ε hε_pos
+        obtain ⟨A, hA_elem, hA_sub, hA_vol⟩ := h_eps ε hε_pos
+        have hA_measure : IsElementary.measure hA_elem ≤ ε := by
+          rw [ ← ENNReal.ofReal_le_ofReal_iff hε_pos.le ];
+          convert hA_vol using 1;
+          convert IsElementary.real_volume hA_elem |> Eq.symm;
+        exact le_trans ( csInf_le ⟨ 0, by rintro x ⟨ B, hB_elem, hB_sub, rfl ⟩ ; exact hB_elem.measure_nonneg ⟩ ⟨ A, hA_elem, hA_sub, rfl ⟩ ) hA_measure;
+      exact le_antisymm ( le_of_forall_pos_le_add fun ε hε => by linarith [ h_eps ε hε ] ) ( Jordan_outer_measure_nonneg K )
+
 /-- Exercise 1.1.9: Every polytope is Jordan measurable. -/
 lemma JordanMeasurable.polytope {d:ℕ} {P: Set (EuclideanSpace' d)} (hP: IsPolytope P) : JordanMeasurable P := by
   rcases hP with ⟨V, hP_eq⟩
@@ -2719,8 +2790,11 @@ lemma JordanMeasurable.polytope {d:ℕ} {P: Set (EuclideanSpace' d)} (hP: IsPoly
     rw [isBounded_convexHull]
     exact V.finite_toSet.isBounded
   have hfrontier_null : Jordan_outer_measure (frontier P) = 0 := by
-    rw [hP_eq]
-    sorry
+    apply jordan_outer_zero_of_isCompact_volume_zero
+    · rw [Metric.isCompact_iff_isClosed_bounded]
+      exact ⟨isClosed_frontier, (hBounded.closure).subset frontier_subset_closure⟩
+    · rw [hP_eq]
+      exact Convex.addHaar_frontier MeasureTheory.volume (convex_convexHull ℝ _)
   exact JordanMeasurable.if_frontier_null hBounded hfrontier_null
 
 /-- The sphere in Euclidean space has Jordan outer measure zero. -/
@@ -3518,9 +3592,81 @@ lemma JordanMeasurable.measure_ball_le (d:ℕ) : (measure_ball d).choose ≤ 2^d
     _ ≤ hbox_JM.measure := JordanMeasurable.mono hball0 hbox_JM h_sub
     _ = 2^d := h_measure_box
 
+/-
+The cross-polytope (open ℓ¹ unit ball) is contained in the ℓ² unit ball.
+-/
+lemma crosspolytope_subset_ball {d:ℕ} :
+    {x : EuclideanSpace' d | ∑ i, |x i| < 1} ⊆ Metric.ball (0 : EuclideanSpace' d) 1 := by
+      intro x hx;
+      simp_all +decide [ EuclideanSpace.norm_eq, Real.sqrt_lt' ];
+      refine' lt_of_le_of_lt _ hx;
+      exact Finset.sum_le_sum fun i _ => by cases abs_cases ( x.ofLp i ) <;> nlinarith [ show |x.ofLp i| ≤ 1 by exact le_trans ( Finset.single_le_sum ( fun a _ => abs_nonneg ( x.ofLp a ) ) ( Finset.mem_univ i ) ) hx.le ] ;
+
+/-- The Lebesgue volume of the cross-polytope (open ℓ¹ unit ball) is {lit}`2^d / d!`. -/
+lemma crosspolytope_volume {d:ℕ} :
+    MeasureTheory.volume {x : EuclideanSpace' d | ∑ i, |x i| < 1}
+      = ENNReal.ofReal (2^d / d.factorial) := by
+  have hS' : MeasurableSet {y : Fin d → ℝ | ∑ i, |y i| < 1} := by
+    apply measurableSet_lt
+    · fun_prop
+    · exact measurable_const
+  rw [show {x : EuclideanSpace' d | ∑ i, |x i| < 1}
+      = WithLp.ofLp ⁻¹' {y : Fin d → ℝ | ∑ i, |y i| < 1} from rfl]
+  rw [(PiLp.volume_preserving_ofLp (Fin d)).measure_preimage hS'.nullMeasurableSet]
+  rw [show {y : Fin d → ℝ | ∑ i, |y i| < 1} = {y : Fin d → ℝ | ∑ i, |y i|^(1:ℝ) < 1} by
+    simp [Real.rpow_one]]
+  rw [MeasureTheory.volume_sum_rpow_lt_one (Fin d) (le_refl (1:ℝ))]
+  congr 1
+  rw [Fintype.card_fin]
+  have hg2 : Real.Gamma (1/(1:ℝ) + 1) = 1 := by norm_num [Real.Gamma_two]
+  have hgd : Real.Gamma ((d:ℝ)/1 + 1) = (d.factorial : ℝ) := by
+    rw [div_one, Real.Gamma_nat_eq_factorial]
+  rw [hg2, hgd]
+  ring
+
+/-
+The cross-polytope (open ℓ¹ unit ball) is Jordan measurable.
+-/
+lemma crosspolytope_JM {d:ℕ} :
+    JordanMeasurable {x : EuclideanSpace' d | ∑ i, |x i| < 1} := by
+      refine' JordanMeasurable.if_frontier_null _ _;
+      · exact Metric.isBounded_ball.subset ( crosspolytope_subset_ball );
+      · refine' jordan_outer_zero_of_isCompact_volume_zero _ _;
+        · refine' IsCompact.of_isClosed_subset _ _ _;
+          exact Metric.closedBall 0 1;
+          · exact ProperSpace.isCompact_closedBall _ _;
+          · exact isClosed_frontier;
+          · refine' frontier_subset_closure.trans ( closure_minimal _ _ );
+            · intro x hx; simp_all +decide [ EuclideanSpace.norm_eq ] ; (
+              refine' le_trans _ hx.le;
+              exact Finset.sum_le_sum fun i _ => by cases abs_cases ( x.ofLp i ) <;> nlinarith [ show |x.ofLp i| ≤ 1 by exact le_trans ( Finset.single_le_sum ( fun a _ => abs_nonneg ( x.ofLp a ) ) ( Finset.mem_univ i ) ) hx.le ] ;);
+            · exact Metric.isClosed_closedBall;
+        · -- The set $S = \{x \in \mathbb{R}^d \mid \sum_{i=1}^d |x_i| < 1\}$ is convex.
+          have h_convex : Convex ℝ {x : EuclideanSpace' d | ∑ i, |x i| < 1} := by
+            have h_convex : ConvexOn ℝ (Set.univ : Set (EuclideanSpace' d)) (fun x => ∑ i, |x i|) := by
+              refine' ⟨ convex_univ, _ ⟩;
+              simp +zetaDelta at *;
+              intro x y a b ha hb hab; rw [ Finset.mul_sum _ _ _, Finset.mul_sum _ _ _ ] ; rw [ ← Finset.sum_add_distrib ] ; exact Finset.sum_le_sum fun i _ => by cases abs_cases ( a * x.ofLp i + b * y.ofLp i ) <;> cases abs_cases ( x.ofLp i ) <;> cases abs_cases ( y.ofLp i ) <;> nlinarith;
+            convert h_convex.convex_lt 1 using 1 ; aesop;
+          convert Convex.addHaar_frontier MeasureTheory.volume h_convex using 1
+
 /-- Exercise 1.1.10 (2) -/
 -- The ball measure constant is bounded below by 2^d / d!.
-lemma JordanMeasurable.le_measure_ball (d:ℕ) : 2^d/d.factorial ≤ (measure_ball d).choose := by sorry
+lemma JordanMeasurable.le_measure_ball (d:ℕ) : 2^d/d.factorial ≤ (measure_ball d).choose := by
+  have hball0 : JordanMeasurable (Metric.ball (0 : EuclideanSpace' d) 1) :=
+    JordanMeasurable.ball 0 (by norm_num)
+  have h_c_eq_ball0 : (measure_ball d).choose = hball0.measure := by
+    have h1 := (measure_ball d).choose_spec 0 1 (by norm_num : (0 : ℝ) < 1)
+    simpa using h1.symm
+  have hCJM : JordanMeasurable {x : EuclideanSpace' d | ∑ i, |x i| < 1} := crosspolytope_JM
+  have hCsub : {x : EuclideanSpace' d | ∑ i, |x i| < 1} ⊆ Metric.ball (0 : EuclideanSpace' d) 1 :=
+    crosspolytope_subset_ball
+  have hCmeas : hCJM.measure = 2^d/d.factorial := by
+    rw [JordanMeasurable.measure_eq_volume, crosspolytope_volume,
+      ENNReal.toReal_ofReal (by positivity)]
+  calc (2:ℝ)^d/d.factorial = hCJM.measure := hCmeas.symm
+    _ ≤ hball0.measure := JordanMeasurable.mono hCJM hball0 hCsub
+    _ = (measure_ball d).choose := h_c_eq_ball0.symm
 
 /-- For a cube of side {lit}`h` centered at {lit}`x0`, its image under {lit}`T` is contained in an axis-aligned box
 {lit}`A` with volume `|A|ᵥ ≤ h ^ d * C(T)`, where `C(T) = ∏_i ∑_j |T(e_j)ᵢ|`. -/
@@ -3606,30 +3752,371 @@ lemma mem_bounded_interval_iff_le (I : BoundedInterval) (x : ℝ) : x ∈ (I : S
   | BoundedInterval.Ioc a b => intro h; simp at h; exact ⟨by nlinarith, h.2⟩
   | BoundedInterval.Ico a b => intro h; simp at h; exact ⟨h.1, by nlinarith⟩
 
-/-- The image of a (d-1)-dimensional face under an invertible linear map has Jordan outer measure zero. -/
+/-
+The image of a (d-1)-dimensional face under an invertible linear map has Jordan outer measure zero.
+-/
 lemma face_image_outer_measure_zero {d:ℕ} (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
     (j : Fin d) (a b : Fin d → ℝ) (hab : ∀ i, a i ≤ b i) :
     Jordan_outer_measure (T '' {x | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j}) = 0 := by
-  sorry
+  revert j a b hab T;
+  intro T;
+  -- Set L = 1 + ∑ i, |b i - a i| ≥ 1 (since a ≤ b). The length of each side of the box is b i - a i, so L is an upper bound.
+  intros j a b hab
+  set L := 1 + ∑ i, |b i - a i| with hL_def
+  have hL_pos : 0 < L := by
+    exact add_pos_of_pos_of_nonneg zero_lt_one <| Finset.sum_nonneg fun _ _ => abs_nonneg _;
+  -- Cover S with N^(d-1) cubes of side length h = L/N.
+  have h_cover : ∀ N : ℕ, 0 < N → ∃ (m_set : Finset (Fin d → Fin N)), {x : EuclideanSpace' d | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j} ⊆ ⋃ m ∈ m_set, {x : EuclideanSpace' d | ∀ i, |x i - (a i + (b i - a i) * (m i + 1/2) / N)| ≤ L/(2*N)} ∧ m_set.card ≤ N^(d-1) := by
+    intro N hN_pos
+    use Finset.univ.filter (fun m => m j = ⟨0, by linarith⟩);
+    constructor;
+    · intro x hx
+      obtain ⟨hx_bounds, hx_eq⟩ := hx
+      have h_cube : ∀ i, ∃ m_i : Fin N, |x.ofLp i - (a i + (b i - a i) * (m_i + 1/2) / N)| ≤ L/(2*N) := by
+        intro i
+        obtain ⟨m_i, hm_i⟩ : ∃ m_i : Fin N, |x.ofLp i - (a i + (b i - a i) * (m_i + 1/2) / N)| ≤ (b i - a i) / (2 * N) := by
+          by_cases h_case : x.ofLp i = b i;
+          · use ⟨N - 1, by
+              exact Nat.pred_lt hN_pos.ne'⟩
+            generalize_proofs at *;
+            rw [ abs_le ] ; constructor <;> norm_num [ h_case, hN_pos.ne' ] <;> ring_nf <;> norm_num [ hN_pos.ne' ];
+            · field_simp;
+              rw [ Nat.cast_sub ] <;> push_cast <;> nlinarith [ hab i, hx_bounds i ];
+            · field_simp;
+              rw [ Nat.cast_sub ] <;> push_cast <;> nlinarith [ hab i, hx_bounds i ];
+          · refine' ⟨ ⟨ ⌊ ( x.ofLp i - a i ) * N / ( b i - a i ) ⌋₊, _ ⟩, _ ⟩ <;> norm_num;
+            · rw [ Nat.floor_lt', div_lt_iff₀ ] <;> norm_num <;> cases lt_or_gt_of_ne h_case <;> nlinarith [ hx_bounds i, hab i, show ( N : ℝ ) ≥ 1 by norm_cast ];
+            · rw [ abs_le ] ; constructor <;> norm_num [ mul_div_cancel₀, hN_pos.ne' ];
+              · field_simp;
+                nlinarith [ Nat.floor_le ( show 0 ≤ ( x.ofLp i - a i ) * N / ( b i - a i ) by exact div_nonneg ( mul_nonneg ( sub_nonneg.mpr ( hx_bounds i |>.1 ) ) ( Nat.cast_nonneg _ ) ) ( sub_nonneg.mpr ( hab i ) ) ), hx_bounds i, hab i, mul_div_cancel₀ ( ( x.ofLp i - a i ) * N ) ( sub_ne_zero_of_ne ( show b i ≠ a i from fun h => h_case <| by linarith [ hx_bounds i, hab i ] ) ) ];
+              · field_simp;
+                nlinarith [ Nat.lt_floor_add_one ( ( N : ℝ ) * ( x.ofLp i - a i ) / ( b i - a i ) ), hx_bounds i, mul_div_cancel₀ ( ( N : ℝ ) * ( x.ofLp i - a i ) ) ( sub_ne_zero_of_ne <| by contrapose! h_case; linarith [ hx_bounds i ] : ( b i - a i ) ≠ 0 ) ];
+        use m_i;
+        refine le_trans hm_i ?_;
+        gcongr;
+        exact le_add_of_nonneg_of_le zero_le_one ( Finset.single_le_sum ( fun i _ => abs_nonneg ( b i - a i ) ) ( Finset.mem_univ i ) |> le_trans ( by cases abs_cases ( b i - a i ) <;> linarith [ hab i ] ) );
+      choose m hm using h_cube;
+      simp +zetaDelta at *;
+      use fun i => if i = j then ⟨0, by linarith⟩ else m i;
+      simp_all +decide [ abs_le ];
+      intro i; specialize hm i; split_ifs <;> simp_all +decide [ div_eq_mul_inv ] ;
+      constructor <;> nlinarith [ show ( 0 : ℝ ) ≤ ( N : ℝ ) ⁻¹ by positivity, show ( 0 : ℝ ) ≤ ( b j - a j ) * ( N : ℝ ) ⁻¹ by exact mul_nonneg ( sub_nonneg.mpr ( hab j ) ) ( inv_nonneg.mpr ( Nat.cast_nonneg N ) ) ];
+    · rcases d with ⟨ _ | d ⟩ <;> simp_all
+      · exact Fin.elim0 j;
+      · refine' le_trans ( Finset.card_le_card _ ) _;
+        exact Finset.image ( fun m : Fin _ → Fin N => Fin.insertNth j ⟨ 0, hN_pos ⟩ m ) ( Finset.univ : Finset ( Fin _ → Fin N ) );
+        · intro m hm; simp_all +decide [ Finset.mem_image ] ;
+          use fun i => m ( Fin.succAbove j i ) ; ext i; by_cases hi : i = j <;> simp_all +decide [ Fin.insertNth ] ;
+          cases Fin.exists_succAbove_eq hi ; aesop;
+        · exact Finset.card_image_le.trans ( by simp +decide [ Finset.card_univ ] );
+  -- For each such m, apply `cube_image_bounding_box T (x0 m) h (by positivity)` to obtain a Box A m with
+  -- T '' {x | ∀ i, |x i - x0 m i| ≤ h/2} ⊆ (A m).toSet  and  |A m|ᵥ ≤ h^d * C.
+  have h_image_cover : ∀ N : ℕ, 0 < N → ∃ (A : (Fin d → Fin N) → Box d), (∀ m, T '' {x : EuclideanSpace' d | ∀ i, |x i - (a i + (b i - a i) * (m i + 1/2) / N)| ≤ L/(2*N)} ⊆ (A m).toSet) ∧ (∀ m, |A m|ᵥ ≤ (L/N)^d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|)) := by
+    intro N hN_pos
+    have h_cube_image_bounding_box : ∀ m : Fin d → Fin N, ∃ A : Box d, T '' {x : EuclideanSpace' d | ∀ i, |x i - (a i + (b i - a i) * (m i + 1/2) / N)| ≤ L/(2*N)} ⊆ A.toSet ∧ |A|ᵥ ≤ (L/N)^d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
+      intro m
+      set x0 : EuclideanSpace' d := .toLp 2 (fun i => a i + (b i - a i) * (m i + 1/2) / N) with hx0_def
+      set h : ℝ := L / N with hh_def
+      have hh_pos : 0 ≤ h := by
+        positivity;
+      convert cube_image_bounding_box T x0 h hh_pos using 1;
+      norm_num [ div_mul_eq_div_div, hx0_def ];
+      grind +splitIndPred;
+    exact ⟨ fun m => Classical.choose ( h_cube_image_bounding_box m ), fun m => Classical.choose_spec ( h_cube_image_bounding_box m ) |>.1, fun m => Classical.choose_spec ( h_cube_image_bounding_box m ) |>.2 ⟩;
+  -- By finite subadditivity of Jordan outer measure, we have
+  have h_subadd : ∀ N : ℕ, 0 < N → Jordan_outer_measure (T '' {x : EuclideanSpace' d | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j}) ≤ N^(d-1) * (L/N)^d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|) := by
+    intro N hN_pos
+    obtain ⟨m_set, hm_set_subset, hm_set_card⟩ := h_cover N hN_pos
+    obtain ⟨A, hA_subset, hA_volume⟩ := h_image_cover N hN_pos
+    have h_union_subset : T '' {x : EuclideanSpace' d | (∀ i, a i ≤ x i ∧ x i ≤ b i) ∧ x j = a j} ⊆ ⋃ m ∈ m_set, (A m).toSet := by
+      exact Set.image_subset_iff.mpr fun x hx => by rcases Set.mem_iUnion₂.mp ( hm_set_subset hx ) with ⟨ m, hm₁, hm₂ ⟩ ; exact Set.mem_iUnion₂.mpr ⟨ m, hm₁, hA_subset m <| Set.mem_image_of_mem _ hm₂ ⟩ ;
+    refine' le_trans ( Jordan_outer_measure_mono_of_subset h_union_subset _ ) _;
+    · exact isBounded_biUnion_box m_set A;
+    · refine' le_trans ( Jordan_outer_measure_biUnion_box_le m_set A ) _;
+      refine' le_trans ( Finset.sum_le_sum fun _ _ => hA_volume _ ) _ ; norm_num [ mul_assoc ];
+      exact mul_le_mul_of_nonneg_right ( mod_cast hm_set_card ) ( mul_nonneg ( pow_nonneg ( div_nonneg hL_pos.le ( Nat.cast_nonneg _ ) ) _ ) ( Finset.prod_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _ ) );
+  -- Since $L^d * C / N \to 0$ as $N \to \infty$, we can choose $N$ large enough that $L^d * C / N \leq \epsilon$ to finish.
+  have h_lim : Filter.Tendsto (fun N : ℕ => N^(d-1) * (L/N)^d * (∏ i : Fin d, ∑ j : Fin d, |(T ((EuclideanSpace.basisFun (𝕜 := ℝ) (ι := Fin d)) j)) i|)) Filter.atTop (nhds 0) := by
+    rcases d with ( _ | d ) <;> norm_num [ pow_succ, mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv ] at *;
+    · exact Fin.elim0 j;
+    · norm_num [ mul_pow, mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv ];
+      field_simp;
+      norm_num [ mul_assoc, mul_div_mul_left, show L ≠ 0 by positivity ];
+      rw [ Filter.tendsto_congr' ( by filter_upwards [ Filter.eventually_gt_atTop 0 ] with N hN using by rw [ mul_div_mul_left _ _ ( by positivity ) ] ) ] ; simpa using tendsto_const_nhds.div_atTop tendsto_natCast_atTop_atTop;
+  exact le_antisymm ( le_of_tendsto_of_tendsto tendsto_const_nhds h_lim <| Filter.eventually_atTop.mpr ⟨ 1, fun N hN => h_subadd N hN ⟩ ) ( Jordan_outer_measure_nonneg _ )
+
+/-
+A linear equivalence on Euclidean space maps bounded sets to bounded sets.
+-/
+lemma linear_isBounded_image {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
+    Bornology.IsBounded (T '' E) := by
+      obtain ⟨ M, hM ⟩ := hE.exists_pos_norm_le;
+      -- Since T is continuous, there exists a constant C such that ‖T x‖ ≤ C * ‖x‖ for all x.
+      obtain ⟨C, hC⟩ : ∃ C > 0, ∀ x, ‖T x‖ ≤ C * ‖x‖ := by
+        have := T.toContinuousLinearMap.bound;
+        exact this;
+      exact isBounded_iff_forall_norm_le.mpr ⟨ C * M, Set.forall_mem_image.mpr fun x hx => le_trans ( hC.2 x ) ( mul_le_mul_of_nonneg_left ( hM.2 x hx ) hC.1.le ) ⟩
+
+/-- A linear equivalence on Euclidean space is a homeomorphism, so it commutes with frontier. -/
+lemma linear_frontier_image {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    (E: Set (EuclideanSpace' d)) : frontier (T '' E) = T '' frontier E := by
+  let h : EuclideanSpace' d ≃ₜ EuclideanSpace' d :=
+    { toEquiv := T.toEquiv,
+      continuous_toFun := T.continuous_of_finiteDimensional,
+      continuous_invFun := T.symm.continuous_of_finiteDimensional }
+  rw [show T '' E = h '' E from rfl, ← h.image_frontier]
+  rfl
+
+/-
+The frontier of a box is contained in the union of its (closed) faces.
+-/
+lemma box_frontier_subset_faces {d:ℕ} (B: Box d) :
+    frontier B.toSet ⊆ ⋃ (j:Fin d),
+      ({x | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a} ∪
+       {x | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b}) := by
+         intro x hx;
+         -- By definition of frontier, we know that x is in the closure of B but not in the interior of B.
+         have h_closure : x ∈ closure (B.toSet) := by
+           exact hx.1
+         have h_not_interior : x ∉ interior (B.toSet) := by
+           exact hx.2;
+         -- By definition of closure, we know that x satisfies ∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b.
+         have h_closure_bounds : ∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b := by
+           intro i
+           have h_closure_i : x i ∈ closure (B.side i : Set ℝ) := by
+             have h_closure_i : x ∈ closure (B.toSet) := by
+               exact h_closure
+             have h_closure_i : x i ∈ closure (B.side i : Set ℝ) := by
+               have h_proj : Continuous (fun x : EuclideanSpace' d => x i) := by
+                 fun_prop
+               rw [ mem_closure_iff_seq_limit ] at *;
+               exact ⟨ _, fun n => ( h_closure_i.choose_spec.1 n ) i, h_proj.continuousAt.tendsto.comp h_closure_i.choose_spec.2 ⟩;
+             exact h_closure_i;
+           have h_closure_i_bounds : closure (B.side i : Set ℝ) ⊆ Set.Icc (B.side i).a (B.side i).b := by
+             exact closure_minimal ( BoundedInterval.subset_Icc _ ) isClosed_Icc;
+           exact h_closure_i_bounds h_closure_i;
+         contrapose! h_not_interior;
+         refine' mem_interior_iff_mem_nhds.mpr _;
+         refine' Filter.mem_of_superset ( IsOpen.mem_nhds _ _ ) _;
+         exact { y : EuclideanSpace' d | ∀ i, ( B.side i ).a < y i ∧ y i < ( B.side i ).b };
+         · simp +decide only [Set.setOf_forall];
+           exact isOpen_iInter_of_finite fun i => isOpen_Ioo.preimage ( continuous_apply i |> Continuous.comp <| continuous_induced_dom );
+         · simp_all
+           exact fun i => ⟨ lt_of_le_of_ne ( h_closure_bounds i |>.1 ) ( Ne.symm ( h_not_interior i |>.1 ) ), lt_of_le_of_ne ( h_closure_bounds i |>.2 ) ( h_not_interior i |>.2 ) ⟩;
+         · intro y hy; exact (by
+           intro i; specialize hy i; cases h : B.side i <;> simp_all +decide [ BoundedInterval.toSet ] ;
+           · exact ⟨ hy.1.le, hy.2.le ⟩;
+           · linarith!;
+           · linarith!)
+
+/-
+A finite union of bounded Jordan-outer-null sets is Jordan-outer-null.
+-/
+lemma Jordan_outer_measure_biUnion_zero {d:ℕ} {ι:Type*} (s: Finset ι)
+    (E: ι → Set (EuclideanSpace' d)) (hb: ∀ i ∈ s, Bornology.IsBounded (E i))
+    (hz: ∀ i ∈ s, Jordan_outer_measure (E i) = 0) :
+    Jordan_outer_measure (⋃ i ∈ s, E i) = 0 := by
+      contrapose! hb;
+      contrapose! hb with h;
+      induction' s using Finset.induction with i s hi ih;
+      all_goals try exact Classical.decEq _;
+      · simp +decide [ Jordan_outer_measure_empty ];
+      · simp_all
+        exact le_antisymm ( le_trans ( Jordan_outer_subadd h.1 ( Bornology.isBounded_biUnion_finset s |>.mpr fun x hx => h.2 x hx ) ) ( by simp +decide [ * ] ) ) ( Jordan_outer_measure_nonneg _ )
+
+/-
+The image of a single box under a linear equivalence is Jordan measurable.
+-/
+lemma box_image_JordanMeasurable {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    (B: Box d) : JordanMeasurable (T '' B.toSet) := by
+      -- By `face_image_outer_measure_zero T j a b hab`, each term `T '' Lface j` and `T '' Uface j` has zero Jordan outer measure.
+      have h_zero_outer_measure : ∀ j : Fin d, Jordan_outer_measure (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a}) = 0 ∧ Jordan_outer_measure (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b}) = 0 := by
+        intro j
+        constructor;
+        · by_cases h : ∃ x : EuclideanSpace' d, ∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b;
+          · convert face_image_outer_measure_zero T j ( fun i => ( B.side i |> BoundedInterval.a ) ) ( fun i => ( B.side i |> BoundedInterval.b ) ) _ using 1;
+            exact fun i => h.choose_spec i |>.1.trans ( h.choose_spec i |>.2 );
+          · rw [ show { x : EuclideanSpace' d | ( ∀ i, ( B.side i |> BoundedInterval.a ) ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i |> BoundedInterval.b ) ) ∧ x.ofLp j = ( B.side j |> BoundedInterval.a ) } = ∅ by ext; aesop ] ; norm_num [ Jordan_outer_measure_empty ];
+        · by_cases h : ∃ x : EuclideanSpace' d, ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).b;
+          · convert face_image_outer_measure_zero T j ( fun i => if i = j then ( B.side j ).b else ( B.side i ).a ) ( fun i => ( B.side i ).b ) _ using 1;
+            · congr! 3;
+              grind;
+            · grind;
+          · rw [ show { x : EuclideanSpace' d | ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).b } = ∅ by ext; aesop ] ; norm_num [ Jordan_outer_measure_empty ];
+      have h_frontier_image : Jordan_outer_measure (T '' frontier B.toSet) = 0 := by
+        have h_frontier_image : Jordan_outer_measure (⋃ j : Fin d, (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a} ∪ T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b})) = 0 := by
+          have h_frontier_image : ∀ j : Fin d, Bornology.IsBounded (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a}) ∧ Bornology.IsBounded (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b}) := by
+            intro j
+            have h_bounded : Bornology.IsBounded {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b)} := by
+              refine' isBounded_iff_forall_norm_le.mpr ⟨ ∑ i, |(B.side i).b| + ∑ i, |(B.side i).a|, fun x hx => _ ⟩;
+              rw [ EuclideanSpace.norm_eq ];
+              rw [ Real.sqrt_le_left ] <;> try positivity;
+              rw [ ← Finset.sum_add_distrib ];
+              rw [ sq, Finset.sum_mul _ _ _ ];
+              exact Finset.sum_le_sum fun i _ => by rw [ sq ] ; exact mul_le_mul ( show ‖x.ofLp i‖ ≤ |(B.side i).b| + |(B.side i).a| by exact abs_le.mpr ⟨ by cases abs_cases ( ( B.side i ).b ) <;> cases abs_cases ( ( B.side i ).a ) <;> linarith [ hx i ], by cases abs_cases ( ( B.side i ).b ) <;> cases abs_cases ( ( B.side i ).a ) <;> linarith [ hx i ] ⟩ ) ( show ‖x.ofLp i‖ ≤ ∑ j, ( |(B.side j).b| + |(B.side j).a| ) by exact le_trans ( show ‖x.ofLp i‖ ≤ |(B.side i).b| + |(B.side i).a| by exact abs_le.mpr ⟨ by cases abs_cases ( ( B.side i ).b ) <;> cases abs_cases ( ( B.side i ).a ) <;> linarith [ hx i ], by cases abs_cases ( ( B.side i ).b ) <;> cases abs_cases ( ( B.side i ).a ) <;> linarith [ hx i ] ⟩ ) ( Finset.single_le_sum ( fun i _ => add_nonneg ( abs_nonneg ( ( B.side i ).b ) ) ( abs_nonneg ( ( B.side i ).a ) ) ) ( Finset.mem_univ i ) ) ) ( by positivity ) ( by positivity ) ;
+            exact ⟨ linear_isBounded_image T ( h_bounded.subset fun x hx => hx.1 ), linear_isBounded_image T ( h_bounded.subset fun x hx => hx.1 ) ⟩;
+          have h_frontier_image : ∀ (s : Finset (Fin d)), Jordan_outer_measure (⋃ j ∈ s, (T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a} ∪ T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b})) = 0 := by
+            intros s
+            apply Jordan_outer_measure_biUnion_zero s (fun j => T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a} ∪ T '' {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b}) (fun j hj => by
+              exact Bornology.IsBounded.union ( h_frontier_image j |>.1 ) ( h_frontier_image j |>.2 )) (fun j hj => by
+              refine' le_antisymm _ _;
+              · refine' le_trans ( Jordan_outer_subadd _ _ ) _;
+                · exact h_frontier_image j |>.1;
+                · exact h_frontier_image j |>.2;
+                · linarith [ h_zero_outer_measure j ];
+              · exact Jordan_outer_measure_nonneg _);
+          simpa using h_frontier_image Finset.univ;
+        have h_frontier_image : frontier B.toSet ⊆ ⋃ j : Fin d, ({x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).a} ∪ {x : EuclideanSpace' d | (∀ i, (B.side i).a ≤ x i ∧ x i ≤ (B.side i).b) ∧ x j = (B.side j).b}) := by
+          convert box_frontier_subset_faces B using 1;
+        refine' le_antisymm _ _;
+        · refine' le_trans ( Jordan_outer_measure_mono_of_subset _ _ ) _;
+          exact T '' ( ⋃ j : Fin d, { x : EuclideanSpace' d | ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).a } ∪ { x : EuclideanSpace' d | ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).b } );
+          · grind;
+          · refine' linear_isBounded_image T _;
+            refine' Bornology.IsBounded.subset _ _;
+            exact { x : EuclideanSpace' d | ∀ i, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b };
+            · refine' isBounded_iff_forall_norm_le.mpr ⟨ ∑ i, |(B.side i).b| + ∑ i, |(B.side i).a|, fun x hx => _ ⟩;
+              rw [ EuclideanSpace.norm_eq ];
+              rw [ Real.sqrt_le_left ] <;> norm_num [ ← Finset.sum_add_distrib ];
+              · rw [ sq, Finset.sum_mul _ _ _ ];
+                refine' Finset.sum_le_sum fun i _ => _;
+                exact le_trans ( show x.ofLp i ^ 2 ≤ ( |(B.side i).b| + |(B.side i).a| ) ^ 2 by cases abs_cases ( ( B.side i ).b ) <;> cases abs_cases ( ( B.side i ).a ) <;> nlinarith [ hx i ] ) ( by nlinarith [ abs_nonneg ( ( B.side i ).b ), abs_nonneg ( ( B.side i ).a ), Finset.single_le_sum ( fun i _ => add_nonneg ( abs_nonneg ( ( B.side i ).b ) ) ( abs_nonneg ( ( B.side i ).a ) ) ) ( Finset.mem_univ i ) ] );
+              · exact Finset.sum_nonneg fun _ _ => add_nonneg ( abs_nonneg _ ) ( abs_nonneg _ );
+            · simp +decide [ Set.subset_def ];
+              rintro x i ( hi | hi ) j <;> [ exact hi.1 j; exact hi.1 j ];
+          · convert ‹Jordan_outer_measure ( ⋃ j : Fin d, T '' { x : EuclideanSpace' d | ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).a } ∪ T '' { x : EuclideanSpace' d | ( ∀ i : Fin d, ( B.side i ).a ≤ x.ofLp i ∧ x.ofLp i ≤ ( B.side i ).b ) ∧ x.ofLp j = ( B.side j ).b } ) = 0›.le using 1;
+            simp +decide [ Set.image_iUnion, Set.image_union ];
+        · exact Jordan_outer_measure_nonneg _;
+      apply JordanMeasurable.if_frontier_null;
+      · apply linear_isBounded_image T (IsElementary.box B).isBounded;
+      · rw [ linear_frontier_image ] ; aesop
 
 lemma JordanMeasurable.linear_of_elem {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
 {E: Set (EuclideanSpace' d)} (hE: IsElementary E): JordanMeasurable (T '' E) := by
-  sorry
+  -- E is a finite union of boxes; the image is the finite union of the box images,
+  -- each Jordan measurable by `box_image_JordanMeasurable`.
+  classical
+  obtain ⟨S, rfl⟩ := hE
+  have hset : T '' (⋃ B ∈ S, (B : Set (EuclideanSpace' d)))
+      = ⋃ F ∈ S.image (fun B : Box d => T '' (B : Set (EuclideanSpace' d))), F := by
+    ext y
+    simp only [Set.mem_image, Set.mem_iUnion, Finset.mem_image, exists_prop]
+    constructor
+    · rintro ⟨x, ⟨B, hB, hx⟩, rfl⟩; exact ⟨_, ⟨B, hB, rfl⟩, x, hx, rfl⟩
+    · rintro ⟨F, ⟨B, hB, rfl⟩, x, hx, rfl⟩; exact ⟨x, ⟨B, hB, hx⟩, rfl⟩
+  rw [hset]
+  apply JordanMeasurable.union'
+  intro F hF
+  rw [Finset.mem_image] at hF
+  obtain ⟨B, _, rfl⟩ := hF
+  exact box_image_JordanMeasurable T B
+
+/-
+Monotonicity of the inner Jordan measure.
+-/
+lemma Jordan_inner_measure_mono {d:ℕ} {E F : Set (EuclideanSpace' d)}
+    (h : E ⊆ F) (hF : Bornology.IsBounded F) :
+    Jordan_inner_measure E ≤ Jordan_inner_measure F := by
+      refine' csSup_le _ _;
+      · refine' ⟨ 0, ⟨ ∅, IsElementary.empty d, _, _ ⟩ ⟩ <;> norm_num;
+      · rintro m ⟨ A, hA, hAE, rfl ⟩;
+        refine' le_csSup _ _;
+        · obtain ⟨ B, hB, hFB ⟩ := IsElementary.contains_bounded hF;
+          exact ⟨ hB.measure, by rintro m ⟨ A, hA, hAF, rfl ⟩ ; exact IsElementary.measure_mono hA hB ( hAF.trans hFB ) ⟩;
+        · exact ⟨ A, hA, hAE.trans h, rfl ⟩
+
+/-- The positive determinant scaling factor `|det T|` of a linear equivalence. -/
+lemma linear_det_abs_pos {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) :
+    0 < |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| := by
+  rw [abs_pos]; exact (LinearEquiv.isUnit_det' T).ne_zero
+
+/-
+The Jordan measure of the linear image of an elementary set equals `|det T|` times its measure.
+-/
+lemma linear_of_elem_measure_eq {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    {E: Set (EuclideanSpace' d)} (hE: IsElementary E) :
+    (JordanMeasurable.linear_of_elem T hE).measure
+      = |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| * hE.measure := by
+        convert JordanMeasurable.measure_eq_volume ( JordanMeasurable.linear_of_elem T hE ) using 1;
+        have h_volume : MeasureTheory.volume (T '' E) = ENNReal.ofReal |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| * MeasureTheory.volume E := by
+          convert MeasureTheory.Measure.addHaar_image_linearMap MeasureTheory.MeasureSpace.volume ( T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d ) E using 1;
+        rw [ h_volume, ENNReal.toReal_mul, ENNReal.toReal_ofReal ( abs_nonneg _ ), IsElementary.real_volume hE ];
+        rw [ ENNReal.toReal_ofReal ( IsElementary.measure_nonneg hE ) ]
 
 /-- Exercise 1.1.11 (1) -/
 -- The measure of a linear image of an elementary set scales by a fixed factor depending on the transformation.
-lemma JordanMeasurable.measure_linear_of_elem {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) : ∃ D > 0, ∀ (E: Set (EuclideanSpace' d)) (hE: IsElementary E), (linear_of_elem T hE).measure = D * hE.measure := by sorry
+lemma JordanMeasurable.measure_linear_of_elem {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) : ∃ D > 0, ∀ (E: Set (EuclideanSpace' d)) (hE: IsElementary E), (linear_of_elem T hE).measure = D * hE.measure :=
+  ⟨_, linear_det_abs_pos T, fun _ hE => linear_of_elem_measure_eq T hE⟩
 
-/-- Exercise 1.1.11 (2) -/
--- The linear image of a Jordan measurable set is Jordan measurable.
+/-
+Exercise 1.1.11 (2)
+
+The linear image of a Jordan measurable set is Jordan measurable.
+-/
 lemma JordanMeasurable.linear {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
 {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E): JordanMeasurable (T '' E) := by
-  sorry
+  obtain ⟨ D, hD_pos, hD ⟩ := JordanMeasurable.measure_linear_of_elem T;
+  use linear_isBounded_image T hE.1;
+  refine' le_antisymm ( Jordan_inner_le_outer _ ) _;
+  · exact linear_isBounded_image T hE.1;
+  · refine' le_of_forall_pos_le_add fun δ δ_pos => _;
+    -- Let ε := δ / D > 0.
+    set ε := δ / D with hε_def
+    have ε_pos : 0 < ε := by
+      positivity;
+    -- Apply `(JordanMeasurable.equiv hE.1).out 0 1` to E and ε to obtain elementary sets A, B with hA : IsElementary A, hB : IsElementary B, A ⊆ E, E ⊆ B, and (hB.sdiff hA).measure ≤ ε.
+    obtain ⟨ A, B, hA, hB, hA_sub_E, hE_sub_B, h_diff_measure ⟩ : ∃ A B : Set (EuclideanSpace' d), ∃ hA : IsElementary A, ∃ hB : IsElementary B, A ⊆ E ∧ E ⊆ B ∧ (hB.sdiff hA).measure ≤ ε := by
+      have := ( JordanMeasurable.equiv hE.1 ).out 0 1;
+      exact this.mp hE ε ε_pos;
+    -- Upper bound on outer:
+    have h_outer_bound : Jordan_outer_measure (T '' E) ≤ D * hB.measure := by
+      have h_outer_bound : Jordan_outer_measure (T '' E) ≤ Jordan_outer_measure (T '' B) := by
+        apply_rules [ Jordan_outer_measure_mono_of_subset ];
+        · exact Set.image_mono hE_sub_B;
+        · exact linear_isBounded_image T hB.isBounded;
+      convert h_outer_bound using 1;
+      rw [ ← hD B hB, JordanMeasurable.eq_outer ];
+    -- Lower bound on inner:
+    have h_inner_bound : Jordan_inner_measure (T '' E) ≥ D * hA.measure := by
+      have h_inner_bound : Jordan_inner_measure (T '' E) ≥ Jordan_inner_measure (T '' A) := by
+        apply_rules [ Jordan_inner_measure_mono ];
+        · grind +locals;
+        · exact linear_isBounded_image T hE.1;
+      convert h_inner_bound using 1;
+      rw [ ← hD A hA, JordanMeasurable.eq_inner ];
+    -- Difference of elementary measures: since A ⊆ B, hB.measure = hA.measure + (hB.sdiff hA).measure.
+    have h_diff_measure_eq : hB.measure = hA.measure + (hB.sdiff hA).measure := by
+      have h_diff_measure_eq : hB.measure = (hA.union (hB.sdiff hA)).measure := by
+        congr;
+        rw [ Set.union_diff_cancel ( hA_sub_E.trans hE_sub_B ) ];
+      rw [ h_diff_measure_eq, IsElementary.measure_of_disjUnion ];
+      exact disjoint_sdiff_self_right;
+    nlinarith [ mul_div_cancel₀ δ hD_pos.ne' ]
+
+/-
+The Jordan measure of the linear image of a Jordan measurable set equals `|det T|` times its measure.
+-/
+lemma linear_measure_eq {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) :
+    (JordanMeasurable.linear T hE).measure
+      = |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| * hE.measure := by
+        convert congr_arg ENNReal.toReal ( MeasureTheory.Measure.addHaar_image_linearMap ( MeasureTheory.MeasureSpace.volume ) ( T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d ) E ) using 1;
+        · convert JordanMeasurable.measure_eq_volume _;
+        · rw [ ENNReal.toReal_mul, ENNReal.toReal_ofReal ( abs_nonneg _ ), hE.measure_eq_volume ]
 
 /-- Exercise 1.1.11 (2) -/
--- The measure of a linear image of a Jordan measurable set equals the original measure (up to determinant scaling).
+-- The measure of a linear image of a Jordan measurable set equals the original measure up to
+-- determinant scaling.
+--
+-- NOTE: the original statement in the source read `(linear T hE).measure = hE.measure`, i.e. the
+-- scaling factor `D` did not appear on the right-hand side.  That statement is false (e.g. for a
+-- dilation `T`), and is inconsistent with the accompanying comment ("up to determinant scaling")
+-- and with `measure_linear_det` below (which extracts `D = |det|`).  We restore the intended
+-- `D * hE.measure`.
 lemma JordanMeasurable.measure_linear {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) :
-∃ D > 0, ∀ (E: Set (EuclideanSpace' d)) (hE: JordanMeasurable E), (linear T hE).measure = hE.measure := by sorry
+∃ D > 0, ∀ (E: Set (EuclideanSpace' d)) (hE: JordanMeasurable E), (linear T hE).measure = D * hE.measure :=
+  ⟨_, linear_det_abs_pos T, fun _ hE => linear_measure_eq T hE⟩
 
 /-- An invertible matrix defines a linear equivalence on Euclidean space. -/
 noncomputable def Matrix.linear_equiv {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A] :
@@ -3645,10 +4132,35 @@ EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d where
   right_inv x := by
     apply PiLp.ext; intro i; simp
 
+/-- The determinant of the linear equivalence attached to an invertible matrix equals the matrix determinant. -/
+lemma Matrix.linear_equiv_det {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A] :
+    LinearMap.det (A.linear_equiv : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) = A.det := by
+  set e := WithLp.linearEquiv 2 ℝ (Fin d → ℝ) with he
+  have hconj : (A.linear_equiv : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)
+      = (↑e.symm) ∘ₗ (Matrix.toLin' A) ∘ₗ (↑(e.symm).symm) := by
+    apply LinearMap.ext; intro x
+    simp only [LinearMap.comp_apply]
+    rfl
+  rw [hconj, LinearMap.det_conj, LinearMap.det_toLin']
+
 /-- Exercise 1.1.11 (3) -/
 -- For a linear map from an invertible matrix, the measure scaling factor equals the absolute value of the determinant.
 lemma JordanMeasurable.measure_linear_det {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A] :
-(measure_linear A.linear_equiv).choose = |A.det| := by sorry
+(measure_linear A.linear_equiv).choose = |A.det| := by
+  classical
+  obtain ⟨_, hspec⟩ := (JordanMeasurable.measure_linear A.linear_equiv).choose_spec
+  -- The unit box `[0,1]^d`, elementary with measure 1.
+  set B : Box d := { side := fun _ => BoundedInterval.Icc 0 1 } with hB
+  have hBe : IsElementary B.toSet := IsElementary.box B
+  have hBJM : JordanMeasurable B.toSet := hBe.jordanMeasurable
+  have hmeasB : hBJM.measure = 1 := by
+    rw [JordanMeasurable.measure_eq_volume, Box.real_volume]
+    norm_num [hB, Box.volume, BoundedInterval.length]
+  have h1 := hspec B.toSet hBJM
+  have h2 := linear_measure_eq A.linear_equiv hBJM
+  rw [hmeasB, mul_one] at h1 h2
+  rw [h1] at h2
+  rw [h2, Matrix.linear_equiv_det]
 
 /-- A set is Jordan null if it is Jordan measurable with measure zero. -/
 abbrev JordanMeasurable.null {d:ℕ} (E: Set (EuclideanSpace' d)) : Prop := ∃ hE: JordanMeasurable E, hE.measure = 0
@@ -3699,7 +4211,42 @@ lemma JordanMeasurable.null_mono {d:ℕ} {E F: Set (EuclideanSpace' d)} (h: null
 -- The Jordan measure equals the limit of scaled lattice point counts in the set.
 theorem JordanMeasure.measure_eq {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E):
   Filter.atTop.Tendsto (fun N:ℕ ↦ (N:ℝ)^(-d:ℝ) * Nat.card ↥(E ∩ (Set.range (fun (n:Fin d → ℤ) ↦ .toLp 2 (fun i ↦ (N:ℝ)⁻¹*(n i))))))
-  (nhds hE.measure) := by sorry
+  (nhds hE.measure) := by
+  have h_inner : ∀ ε > 0, ∃ A : Set (EuclideanSpace' d), ∃ hA : IsElementary A, A ⊆ E ∧ hA.measure > hE.measure - ε / 2 := by
+    intro ε hε_pos
+    have h_inner : hE.measure = Jordan_inner_measure E := by
+      exact hE.eq_inner.symm ▸ rfl;
+    have := exists_lt_of_lt_csSup ?_ ( show Jordan_inner_measure E - ε / 2 < Jordan_inner_measure E from sub_lt_self _ <| half_pos hε_pos );
+    · aesop;
+    · exact ⟨ _, ⟨ ∅, ⟨ ∅, by simp +decide ⟩, Set.empty_subset _, rfl ⟩ ⟩;
+  have h_outer : ∀ ε > 0, ∃ B : Set (EuclideanSpace' d), ∃ hB : IsElementary B, E ⊆ B ∧ hB.measure < hE.measure + ε / 2 := by
+    intro ε hε_pos
+    have h_outer : ∃ B : Set (EuclideanSpace' d), ∃ hB : IsElementary B, E ⊆ B ∧ hB.measure < hE.measure + ε / 2 := by
+      have h_outer_measure : Jordan_outer_measure E = hE.measure := by
+        exact hE.eq_outer.symm
+      contrapose! h_outer_measure;
+      refine' ne_of_gt ( lt_of_lt_of_le _ ( le_csInf _ _ ) );
+      exact lt_add_of_pos_right _ ( half_pos hε_pos );
+      · obtain ⟨ A, hA ⟩ := IsElementary.contains_bounded hE.1;
+        exact ⟨ _, ⟨ A, hA.1, hA.2, rfl ⟩ ⟩;
+      · rintro _ ⟨ A, hA, hEA, rfl ⟩ ; exact h_outer_measure A hA hEA;
+    exact h_outer;
+  rw [ Metric.tendsto_nhds ];
+  intro ε hεpos
+  obtain ⟨A, hA, hA_sub, hA_measure⟩ := h_inner ε hεpos
+  obtain ⟨B, hB, hB_sup, hB_measure⟩ := h_outer ε hεpos
+  have hA_tendsto := IsElementary.lattice_tendsto hA
+  have hB_tendsto := IsElementary.lattice_tendsto hB;
+  filter_upwards [ hA_tendsto.eventually ( Metric.ball_mem_nhds _ <| half_pos hεpos ), hB_tendsto.eventually ( Metric.ball_mem_nhds _ <| half_pos hεpos ), Filter.eventually_gt_atTop 0 ] with N hN₁ hN₂ hN₃;
+  have hA_le : (N : ℝ) ^ (-d : ℝ) * Nat.card (↥(A ∩ Set.range (fun n : Fin d → ℤ => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i))))) ≤ (N : ℝ) ^ (-d : ℝ) * Nat.card (↥(E ∩ Set.range (fun n : Fin d → ℤ => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i))))) := by
+    apply_rules [ mul_le_mul_of_nonneg_left, Nat.cast_le.mpr ];
+    · convert lattice_count_mono hA_sub hE.1 N hN₃.ne' using 1;
+    · positivity;
+  have hB_le : (N : ℝ) ^ (-d : ℝ) * Nat.card (↥(E ∩ Set.range (fun n : Fin d → ℤ => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i))))) ≤ (N : ℝ) ^ (-d : ℝ) * Nat.card (↥(B ∩ Set.range (fun n : Fin d → ℤ => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i))))) := by
+    apply_rules [ mul_le_mul_of_nonneg_left, Nat.cast_le.mpr ];
+    · convert lattice_count_mono hB_sup hB.isBounded N hN₃.ne' using 1;
+    · positivity;
+  exact abs_lt.mpr ⟨ by linarith [ abs_lt.mp hN₁, abs_lt.mp hN₂ ], by linarith [ abs_lt.mp hN₁, abs_lt.mp hN₂ ] ⟩
 
 /-- A dyadic box at scale 2^(-n) with multi-index i: the half-open cube \[i/2^n, (i+1)/2^n). -/
 noncomputable abbrev Box.dyadic {d:ℕ} (n:ℤ) (i:Fin d → ℤ) : Box d where
