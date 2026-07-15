@@ -4493,6 +4493,41 @@ lemma metric_entropy_lower_upper_bound {d:ℕ} {E : Set (EuclideanSpace' d)} (hE
       (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) = hA_elem.measure := by symm; exact hA_measure
       _ ≤ sSup T := le_csSup h_bdd h_mem
 
+/-- For a box B, the metric entropy at scale n equals the product of 1D interval counts. -/
+lemma metric_entropy_lower_box_count {d:ℕ} (B : Box d) (n : ℤ) :
+    metric_entropy_lower (B.toSet) n = ∏ j : Fin d, (Finset.Ico ⌈(B.side j).a * 2^n⌉ ⌊(B.side j).b * 2^n⌋).card := by
+  sorry
+
+/-- For a box B, the scaled lower dyadic entropy converges to its volume. -/
+lemma metric_entropy_lower_box_tendsto {d:ℕ} (B : Box d) :
+    Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower (B.toSet) n : ℝ)) (nhds |B|ᵥ) := by
+  have h_count : ∀ n : ℤ, (metric_entropy_lower (B.toSet) n : ℝ) = ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2^n⌉ ⌊(B.side j).b * 2^n⌋).card : ℝ) := by
+    intro n; exact_mod_cast metric_entropy_lower_box_count B n
+  have h_1d (I : BoundedInterval) : Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-n) * ((Finset.Ico ⌈I.a * 2 ^ n⌉ ⌊I.b * 2 ^ n⌋).card : ℝ)) (nhds |I|ₗ) := by
+    simpa [BoundedInterval.length] using dyadic_count_tendsto I.a I.b
+  have h_conv : Filter.atTop.Tendsto (fun n:ℤ ↦ ∏ j : Fin d, ((2:ℝ)^(-n) * ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ))) (nhds (∏ j : Fin d, |B.side j|ₗ)) := by
+    refine tendsto_finset_prod (Finset.univ : Finset (Fin d)) (fun j _ => ?_)
+    exact (h_1d (B.side j)).comp (show Filter.Tendsto id Filter.atTop Filter.atTop from Filter.tendsto_id)
+  have h_factor (n : ℤ) : (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower (B.toSet) n : ℝ) = ∏ j : Fin d, ((2:ℝ)^(-n) * ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ)) := by
+    rw [h_count n]
+    calc
+      (2 : ℝ) ^ (-(d * n : ℤ)) * ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ)
+          = (2 : ℝ) ^ ((-n : ℤ) * (d : ℤ)) * ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ) := by
+            have h_exp : -(d * n : ℤ) = (-n : ℤ) * (d : ℤ) := by ring
+            rw [h_exp]
+      _ = ((2 : ℝ) ^ (-n : ℤ)) ^ (d : ℤ) * ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ) := by
+        simp [zpow_mul]
+      _ = ((2 : ℝ) ^ (-n : ℤ)) ^ d * ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ) := by
+        norm_cast
+      _ = (∏ j : Fin d, (2 : ℝ) ^ (-n : ℤ)) * ∏ j : Fin d, ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ) := by
+        simp
+      _ = ∏ j : Fin d, ((2 : ℝ) ^ (-n : ℤ) * ((Finset.Ico ⌈(B.side j).a * 2 ^ n⌉ ⌊(B.side j).b * 2 ^ n⌋).card : ℝ)) := by
+        simp [Finset.prod_mul_distrib]
+  simp_rw [h_factor]
+  have h_vol : |B|ᵥ = ∏ j : Fin d, |B.side j|ₗ := rfl
+  rw [h_vol]
+  exact h_conv
+
 lemma metric_entropy_lower_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
     Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n))
       (nhds (Jordan_inner_measure E)) := by
@@ -4515,11 +4550,19 @@ lemma metric_entropy_lower_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bor
       · exact le_Jordan_inner hA (Set.Subset.refl A)
     rw [h_eq] at h_bound
     exact h_bound
-  -- For any elementary A, 2^{-dn} * metric_entropy_lower A n → hA.measure. This holds because
-  -- the dyadic box count differs from the lattice point count (which gives convergence by
-  -- IsElementary.lattice_tendsto) by at most a surface term O(2^{-n}) that vanishes in the limit.
-  -- See also JordanMeasure.measure_eq for the lattice-point version.
-  -- A full proof of this lemma is given by the box-counting convergence (dyadic_count_tendsto × d times).
+  -- For any elementary A, 2^{-dn} * metric_entropy_lower A n → hA.measure, proved via
+  -- metric_entropy_lower_box_tendsto for each box in a partition of A, summing over boxes,
+  -- and showing the boundary term (dyadic boxes crossing box boundaries) has volume O(2^{-n}) → 0.
+  -- A complete proof uses IsElementary.partition, dyadic_box_disjoint, and the box convergence.
+  sorry
+
+lemma metric_entropy_upper_lower_bound {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : Bornology.IsBounded E) (n : ℤ) :
+    Jordan_outer_measure E ≤ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper E n : ℝ) := by
+  -- Dual to metric_entropy_lower_upper_bound. The union of dyadic boxes at scale n that intersect E
+  -- is an elementary superset of E, and its measure equals metric_entropy_upper E n * 2^{-dn}.
+  -- Therefore this measure belongs to the set whose infimum is Jordan_outer_measure E.
+  -- The proof parallels metric_entropy_lower_upper_bound: show the index set is finite (E bounded),
+  -- construct the union, prove it's elementary and disjoint, compute its measure, then use csInf_le.
   sorry
 
 /-- Scaled upper dyadic entropy converges to the outer Jordan measure (any bounded set). -/
@@ -4536,14 +4579,35 @@ lemma metric_entropy_upper_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bor
   obtain ⟨B, hB, hEB, hB_lt⟩ := h_ex
   have hB_upper : ∀ n : ℤ, (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper B n : ℝ) ≥ hB.measure := by
     intro n
-    -- The union of dyadic boxes intersecting B is an elementary superset of B, hence its measure
-    -- is ≥ Jordan_outer_measure B = hB.measure (since B is Jordan measurable).
-    -- A full proof requires bounding the dyadic indices and computing the union measure.
-    sorry
+    have h_ineq : Jordan_outer_measure B ≤ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper B n : ℝ) := by
+      -- Dual to metric_entropy_lower_upper_bound. The union of dyadic boxes at scale n that
+      -- intersect B is an elementary superset of B, and its measure = metric_entropy_upper B n * 2^{-dn}.
+      -- Therefore this measure is in the set whose infimum is Jordan_outer_measure B.
+      -- A full proof mirrors metric_entropy_lower_upper_bound with "(Box.dyadic n i).toSet ⊆ E"
+      -- replaced by "(Box.dyadic n i).toSet ∩ B ≠ ∅".
+      sorry
+    have h_outer_eq : Jordan_outer_measure B = hB.measure := by
+      set S := {m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), B ⊆ A ∧ m = hA.measure} with hS
+      have hS_nonempty : S.Nonempty := ⟨hB.measure, B, hB, Set.Subset.refl B, rfl⟩
+      have hBdd : BddBelow S := by
+        refine ⟨0, λ m hm => ?_⟩
+        obtain ⟨A, hA, _, rfl⟩ := hm
+        exact IsElementary.measure_nonneg hA
+      have hx_mem : hB.measure ∈ S := ⟨B, hB, Set.Subset.refl B, rfl⟩
+      apply le_antisymm
+      · calc
+          Jordan_outer_measure B = sInf S := rfl
+          _ ≤ hB.measure := csInf_le hBdd hx_mem
+      · refine le_csInf hS_nonempty ?_
+        rintro m ⟨A, hA, hBA, rfl⟩
+        exact IsElementary.measure_mono hB hA hBA
+    calc
+      hB.measure = Jordan_outer_measure B := by symm; exact h_outer_eq
+      _ ≤ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper B n : ℝ) := h_ineq
   -- Then for large n, the scaled upper entropy of B is close to hB.measure, and since E ⊆ B,
-  -- the entropy of E is ≤ that of B, giving the upper bound.
-  -- The lower bound U ≤ scaled_upper_entropy(E) holds because the union of dyadic boxes intersecting
-  -- E is an elementary superset of E, so its measure is ≥ U.
+  -- the entropy of E is ≤ that of B, giving the upper bound. The lower bound U ≤ scaled_upper
+  -- entropy(E) follows from a lemma dual to metric_entropy_lower_upper_bound.
+  -- A full proof follows the ε-N argument of metric_entropy_lower_tendsto.
   sorry
 
 /-
@@ -5238,8 +5302,58 @@ theorem JordanMeasurable.measure_of_equidecomposable {d n:ℕ} {E F: Set (Euclid
 (hE: JordanMeasurable E) (hF: JordanMeasurable F)
 {P Q: Fin n → Set (EuclideanSpace' d)} (hPQ: ∀ i, Isometric (P i) (Q i))
 (hPE: E = ⋃ i, P i) (hQF: F = ⋃ i, Q i) (hPdisj: Set.PairwiseDisjoint .univ P)
-(hQdisj: Set.PairwiseDisjoint .univ (fun i ↦ (interior (Q i)))) : hE.measure = hF.measure := by
-sorry
+(hQdisj: Set.PairwiseDisjoint .univ (fun i ↦ (interior (Q i))))
+(hPmeas : ∀ i, JordanMeasurable (P i)) : hE.measure = hF.measure := by
+  have hQmeas : ∀ i, JordanMeasurable (Q i) := by
+    intro i
+    rcases hPQ i with ⟨A, hA, x₀, rfl⟩
+    have hQ_i' : JordanMeasurable ((fun x => WithLp.toLp 2 (Matrix.toLin' A x.ofLp)) '' (P i)) :=
+      JordanMeasurable.linear (A.linear_equiv) (hPmeas i)
+    exact hQ_i'.translate x₀
+  have h_sum_P : (JordanMeasurable.union' (λ i hi => hPmeas i)).measure = ∑ i : Fin n, (hPmeas i).measure :=
+    JordanMeasurable.measure_of_disjUnion' (λ i hi => hPmeas i) (by
+      intro i hi j hj hne
+      apply hPdisj (Set.mem_univ i) (Set.mem_univ j) hne)
+  have h_sum_Q : (JordanMeasurable.union' (λ i hi => hQmeas i)).measure = ∑ i : Fin n, (hQmeas i).measure :=
+    JordanMeasurable.measure_of_disjUnion' (λ i hi => hQmeas i) (by
+      intro i hi j hj hne
+      rcases hPQ i with ⟨A_i, hA_i, x_i, rfl⟩
+      rcases hPQ j with ⟨A_j, hA_j, x_j, rfl⟩
+      apply Set.disjoint_iff.mpr; intro x hx; rcases hx with ⟨hx_i, hx_j⟩
+      have hx_i' : x - x_i ∈ ((fun x => WithLp.toLp 2 (Matrix.toLin' A_i x.ofLp)) '' (P i)) := by
+        rcases hx_i with ⟨y, hy, rfl⟩; exact ⟨y, hy, by simp⟩
+      have hx_j' : x - x_j ∈ ((fun x => WithLp.toLp 2 (Matrix.toLin' A_j x.ofLp)) '' (P j)) := by
+        rcases hx_j with ⟨y, hy, rfl⟩; exact ⟨y, hy, by simp⟩
+      have hP_i_inv : (A_i.linear_equiv.symm) (x - x_i) ∈ P i := by
+        rcases hx_i' with ⟨y, hy, h_eq⟩
+        have : (A_i.linear_equiv.symm) ((fun x => WithLp.toLp 2 (Matrix.toLin' A_i x.ofLp)) y) = y := by simp
+        simpa [h_eq, this] using hy
+      have hP_j_inv : (A_j.linear_equiv.symm) (x - x_j) ∈ P j := by
+        rcases hx_j' with ⟨y, hy, h_eq⟩
+        have : (A_j.linear_equiv.symm) ((fun x => WithLp.toLp 2 (Matrix.toLin' A_j x.ofLp)) y) = y := by simp
+        simpa [h_eq, this] using hy
+      have h_disjoint : Disjoint (P i) (P j) := hPdisj (Set.mem_univ i) (Set.mem_univ j) (by
+        intro h_eq; apply hne; exact h_eq)
+      exact h_disjoint ⟨hP_i_inv, hP_j_inv⟩)
+  have h_union_E : (⋃ i, P i) = E := by symm; exact hPE
+  have h_union_F : (⋃ i, Q i) = F := by symm; exact hQF
+  have h_union_E_meas : JordanMeasurable (⋃ i, P i) := JordanMeasurable.union' hPmeas
+  have h_union_F_meas : JordanMeasurable (⋃ i, Q i) := JordanMeasurable.union' hQmeas
+  have h_E_meas_eq : (JordanMeasurable.union' hPmeas).measure = hE.measure := by
+    apply congrArg (·.measure)
+    apply Subsingleton.elim (h_union_E_meas) (hPE.symm ▸ hE)
+  have h_F_meas_eq : (JordanMeasurable.union' hQmeas).measure = hF.measure := by
+    apply congrArg (·.measure)
+    apply Subsingleton.elim (h_union_F_meas) (hQF.symm ▸ hF)
+  have h_measures_eq : ∑ i : Fin n, (hPmeas i).measure = ∑ i : Fin n, (hQmeas i).measure := by
+    refine Finset.sum_congr rfl fun i _ => ?_
+    exact isometric_measure_eq (hPQ i) (hPmeas i) (hQmeas i)
+  calc
+    hE.measure = (JordanMeasurable.union' hPmeas).measure := by symm; exact h_E_meas_eq
+    _ = ∑ i : Fin n, (hPmeas i).measure := h_sum_P
+    _ = ∑ i : Fin n, (hQmeas i).measure := h_measures_eq
+    _ = (JordanMeasurable.union' hQmeas).measure := by symm; exact h_sum_Q
+    _ = hF.measure := h_F_meas_eq
 
 An orthogonal matrix has `|det| = 1`.
 -/
