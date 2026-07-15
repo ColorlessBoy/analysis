@@ -4425,18 +4425,62 @@ lemma metric_entropy_lower_upper_bound {d:ℕ} {E : Set (EuclideanSpace' d)} (hE
       intro x hx; simp [A] at hx; rcases hx with ⟨i, hi, hx⟩
       have hi_S : (Box.dyadic n i).toSet ⊆ E := hi
       exact hi_S hx
-    -- hA.measure = metric_entropy_lower E n * 2^{-dn}
     have hA_measure : hA_elem.measure = (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) := by
-      -- A is a finite union of dyadic boxes at scale n. They are pairwise disjoint (same scale,
-      -- different indices) and each has volume 2^{-dn}. Therefore the total measure equals
-      -- (number of boxes) * 2^{-dn} = metric_entropy_lower E n * 2^{-dn}.
-      -- A full proof requires:
-      --   1. h_fin.toFinset.card = metric_entropy_lower E n (true by definition of h_fin)
-      --   2. dyadic_box_disjoint: Disjoint ((Box.dyadic n i).toSet) ((Box.dyadic n j).toSet) for i ≠ j
-      --   3. dyadic_box_volume: |Box.dyadic n i|ᵥ = 2^{-dn}
-      --   4. Use IsElementary.measure_eq or IsElementary.measure_of_disjUnion' to compute hA_elem.measure
-      -- The technical details involve constructing a suitable Finset partition and applying measure_of_disjUnion'.
-      sorry
+      classical
+      have h_inj : Function.Injective (Box.dyadic (d := d) n) := by
+        intro i j h; ext k
+        have h_side : (Box.dyadic n i).side k = (Box.dyadic n j).side k := by
+          simpa using congrArg (fun (B : Box d) => B.side k) h
+        have h_eq1 : ((i k : ℤ) : ℝ) / (2 : ℝ)^(n : ℤ) = ((j k : ℤ) : ℝ) / (2 : ℝ)^(n : ℤ) := by
+          simpa [Box.dyadic, BoundedInterval.Ico] using congrArg BoundedInterval.a h_side
+        have hpos_2n : (0 : ℝ) < (2 : ℝ)^(n : ℤ) := zpow_pos (by norm_num) n
+        field_simp [hpos_2n.ne'] at h_eq1
+        exact_mod_cast h_eq1
+      let T : Finset (Box d) := (h_fin.toFinset).image (Box.dyadic n)
+      have hT_cover : A = ⋃ B ∈ T, B.toSet := by
+        ext x
+        constructor
+        · intro hx; simp [A] at hx; rcases hx with ⟨i, hi, hx⟩
+          have hi' : i ∈ h_fin.toFinset := h_fin.mem_toFinset.mpr hi
+          have hmem : (Box.dyadic n i) ∈ T := by
+            apply Finset.mem_image.mpr; exact ⟨i, hi', rfl⟩
+          exact Set.mem_biUnion hmem hx
+        · intro hx; simp at hx; rcases hx with ⟨B, hB, hx⟩
+          rcases Finset.mem_image.mp hB with ⟨i, hi, rfl⟩
+          have hi' : i ∈ h_fin.toFinset := hi
+          have hx_mem : x ∈ (Box.dyadic n i).toSet := by
+            intro j; have hxj := hx j; simp [Set.mem_Ico] at hxj ⊢; exact hxj
+          have hx_mem' : x ∈ (Box.dyadic n i).toSet := by
+            intro j; have hxj := hx j; simp [Set.mem_Ico] at hxj ⊢; exact hxj
+          dsimp [A]
+          exact Set.mem_biUnion hi' hx_mem'
+      have hT_disjoint : (T : Set (Box d)).PairwiseDisjoint Box.toSet := by
+        intro B₁ hB₁ B₂ hB₂ hneB
+        rcases Finset.mem_image.mp hB₁ with ⟨i, hi, rfl⟩
+        rcases Finset.mem_image.mp hB₂ with ⟨j, hj, rfl⟩
+        have hne' : i ≠ j := by intro h; apply hneB; simp [h]
+        exact dyadic_box_disjoint hne'
+      have h_card : (T.card : ℝ) = (metric_entropy_lower E n : ℝ) := by
+        haveI : Fintype (Subtype S) := by
+          have h_fin' : Set.Finite (S : Set (Fin d → ℤ)) := h_fin
+          exact h_fin'.fintype
+        have h_card_eq : T.card = metric_entropy_lower E n := by
+          calc
+            T.card = (h_fin.toFinset).card := Finset.card_image_of_injective _ h_inj
+            _ = (S : Set (Fin d → ℤ)).ncard :=
+              (Set.ncard_eq_toFinset_card (S : Set (Fin d → ℤ)) h_fin).symm
+            _ = metric_entropy_lower E n := by
+              dsimp [metric_entropy_lower]
+        exact_mod_cast h_card_eq
+      calc
+        hA_elem.measure = ∑ B ∈ T, |B|ᵥ :=
+          IsElementary.measure_eq hA_elem hT_disjoint hT_cover
+        _ = ∑ B ∈ T, (2:ℝ)^(-(d*n:ℤ)) := by
+          refine Finset.sum_congr rfl fun B hB => ?_
+          rcases Finset.mem_image.mp hB with ⟨i, hi, rfl⟩
+          rw [dyadic_box_volume n i]
+        _ = (T.card : ℝ) * (2:ℝ)^(-(d*n:ℤ)) := by simp [Finset.sum_const]
+        _ = (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) := by rw [h_card, mul_comm]
     unfold Jordan_inner_measure
     set T := {m | ∃ (A' : Set (EuclideanSpace' d)) (hA' : IsElementary A'), A' ⊆ E ∧ m = hA'.measure} with hT
     have h_bdd : BddAbove T := by
