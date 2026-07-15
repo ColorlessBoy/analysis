@@ -4309,15 +4309,198 @@ lemma dyadic_count_tendsto (a b : ℝ) :
           rw [ max_eq_right_of_lt ( by linarith ), Int.toNat_of_nonpos ] <;> norm_num;
           exact Int.floor_le_ceil _ |> le_trans <| Int.ceil_mono <| mul_le_mul_of_nonneg_right hab.le <| by positivity;
 
-/-- Scaled lower dyadic entropy converges to the inner Jordan measure (any bounded set). -/
+/-- Two different dyadic boxes at the same scale are disjoint. -/
+lemma dyadic_box_disjoint {d:ℕ} {n : ℤ} {i j : Fin d → ℤ} (hne : i ≠ j) :
+    Disjoint ((Box.dyadic n i).toSet) ((Box.dyadic n j).toSet) := by
+  have h_diff : ∃ k : Fin d, (i k : ℤ) ≠ (j k : ℤ) := by
+    by_contra! h; apply hne; ext k; exact h k
+  rcases h_diff with ⟨k, hk⟩
+  apply Set.disjoint_iff.mpr; intro x hx; simp at hx
+  rcases hx with ⟨hx_i, hx_j⟩
+  have hi_at_k := hx_i k; have hj_at_k := hx_j k
+  simp at hi_at_k hj_at_k
+  rcases hi_at_k with ⟨hilo, hihi⟩; rcases hj_at_k with ⟨hjlo, hjhi⟩
+  have hpos_2n : (0 : ℝ) < (2 : ℝ)^n := zpow_pos (by norm_num) n
+  by_cases hlt : (i k : ℤ) < (j k : ℤ)
+  · have h_int : (i k : ℤ) + 1 ≤ (j k : ℤ) := by omega
+    have h_real : ((i k : ℤ) : ℝ) + 1 ≤ ((j k : ℤ) : ℝ) := by exact_mod_cast h_int
+    have hx_upper : x.ofLp k * (2 : ℝ)^n < ((i k : ℤ) : ℝ) + 1 := by
+      calc
+        x.ofLp k * (2 : ℝ)^n < (((i k : ℤ) : ℝ) + 1) / (2 : ℝ)^n * (2 : ℝ)^n :=
+          mul_lt_mul_of_pos_right hihi hpos_2n
+        _ = ((i k : ℤ) : ℝ) + 1 := by field_simp [hpos_2n.ne']
+    have hx_lower : ((j k : ℤ) : ℝ) ≤ x.ofLp k * (2 : ℝ)^n := by
+      calc
+        ((j k : ℤ) : ℝ) = (((j k : ℤ) : ℝ) / (2 : ℝ)^n) * (2 : ℝ)^n := by field_simp [hpos_2n.ne']
+        _ ≤ x.ofLp k * (2 : ℝ)^n := mul_le_mul_of_nonneg_right hjlo (by positivity)
+    nlinarith
+  · have hle : (j k : ℤ) ≤ (i k : ℤ) := le_of_not_gt hlt
+    by_cases h_eq : (j k : ℤ) = (i k : ℤ)
+    · exact hk h_eq.symm
+    · have h_gt : (j k : ℤ) < (i k : ℤ) := lt_of_le_of_ne hle h_eq
+      have h_int : (j k : ℤ) + 1 ≤ (i k : ℤ) := by omega
+      have h_real : ((j k : ℤ) : ℝ) + 1 ≤ ((i k : ℤ) : ℝ) := by exact_mod_cast h_int
+      have hx_upper : x.ofLp k * (2 : ℝ)^n < ((j k : ℤ) : ℝ) + 1 := by
+        calc
+          x.ofLp k * (2 : ℝ)^n < (((j k : ℤ) : ℝ) + 1) / (2 : ℝ)^n * (2 : ℝ)^n :=
+            mul_lt_mul_of_pos_right hjhi hpos_2n
+          _ = ((j k : ℤ) : ℝ) + 1 := by field_simp [hpos_2n.ne']
+      have hx_lower : ((i k : ℤ) : ℝ) ≤ x.ofLp k * (2 : ℝ)^n := by
+        calc
+          ((i k : ℤ) : ℝ) = (((i k : ℤ) : ℝ) / (2 : ℝ)^n) * (2 : ℝ)^n := by field_simp [hpos_2n.ne']
+          _ ≤ x.ofLp k * (2 : ℝ)^n := mul_le_mul_of_nonneg_right hilo (by positivity)
+      nlinarith
+
+/-- The volume of a dyadic box at scale n is {lit}`2^{-dn}`. -/
+lemma dyadic_box_volume {d:ℕ} (n : ℤ) (i : Fin d → ℤ) : |Box.dyadic n i|ᵥ = (2:ℝ)^(-(d*n:ℤ)) := by
+  have hpos : (0 : ℝ) < ((2 : ℤ)^(n : ℤ) : ℝ) := by
+    simpa using zpow_pos (by norm_num : (0 : ℝ) < (2 : ℝ)) n
+  have hpos' : ∀ j : Fin d, 0 < (((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) - ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ) := by
+    intro j
+    have : (((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) - ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ) = 1 / ((2 : ℤ)^(n : ℤ) : ℝ) := by ring
+    rw [this]
+    exact div_pos (by norm_num) hpos
+  calc
+    |Box.dyadic n i|ᵥ = ∏ j : Fin d, |BoundedInterval.Ico (((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ))|ₗ := by
+      simp [Box.volume]
+    _ = ∏ j : Fin d, ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) - ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) := by
+      refine Finset.prod_congr rfl fun j _ => ?_
+      have ha_le_b : ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ) ≤ (((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) := by
+        refine div_le_div_of_nonneg_right ?_ (by positivity : 0 ≤ ((2 : ℤ)^(n : ℤ) : ℝ))
+        nlinarith
+      calc
+        |BoundedInterval.Ico (((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ))|ₗ
+            = max (((BoundedInterval.Ico (((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ))).b - (BoundedInterval.Ico (((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ))).a)) 0 := rfl
+        _ = max ((((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) - ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) 0 := by simp
+        _ = (((i j : ℤ) : ℝ) + 1) / ((2 : ℤ)^(n : ℤ) : ℝ) - ((i j : ℤ) : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ) := by
+          rw [max_eq_left (by linarith [hpos' j])]
+    _ = ∏ j : Fin d, ((1 : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ)) := by
+      refine Finset.prod_congr rfl fun j _ => ?_
+      ring
+    _ = ((1 : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ))^(d : ℕ) := by simp
+    _ = (2 : ℝ)^(-(d * n : ℤ)) := by
+      have hne : ((2 : ℤ)^(n : ℤ) : ℝ) ≠ 0 := by positivity
+      have h_eq : ((2 : ℤ)^(n : ℤ) : ℝ) = (2 : ℝ)^(n : ℤ) := by norm_num
+      calc
+        ((1 : ℝ) / ((2 : ℤ)^(n : ℤ) : ℝ))^(d : ℕ) = ((1 : ℝ) / ((2 : ℝ)^(n : ℤ)))^(d : ℕ) := by rw [h_eq]
+        _ = (((2 : ℝ)^(n : ℤ))⁻¹)^(d : ℕ) := by ring
+        _ = (((2 : ℝ)^(n : ℤ))^(d : ℕ))⁻¹ := by simp
+        _ = (2 : ℝ)^(-(d * n : ℤ)) := by
+          simp [zpow_mul, mul_comm, zpow_neg]
+
+lemma metric_entropy_lower_upper_bound {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : Bornology.IsBounded E) (n : ℤ) :
+    (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) ≤ Jordan_inner_measure E := by
+  -- Let S be the index set of dyadic boxes inside E.
+  set S : Set (Fin d → ℤ) := {i | (Box.dyadic n i).toSet ⊆ E} with hS
+  by_cases hzero : metric_entropy_lower E n = 0
+  · simp [hzero, Jordan_inner_measure_nonneg E]
+  · have hpos : 0 < metric_entropy_lower E n := Nat.pos_of_ne_zero hzero
+    -- Since metric_entropy_lower > 0, the set S nonempty and finite (Nat.card > 0).
+    have h_fin : Set.Finite S := by
+      rcases finite_or_infinite (Subtype S) with (h | h)
+      · exact Set.finite_coe_iff.mpr h
+      · haveI : Infinite (Subtype S) := h
+        have hzero' : Nat.card (Subtype S) = 0 := Nat.card_eq_zero_of_infinite
+        have : metric_entropy_lower E n = 0 :=
+          calc
+            metric_entropy_lower E n = Nat.card ({i : Fin d → ℤ | (Box.dyadic n i).toSet ⊆ E} : Set (Fin d → ℤ)) := rfl
+            _ = Nat.card (S : Set (Fin d → ℤ)) := by rw [hS]
+            _ = Nat.card (Subtype S) := rfl
+            _ = 0 := hzero'
+        linarith
+    -- Construct A as the finite union of dyadic boxes inside E.
+    let S_finset : Finset (Set (EuclideanSpace' d)) :=
+      h_fin.toFinset.image (fun i : Fin d → ℤ => (Box.dyadic n i).toSet)
+    have hA_eq : (⋃ E ∈ S_finset, E) = ⋃ i ∈ h_fin.toFinset, (Box.dyadic n i).toSet := by
+      ext x; simp [S_finset]
+    let A : Set (EuclideanSpace' d) := ⋃ i ∈ h_fin.toFinset, (Box.dyadic n i).toSet
+    have hA_elem : IsElementary A := by
+      -- A = ⋃ E ∈ S_finset, E (hA_eq), which is a finite union of boxes → elementary
+      have : A = ⋃ E ∈ S_finset, E := hA_eq.symm
+      rw [this]
+      refine IsElementary.union' ?_
+      intro X hX; rcases Finset.mem_image.mp hX with ⟨i, hi, rfl⟩
+      exact IsElementary.box (Box.dyadic n i)
+    have hA_sub : A ⊆ E := by
+      intro x hx; simp [A] at hx; rcases hx with ⟨i, hi, hx⟩
+      have hi_S : (Box.dyadic n i).toSet ⊆ E := hi
+      exact hi_S hx
+    -- hA.measure = metric_entropy_lower E n * 2^{-dn}
+    have hA_measure : hA_elem.measure = (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) := by
+      -- A is a finite union of dyadic boxes at scale n. They are pairwise disjoint (same scale,
+      -- different indices) and each has volume 2^{-dn}. Therefore the total measure equals
+      -- (number of boxes) * 2^{-dn} = metric_entropy_lower E n * 2^{-dn}.
+      -- A full proof requires:
+      --   1. h_fin.toFinset.card = metric_entropy_lower E n (true by definition of h_fin)
+      --   2. dyadic_box_disjoint: Disjoint ((Box.dyadic n i).toSet) ((Box.dyadic n j).toSet) for i ≠ j
+      --   3. dyadic_box_volume: |Box.dyadic n i|ᵥ = 2^{-dn}
+      --   4. Use IsElementary.measure_eq or IsElementary.measure_of_disjUnion' to compute hA_elem.measure
+      -- The technical details involve constructing a suitable Finset partition and applying measure_of_disjUnion'.
+      sorry
+    unfold Jordan_inner_measure
+    set T := {m | ∃ (A' : Set (EuclideanSpace' d)) (hA' : IsElementary A'), A' ⊆ E ∧ m = hA'.measure} with hT
+    have h_bdd : BddAbove T := by
+      obtain ⟨C, hC, hEC⟩ := IsElementary.contains_bounded hE
+      refine ⟨hC.measure, ?_⟩
+      rintro m ⟨A', hA', hA'_sub, rfl⟩
+      exact IsElementary.measure_mono hA' hC (Set.Subset.trans hA'_sub hEC)
+    have h_mem : hA_elem.measure ∈ T := ⟨A, hA_elem, hA_sub, rfl⟩
+    calc
+      (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n : ℝ) = hA_elem.measure := by symm; exact hA_measure
+      _ ≤ sSup T := le_csSup h_bdd h_mem
+
 lemma metric_entropy_lower_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
     Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n))
-      (nhds (Jordan_inner_measure E)) := by sorry
+      (nhds (Jordan_inner_measure E)) := by
+  set L := Jordan_inner_measure E with hL
+  have hpos : ∀ n:ℤ, 0 ≤ (2:ℝ)^(-(d*n:ℤ)) := by intro n; positivity
+  apply Metric.tendsto_nhds.mpr; intro ε hε
+  have h_ex : ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ hA.measure > L - ε / 2 := by
+    have h_lt : L - ε / 2 < L := by nlinarith
+    obtain ⟨A, hA, hAE, hA_gt⟩ := Jordan_inner_le h_lt
+    exact ⟨A, hA, hAE, hA_gt⟩
+  obtain ⟨A, hA, hAE, hA_gt⟩ := h_ex
+  have hA_upper : ∀ n : ℤ, (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower A n : ℝ) ≤ hA.measure := by
+    intro n
+    have h_bound := metric_entropy_lower_upper_bound (IsElementary.isBounded hA) n
+    have h_eq : Jordan_inner_measure A = hA.measure := by
+      apply le_antisymm
+      · calc
+          Jordan_inner_measure A ≤ Jordan_outer_measure A := Jordan_inner_le_outer (IsElementary.isBounded hA)
+          _ ≤ hA.measure := Jordan_outer_le hA (Set.Subset.refl A)
+      · exact le_Jordan_inner hA (Set.Subset.refl A)
+    rw [h_eq] at h_bound
+    exact h_bound
+  -- For any elementary A, 2^{-dn} * metric_entropy_lower A n → hA.measure. This holds because
+  -- the dyadic box count differs from the lattice point count (which gives convergence by
+  -- IsElementary.lattice_tendsto) by at most a surface term O(2^{-n}) that vanishes in the limit.
+  -- See also JordanMeasure.measure_eq for the lattice-point version.
+  -- A full proof of this lemma is given by the box-counting convergence (dyadic_count_tendsto × d times).
+  sorry
 
 /-- Scaled upper dyadic entropy converges to the outer Jordan measure (any bounded set). -/
 lemma metric_entropy_upper_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
     Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper E n))
-      (nhds (Jordan_outer_measure E)) := by sorry
+      (nhds (Jordan_outer_measure E)) := by
+  set U := Jordan_outer_measure E with hU
+  have hpos : ∀ n:ℤ, 0 ≤ (2:ℝ)^(-(d*n:ℤ)) := by intro n; positivity
+  apply Metric.tendsto_nhds.mpr; intro ε hε
+  have h_ex : ∃ (B : Set (EuclideanSpace' d)) (hB : IsElementary B), E ⊆ B ∧ hB.measure < U + ε / 2 := by
+    have h_lt : U < U + ε / 2 := by nlinarith
+    obtain ⟨B, hB, hEB, hB_lt⟩ := le_Jordan_outer h_lt hE
+    exact ⟨B, hB, hEB, hB_lt⟩
+  obtain ⟨B, hB, hEB, hB_lt⟩ := h_ex
+  have hB_upper : ∀ n : ℤ, (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper B n : ℝ) ≥ hB.measure := by
+    intro n
+    -- The union of dyadic boxes intersecting B is an elementary superset of B, hence its measure
+    -- is ≥ Jordan_outer_measure B = hB.measure (since B is Jordan measurable).
+    -- A full proof requires bounding the dyadic indices and computing the union measure.
+    sorry
+  -- Then for large n, the scaled upper entropy of B is close to hB.measure, and since E ⊆ B,
+  -- the entropy of E is ≤ that of B, giving the upper bound.
+  -- The lower bound U ≤ scaled_upper_entropy(E) holds because the union of dyadic boxes intersecting
+  -- E is an elementary superset of E, so its measure is ≥ U.
+  sorry
 
 /-
 Exercise 1.1.14
@@ -4354,7 +4537,207 @@ theorem JordanMeasure.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) →
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: JordanMeasurable E) (hF: JordanMeasurable F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: JordanMeasurable E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: JordanMeasurable E, m' E hE = c * hE.measure := by
-  sorry
+  classical
+  have h_pi : ∀ (E : Set (EuclideanSpace' d)) (h1 h2 : JordanMeasurable E), m' E h1 = m' E h2 := by
+    intro E h1 h2
+    have hm1 := hadd E (∅ : Set (EuclideanSpace' d)) h1 (JordanMeasurable.empty d) (by simp)
+    have hm2 := hadd E (∅ : Set (EuclideanSpace' d)) h2 (JordanMeasurable.empty d) (by simp)
+    have h_eq : h1.union (JordanMeasurable.empty d) = h2.union (JordanMeasurable.empty d) := by
+      apply Subsingleton.elim
+    have hL : m' (E ∪ ∅) (h1.union (JordanMeasurable.empty d)) = m' (E ∪ ∅) (h2.union (JordanMeasurable.empty d)) := by
+      rw [h_eq]
+    linarith
+  let μ (E : Set (EuclideanSpace' d)) : ℝ :=
+    if h : JordanMeasurable E then m' E h else 0
+  have hμ_nonneg : ∀ E, 0 ≤ μ E := by
+    intro E; dsimp [μ]
+    by_cases h : JordanMeasurable E
+    · rw [dif_pos h]; exact hnonneg E h
+    · simp [h]
+  have hμ_add : ∀ (E F : Set (EuclideanSpace' d)), Disjoint E F → JordanMeasurable E → JordanMeasurable F →
+      μ (E ∪ F) = μ E + μ F := by
+    intro E F hdisj hE_J hF_J
+    dsimp [μ]
+    have hunion_J : JordanMeasurable (E ∪ F) := hE_J.union hF_J
+    have h_add := hadd E F hE_J hF_J hdisj
+    have h_pi_union : m' (E ∪ F) hunion_J = m' (E ∪ F) (hE_J.union hF_J) := h_pi (E ∪ F) hunion_J (hE_J.union hF_J)
+    rw [dif_pos hunion_J, dif_pos hE_J, dif_pos hF_J, h_pi_union, h_add]
+  have hμ_trans : ∀ (E : Set (EuclideanSpace' d)) (x : EuclideanSpace' d), JordanMeasurable E → μ (E + {x}) = μ E := by
+    intro E x hE_J
+    dsimp [μ]
+    have htrans_J : JordanMeasurable (E + {x}) := hE_J.translate x
+    rw [dif_pos htrans_J, dif_pos hE_J, h_pi (E + {x}) htrans_J (hE_J.translate x), htrans E hE_J x]
+  set c := μ (Box.unit_cube d).toSet with hc_def
+  have hc_nonneg : 0 ≤ c := hμ_nonneg _
+  have h_μ_via_m' : ∀ (E : Set (EuclideanSpace' d)) (hE : JordanMeasurable E), μ E = m' E hE := by
+    intro E hE; dsimp [μ]; simp [hE, h_pi E _ hE]
+  let μ_elem (E : Set (EuclideanSpace' d)) (_ : IsElementary E) : ℝ := μ E
+  have hμ_elem_nonneg : ∀ E (hE_elem : IsElementary E), μ_elem E hE_elem ≥ 0 := by
+    intro E _; exact hμ_nonneg E
+  have hμ_elem_add : ∀ E F (hE_elem : IsElementary E) (hF_elem : IsElementary F), Disjoint E F →
+      μ_elem (E ∪ F) (hE_elem.union hF_elem) = μ_elem E hE_elem + μ_elem F hF_elem := by
+    intro E F hE_elem hF_elem hdisj
+    dsimp [μ_elem]
+    exact hμ_add E F hdisj hE_elem.jordanMeasurable hF_elem.jordanMeasurable
+  have hμ_elem_trans : ∀ E (hE_elem : IsElementary E) (x : EuclideanSpace' d),
+      μ_elem (E + {x}) (hE_elem.translate x) = μ_elem E hE_elem := by
+    intro E hE_elem x
+    dsimp [μ_elem]
+    exact hμ_trans E x hE_elem.jordanMeasurable
+  obtain ⟨c', hc'_nonneg, hc'_eq⟩ :=
+    IsElementary.measure_uniq (m' := μ_elem) hμ_elem_nonneg hμ_elem_add hμ_elem_trans
+  have h_cube_val : μ (Box.unit_cube d).toSet = c' := by
+    calc
+      μ (Box.unit_cube d).toSet = μ_elem (Box.unit_cube d).toSet (IsElementary.box (Box.unit_cube d)) := rfl
+      _ = c' * (IsElementary.box (Box.unit_cube d)).measure := hc'_eq _ _
+      _ = c' * 1 := by simp [IsElementary.measure_of_box, Box.volume, Box.unit_cube, BoundedInterval.length]
+      _ = c' := by ring
+  have hc'_eq_c : c' = c := by
+    calc
+      c' = μ (Box.unit_cube d).toSet := by symm; exact h_cube_val
+      _ = c := by symm; exact hc_def
+  have hμ_eq : ∀ (E : Set (EuclideanSpace' d)) (hE_J : JordanMeasurable E), μ E = c' * hE_J.measure := by
+    intro E hE_J
+    have h_tfae := (JordanMeasurable.equiv hE_J.1).out 0 1
+    have h_cond1 : ∀ ε > 0, ∃ (A B : Set (EuclideanSpace' d)) (hA : IsElementary A) (hB : IsElementary B),
+      A ⊆ E ∧ E ⊆ B ∧ (hB.sdiff hA).measure ≤ ε := h_tfae.mp hE_J
+    apply le_antisymm
+    · apply le_of_forall_pos_le_add
+      intro δ hδ
+      have hε_pos : 0 < δ / (c' + 1) := div_pos hδ (by nlinarith [hc'_nonneg])
+      obtain ⟨A, B, hA, hB, hA_sub, hB_sub, h_diff⟩ := h_cond1 (δ / (c' + 1)) hε_pos
+      have hA_elem : IsElementary A := hA
+      have hB_elem : IsElementary B := hB
+      have hA_val : μ A = c' * hA_elem.measure := by
+        simpa [μ_elem] using hc'_eq A hA_elem
+      have hB_val : μ B = c' * hB_elem.measure := by
+        simpa [μ_elem] using hc'_eq B hB_elem
+      have hAE : μ A ≤ μ E := by
+        have hA_J : JordanMeasurable A := hA_elem.jordanMeasurable
+        have h_sdiff : JordanMeasurable (E \ A) := hE_J.sdiff hA_J
+        have h_disj : Disjoint A (E \ A) := disjoint_sdiff_self_right
+        have h_union_eq : A ∪ (E \ A) = E := Set.union_diff_cancel hA_sub
+        have h_add := hμ_add A (E \ A) h_disj hA_J h_sdiff
+        rw [h_union_eq] at h_add
+        rw [h_add]
+        nlinarith [hμ_nonneg (E \ A)]
+      have hEB : μ E ≤ μ B := by
+        have h_sdiff : JordanMeasurable (B \ E) := hB_elem.jordanMeasurable.sdiff hE_J
+        have h_disj : Disjoint E (B \ E) := disjoint_sdiff_self_right
+        have h_union_eq : E ∪ (B \ E) = B := Set.union_diff_cancel hB_sub
+        have h_add := hμ_add E (B \ E) h_disj hE_J h_sdiff
+        rw [h_union_eq] at h_add
+        rw [h_add]
+        nlinarith [hμ_nonneg (B \ E)]
+      have h_meas_A_le : hA_elem.measure ≤ hE_J.measure := by
+        calc
+          hA_elem.measure = Jordan_inner_measure A :=
+            (JordanMeasurable.mes_of_elementary hA_elem).symm
+          _ ≤ Jordan_inner_measure E := Jordan_inner_measure_mono hA_sub hE_J.1
+          _ = hE_J.measure := rfl
+      have h_diff_meas : hB_elem.measure - hA_elem.measure ≤ δ / (c' + 1) := by
+        have h_eq : hB_elem.measure = hA_elem.measure + (hB_elem.sdiff hA_elem).measure := by
+          have h_union_eq' : A ∪ (B \ A) = B := Set.union_diff_cancel (Set.Subset.trans hA_sub hB_sub)
+          have h_disj' : Disjoint A (B \ A) := disjoint_sdiff_self_right
+          have h_same_measure : (hA_elem.union (hB_elem.sdiff hA_elem)).measure = hB_elem.measure :=
+            IsElementary.measure_eq_of_set_eq (hA_elem.union (hB_elem.sdiff hA_elem)) hB_elem h_union_eq'
+          calc
+            hB_elem.measure = (hA_elem.union (hB_elem.sdiff hA_elem)).measure := by symm; exact h_same_measure
+            _ = hA_elem.measure + (hB_elem.sdiff hA_elem).measure :=
+              IsElementary.measure_of_disjUnion hA_elem (hB_elem.sdiff hA_elem) h_disj'
+        rw [h_eq]
+        have : (hA_elem.measure + (hB_elem.sdiff hA_elem).measure) - hA_elem.measure = (hB_elem.sdiff hA_elem).measure := by ring
+        rw [this]
+        exact h_diff
+      have h_bound : μ E - c' * hE_J.measure < δ := by
+        have h1 : μ E - c' * hE_J.measure ≤ μ B - c' * hA_elem.measure := by nlinarith
+        have h2 : μ B - c' * hA_elem.measure = c' * (hB_elem.measure - hA_elem.measure) := by
+          rw [hB_val]; ring
+        have h3 : c' * (hB_elem.measure - hA_elem.measure) ≤ c' * (δ / (c' + 1)) := by nlinarith
+        have h4 : c' * (δ / (c' + 1)) < δ := by
+          have hpos : 0 < c' + 1 := by nlinarith
+          calc
+            c' * (δ / (c' + 1)) = (c' / (c' + 1)) * δ := by ring
+            _ < 1 * δ := mul_lt_mul_of_pos_right (by
+              have : c' / (c' + 1) < 1 := by
+                refine (div_lt_one ?_).mpr ?_
+                · nlinarith
+                · nlinarith
+              exact this) hδ
+            _ = δ := by simp
+        nlinarith
+      nlinarith
+    · apply le_of_forall_pos_le_add
+      intro δ hδ
+      have hε_pos : 0 < δ / (c' + 1) := div_pos hδ (by nlinarith [hc'_nonneg])
+      obtain ⟨A, B, hA, hB, hA_sub, hB_sub, h_diff⟩ := h_cond1 (δ / (c' + 1)) hε_pos
+      have hA_elem : IsElementary A := hA
+      have hB_elem : IsElementary B := hB
+      have hA_val : μ A = c' * hA_elem.measure := by
+        simpa [μ_elem] using hc'_eq A hA_elem
+      have hB_val : μ B = c' * hB_elem.measure := by
+        simpa [μ_elem] using hc'_eq B hB_elem
+      have hAE : μ A ≤ μ E := by
+        have hA_J : JordanMeasurable A := hA_elem.jordanMeasurable
+        have h_sdiff : JordanMeasurable (E \ A) := hE_J.sdiff hA_J
+        have h_disj : Disjoint A (E \ A) := disjoint_sdiff_self_right
+        have h_union_eq : A ∪ (E \ A) = E := Set.union_diff_cancel hA_sub
+        have h_add := hμ_add A (E \ A) h_disj hA_J h_sdiff
+        rw [h_union_eq] at h_add
+        rw [h_add]
+        nlinarith [hμ_nonneg (E \ A)]
+      have hEB : μ E ≤ μ B := by
+        have h_sdiff : JordanMeasurable (B \ E) := hB_elem.jordanMeasurable.sdiff hE_J
+        have h_disj : Disjoint E (B \ E) := disjoint_sdiff_self_right
+        have h_union_eq : E ∪ (B \ E) = B := Set.union_diff_cancel hB_sub
+        have h_add := hμ_add E (B \ E) h_disj hE_J h_sdiff
+        rw [h_union_eq] at h_add
+        rw [h_add]
+        nlinarith [hμ_nonneg (B \ E)]
+      have h_meas_E_le : hE_J.measure ≤ hB_elem.measure := by
+        calc
+          hE_J.measure = Jordan_outer_measure E := hE_J.eq_outer
+          _ ≤ Jordan_outer_measure B := Jordan_outer_measure_mono_of_subset hB_sub hB_elem.isBounded
+          _ = Jordan_inner_measure B := ((hB_elem.jordanMeasurable).2).symm
+          _ = hB_elem.measure := JordanMeasurable.mes_of_elementary hB_elem
+      have h_diff_meas : hB_elem.measure - hA_elem.measure ≤ δ / (c' + 1) := by
+        have h_eq : hB_elem.measure = hA_elem.measure + (hB_elem.sdiff hA_elem).measure := by
+          have h_union_eq' : A ∪ (B \ A) = B := Set.union_diff_cancel (Set.Subset.trans hA_sub hB_sub)
+          have h_disj' : Disjoint A (B \ A) := disjoint_sdiff_self_right
+          have h_same_measure : (hA_elem.union (hB_elem.sdiff hA_elem)).measure = hB_elem.measure :=
+            IsElementary.measure_eq_of_set_eq (hA_elem.union (hB_elem.sdiff hA_elem)) hB_elem h_union_eq'
+          calc
+            hB_elem.measure = (hA_elem.union (hB_elem.sdiff hA_elem)).measure := by symm; exact h_same_measure
+            _ = hA_elem.measure + (hB_elem.sdiff hA_elem).measure :=
+              IsElementary.measure_of_disjUnion hA_elem (hB_elem.sdiff hA_elem) h_disj'
+        rw [h_eq]
+        have : (hA_elem.measure + (hB_elem.sdiff hA_elem).measure) - hA_elem.measure = (hB_elem.sdiff hA_elem).measure := by ring
+        rw [this]
+        exact h_diff
+      have h_bound : c' * hE_J.measure - μ E < δ := by
+        have h1 : c' * hE_J.measure - μ E ≤ c' * hB_elem.measure - μ A := by nlinarith
+        have h2 : c' * hB_elem.measure - μ A = c' * (hB_elem.measure - hA_elem.measure) := by
+          rw [hA_val]; ring
+        have h3 : c' * (hB_elem.measure - hA_elem.measure) ≤ c' * (δ / (c' + 1)) := by nlinarith
+        have h4 : c' * (δ / (c' + 1)) < δ := by
+          have hpos : 0 < c' + 1 := by nlinarith
+          calc
+            c' * (δ / (c' + 1)) = (c' / (c' + 1)) * δ := by ring
+            _ < 1 * δ := mul_lt_mul_of_pos_right (by
+              have : c' / (c' + 1) < 1 := by
+                refine (div_lt_one ?_).mpr ?_
+                · nlinarith
+                · nlinarith
+              exact this) hδ
+            _ = δ := by simp
+        nlinarith
+      nlinarith
+  refine ⟨c, hc_nonneg, ?_⟩
+  intro E hE
+  calc
+    m' E hE = μ E := by symm; exact h_μ_via_m' E hE
+    _ = c' * hE.measure := hμ_eq E hE
+    _ = c * hE.measure := by rw [hc'_eq_c]
 
 /-- With unit cube normalization, the unique such function equals Jordan measure. -/
 theorem JordanMeasure.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (JordanMeasurable E) → ℝ}
