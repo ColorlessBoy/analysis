@@ -4026,7 +4026,7 @@ lemma Jordan_inner_measure_mono {d:ℕ} {E F : Set (EuclideanSpace' d)}
           exact ⟨ hB.measure, by rintro m ⟨ A, hA, hAF, rfl ⟩ ; exact IsElementary.measure_mono hA hB ( hAF.trans hFB ) ⟩;
         · exact ⟨ A, hA, hAE.trans h, rfl ⟩
 
-/-- The positive determinant scaling factor `|det T|` of a linear equivalence. -/
+/-- The positive determinant scaling factor {lit}`|det T|` of a linear equivalence. -/
 lemma linear_det_abs_pos {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) :
     0 < |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| := by
   rw [abs_pos]; exact (LinearEquiv.isUnit_det' T).ne_zero
@@ -4180,6 +4180,41 @@ lemma JordanMeasurable.null_iff {d:ℕ} {E: Set (EuclideanSpace' d)} : null E �
       rw [hinner_zero, houter_zero]
     exact ⟨⟨hbound, hinner_outer_eq⟩, hinner_zero⟩
 
+/-- For an elementary set, the scaled lattice-point count converges to its elementary measure. -/
+lemma IsElementary.lattice_tendsto {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) :
+  Filter.atTop.Tendsto (fun N:ℕ ↦ (N:ℝ)^(-d:ℝ) * Nat.card ↥(A ∩ (Set.range (fun (n:Fin d → ℤ) ↦ .toLp 2 (fun i ↦ (N:ℝ)⁻¹*(n i))))))
+  (nhds hA.measure) := by
+  obtain ⟨T, hTdisj, hTeq⟩ := hA.partition
+  have hmeas : hA.measure = ∑ B ∈ T, |B|ᵥ := hA.measure_eq hTdisj hTeq
+  rw [hmeas, hTeq]
+  exact Box.sum_vol_eq hTdisj
+
+/-
+The lattice point set of a bounded set is finite.
+-/
+lemma lattice_inter_finite {d:ℕ} {C: Set (EuclideanSpace' d)} (hC: Bornology.IsBounded C) (N:ℕ) (hN: N ≠ 0) :
+    (C ∩ (Set.range (fun (n:Fin d → ℤ) ↦ .toLp 2 (fun i ↦ (N:ℝ)⁻¹*(n i))))).Finite := by
+  -- By `IsElementary.contains_bounded hC`, there is an elementary `A ⊇ C`.
+  obtain ⟨A, hA_elem, hCA⟩ : ∃ A, IsElementary A ∧ C ⊆ A :=
+    IsElementary.contains_bounded hC
+  have hA_inter_finite : Set.Finite (A ∩ Set.range (fun (n : Fin d → ℤ) => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i)))) := by
+    obtain ⟨ S, rfl ⟩ := hA_elem;
+    have hA_inter_finite : ∀ B ∈ S, Set.Finite (B.toSet ∩ Set.range (fun (n : Fin d → ℤ) => .toLp 2 (fun i => (N : ℝ)⁻¹ * (n i)))) := by
+      intro B hB;
+      convert Set.finite_coe_iff.mp ( Box.sample_finite B hN ) using 1;
+    exact Set.Finite.subset ( Set.Finite.biUnion ( Finset.finite_toSet S ) hA_inter_finite ) fun x hx => by aesop;
+  exact hA_inter_finite.subset fun x hx => ⟨ hCA hx.1, hx.2 ⟩
+
+/-
+Lattice point counts are monotone under set inclusion (for bounded supersets).
+-/
+lemma lattice_count_mono {d:ℕ} {A C: Set (EuclideanSpace' d)} (hAC: A ⊆ C)
+    (hC: Bornology.IsBounded C) (N:ℕ) (hN: N ≠ 0) :
+    Nat.card ↥(A ∩ (Set.range (fun (n:Fin d → ℤ) ↦ .toLp 2 (fun i ↦ (N:ℝ)⁻¹*(n i)))))
+      ≤ Nat.card ↥(C ∩ (Set.range (fun (n:Fin d → ℤ) ↦ .toLp 2 (fun i ↦ (N:ℝ)⁻¹*(n i))))) := by
+  convert Set.ncard_le_ncard ( Set.inter_subset_inter_left _ hAC ) _ using 1;
+  convert lattice_inter_finite hC N hN using 1
+
 /-- Exercise 1.1.12 -/
 -- A subset of a Jordan null set is also Jordan null.
 lemma JordanMeasurable.null_mono {d:ℕ} {E F: Set (EuclideanSpace' d)} (h: null E) (hEF: F ⊆ E) : null F := by
@@ -4258,18 +4293,67 @@ noncomputable abbrev metric_entropy_lower {d:ℕ} (E: Set (EuclideanSpace' d)) (
 /-- Upper metric entropy: count of dyadic boxes at scale n that intersect E. -/
 noncomputable abbrev metric_entropy_upper {d:ℕ} (E: Set (EuclideanSpace' d)) (n:ℤ) : ℕ := Nat.card { i:Fin d → ℤ | (Box.dyadic n i).toSet ∩ E ≠ ∅ }
 
+/-
+Pure asymptotic: `2^{-n}` times the number of integers in `[⌈a·2ⁿ⌉, ⌊b·2ⁿ⌋)` tends to `max (b-a) 0`.
+-/
+lemma dyadic_count_tendsto (a b : ℝ) :
+    Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-n) * ((Finset.Ico ⌈a * 2^n⌉ ⌊b * 2^n⌋).card : ℝ))
+      (nhds (max (b - a) 0)) := by
+        by_cases hab : b - a ≥ 0;
+        · -- We'll use the fact that `Finset.Ico ⌈a * 2^n⌉ ⌊b * 2^n⌋` has cardinality approximately `(b - a) * 2^n`.
+          have h_card : ∀ n : ℤ, n ≥ 0 → |((Finset.Ico ⌈a * 2 ^ n⌉ ⌊b * 2 ^ n⌋).card : ℝ) - (b - a) * 2 ^ n| ≤ 2 := by
+            intro n hn; rw [ abs_le ] ; constructor <;> norm_num [ Int.toNat_of_nonneg ];
+            · have := Int.lt_floor_add_one ( b * 2 ^ n );
+              nlinarith [ show ( 2 : ℝ ) ^ n ≥ 1 by exact one_le_zpow₀ ( by norm_num ) hn, Int.le_ceil ( a * 2 ^ n ), Int.ceil_lt_add_one ( a * 2 ^ n ), show ( ⌊b * 2 ^ n⌋ : ℝ ) - ⌈a * 2 ^ n⌉ ≤ ↑ ( ⌊b * 2 ^ n⌋ - ⌈a * 2 ^ n⌉ ).toNat by exact_mod_cast Int.self_le_toNat _ ];
+            · refine' le_trans ( Int.cast_le.mpr <| Int.self_le_toNat _ ) _;
+              norm_num [ Int.toNat_of_nonneg, Int.floor_le, Int.lt_floor_add_one, Int.le_ceil, Int.ceil_lt_add_one ];
+              constructor <;> nlinarith [ Int.floor_le ( b * 2 ^ n ), Int.lt_floor_add_one ( b * 2 ^ n ), Int.le_ceil ( a * 2 ^ n ), Int.ceil_lt_add_one ( a * 2 ^ n ), show ( 0 : ℝ ) ≤ 2 ^ n by positivity ];
+          -- Using the fact that `Finset.Ico ⌈a * 2^n⌉ ⌊b * 2^n⌋` has cardinality approximately `(b - a) * 2^n`, we can bound the difference.
+          have h_bound : ∀ n : ℤ, n ≥ 0 → |(2 : ℝ) ^ (-n : ℤ) * ((Finset.Ico ⌈a * 2 ^ n⌉ ⌊b * 2 ^ n⌋).card : ℝ) - (b - a)| ≤ 2 * (2 : ℝ) ^ (-n : ℤ) := by
+            intro n hn; specialize h_card n hn; rw [ abs_le ] at *; constructor <;> norm_num [ zpow_neg ] at * <;> nlinarith [ inv_pos.mpr ( show 0 < ( 2 : ℝ ) ^ n by positivity ), mul_inv_cancel₀ ( show ( 2 : ℝ ) ^ n ≠ 0 by positivity ) ] ;
+          -- Since $2^{-n} \to 0$ as $n \to \infty$, we can apply the squeeze theorem.
+          have h_zero : Filter.Tendsto (fun n : ℤ => (2 : ℝ) ^ (-n : ℤ)) Filter.atTop (nhds 0) := by
+            norm_num [ ← Real.rpow_intCast, ← Real.rpow_neg ];
+            norm_num [ Real.rpow_def_of_pos ];
+            exact Filter.Tendsto.const_mul_atTop ( by positivity ) ( tendsto_intCast_atTop_atTop );
+          simpa [ hab ] using tendsto_iff_norm_sub_tendsto_zero.mpr ( squeeze_zero_norm' ( Filter.eventually_atTop.mpr ⟨ 0, fun n hn => by simpa using h_bound n hn ⟩ ) ( by simpa using h_zero.const_mul 2 ) );
+        · simp_all +decide [ Finset.Ico_eq_empty_of_le, Int.ceil_le, Int.le_floor ];
+          refine' tendsto_const_nhds.congr' _;
+          filter_upwards [ Filter.eventually_gt_atTop 0 ] with n hn;
+          rw [ max_eq_right_of_lt ( by linarith ), Int.toNat_of_nonpos ] <;> norm_num;
+          exact Int.floor_le_ceil _ |> le_trans <| Int.ceil_mono <| mul_le_mul_of_nonneg_right hab.le <| by positivity;
+
+/-- Scaled lower dyadic entropy converges to the inner Jordan measure (any bounded set). -/
+lemma metric_entropy_lower_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
+    Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n))
+      (nhds (Jordan_inner_measure E)) := by sorry
+
+/-- Scaled upper dyadic entropy converges to the outer Jordan measure (any bounded set). -/
+lemma metric_entropy_upper_tendsto {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
+    Filter.atTop.Tendsto (fun n:ℤ ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper E n))
+      (nhds (Jordan_outer_measure E)) := by sorry
+
 /-- Exercise 1.1.14 -/
 -- Jordan measurability is characterized by convergence of scaled dyadic metric entropy difference to zero.
 theorem JordanMeasure.iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) :
-  JordanMeasurable E ↔ Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * ((metric_entropy_upper E n - metric_entropy_lower E n))) (nhds 0) := by sorry
+  JordanMeasurable E ↔ Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * ((metric_entropy_upper E n - metric_entropy_lower E n))) (nhds 0) := by
+  constructor <;> intro h;
+  · convert Filter.Tendsto.sub ( metric_entropy_upper_tendsto hE ) ( metric_entropy_lower_tendsto hE ) using 2 ; ring;
+    rw [ h.2, sub_self ];
+  · refine' ⟨ hE, _ ⟩;
+    linarith [ tendsto_nhds_unique ( by simpa [ mul_sub ] using Filter.Tendsto.sub ( metric_entropy_upper_tendsto hE ) ( metric_entropy_lower_tendsto hE ) ) h ]
 
 /-- Jordan measure equals the limit of scaled lower metric entropy. -/
 theorem JordanMeasure.eq_lim_lower {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) :
-   Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n)) (nhds hE.measure) := by sorry
+   Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_lower E n)) (nhds hE.measure) := by
+  convert metric_entropy_lower_tendsto hE.1 using 1
 
 /-- Jordan measure equals the limit of scaled upper metric entropy. -/
 theorem JordanMeasure.eq_lim_upper {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) :
-   Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper E n)) (nhds hE.measure) := by sorry
+   Filter.atTop.Tendsto (fun n ↦ (2:ℝ)^(-(d*n:ℤ)) * (metric_entropy_upper E n)) (nhds hE.measure) := by
+  have := @JordanMeasure.iff d E ?_;
+  · convert Filter.Tendsto.add ( this.mp hE ) ( JordanMeasure.eq_lim_lower hE ) using 2 <;> ring;
+  · grind +qlia
 
 /-- Exercise 1.1.15 (Uniqueness of Jordan measure) -/
 theorem JordanMeasure.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (JordanMeasurable E) → ℝ}
@@ -4715,13 +4799,100 @@ theorem JordanMeasurable.measure_of_prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSp
 abbrev Isometric {d:ℕ} (E F: Set (EuclideanSpace' d)) : Prop :=
  ∃ A ∈ Matrix.orthogonalGroup (Fin d) ℝ, ∃ x₀, F = ((fun x => WithLp.toLp 2 (Matrix.toLin' A x.ofLp)) '' E) + {x₀}
 
-/-- Exercise 1.1.17 -/
+/-- Exercise 1.1.17
+
+WARNING: the statement below (kept for reference, commented out) is FALSE as written for
+dimension `d ≥ 3`.  Without assuming that the pieces `P i`, `Q i` are themselves Jordan
+measurable, the Banach–Tarski paradox provides a counterexample: the unit ball `E` can be cut
+into finitely many (non-measurable) pieces `P i` that are pairwise disjoint, and reassembled by
+isometries into two disjoint unit balls `F` (the reassembled pieces `Q i` even have empty interior,
+so `hQdisj` holds vacuously), yet `hE.measure = vol(ball) ≠ 2·vol(ball) = hF.measure`.  Neither a
+proof nor a disproof is possible from Mathlib as-is (Banach–Tarski is not available), so the
+original statement is retained only as a comment.
+
+The corrected statement (`JordanMeasurable.measure_of_equidecomposable`, below) adds the
+standard hypothesis that the pieces are Jordan measurable, matching Tao's exercise.
 theorem JordanMeasurable.measure_of_equidecomposable {d n:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: JordanMeasurable E) (hF: JordanMeasurable F)
   {P Q: Fin n → Set (EuclideanSpace' d)} (hPQ: ∀ i, Isometric (P i) (Q i))
   (hPE: E = ⋃ i, P i) (hQF: F = ⋃ i, Q i) (hPdisj: Set.PairwiseDisjoint .univ P)
   (hQdisj: Set.PairwiseDisjoint .univ (fun i ↦ (interior (Q i)))) : hE.measure = hF.measure := by
   sorry
+-/
+
+lemma Matrix.abs_det_orthogonal {d:ℕ} {A : Matrix (Fin d) (Fin d) ℝ}
+    (hA : A ∈ Matrix.orthogonalGroup (Fin d) ℝ) : |A.det| = 1 := by
+      have := congr_arg Matrix.det ( hA.2 );
+      simp_all +decide [ mul_comm, Matrix.det_one, Matrix.star_eq_conjTranspose ];
+      cases abs_cases ( Matrix.det A ) <;> nlinarith
+
+/-- An orthogonal matrix is invertible. -/
+noncomputable def Matrix.invertibleOfOrthogonal {d:ℕ} {A : Matrix (Fin d) (Fin d) ℝ}
+    (hA : A ∈ Matrix.orthogonalGroup (Fin d) ℝ) : Invertible A :=
+  A.invertibleOfIsUnitDet (by
+    have : |A.det| = 1 := Matrix.abs_det_orthogonal hA
+    have : A.det ≠ 0 := by intro h; rw [h] at this; simp at this
+    exact isUnit_iff_ne_zero.mpr this)
+
+/-
+Isometric Jordan measurable sets have the same Jordan measure.
+-/
+lemma isometric_measure_eq {d:ℕ} {E F : Set (EuclideanSpace' d)} (hiso : Isometric E F)
+    (hE : JordanMeasurable E) (hF : JordanMeasurable F) : hF.measure = hE.measure := by
+      obtain ⟨ A, hA, x₀, rfl ⟩ := hiso;
+      -- Let S := (A.linear_equiv) '' E.
+      set S := (fun x => WithLp.toLp 2 (Matrix.toLin' A x.ofLp)) '' E with hS_def
+      have hS : JordanMeasurable S := by
+        have := hF;
+        convert this.translate ( -x₀ ) using 1 ; ext ; simp +decide [ Set.mem_add ]
+      have hS_measure : hS.measure = hE.measure := by
+        haveI := Matrix.invertibleOfOrthogonal hA;
+        convert linear_measure_eq ( A.linear_equiv ) hE using 1;
+        simp +decide [ Matrix.linear_equiv_det ];
+        rw [ Matrix.abs_det_orthogonal hA, one_mul ]
+      have hF_eq_S : (fun x => WithLp.toLp 2 (Matrix.toLin' A x.ofLp)) '' E + {x₀} = S + {x₀} := by
+        rfl
+      have hF_measure : hF.measure ≤ hS.measure := by
+        convert JordanMeasurable.measure_of_translate hS x₀ using 1
+      have hF_measure_ge : hS.measure ≤ hF.measure := by
+        have hF_measure_ge : (hF.translate (-x₀)).measure ≤ hF.measure := by
+          convert JordanMeasurable.measure_of_translate hF ( -x₀ ) using 1;
+        convert hF_measure_ge using 1;
+        congr! 1;
+        norm_num [ Set.ext_iff, Set.mem_add ]
+      have hF_measure_eq : hF.measure = hS.measure := by
+        exact le_antisymm hF_measure hF_measure_ge
+      rw [hS_measure] at hF_measure_eq
+      exact hF_measure_eq.symm ▸ rfl
+
+
+theorem JordanMeasurable.measure_of_equidecomposable {d n:ℕ} {E F: Set (EuclideanSpace' d)}
+  (hE: JordanMeasurable E) (hF: JordanMeasurable F)
+  {P Q: Fin n → Set (EuclideanSpace' d)} (hPQ: ∀ i, Isometric (P i) (Q i))
+  (hP: ∀ i, JordanMeasurable (P i)) (hQ: ∀ i, JordanMeasurable (Q i))
+  (hPE: E = ⋃ i, P i) (hQF: F = ⋃ i, Q i) (hPdisj: Set.PairwiseDisjoint .univ P)
+  (hQdisj: Set.PairwiseDisjoint .univ (fun i ↦ (interior (Q i)))) : hE.measure = hF.measure := by
+  convert JordanMeasurable.measure_eq_volume hE using 1;
+  rw [ hPE, MeasureTheory.measure_iUnion₀ ] <;> norm_num [ hPdisj, hP ];
+  · rw [ hF.measure_eq_volume, hQF, MeasureTheory.measure_iUnion₀ ];
+    · rw [ tsum_fintype, Finset.sum_congr rfl ];
+      intro i hi; specialize hPQ i; exact (by
+      convert isometric_measure_eq hPQ ( hP i ) ( hQ i ) using 1;
+      rw [ ← ENNReal.toReal_eq_toReal_iff' ] <;> norm_num [ JordanMeasurable.measure_eq_volume ];
+      · exact ne_of_lt ( volume_lt_top_of_bounded ( hQ i |>.1 ) );
+      · exact ne_of_lt ( volume_lt_top_of_bounded ( hP i |>.1 ) ));
+    · intro i j hij;
+      have h_inter_subset : Q i ∩ Q j ⊆ frontier (Q i) ∪ frontier (Q j) := by
+        intro x hx; by_cases hi : x ∈ interior ( Q i ) <;> by_cases hj : x ∈ interior ( Q j ) <;> simp_all +decide [ Set.disjoint_left ] ;
+        · exact absurd ( hQdisj ( Set.mem_univ i ) ( Set.mem_univ j ) hij ) ( Set.not_disjoint_iff.mpr ⟨ x, hi, hj ⟩ );
+        · exact Or.inr ( by rw [ frontier_eq_closure_inter_closure ] ; exact ⟨ subset_closure hx.2, by aesop ⟩ );
+        · exact Or.inl <| ⟨ subset_closure hx.1, hi ⟩;
+        · exact Or.inl ⟨ subset_closure hx.1, hi ⟩;
+      exact MeasureTheory.measure_mono_null h_inter_subset ( MeasureTheory.measure_union_null ( hQ i |> JordanMeasurable.frontier_volume_zero ) ( hQ j |> JordanMeasurable.frontier_volume_zero ) );
+    · exact fun i => JordanMeasurable.nullMeasurableSet ( hQ i );
+  · intro i j hij; specialize hPdisj ( Set.mem_univ i ) ( Set.mem_univ j ) hij; exact (by
+    exact MeasureTheory.measure_mono_null ( fun x hx => by have := hPdisj.le_bot hx; aesop ) ( MeasureTheory.measure_empty ));
+  · exact fun i => JordanMeasurable.nullMeasurableSet ( hP i )
 
 /-- Helper: closure of a bounded interval is contained in the closed interval between its endpoints. -/
 lemma BoundedInterval.closure_subset_Icc (I : BoundedInterval) : closure (I : Set ℝ) ⊆ (Icc I.a I.b : Set ℝ) := by
