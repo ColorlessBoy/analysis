@@ -1,4 +1,4 @@
-import Analysis.MeasureTheory.Section_1_1_2
+import Analysis.MeasureTheory.Section_1_1_2_ext2
 
 set_option linter.unnecessarySimpa false
 
@@ -2216,7 +2216,7 @@ lemma integral_mono' {I: BoundedInterval}
           have h_inner_h_zero_attach : (∑ K' ∈ h.T.attach, (if (J.val : Set ℝ) ⊆ (K'.val : Set ℝ) then h.c K' else 0)) = 0 := by
             simpa using h_inner_h_zero
           simp [h_inner_g_zero_attach, h_inner_h_zero_attach]
-    
+
     have h_inner_conv (b : g.T) : (∑ J : uK (b.val), g.c b * |J|ₗ) =
       (∑ J : Subtype (· ∈ T), (if (J.val : Set ℝ) ⊆ (b.val : Set ℝ) then g.c b * |J|ₗ else 0)) := by
       calc
