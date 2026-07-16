@@ -1,5 +1,9 @@
 import Analysis.MeasureTheory.Section_1_1_2
 
+open BoundedInterval
+open Pointwise
+open MeasureTheory
+
 set_option maxHeartbeats 0
 
 /-- For a box B, the metric entropy at scale n equals the product of 1D interval counts. -/
