@@ -2649,8 +2649,73 @@ lemma TaggedPartition.intervals_cover (hI : I = Icc I.a I.b) (h_ab : I.a ≤ I.b
 
 /-- Exercise 1.1.23 -/
 -- Any function continuous on a nonempty closed interval is Riemann integrable.
-lemma RiemannIntegrableOn.continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I = Icc I.a I.b)
-    (hnonempty : I.toSet.Nonempty) (hcont: ContinuousOn f I.toSet) : RiemannIntegrableOn f I := by sorry
+lemma RiemannIntegrableOn.continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I = Icc I.a I.b) (hcont: ContinuousOn f I.toSet) (h_nonempty : I.toSet.Nonempty) : RiemannIntegrableOn f I := by
+  have h_ab : I.a ≤ I.b := by
+    rcases h_nonempty with ⟨x, hx⟩; rw [hI, BoundedInterval.toSet] at hx; exact hx.1.trans hx.2
+  by_cases hab : I.a < I.b
+  · have h_width_pos : 0 < I.b - I.a := sub_pos.mpr hab
+    have h_compact : IsCompact (Set.Icc I.a I.b) := isCompact_Icc
+    have hcont' : ContinuousOn f (Set.Icc I.a I.b) := by
+      rw [hI] at hcont; rw [BoundedInterval.toSet] at hcont; exact hcont
+    have h_unif_cont : UniformContinuousOn f (Set.Icc I.a I.b) :=
+      h_compact.uniformContinuousOn_of_continuous hcont'
+    have h_uc : ∀ ε > 0, ∃ δ > 0, ∀ x y, x ∈ I.toSet → y ∈ I.toSet → |x - y| < δ → |f x - f y| < ε := by
+      rw [Metric.uniformContinuousOn_iff] at h_unif_cont
+      intro ε hε; rcases h_unif_cont ε hε with ⟨δ, hδ, h⟩
+      refine ⟨δ, hδ, λ x y hx hy hxy => ?_⟩
+      have hx' : x ∈ Set.Icc I.a I.b := by rw [hI, BoundedInterval.toSet] at hx; exact hx
+      have hy' : y ∈ Set.Icc I.a I.b := by rw [hI, BoundedInterval.toSet] at hy; exact hy
+      have h_dist : dist x y < δ := by rw [Real.dist_eq]; exact hxy
+      have h_val := h x hx' y hy' h_dist; rw [Real.dist_eq] at h_val; exact h_val
+    -- Core estimate: for P, Q with small norm, |RS(P)-RS(Q)| < ε
+    -- This follows from uniform continuity and a common refinement argument.
+    -- The common refinement is constructed by intersecting P and Q subintervals.
+    have h_cauchy : ∀ ε > 0, ∃ δ > 0, ∀ (P Q : Sigma (TaggedPartition I)),
+        P.snd.norm < δ → Q.snd.norm < δ → |P.snd.RiemannSum f - Q.snd.RiemannSum f| < ε := by
+      intro ε hε
+      have h_eps_div : 0 < ε / (I.b - I.a) := div_pos hε h_width_pos
+      rcases h_uc (ε / (I.b - I.a)) h_eps_div with ⟨δ_uc, hδ_uc_pos, h_uc'⟩
+      refine ⟨δ_uc / 2, half_pos hδ_uc_pos, ?_⟩
+      intro P Q hP hQ
+      set P' := P.snd with hP'_def; set Q' := Q.snd with hQ'_def
+      have hP_norm : P'.norm < δ_uc / 2 := hP
+      have hQ_norm : Q'.norm < δ_uc / 2 := hQ
+      -- Express RS(P') and RS(Q') as sums over overlapping subintervals
+      -- This requires constructing the common refinement and proving the bound.
+      -- The full proof is deferred; see e.g. Rudin's Principles of Mathematical Analysis, Theorem 7.12.
+      sorry
+    have h_complete : CompleteSpace ℝ := by infer_instance
+    have h_cauchy_filter : Cauchy (Filter.map (fun (a : Sigma (TaggedPartition I)) => a.snd.RiemannSum f)
+        (TaggedPartition.nhds_zero I)) := by
+      rw [Metric.cauchy_iff]
+      constructor
+      · haveI : Filter.NeBot (TaggedPartition.nhds_zero I) := TaggedPartition.nhds_zero_neBot I hI hab
+        exact Filter.map_neBot
+      · intro ε hε
+        rcases h_cauchy ε hε with ⟨δ, hδ, h_cauchy⟩
+        have h_ball : Metric.ball (0 : ℝ) δ ∈ nhds (0 : ℝ) := by
+          rw [Metric.mem_nhds_iff]; exact ⟨δ, hδ, fun x hx => hx⟩
+        let N : Set (Sigma (TaggedPartition I)) := {P | P.snd.norm < δ}
+        have hN_mem : N ∈ TaggedPartition.nhds_zero I := by
+          rw [TaggedPartition.nhds_zero, Filter.mem_comap]
+          refine ⟨Metric.ball (0 : ℝ) δ, h_ball, λ P hP => ?_⟩
+          have hP_norm_lt_δ : P.snd.norm < δ := by
+            have hball : P.snd.norm ∈ Metric.ball (0 : ℝ) δ := hP
+            rw [Metric.mem_ball, Real.dist_eq, sub_zero] at hball
+            exact (abs_lt.mp hball).2
+          simpa [N] using hP_norm_lt_δ
+        let t : Set ℝ := (fun (a : Sigma (TaggedPartition I)) => a.snd.RiemannSum f) '' N
+        have ht_mem : t ∈ Filter.map (fun a : Sigma (TaggedPartition I) => a.snd.RiemannSum f)
+            (TaggedPartition.nhds_zero I) := by
+          rw [Filter.mem_map]; apply Filter.mem_of_superset hN_mem
+          intro P hP; exact ⟨P, hP, rfl⟩
+        refine ⟨t, ht_mem, ?_⟩
+        intro x hx y hy; rcases hx with ⟨P, hP, rfl⟩; rcases hy with ⟨Q, hQ, rfl⟩
+        rw [Real.dist_eq]; exact h_cauchy P Q (by simpa [N] using hP) (by simpa [N] using hQ)
+    rcases h_complete.complete h_cauchy_filter with ⟨R, hR⟩
+    refine ⟨hI, h_nonempty, ⟨R, hR⟩⟩
+  · have heq : I.a = I.b := by linarith
+    exact (RiemannIntegrable.of_zero_length f (a := I.a) (by rw [hI, heq])).1
 
 /-- Exercise 1.1.23' -/
 -- A bounded function that is continuous on each piece of a partition is Riemann integrable on
