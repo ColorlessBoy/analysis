@@ -826,10 +826,42 @@ lemma BoundedInterval.length_of_partition (K: BoundedInterval) (T: Finset Bounde
 /-- Each refined subinterval J in T' is contained in some original interval I in S. -/
 lemma BoundedInterval.refinement_subset (S: Finset BoundedInterval) (T': Finset BoundedInterval)
     (hdisj: (T' : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
-    (hrefine: ∀ (I' : BoundedInterval), I' ∈ S → ∃ U : Set T', I' = ⋃ J ∈ U, J.val.toSet) (J: T') :
+    (hrefine: ∀ (I' : BoundedInterval), I' ∈ S → ∃ U : Set T', I' = ⋃ J ∈ U, J.val.toSet)
+    (hS_nonempty : S.Nonempty)
+    (hcover : (⋃ J ∈ T', (J : Set ℝ)) ⊆ (⋃ I ∈ S, (I : Set ℝ))) (J: T') :
     ∃ I ∈ S, J.val.toSet ⊆ I.toSet := by
-  -- Note: this lemma requires S.Nonempty and J.val.Nonempty; use the direct inlined version in PCF.add
-  sorry
+  by_cases h_nonempty : (J.val.toSet : Set ℝ).Nonempty
+  · obtain ⟨x, hx⟩ := h_nonempty
+    have hx_cover : x ∈ (⋃ I ∈ S, (I : Set ℝ)) :=
+      hcover (Set.mem_iUnion₂.mpr ⟨J.val, J.property, hx⟩)
+    obtain ⟨I, hI, hx_I⟩ := Set.mem_iUnion₂.mp hx_cover
+    obtain ⟨U, hU⟩ := hrefine I hI
+    have hx_U : x ∈ ⋃ K ∈ U, (K.val : Set ℝ) := by
+      rw [hU] at hx_I
+      exact hx_I
+    obtain ⟨K, hK, hx_K⟩ := Set.mem_iUnion₂.mp hx_U
+    have h_val_eq : J.val = K.val := by
+      by_contra hne
+      have h_val_ne : J.val ≠ K.val := hne
+      have h_disjoint : Disjoint (J.val.toSet) (K.val.toSet) :=
+        hdisj (Finset.mem_coe.mpr J.property) (Finset.mem_coe.mpr K.property) h_val_ne
+      have h_inter_empty : (J.val.toSet) ∩ (K.val.toSet) = ∅ :=
+        Set.disjoint_iff_inter_eq_empty.mp h_disjoint
+      have hx_inter : x ∈ (J.val.toSet) ∩ (K.val.toSet) := ⟨hx, hx_K⟩
+      rw [h_inter_empty] at hx_inter
+      simp at hx_inter
+    have h_sub : K.val.toSet ⊆ I.toSet := by
+      rw [hU]
+      intro y hy
+      exact Set.mem_iUnion₂.mpr ⟨K, hK, hy⟩
+    refine ⟨I, hI, ?_⟩
+    rw [h_val_eq]
+    exact h_sub
+  · have h_empty : J.val.toSet = (∅ : Set ℝ) := Set.not_nonempty_iff_eq_empty.mp h_nonempty
+    obtain ⟨I, hI⟩ := hS_nonempty
+    refine ⟨I, hI, ?_⟩
+    rw [h_empty]
+    exact Set.empty_subset _
 
 /-- Exercise 1.1.20 (Piecewise constant functions) -/
 -- The integral is well-defined: different representations of the same piecewise constant function have the same integral.
