@@ -29,6 +29,18 @@ def TaggedPartition.delta {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) 
 -- The mesh size (supremum of subinterval widths) of a tagged partition.
 noncomputable def TaggedPartition.norm {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) : ℝ := iSup P.delta
 
+lemma TaggedPartition.sum_delta_eq (P : TaggedPartition I n) : ∑ i : Fin n, P.delta i = I.b - I.a := by
+  have h_succ : ∑ i : Fin n, P.x i.succ = (∑ i : Fin (n+1), P.x i) - P.x 0 := by
+    have := Fin.sum_univ_succ (λ i : Fin (n+1) => P.x i); linarith
+  have h_castSucc : ∑ i : Fin n, P.x i.castSucc = (∑ i : Fin (n+1), P.x i) - P.x (Fin.last n) := by
+    have := Fin.sum_univ_castSucc (λ i : Fin (n+1) => P.x i); linarith
+  calc
+    ∑ i : Fin n, P.delta i = ∑ i : Fin n, (P.x i.succ - P.x i.castSucc) := rfl
+    _ = (∑ i : Fin n, P.x i.succ) - (∑ i : Fin n, P.x i.castSucc) := by simp [Finset.sum_sub_distrib]
+    _ = ((∑ i : Fin (n+1), P.x i) - P.x 0) - ((∑ i : Fin (n+1), P.x i) - P.x (Fin.last n)) := by rw [h_succ, h_castSucc]
+    _ = P.x (Fin.last n) - P.x 0 := by ring
+    _ = I.b - I.a := by rw [P.x_end, P.x_start]
+
 -- The Riemann sum of f with respect to a tagged partition: sum of f(tag_i) * delta_i.
 def TaggedPartition.RiemannSum {I: BoundedInterval} {n:ℕ} (f: ℝ → ℝ) (P: TaggedPartition I n) : ℝ :=
   ∑ i, f (P.x_tag i) * P.delta i
