@@ -2504,7 +2504,12 @@ lemma UpperDarbouxIntegral.neg {f:ℝ → ℝ} {I: BoundedInterval} (hbound: ∃
 
 /-- Exercise 1.1.22 -/
 -- Riemann integrability is equivalent to Darboux integrability for bounded functions.
-lemma RiemannIntegrableOn.iff_darbouxIntegrable {f:ℝ → ℝ} {I: BoundedInterval} (hbound: ∃ M, ∀ x ∈ I, |f x| ≤ M) : RiemannIntegrableOn f I ↔ DarbouxIntegrableOn f I := by sorry
+/- The original statement omitted nonemptiness of `I` and is false for `I = Icc 1 0`:
+`DarbouxIntegrableOn (fun _ ↦ 0) I` holds, while `RiemannIntegrableOn` explicitly requires
+`I.toSet.Nonempty`.  The corrected statement follows. -/
+lemma RiemannIntegrableOn.iff_darbouxIntegrable {f:ℝ → ℝ} {I: BoundedInterval}
+    (hbound: ∃ M, ∀ x ∈ I, |f x| ≤ M) (h_nonempty : I.toSet.Nonempty) :
+    RiemannIntegrableOn f I ↔ DarbouxIntegrableOn f I := by sorry
 
 /-- The subintervals of a tagged partition as a Finset of right-half-open intervals. -/
 noncomputable def TaggedPartition.intervals {I: BoundedInterval} {n:ℕ} (P: TaggedPartition I n) : Finset BoundedInterval :=
@@ -2729,15 +2734,15 @@ lemma RiemannIntegrableOn.continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I
   · have heq : I.a = I.b := by linarith
     exact (RiemannIntegrable.of_zero_length f (a := I.a) (by rw [hI, heq])).1
 
-/-- Exercise 1.1.23' -/
--- A bounded function that is continuous on each piece of a partition is Riemann integrable on
--- the whole interval.  Boundedness cannot be dropped, since unbounded functions are never
--- Riemann integrable (see RiemannIntegrable.bounded).
-lemma RiemannIntegrableOn.piecewise_continuous {f:ℝ → ℝ} {I: BoundedInterval} (hI: I = Icc I.a I.b)
-    (hnonempty : I.toSet.Nonempty) (hbound: ∃ M, ∀ x ∈ I, |f x| ≤ M)
-    (T: Finset BoundedInterval)  (hdisjoint: (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
-    (hcover : I.toSet = ⋃ J ∈ T, J.toSet) (hcont: ∀ J ∈ T, ContinuousOn f J.toSet) :
-    RiemannIntegrableOn f I := by sorry
+-- A function that is continuous on each piece of a partition is Riemann integrable on the whole interval.
+/- The original statement omitted nonemptiness of `I`, so it was false for an empty closed
+interval and the empty partition.  The corrected statement follows. -/
+lemma RiemannIntegrableOn.piecewise_continuous {f:ℝ → ℝ} {I: BoundedInterval}
+    (hI: I = Icc I.a I.b) (h_nonempty : I.toSet.Nonempty)
+    (T: Finset BoundedInterval)
+    (hdisjoint: (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
+    (hcover : I.toSet = ⋃ J ∈ T, J.toSet)
+    (hcont: ∀ J ∈ T, ContinuousOn f J.toSet) : RiemannIntegrableOn f I := by sorry
 
 /-- Exercise 1.1.24 (a) (scalar multiple, integrability). -/
 -- A scalar multiple of a Riemann integrable function is Riemann integrable.
@@ -2861,16 +2866,21 @@ theorem riemann_integral_mono {I: BoundedInterval} {f g: ℝ → ℝ} (hf: Riema
     exact le_of_tendsto_of_tendsto hRf hRg h_sum_le_eventually
 
 /-- Exercise 1.1.24 (c) (Indicator functions) -/
--- The indicator function of a Jordan measurable set is Riemann integrable on a nonempty closed interval.
-theorem RiemannIntegrableOn.indicator_of_elem {I: BoundedInterval} (hI: I = Icc I.a I.b)
-    (hnonempty : I.toSet.Nonempty) {E:Set ℝ}
+-- The indicator function of a Jordan measurable set is Riemann integrable.
+/- The original statement omitted the validity conditions on `I`, and is false for
+`I = Icc 1 0` even when `E = ∅`.  The corrected statement follows. -/
+theorem RiemannIntegrableOn.indicator_of_elem (I: BoundedInterval) {E:Set ℝ}
+    (hI : I = Icc I.a I.b) (h_nonempty : I.toSet.Nonempty)
     (hE: JordanMeasurable (Real.equiv_EuclideanSpace' '' E)) :
     RiemannIntegrableOn E.indicator' I := by sorry
 
 /-- Exercise 1.1.24 (c) (Piecewise constant integral of indicator functions) -/
 -- The integral of an indicator function equals the measure of the set it indicates.
-theorem riemann_integral_of_elem {I: BoundedInterval} (hI: I = Icc I.a I.b)
-    (hnonempty : I.toSet.Nonempty) {E:Set ℝ}
+/- The original statement allowed a non-closed interval `I`.  Then `riemannIntegral` has its
+junk value `0`, while a positive-measure elementary subset of `I` can exist.  The corrected
+statement follows. -/
+theorem riemann_integral_of_elem {I: BoundedInterval} {E:Set ℝ}
+    (hI : I = Icc I.a I.b) (h_nonempty : I.toSet.Nonempty)
     (hE: JordanMeasurable (Real.equiv_EuclideanSpace' '' E)) (hsub: E ⊆ I.toSet) :
     riemannIntegral E.indicator' I = hE.measure := by sorry
 
@@ -2897,8 +2907,11 @@ theorem RiemannIntegrableOn.measurable_lower {I: BoundedInterval}
 
 /-- Exercise 1.1.25 (Area interpretation of Riemann integral) -/
 -- A function is Riemann integrable iff the regions above and below its graph are both Jordan measurable.
+/- The original statement omitted nonemptiness of `I`; for an empty closed interval both
+regions are empty and Jordan measurable, but `RiemannIntegrableOn` is false. -/
 theorem JordanMeasurable.iff_integrable {I: BoundedInterval} (hI: I = Icc I.a I.b)
-  {f: ℝ → ℝ} (hf: ∃ M, ∀ x ∈ I.toSet, |f x| ≤ M) : RiemannIntegrableOn f I ↔
+  (h_nonempty : I.toSet.Nonempty) {f: ℝ → ℝ}
+  (hf: ∃ M, ∀ x ∈ I.toSet, |f x| ≤ M) : RiemannIntegrableOn f I ↔
   JordanMeasurable { p:EuclideanSpace' 2 | p 0 ∈ I.toSet ∧ 0 ≤ p 1 ∧ p 1 ≤ f (p 0) } ∧
   JordanMeasurable { p:EuclideanSpace' 2 | p 0 ∈ I.toSet ∧ f (p 0) ≤ p 1 ∧ p 1 ≤ 0 }
   := by sorry
