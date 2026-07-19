@@ -53,15 +53,32 @@ theorem Lebesgue_outer_measure.of_empty (d:ℕ) : Lebesgue_outer_measure (∅: S
   apply le_antisymm
   · unfold Lebesgue_outer_measure
     apply sInf_le
-    refine ⟨(∅ : Set ℕ), (fun i => (Set.not_mem_empty i.1 i.2).elim), ?_, ?_⟩
+    refine ⟨(∅ : Set ℕ), (fun i => i.2.elim), ?_, ?_⟩
     · simp
     · simp
-  · exact Lebesgue_outer_measure.nonneg _
+  · unfold Lebesgue_outer_measure
+    apply le_sInf
+    intro V hV
+    obtain ⟨X, S, _, rfl⟩ := hV
+    apply tsum_nonneg
+    intro n
+    have hvol : 0 ≤ |S n|ᵥ := by
+      rw [Box.volume]
+      apply Finset.prod_nonneg
+      intro i _
+      rw [BoundedInterval.length]
+      exact le_max_right _ _
+    exact EReal.coe_nonneg.mpr hvol
 
 /-- Exercise 1.2.3(ii) (Monotonicity) -/
 theorem Lebesgue_outer_measure.mono {d: ℕ} {E F : Set (EuclideanSpace' d)} (h : E ⊆ F) :
     Lebesgue_outer_measure E ≤ Lebesgue_outer_measure F := by
-  sorry
+  unfold Lebesgue_outer_measure
+  apply sInf_le_sInf
+  intro V hV
+  obtain ⟨X, S, hF_cover, rfl⟩ := hV
+  refine ⟨X, S, ?_, rfl⟩
+  exact Set.Subset.trans h hF_cover
 
 /-- Lebesgue outer measure is non-negative.
     Since it's the sInf of sums of box volumes, which are all ≥ 0, the result is ≥ 0. -/
