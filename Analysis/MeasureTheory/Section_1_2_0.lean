@@ -972,8 +972,202 @@ example : ∃ f: ℕ → ℝ → ℝ, ∃ F: ℝ → ℝ, ∃ M, ∀ n, ∀ x �
 /-- Exercise 1.2.2' -/
 -- Determine whether uniform convergence of uniformly bounded Riemann integrable functions preserves Riemann integrability (true or false).
 def Ex_1_2_2b : Decidable ( ∀ f: ℕ → ℝ → ℝ, ∀ F: ℝ → ℝ, (∃ M, ∀ n, ∀ x ∈ Set.Icc 0 1, |f n x| ≤ M) → (∀ x ∈ Set.Icc 0 1, TendstoUniformly f F Filter.atTop) → (∀ n, RiemannIntegrableOn (f n) (Icc 0 1)) → RiemannIntegrableOn F (Icc 0 1) ) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`, depending on whether you believe the given statement to be true or false.
-  sorry
+  apply isTrue
+  intro f F h_bound h_unif h_int
+  let I : BoundedInterval := Icc (0 : ℝ) 1
+  have hI : I = Icc I.a I.b := rfl
+  have hI_nonempty : I.toSet.Nonempty := by
+    refine ⟨(0 : ℝ), ?_⟩
+    simp [I, BoundedInterval.toSet]
+  have h_ab : I.a < I.b := by
+    simp [I]
+  have h_unif_global : TendstoUniformly f F Filter.atTop :=
+    h_unif 0 (by norm_num)
+  have h_unif_eps : ∀ ε > 0, ∀ᶠ n in Filter.atTop, ∀ x : ℝ, |f n x - F x| < ε := by
+    have h := (Metric.tendstoUniformly_iff).mp h_unif_global
+    intro ε hε
+    simpa [Real.dist_eq, abs_sub_comm] using h ε hε
+  have h_int_eq : ∀ n, riemann_integral_eq (f n) I (riemannIntegral (f n) I) := by
+    intro n
+    exact riemann_integral_of_integrable (h_int n)
+  set R := fun n : ℕ => riemannIntegral (f n) I with hRdef
+  have h_cauchy : CauchySeq R := by
+    rw [Metric.cauchySeq_iff]
+    intro ε hε
+    have h_ε4 : ε / 4 > 0 := by linarith
+    have h_ε8 : ε / 8 > 0 := by linarith
+    rcases Filter.mem_atTop_sets.mp (h_unif_eps (ε / 8) h_ε8) with ⟨N, hN⟩
+    refine ⟨N, λ m hm n hn => ?_⟩
+    have h_diff : ∀ x : ℝ, |f m x - f n x| < ε / 4 := by
+      intro x
+      have h_eq : f m x - f n x = (f m x - F x) - (f n x - F x) := by ring
+      rw [h_eq]
+      calc
+        |(f m x - F x) - (f n x - F x)| ≤ |f m x - F x| + |f n x - F x| := abs_sub _ _
+        _ < ε / 8 + ε / 8 := by
+          have hmx := hN m hm x
+          have hnx := hN n hn x
+          nlinarith
+        _ = ε / 4 := by ring
+    rcases ((riemann_integral_eq_iff (R m)).mp (h_int_eq m)) (ε / 4) (by linarith) with ⟨δ_m, hδ_m_pos, hδ_m⟩
+    rcases ((riemann_integral_eq_iff (R n)).mp (h_int_eq n)) (ε / 4) (by linarith) with ⟨δ_n, hδ_n_pos, hδ_n⟩
+    let δ := min δ_m δ_n
+    have hδ_pos : 0 < δ := lt_min_iff.mpr ⟨hδ_m_pos, hδ_n_pos⟩
+    rcases TaggedPartition.exists_norm_le I hI h_ab δ hδ_pos with ⟨k, P, hP_norm⟩
+    have hP_norm_m : P.norm ≤ δ_m := by
+      have hδ_le_m : δ ≤ δ_m := min_le_left _ _
+      linarith
+    have hP_norm_n : P.norm ≤ δ_n := by
+      have hδ_le_n : δ ≤ δ_n := min_le_right _ _
+      linarith
+    have h_RS_m : |P.RiemannSum (f m) - R m| ≤ ε / 4 := hδ_m k P hP_norm_m
+    have h_RS_n : |P.RiemannSum (f n) - R n| ≤ ε / 4 := hδ_n k P hP_norm_n
+    have h_delta_pos : ∀ i : Fin k, 0 < P.delta i := by
+      intro i
+      unfold TaggedPartition.delta
+      have h_lt : i.castSucc < i.succ := Fin.castSucc_lt_succ
+      have h_x_lt : P.x i.castSucc < P.x i.succ := P.x_mono h_lt
+      linarith
+    have h_delta_nonneg : ∀ i : Fin k, 0 ≤ P.delta i := λ i => le_of_lt (h_delta_pos i)
+    have h_RS_diff : |P.RiemannSum (f m) - P.RiemannSum (f n)| < ε / 4 := by
+      unfold TaggedPartition.RiemannSum
+      have h_eq : (∑ i : Fin k, f m (P.x_tag i) * P.delta i) - (∑ i : Fin k, f n (P.x_tag i) * P.delta i) =
+        ∑ i : Fin k, (f m (P.x_tag i) - f n (P.x_tag i)) * P.delta i := by
+        rw [← Finset.sum_sub_distrib]
+        refine Finset.sum_congr rfl (λ i hi => ?_)
+        ring
+      rw [h_eq]
+      by_cases hk0 : k = 0
+      · subst hk0; simp
+        nlinarith
+      · have hk_pos : k > 0 := Nat.pos_of_ne_zero hk0
+        let i0 : Fin k := ⟨0, hk_pos⟩
+        calc
+          |∑ i : Fin k, (f m (P.x_tag i) - f n (P.x_tag i)) * P.delta i|
+              ≤ ∑ i : Fin k, |(f m (P.x_tag i) - f n (P.x_tag i)) * P.delta i| := by
+                simpa using Finset.abs_sum_le_sum_abs (fun i : Fin k => (f m (P.x_tag i) - f n (P.x_tag i)) * P.delta i) Finset.univ
+          _ = ∑ i : Fin k, |f m (P.x_tag i) - f n (P.x_tag i)| * |P.delta i| := by
+            refine Finset.sum_congr rfl (λ i hi => ?_)
+            rw [abs_mul]
+          _ = ∑ i : Fin k, |f m (P.x_tag i) - f n (P.x_tag i)| * P.delta i := by
+            refine Finset.sum_congr rfl (λ i hi => ?_)
+            rw [abs_of_pos (h_delta_pos i)]
+          _ < ∑ i : Fin k, (ε / 4) * P.delta i := by
+            refine Finset.sum_lt_sum (λ i hi => ?_) ⟨i0, Finset.mem_univ _, ?_⟩
+            · have h_bound_val : |f m (P.x_tag i) - f n (P.x_tag i)| ≤ ε / 4 :=
+                le_of_lt (h_diff (P.x_tag i))
+              have h_nonneg_delta : 0 ≤ P.delta i := h_delta_nonneg i
+              exact mul_le_mul_of_nonneg_right h_bound_val h_nonneg_delta
+            · have h_bound_val : |f m (P.x_tag i0) - f n (P.x_tag i0)| < ε / 4 := h_diff (P.x_tag i0)
+              have h_pos_delta : 0 < P.delta i0 := h_delta_pos i0
+              nlinarith
+          _ = (ε / 4) * ∑ i : Fin k, P.delta i := by
+            simp [Finset.mul_sum]
+          _ = (ε / 4) * (I.b - I.a) := by rw [P.sum_delta_eq]
+          _ = (ε / 4) * (1 : ℝ) := by norm_num
+          _ = ε / 4 := by ring
+    have h_abs_three : ∀ (a b c : ℝ), |a + b + c| ≤ |a| + |b| + |c| := by
+      intro a b c
+      calc
+        |a + b + c| = |(a + b) + c| := by ring
+        _ ≤ |a + b| + |c| := abs_add_le (a + b) c
+        _ ≤ |a| + |b| + |c| := by
+          have h := abs_add_le a b
+          linarith
+    have h_sum_le : |R m - P.RiemannSum (f m)| + |P.RiemannSum (f m) - P.RiemannSum (f n)| + |P.RiemannSum (f n) - R n| ≤ 3 * (ε / 4) := by
+      have h_RS_diff_le : |P.RiemannSum (f m) - P.RiemannSum (f n)| ≤ ε / 4 := le_of_lt h_RS_diff
+      have h_RS_m' : |R m - P.RiemannSum (f m)| ≤ ε / 4 := by
+        rw [abs_sub_comm]
+        exact h_RS_m
+      have h12 : |R m - P.RiemannSum (f m)| + |P.RiemannSum (f m) - P.RiemannSum (f n)| ≤ (ε / 4) + (ε / 4) := add_le_add h_RS_m' h_RS_diff_le
+      calc
+        |R m - P.RiemannSum (f m)| + |P.RiemannSum (f m) - P.RiemannSum (f n)| + |P.RiemannSum (f n) - R n|
+            ≤ ((ε / 4) + (ε / 4)) + (ε / 4) := add_le_add h12 h_RS_n
+        _ = 3 * (ε / 4) := by ring
+    have h_ring_eq : R m - R n = (R m - P.RiemannSum (f m)) + (P.RiemannSum (f m) - P.RiemannSum (f n)) + (P.RiemannSum (f n) - R n) := by ring
+    calc
+      |R m - R n| = |(R m - P.RiemannSum (f m)) + (P.RiemannSum (f m) - P.RiemannSum (f n)) + (P.RiemannSum (f n) - R n)| := by rw [h_ring_eq]
+      _ ≤ |R m - P.RiemannSum (f m)| + |P.RiemannSum (f m) - P.RiemannSum (f n)| + |P.RiemannSum (f n) - R n| := h_abs_three _ _ _
+      _ ≤ 3 * (ε / 4) := h_sum_le
+      _ < ε := by nlinarith
+  obtain ⟨R_lim, hR_lim⟩ := cauchySeq_tendsto_of_complete h_cauchy
+  have hF_riemann : riemann_integral_eq F I R_lim := by
+    rw [riemann_integral_eq_iff R_lim]
+    intro ε hε
+    have h_ε3 : ε / 3 > 0 := by linarith
+    have h_R_lim_eventual : ∀ᶠ n in Filter.atTop, |R n - R_lim| < ε / 3 := by
+      have := (Metric.tendsto_nhds.mp hR_lim) (ε / 3) h_ε3
+      simpa [Real.dist_eq] using this
+    rcases Filter.mem_atTop_sets.mp h_R_lim_eventual with ⟨N1, hN1⟩
+    rcases Filter.mem_atTop_sets.mp (h_unif_eps (ε / 3) h_ε3) with ⟨N2, hN2⟩
+    let N := max N1 N2
+    have hN1' : N1 ≤ N := le_max_left _ _
+    have hN2' : N2 ≤ N := le_max_right _ _
+    have h_R_diff : |R N - R_lim| < ε / 3 := hN1 N hN1'
+    have h_unif_N : ∀ x : ℝ, |f N x - F x| < ε / 3 := λ x => hN2 N hN2' x
+    rcases ((riemann_integral_eq_iff (R N)).mp (h_int_eq N)) (ε / 3) h_ε3 with ⟨δ, hδ_pos, hδ⟩
+    refine ⟨δ, hδ_pos, λ n P hP_norm => ?_⟩
+    have h_RS_fN : |P.RiemannSum (f N) - R N| ≤ ε / 3 := hδ n P hP_norm
+    have h_RS_diff : |P.RiemannSum F - P.RiemannSum (f N)| ≤ ε / 3 := by
+      unfold TaggedPartition.RiemannSum
+      have h_eq : (∑ i : Fin n, F (P.x_tag i) * P.delta i) - (∑ i : Fin n, f N (P.x_tag i) * P.delta i) =
+        ∑ i : Fin n, (F (P.x_tag i) - f N (P.x_tag i)) * P.delta i := by
+        rw [← Finset.sum_sub_distrib]
+        refine Finset.sum_congr rfl (λ i hi => ?_)
+        ring
+      rw [h_eq]
+      by_cases hn0 : n = 0
+      · subst hn0; simp
+        exact le_of_lt h_ε3
+      · have hn_pos : n > 0 := Nat.pos_of_ne_zero hn0
+        have h_delta_pos : ∀ i : Fin n, 0 < P.delta i := by
+          intro i
+          unfold TaggedPartition.delta
+          have h_lt : i.castSucc < i.succ := Fin.castSucc_lt_succ
+          have h_x_lt : P.x i.castSucc < P.x i.succ := P.x_mono h_lt
+          linarith
+        calc
+          |∑ i : Fin n, (F (P.x_tag i) - f N (P.x_tag i)) * P.delta i|
+              ≤ ∑ i : Fin n, |(F (P.x_tag i) - f N (P.x_tag i)) * P.delta i| := by
+                simpa using Finset.abs_sum_le_sum_abs (fun i : Fin n => (F (P.x_tag i) - f N (P.x_tag i)) * P.delta i) Finset.univ
+          _ = ∑ i : Fin n, |F (P.x_tag i) - f N (P.x_tag i)| * |P.delta i| := by
+            refine Finset.sum_congr rfl (λ i hi => ?_)
+            rw [abs_mul]
+          _ = ∑ i : Fin n, |f N (P.x_tag i) - F (P.x_tag i)| * |P.delta i| := by
+            refine Finset.sum_congr rfl (λ i hi => ?_)
+            rw [abs_sub_comm]
+          _ = ∑ i : Fin n, |f N (P.x_tag i) - F (P.x_tag i)| * P.delta i := by
+            refine Finset.sum_congr rfl (λ i hi => ?_)
+            rw [abs_of_pos (h_delta_pos i)]
+          _ ≤ ∑ i : Fin n, (ε / 3) * P.delta i := by
+            refine Finset.sum_le_sum (λ i hi => ?_)
+            have h_bound_val : |f N (P.x_tag i) - F (P.x_tag i)| < ε / 3 := h_unif_N (P.x_tag i)
+            have h_delta_nonneg : 0 ≤ P.delta i := le_of_lt (h_delta_pos i)
+            nlinarith
+          _ = (ε / 3) * ∑ i : Fin n, P.delta i := by
+            simp [Finset.mul_sum]
+          _ = (ε / 3) * (I.b - I.a) := by rw [P.sum_delta_eq]
+          _ = (ε / 3) * (1 : ℝ) := by norm_num [I]
+          _ = ε / 3 := by ring
+    have h_abs_three : ∀ (a b c : ℝ), |a + b + c| ≤ |a| + |b| + |c| := by
+      intro a b c
+      calc
+        |a + b + c| = |(a + b) + c| := by ring
+        _ ≤ |a + b| + |c| := abs_add_le (a + b) c
+        _ ≤ |a| + |b| + |c| := by
+          have h := abs_add_le a b
+          linarith
+    have h_sum : |P.RiemannSum F - P.RiemannSum (f N)| + |P.RiemannSum (f N) - R N| + |R N - R_lim| ≤ ε := by
+      have h1 : |P.RiemannSum F - P.RiemannSum (f N)| ≤ ε / 3 := h_RS_diff
+      have h2 : |P.RiemannSum (f N) - R N| ≤ ε / 3 := h_RS_fN
+      have h3 : |R N - R_lim| ≤ ε / 3 := le_of_lt h_R_diff
+      nlinarith
+    have h_ring_eq2 : P.RiemannSum F - R_lim = (P.RiemannSum F - P.RiemannSum (f N)) + (P.RiemannSum (f N) - R N) + (R N - R_lim) := by ring
+    calc
+      |P.RiemannSum F - R_lim| = |(P.RiemannSum F - P.RiemannSum (f N)) + (P.RiemannSum (f N) - R N) + (R N - R_lim)| := by rw [h_ring_eq2]
+      _ ≤ |P.RiemannSum F - P.RiemannSum (f N)| + |P.RiemannSum (f N) - R N| + |R N - R_lim| := h_abs_three _ _ _
+      _ ≤ ε := h_sum
+  exact ⟨hI, hI_nonempty, ⟨R_lim, hF_riemann⟩⟩
 
 -- The Jordan outer measure equals the infimum of sums of box volumes over all finite box covers.
 theorem Jordan_outer_eq {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) : Jordan_outer_measure E = sInf (((fun S: Finset (Box d) ↦ ∑ B ∈ S, |B|ᵥ)) '' { S | E ⊆ ⋃ B ∈ S, B.toSet }) := by
