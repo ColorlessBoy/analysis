@@ -1212,7 +1212,34 @@ abbrev CantorSet : Set ℝ := ⋂ n : ℕ, CantorInterval n
 
 /-- Exercise 1.2.9 (Middle thirds Cantor set ) -/
 theorem CantorSet.compact : IsCompact CantorSet := by
-  sorry
+  have hC_closed (n : ℕ) : IsClosed (CantorInterval n) := by
+    unfold CantorInterval
+    have h_finite : (Set.univ : Set (Fin n → ({0, 2} : Set ℕ))).Finite := Set.finite_univ
+    have h_union : (⋃ a : Fin n → ({0, 2} : Set ℕ), (Icc (∑ i, (a i)/(3:ℝ)^(i.val+1)) (∑ i, a i/(3:ℝ)^(i.val+1) + 1/(3:ℝ)^n)).toSet) =
+      ⋃ a ∈ (Set.univ : Set (Fin n → ({0, 2} : Set ℕ))), (Icc (∑ i, (a i)/(3:ℝ)^(i.val+1)) (∑ i, a i/(3:ℝ)^(i.val+1) + 1/(3:ℝ)^n)).toSet := by
+      ext x; simp
+    rw [h_union]
+    refine h_finite.isClosed_biUnion (fun a ha => ?_)
+    simp [BoundedInterval.toSet, isClosed_Icc]
+  have h_closed : IsClosed CantorSet := by
+    rw [CantorSet]
+    apply isClosed_iInter
+    exact hC_closed
+
+  have h_C0_eq : CantorInterval 0 = Set.Icc (0 : ℝ) 1 := by
+    unfold CantorInterval
+    haveI : Nonempty (Fin 0 → ({0, 2} : Set ℕ)) := ⟨fun i => i.elim0⟩
+    simp [Set.iUnion_const]
+
+  have h_bounded : Bornology.IsBounded CantorSet := by
+    have h_sub : CantorSet ⊆ Set.Icc (0 : ℝ) 1 := by
+      intro x hx
+      have hx0 : x ∈ CantorInterval 0 := Set.mem_iInter.mp hx 0
+      rw [h_C0_eq] at hx0
+      exact hx0
+    exact (Metric.isBounded_Icc (0 : ℝ) 1).subset h_sub
+
+  exact Metric.isCompact_of_isClosed_isBounded h_closed h_bounded
 
 theorem CantorSet.uncountable : Uncountable CantorSet := by
   sorry
