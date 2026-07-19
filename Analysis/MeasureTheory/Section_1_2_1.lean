@@ -4697,11 +4697,95 @@ theorem Box.sum_volume_eq {d:ℕ} (B B': ℕ → Box d) (hdisj: Pairwise (Functi
   exact h_toReal_eq
 
 /-- Exercise 1.2.5: For any set that equals a countable union of almost disjoint boxes,
-    the Lebesgue outer measure equals the Jordan inner measure. -/
+    the Lebesgue outer measure equals the Jordan inner measure.
+    The hypothesis `hfinite` ensures finite total volume, which is needed because
+    `Jordan_inner_measure` takes values in ℝ (finite reals) and cannot represent ∞. -/
 theorem Lebesgue_outer_measure.eq_Jordan_inner_of_boxes {d:ℕ} (E: Set (EuclideanSpace' d)) (B: ℕ → Box d)
-    (hE: E = ⋃ n, (B n).toSet) (hdisj: Pairwise (Function.onFun AlmostDisjoint B)) :
+    (hE: E = ⋃ n, (B n).toSet) (hdisj: Pairwise (Function.onFun AlmostDisjoint B))
+    (hfinite : Lebesgue_outer_measure E ≠ ⊤) :
     Lebesgue_outer_measure E = Jordan_inner_measure E := by
-  sorry
+  have h_total : Lebesgue_outer_measure (⋃ n, (B n).toSet) = ∑' n, ((B n).volume : EReal) := by
+    calc
+      Lebesgue_outer_measure (⋃ n, (B n).toSet) = ∑' n, Lebesgue_outer_measure (B n).toSet :=
+        Lebesgue_outer_measure.union_of_almost_disjoint hdisj
+      _ = ∑' n, ((B n).volume : EReal) := by
+        refine tsum_congr (fun i => ?_)
+        rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (B i)), IsElementary.measure_of_box]
+  have h_mE_tsum : Lebesgue_outer_measure E = ∑' n, ((B n).volume : EReal) := by
+    rw [hE, h_total]
+  rw [h_mE_tsum]
+  have h_tsum_ne_top : ∑' n, ((B n).volume : EReal) ≠ ⊤ := by
+    rw [← h_mE_tsum]; exact hfinite
+  have h_tsum_nonneg : 0 ≤ ∑' n, ((B n).volume : EReal) :=
+    tsum_nonneg (fun n => EReal.coe_nonneg.mpr (Box.volume_nonneg (B n)))
+  have h_tsum_not_bot : ∑' n, ((B n).volume : EReal) ≠ ⊥ := by
+    intro hbot
+    have h0le_bot : (0 : EReal) ≤ ⊥ := hbot ▸ h_tsum_nonneg
+    exact not_le.mpr EReal.bot_lt_zero h0le_bot
+  set s := (∑' n, ((B n).volume : EReal)).toReal with hs
+  have hs_sum : ∑' n, ((B n).volume : EReal) = (s : EReal) :=
+    (EReal.coe_toReal h_tsum_ne_top h_tsum_not_bot).symm
+  have h_bound_ereal : ∀ (m : ℝ) (hm : m ∈ {m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}),
+      (m : EReal) ≤ ∑' n, ((B n).volume : EReal) := by
+    intro m hm
+    rcases hm with ⟨A, hA, hAE, hm_eq⟩
+    subst hm_eq
+    calc
+      (hA.measure : EReal) = Lebesgue_outer_measure A := by
+        rw [Lebesgue_outer_measure.elementary A hA]
+      _ ≤ Lebesgue_outer_measure E := Lebesgue_outer_measure.mono hAE
+      _ = ∑' n, ((B n).volume : EReal) := h_mE_tsum
+  have h_bound_real : ∀ (m : ℝ) (hm : m ∈ {m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}), m ≤ s := by
+    intro m hm
+    have h_ereal : (m : EReal) ≤ (s : EReal) := by
+      calc
+        (m : EReal) ≤ ∑' n, ((B n).volume : EReal) := h_bound_ereal m hm
+        _ = (s : EReal) := hs_sum
+    exact_mod_cast h_ereal
+  have h_nonempty : Set.Nonempty {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+    refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+    simp
+  apply le_antisymm
+  · -- Direction 1: ∑' |B n| ≤ (Jordan_inner_measure E : EReal)
+    have h_range_bound : ∀ N : ℕ, (∑ i ∈ Finset.range N, ((B i).volume : EReal)) ≤ (Jordan_inner_measure E : EReal) := by
+      intro N
+      let finB : Fin N → Box d := fun i => B i.val
+      have h_pw : Pairwise (Function.onFun AlmostDisjoint finB) :=
+        AlmostDisjoint.restrict_fin hdisj N
+      have hE_N_elem : IsElementary (⋃ i, (finB i).toSet) :=
+        IsElementary.iUnion_boxes finB
+      set E_N := ⋃ i, (finB i).toSet with hE_N_def
+      have hE_N_sub_E : E_N ⊆ E := by
+        rw [hE_N_def, hE]
+        intro x hx
+        simp only [Set.mem_iUnion] at hx ⊢
+        rcases hx with ⟨i, hi⟩
+        exact ⟨(i : ℕ), hi⟩
+      have h_measure_eq_real : hE_N_elem.measure = ∑ i : Fin N, (finB i).volume :=
+        IsElementary.almost_disjoint hE_N_elem finB hE_N_def.symm h_pw
+      have h_measure_eq_coe : (hE_N_elem.measure : EReal) = ∑ i : Fin N, ((finB i).volume : EReal) := by
+        calc
+          (hE_N_elem.measure : EReal) = ((∑ i : Fin N, (finB i).volume : ℝ) : EReal) := by exact_mod_cast h_measure_eq_real
+          _ = ∑ i : Fin N, ((finB i).volume : EReal) := by
+            simp [EReal.coe_finset_sum (fun i _ => Box.volume_nonneg (finB i))]
+      have h_mem : hE_N_elem.measure ∈ {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+        refine ⟨E_N, hE_N_elem, hE_N_sub_E, rfl⟩
+      have h_bddAbove : BddAbove {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+        refine ⟨s, fun m hm => h_bound_real m hm⟩
+      have h_inner_bound_real : hE_N_elem.measure ≤ Jordan_inner_measure E := by
+        unfold Jordan_inner_measure
+        exact le_csSup h_bddAbove h_mem
+      calc
+        (∑ i ∈ Finset.range N, ((B i).volume : EReal)) = (∑ i : Fin N, ((B i.val).volume : EReal)) := by
+          rw [← Fin.sum_univ_eq_sum_range (fun i : ℕ => ((B i).volume : EReal)) N]
+        _ = (∑ i : Fin N, ((finB i).volume : EReal)) := rfl
+        _ = (hE_N_elem.measure : EReal) := by rw [← h_measure_eq_coe]
+        _ ≤ (Jordan_inner_measure E : EReal) := by exact_mod_cast h_inner_bound_real
+    exact EReal.tsum_le_of_sum_range_le (fun n => Box.volume_nonneg (B n)) h_range_bound
+  · -- Direction 2: (Jordan_inner_measure E : EReal) ≤ ∑' |B n|
+    have h_csSup : sSup {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} ≤ s :=
+      csSup_le h_nonempty h_bound_real
+    simpa [Jordan_inner_measure, hs_sum] using h_csSup
 
 def IsCube {d:ℕ} (B: Box d) : Prop := ∃ r, ∀ i, |B.side i|ₗ = r
 
@@ -5480,7 +5564,7 @@ theorem IsOpen.eq_union_boxes {d:ℕ} (hd : 0 < d) (E: Set (EuclideanSpace' d)) 
         have h_scale_lt : (↑(B_idx j).1 : ℤ) < ↑(B_idx i).1 := by exact_mod_cast hij_gt
         exact dyadicCubeLargerNotInSmaller hd h_scale_lt h_ji
 
-theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE: IsOpen E) : Lebesgue_outer_measure E = Jordan_inner_measure E := by
+theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE: IsOpen E) (hBounded : Bornology.IsBounded E) : Lebesgue_outer_measure E = Jordan_inner_measure E := by
   by_cases hd : d = 0
   · -- Dimension 0: In dim 0, open sets are either ∅ or Set.univ
     subst hd
@@ -5611,10 +5695,38 @@ theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE:
       norm_num
     · -- Main case: E nonempty open set in dimension > 0
       have hE_nonempty : E.Nonempty := Set.nonempty_iff_ne_empty.mpr hE_empty
+      -- Since E is bounded, its Lebesgue outer measure is finite
+      have h_finite : Lebesgue_outer_measure E ≠ ⊤ := by
+        have ⟨r, h_sub_ball⟩ : ∃ (r : ℝ), E ⊆ Metric.closedBall (0 : EuclideanSpace' d) r := by
+          rwa [Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)] at hBounded
+        let M := |r| + 2
+        let B_box : Box d := { side := fun _ => BoundedInterval.Icc (-M) M }
+        have hE_sub_box : E ⊆ B_box.toSet := by
+          intro y hy
+          have h_in_ball : y ∈ Metric.closedBall (0 : EuclideanSpace' d) r := h_sub_ball hy
+          simp only [Box.mem_toSet]
+          intro i
+          rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at h_in_ball
+          have h_coord : |y i| ≤ ‖y‖ := EuclideanSpace'.coord_le_norm y i
+          have h_norm : ‖y‖ ≤ r := h_in_ball
+          have h_M_bound : |y i| ≤ M := by
+            calc |y i| ≤ ‖y‖ := h_coord
+              _ ≤ r := h_norm
+              _ ≤ |r| := le_abs_self r
+              _ ≤ |r| + 2 := by linarith
+              _ = M := rfl
+          rcases abs_le.mp h_M_bound with ⟨h_low, h_high⟩
+          rw [BoundedInterval.set_Icc, Set.mem_Icc]
+          exact ⟨h_low, h_high⟩
+        have hB_box_finite : Lebesgue_outer_measure B_box.toSet ≠ ⊤ := by
+          have h_elem : IsElementary B_box.toSet := IsElementary.box B_box
+          rw [Lebesgue_outer_measure.elementary B_box.toSet h_elem]
+          exact EReal.coe_ne_top _
+        exact ne_top_of_le_ne_top hB_box_finite (Lebesgue_outer_measure.mono hE_sub_box)
       -- Decompose E into almost-disjoint dyadic boxes
       obtain ⟨B, hE_eq, hB_dyadic, hB_disj⟩ := IsOpen.eq_union_boxes hd' E hE hE_nonempty
       -- Apply lemma eq_Jordan_inner_of_boxes (Exercise 1.2.5)
-      exact Lebesgue_outer_measure.eq_Jordan_inner_of_boxes E B hE_eq hB_disj
+      exact Lebesgue_outer_measure.eq_Jordan_inner_of_boxes E B hE_eq hB_disj h_finite
 
 /-- Lemma 1.2.12 (Outer regularity). m\*(E) = inf\{m\*(U) : E ⊆ U, U open\}. -/
 theorem Lebesgue_outer_measure.eq {d:ℕ} (E: Set (EuclideanSpace' d)) : Lebesgue_outer_measure E = sInf { M | ∃ U, E ⊆ U ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} := by
