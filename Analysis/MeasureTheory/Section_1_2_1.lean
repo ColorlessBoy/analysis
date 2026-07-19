@@ -50,7 +50,13 @@ lemma Box.isClosed_toSet_of_Icc {d : ℕ} (B : Box d)
 
 /-- Exercise 1.2.3(i) (Empty set) -/
 theorem Lebesgue_outer_measure.of_empty (d:ℕ) : Lebesgue_outer_measure (∅: Set (EuclideanSpace' d)) = 0 := by
-  sorry
+  apply le_antisymm
+  · unfold Lebesgue_outer_measure
+    apply sInf_le
+    refine ⟨(∅ : Set ℕ), (fun i => (Set.not_mem_empty i.1 i.2).elim), ?_, ?_⟩
+    · simp
+    · simp
+  · exact Lebesgue_outer_measure.nonneg _
 
 /-- Exercise 1.2.3(ii) (Monotonicity) -/
 theorem Lebesgue_outer_measure.mono {d: ℕ} {E F : Set (EuclideanSpace' d)} (h : E ⊆ F) :
