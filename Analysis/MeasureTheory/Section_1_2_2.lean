@@ -911,7 +911,250 @@ theorem LebesgueMeasurable.TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
       (∀ ε > 0, ∃ F: Set (EuclideanSpace' d), IsClosed F ∧ Lebesgue_outer_measure (symmDiff F E) ≤ ε),
       (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε)
     ].TFAE
-  := by sorry
+  := by
+  apply List.tfae_of_cycle
+  · -- h_chain: IsChain (· → ·) [0, 1, 2, 3, 4, 5]
+    rw [List.isChain_cons_cons]
+    refine ⟨?_, ?_⟩
+    · -- 0 → 1: definitional
+      intro h0 ε hε
+      exact h0 ε hε
+    · -- IsChain for [1, 2, 3, 4, 5]
+      rw [List.isChain_cons_cons]
+      refine ⟨?_, ?_⟩
+      · -- 1 → 2: symmDiff = U \ E when E ⊆ U
+        intro h1 ε hε
+        rcases h1 ε hε with ⟨U, hU_open, hE_sub_U, hU_diff⟩
+        refine ⟨U, hU_open, ?_⟩
+        have h_symm_eq : symmDiff U E = U \ E := by
+          rw [symmDiff_def]
+          simp [Set.diff_eq_empty.mpr hE_sub_U]
+        rw [h_symm_eq]
+        exact hU_diff
+      · -- IsChain for [2, 3, 4, 5]
+        rw [List.isChain_cons_cons]
+        refine ⟨?_, ?_⟩
+        · -- 2 → 3: via 2 → 1 → 0 → 3
+          intro h2
+          -- First, prove 2 → 1
+          have h1 : ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧
+              Lebesgue_outer_measure (U \ E) ≤ ε := by
+            intro ε hε
+            obtain ⟨ε', hε'_pos, hε'_le⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) ≤ ε := by
+              cases ε with
+              | bot => exact absurd hε (not_lt.mpr bot_le)
+              | top => exact ⟨1, one_pos, le_top⟩
+              | coe r => exact ⟨r, EReal.coe_pos.mp hε, le_refl _⟩
+            have h_pos : (0 : EReal) < (ε' / 3 : ℝ) :=
+              EReal.coe_pos.mpr (by linarith)
+            rcases h2 ((ε' / 3 : ℝ) : EReal) h_pos with ⟨U, hU_open, h_symm_le⟩
+            have h_UE_sub : U \ E ⊆ symmDiff U E := by
+              rw [symmDiff_def]
+              simp
+            have h_EU_sub : E \ U ⊆ symmDiff U E := by
+              rw [symmDiff_def]
+              simp
+            have h_UE_bound : Lebesgue_outer_measure (U \ E) ≤ (ε' / 3 : ℝ) :=
+              calc
+                Lebesgue_outer_measure (U \ E) ≤ Lebesgue_outer_measure (symmDiff U E) :=
+                  Lebesgue_outer_measure.mono h_UE_sub
+                _ ≤ (ε' / 3 : ℝ) := h_symm_le
+            have h_EU_bound : Lebesgue_outer_measure (E \ U) ≤ (ε' / 3 : ℝ) :=
+              calc
+                Lebesgue_outer_measure (E \ U) ≤ Lebesgue_outer_measure (symmDiff U E) :=
+                  Lebesgue_outer_measure.mono h_EU_sub
+                _ ≤ (ε' / 3 : ℝ) := h_symm_le
+            rcases Lebesgue_outer_measure.exists_open_superset_measure_le (E \ U) ((ε' / 3 : ℝ) : EReal) h_pos
+              with ⟨W, hW_open, h_EU_sub_W, hW_meas⟩
+            have hW_bound : Lebesgue_outer_measure W ≤ (2 * ε' / 3 : ℝ) := by
+              calc
+                Lebesgue_outer_measure W ≤ Lebesgue_outer_measure (E \ U) + (ε' / 3 : ℝ) := hW_meas
+                _ ≤ (ε' / 3 : ℝ) + (ε' / 3 : ℝ) := by
+                  -- h_EU_bound: Lebesgue_outer_measure (E \ U) ≤ (ε' / 3 : ℝ)
+                  -- Need: Lebesgue_outer_measure (E \ U) + (ε' / 3 : ℝ) ≤ (ε' / 3 : ℝ) + (ε' / 3 : ℝ)
+                  simpa [add_comm] using add_le_add h_EU_bound (le_refl ((ε' / 3 : ℝ) : EReal))
+                _ = ((2 * ε' / 3 : ℝ) : EReal) := by
+                  simpa using congrArg (fun x : ℝ => (x : EReal)) (show (ε' / 3 : ℝ) + (ε' / 3 : ℝ) = (2 * ε' / 3 : ℝ) by ring)
+            let V := U ∪ W
+            have hV_open : IsOpen V := IsOpen.union hU_open hW_open
+            have hE_sub_V : E ⊆ V := by
+              intro x hx
+              by_cases hxU : x ∈ U
+              · exact Set.mem_union_left W hxU
+              · have hx_EU : x ∈ E \ U := ⟨hx, hxU⟩
+                exact Set.mem_union_right U (h_EU_sub_W hx_EU)
+            have hV_bound : Lebesgue_outer_measure (V \ E) ≤ (ε' : ℝ) := by
+              have h_sub : V \ E ⊆ (U \ E) ∪ W := by
+                intro x hx
+                rcases hx with ⟨hxV, hxE⟩
+                rcases hxV with (hxU | hxW)
+                · left; exact ⟨hxU, hxE⟩
+                · right; exact hxW
+              have h_add : Lebesgue_outer_measure ((U \ E) ∪ W) ≤
+                  Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := by
+                let S : Fin 2 → Set (EuclideanSpace' d) := ![U \ E, W]
+                have h_union : ⋃ i : Fin 2, S i = (U \ E) ∪ W := by
+                  ext x; simp [S]
+                calc
+                  Lebesgue_outer_measure ((U \ E) ∪ W) = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+                  _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+                  _ = Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := by simp [S]
+              calc
+                Lebesgue_outer_measure (V \ E) ≤ Lebesgue_outer_measure ((U \ E) ∪ W) :=
+                  Lebesgue_outer_measure.mono h_sub
+                _ ≤ Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := h_add
+                _ ≤ (ε' / 3 : ℝ) + (2 * ε' / 3 : ℝ) := add_le_add h_UE_bound hW_bound
+                _ = ((ε' : ℝ) : EReal) := by
+                  simpa using congrArg (fun x : ℝ => (x : EReal)) (show (ε' / 3 : ℝ) + (2 * ε' / 3 : ℝ) = (ε' : ℝ) by ring)
+            refine ⟨V, hV_open, hE_sub_V, ?_⟩
+            calc
+              Lebesgue_outer_measure (V \ E) ≤ (ε' : ℝ) := hV_bound
+              _ ≤ ε := hε'_le
+          -- Now from h1, E is Lebesgue measurable (definitionally)
+          have h0 : LebesgueMeasurable E := h1
+          -- From h0 (measurable), get (3) by complement argument
+          intro ε hε
+          obtain ⟨ε', hε'_pos, hε'_le⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) ≤ ε := by
+            cases ε with
+            | bot => exact absurd hε (not_lt.mpr bot_le)
+            | top => exact ⟨1, one_pos, le_top⟩
+            | coe r => exact ⟨r, EReal.coe_pos.mp hε, le_refl _⟩
+          have hEc_meas : LebesgueMeasurable (Eᶜ) := h0.complement
+          rcases hEc_meas ((ε' : ℝ) : EReal) (EReal.coe_pos.mpr hε'_pos) with ⟨V, hV_open, hEc_sub_V, hV_diff⟩
+          refine ⟨Vᶜ, hV_open.isClosed_compl, ?_, ?_⟩
+          · -- Vᶜ ⊆ E
+            intro x hx
+            have hx_not_V : x ∉ V := hx
+            by_contra hx_not_E
+            have hx_Ec : x ∈ (Eᶜ : Set (EuclideanSpace' d)) := hx_not_E
+            have hx_V : x ∈ V := hEc_sub_V hx_Ec
+            exact hx_not_V hx_V
+          · -- m(E \ Vᶜ) ≤ ε
+            have h_eq : (E \ Vᶜ : Set (EuclideanSpace' d)) = V \ (Eᶜ : Set (EuclideanSpace' d)) := by
+              ext x; simp; tauto
+            rw [h_eq]
+            calc
+              Lebesgue_outer_measure (V \ (Eᶜ : Set (EuclideanSpace' d))) ≤ (ε' : ℝ) := hV_diff
+              _ ≤ ε := hε'_le
+        · -- IsChain for [3, 4, 5]
+          rw [List.isChain_cons_cons]
+          refine ⟨?_, ?_⟩
+          · -- 3 → 4: symmDiff = E \ F when F ⊆ E
+            intro h3 ε hε
+            rcases h3 ε hε with ⟨F, hF_closed, hF_sub_E, h_diff⟩
+            refine ⟨F, hF_closed, ?_⟩
+            have h_symm_eq : symmDiff F E = E \ F := by
+              rw [symmDiff_def]
+              simp [Set.diff_eq_empty.mpr hF_sub_E]
+            rw [h_symm_eq]
+            exact h_diff
+          · -- IsChain for [4, 5]
+            rw [List.isChain_cons_cons]
+            refine ⟨?_, List.isChain_singleton _⟩
+            · -- 4 → 5: closed → measurable
+              intro h4 ε hε
+              rcases h4 ε hε with ⟨F, hF_closed, h_symm⟩
+              refine ⟨F, hF_closed.measurable, h_symm⟩
+  · -- h_last: 5 → 0: via measurable E' with small symmDiff
+    intro h5 ε hε
+    obtain ⟨ε', hε'_pos, hε'_le⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) ≤ ε := by
+      cases ε with
+      | bot => exact absurd hε (not_lt.mpr bot_le)
+      | top => exact ⟨1, one_pos, le_top⟩
+      | coe r => exact ⟨r, EReal.coe_pos.mp hε, le_refl _⟩
+    set δ := ε'/4 with hδ
+    have hδ_pos : (0 : ℝ) < δ := by linarith
+    have hδ_pos' : (0 : EReal) < (δ : ℝ) := EReal.coe_pos.mpr hδ_pos
+    rcases h5 ((δ : ℝ) : EReal) hδ_pos' with ⟨E', hE'_meas, h_symm⟩
+    -- Get open U ⊇ E' with m(U \ E') ≤ δ
+    rcases hE'_meas ((δ : ℝ) : EReal) hδ_pos' with ⟨U, hU_open, hE'_sub_U, hU_diff⟩
+    have h_E'E_bound : Lebesgue_outer_measure (E' \ E) ≤ (δ : ℝ) := by
+      have h_sub : E' \ E ⊆ symmDiff E' E := by
+        rw [symmDiff_def]
+        simp
+      calc
+        Lebesgue_outer_measure (E' \ E) ≤ Lebesgue_outer_measure (symmDiff E' E) :=
+          Lebesgue_outer_measure.mono h_sub
+        _ ≤ (δ : ℝ) := h_symm
+    have h_EE'_bound : Lebesgue_outer_measure (E \ E') ≤ (δ : ℝ) := by
+      have h_sub : E \ E' ⊆ symmDiff E' E := by
+        rw [symmDiff_def]
+        simp
+      calc
+        Lebesgue_outer_measure (E \ E') ≤ Lebesgue_outer_measure (symmDiff E' E) :=
+          Lebesgue_outer_measure.mono h_sub
+        _ ≤ (δ : ℝ) := h_symm
+    have h_UE_bound : Lebesgue_outer_measure (U \ E) ≤ (2 * δ : ℝ) := by
+      have h_sub : U \ E ⊆ (U \ E') ∪ (E' \ E) := by
+        intro x hx
+        have hxU : x ∈ U := hx.1
+        have hx_not_E : x ∉ E := hx.2
+        by_cases hxE' : x ∈ E'
+        · right; exact ⟨hxE', hx_not_E⟩
+        · left; exact ⟨hxU, hxE'⟩
+      have h_add : Lebesgue_outer_measure ((U \ E') ∪ (E' \ E)) ≤
+          Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ E) := by
+        let S : Fin 2 → Set (EuclideanSpace' d) := ![U \ E', E' \ E]
+        have h_union : ⋃ i : Fin 2, S i = (U \ E') ∪ (E' \ E) := by
+          ext x; simp [S]
+        calc
+          Lebesgue_outer_measure ((U \ E') ∪ (E' \ E)) = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+          _ = Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ E) := by simp [S]
+      calc
+        Lebesgue_outer_measure (U \ E) ≤ Lebesgue_outer_measure ((U \ E') ∪ (E' \ E)) :=
+          Lebesgue_outer_measure.mono h_sub
+        _ ≤ Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ E) := h_add
+        _ ≤ (δ : ℝ) + (δ : ℝ) := add_le_add hU_diff h_E'E_bound
+        _ = ((2 * δ : ℝ) : EReal) := by
+          simpa using congrArg (fun x : ℝ => (x : EReal)) (show (δ : ℝ) + (δ : ℝ) = (2 * δ : ℝ) by ring)
+    rcases Lebesgue_outer_measure.exists_open_superset_measure_le (E \ E') ((δ : ℝ) : EReal) hδ_pos'
+      with ⟨W, hW_open, h_EE'_sub_W, hW_meas⟩
+    have hW_bound : Lebesgue_outer_measure W ≤ (2 * δ : ℝ) := by
+      calc
+        Lebesgue_outer_measure W ≤ Lebesgue_outer_measure (E \ E') + (δ : ℝ) := hW_meas
+        _ ≤ (δ : ℝ) + (δ : ℝ) := by
+          simpa [add_comm] using add_le_add h_EE'_bound (le_refl ((δ : ℝ) : EReal))
+        _ = ((2 * δ : ℝ) : EReal) := by
+          simpa using congrArg (fun x : ℝ => (x : EReal)) (show (δ : ℝ) + (δ : ℝ) = (2 * δ : ℝ) by ring)
+    let V := U ∪ W
+    have hV_open : IsOpen V := IsOpen.union hU_open hW_open
+    have hE_sub_V : E ⊆ V := by
+      intro x hx
+      by_cases hxE' : x ∈ E'
+      · apply Set.mem_union_left W; exact hE'_sub_U hxE'
+      · have hx_EE' : x ∈ E \ E' := ⟨hx, hxE'⟩
+        apply Set.mem_union_right U; exact h_EE'_sub_W hx_EE'
+    have hV_bound : Lebesgue_outer_measure (V \ E) ≤ (ε' : ℝ) := by
+      have h_sub : V \ E ⊆ (U \ E) ∪ W := by
+        intro x hx
+        rcases hx with ⟨hxV, hxE⟩
+        rcases hxV with (hxU | hxW)
+        · left; exact ⟨hxU, hxE⟩
+        · right; exact hxW
+      have h_add : Lebesgue_outer_measure ((U \ E) ∪ W) ≤
+          Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := by
+        let S : Fin 2 → Set (EuclideanSpace' d) := ![U \ E, W]
+        have h_union : ⋃ i : Fin 2, S i = (U \ E) ∪ W := by
+          ext x; simp [S]
+        calc
+          Lebesgue_outer_measure ((U \ E) ∪ W) = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+          _ = Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := by simp [S]
+      calc
+        Lebesgue_outer_measure (V \ E) ≤ Lebesgue_outer_measure ((U \ E) ∪ W) :=
+          Lebesgue_outer_measure.mono h_sub
+        _ ≤ Lebesgue_outer_measure (U \ E) + Lebesgue_outer_measure W := h_add
+        _ ≤ (2 * δ : ℝ) + (2 * δ : ℝ) := add_le_add h_UE_bound hW_bound
+        _ = ((4 * δ : ℝ) : EReal) := by
+          simpa using congrArg (fun x : ℝ => (x : EReal)) (show (2 * δ : ℝ) + (2 * δ : ℝ) = (4 * δ : ℝ) by ring)
+        _ = ((ε' : ℝ) : EReal) := by
+          dsimp [δ]
+          simpa using congrArg (fun x : ℝ => (x : EReal)) (show (4 * (ε' / 4 : ℝ) : ℝ) = ε' by ring)
+    refine ⟨V, hV_open, hE_sub_V, ?_⟩
+    calc
+      Lebesgue_outer_measure (V \ E) ≤ (ε' : ℝ) := hV_bound
+      _ ≤ ε := hε'_le
 
   /-- Exercise 1.2.8 -/
 theorem Jordan_measurable.lebesgue {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) : LebesgueMeasurable E := by
