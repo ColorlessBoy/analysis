@@ -1523,7 +1523,113 @@ theorem CantorSet.uncountable : Uncountable CantorSet := by
     h_injective.countable
   exact h_uncountable_nat_bool.not_countable h_countable_nat_bool
 
-theorem CantorSet.null : IsNull (Real.equiv_EuclideanSpace' '' CantorSet) := by sorry
+theorem CantorSet.null : IsNull (Real.equiv_EuclideanSpace' '' CantorSet) := by
+  have h_subset (n : ℕ) : CantorSet ⊆ CantorInterval n := by
+    intro x hx; exact Set.mem_iInter.mp hx n
+
+  have h_image_subset (n : ℕ) : Real.equiv_EuclideanSpace' '' CantorSet ⊆ Real.equiv_EuclideanSpace' '' CantorInterval n :=
+    Set.image_mono (h_subset n)
+
+  have h_mono (n : ℕ) : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) ≤
+      Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorInterval n) :=
+    Lebesgue_outer_measure.mono (h_image_subset n)
+
+  have h_each_measure (n : ℕ) (a : Fin n → ({0, 2} : Set ℕ)) : Lebesgue_outer_measure
+      (Real.equiv_EuclideanSpace' '' ((Icc (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1)) (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1) + 1/(3:ℝ)^n)).toSet)) = (((1/3 : ℝ)^n : ℝ) : EReal) := by
+    set a_sum := ∑ i : Fin n, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1)) with ha_sum
+    set b_sum := a_sum + 1 / (3 : ℝ) ^ n with hb_sum
+    have h_len : b_sum - a_sum = 1 / (3 : ℝ) ^ n := by
+      rw [hb_sum]; ring
+    have h_nonneg_len : 0 ≤ b_sum - a_sum := by
+      rw [h_len]; positivity
+    have h_vol : |((Icc a_sum b_sum : Box 1))|ᵥ = (1/3 : ℝ)^n := by
+      unfold Box.volume
+      simp [length, BoundedInterval.a, BoundedInterval.b, h_len]
+    calc
+      Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' ((Icc a_sum b_sum).toSet))
+          = Lebesgue_outer_measure (((Icc a_sum b_sum : Box 1).toSet)) := by
+            rw [BoundedInterval.coe_of_box]
+      _ = (IsElementary.box (Icc a_sum b_sum : Box 1)).measure := by
+        rw [Lebesgue_outer_measure.elementary _ (IsElementary.box _)]
+      _ = |(Icc a_sum b_sum : Box 1)|ᵥ := by rw [IsElementary.measure_of_box]
+      _ = (((1/3 : ℝ)^n : ℝ) : EReal) := by
+        exact_mod_cast h_vol
+
+  have h_measure_CantorInterval (n : ℕ) :
+      Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorInterval n) ≤ (((2/3 : ℝ)^n : ℝ) : EReal) := by
+    let α := Fin n → ({0, 2} : Set ℕ)
+    have h_card_nat : Fintype.card α = 2^n := by
+      dsimp [α]; simp
+    have h_card_real : (Fintype.card α : ℝ) = (2^n : ℝ) := by exact_mod_cast h_card_nat
+    let card := Fintype.card α
+    let e : α ≃ Fin card := Fintype.equivFin α
+    let B (a : α) : Set (EuclideanSpace' 1) :=
+      Real.equiv_EuclideanSpace' '' ((Icc (∑ i : Fin n, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1)))
+        (∑ i : Fin n, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1)) + 1 / (3 : ℝ) ^ n)).toSet)
+    have h_image_union : Real.equiv_EuclideanSpace' '' CantorInterval n = ⋃ i : Fin card, B (e.symm i) := by
+      unfold CantorInterval
+      calc
+        Real.equiv_EuclideanSpace' '' (⋃ a : α, (Icc (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1)) (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1) + 1/(3:ℝ)^n)).toSet)
+            = ⋃ a : α, Real.equiv_EuclideanSpace' '' ((Icc (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1)) (∑ i, (a i : ℝ)/(3:ℝ)^(i.val+1) + 1/(3:ℝ)^n)).toSet) := by
+              rw [Set.image_iUnion]
+        _ = ⋃ a : α, B a := rfl
+        _ = ⋃ i : Fin card, B (e.symm i) := by
+          ext x; constructor
+          · intro h; rcases Set.mem_iUnion.mp h with ⟨a, hx⟩
+            refine Set.mem_iUnion.mpr ⟨e a, ?_⟩; simpa using hx
+          · intro h; rcases Set.mem_iUnion.mp h with ⟨i, hx⟩
+            refine Set.mem_iUnion.mpr ⟨e.symm i, ?_⟩; simpa using hx
+    rw [h_image_union]
+    have h_subadditive : Lebesgue_outer_measure (⋃ i : Fin card, B (e.symm i)) ≤
+        ∑ i : Fin card, Lebesgue_outer_measure (B (e.symm i)) :=
+      Lebesgue_outer_measure.finite_union_le (fun i : Fin card => B (e.symm i))
+    apply le_trans h_subadditive
+    have h_sum_eq : ∑ i : Fin card, Lebesgue_outer_measure (B (e.symm i)) = (((2/3 : ℝ)^n : ℝ) : EReal) := by
+      calc
+        ∑ i : Fin card, Lebesgue_outer_measure (B (e.symm i))
+            = ∑ i : Fin card, (((1/3 : ℝ)^n : ℝ) : EReal) := by
+              refine Finset.sum_congr rfl (fun i hi => ?_)
+              dsimp [B]
+              exact h_each_measure n (e.symm i)
+        _ = ((∑ i : Fin card, ((1/3 : ℝ)^n : ℝ) : ℝ) : EReal) := by simp
+        _ = (((Fintype.card (Fin card) : ℝ) * ((1/3 : ℝ)^n : ℝ) : ℝ) : EReal) := by simp
+        _ = (((card : ℝ) * ((1/3 : ℝ)^n : ℝ) : ℝ) : EReal) := by simp
+        _ = (((Fintype.card α : ℝ) * ((1/3 : ℝ)^n : ℝ) : ℝ) : EReal) := by
+          dsimp [card]
+        _ = (((2^n : ℝ) * ((1/3 : ℝ)^n : ℝ) : ℝ) : EReal) := by
+          simp [h_card_real]
+        _ = (((2/3 : ℝ)^n : ℝ) : EReal) := by
+          have h : (2 : ℝ)^n * (1/3 : ℝ)^n = (2/3 : ℝ)^n := by
+            calc
+              (2 : ℝ)^n * (1/3 : ℝ)^n = ((2 : ℝ) * (1/3 : ℝ)) ^ n := by rw [← mul_pow]
+              _ = (2/3 : ℝ)^n := by norm_num
+          simpa using congrArg (fun (x : ℝ) => (x : EReal)) h
+    exact h_sum_eq.le
+
+  have h_all_n (n : ℕ) : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) ≤ (((2/3 : ℝ)^n : ℝ) : EReal) :=
+    le_trans (h_mono n) (h_measure_CantorInterval n)
+
+  have h_zero : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) ≤ 0 := by
+    apply EReal.le_of_forall_pos_le_add' (b := 0)
+    intro ε hε
+    have h_tendsto : Filter.Tendsto (fun n : ℕ => ((2/3 : ℝ)^n : ℝ)) Filter.atTop (nhds (0 : ℝ)) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+    rcases Metric.tendsto_atTop.mp h_tendsto ε hε with ⟨N, hN⟩
+    have h_N_lt_ε : ((2/3 : ℝ)^N : ℝ) < ε := by
+      have h_bound := hN N (le_refl N)
+      rw [Real.dist_eq, sub_zero] at h_bound
+      have h_nonneg : 0 ≤ (2/3 : ℝ)^N := pow_nonneg (by norm_num) N
+      rw [abs_of_nonneg h_nonneg] at h_bound
+      exact h_bound
+    have h_lt : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) < (ε : EReal) := by
+      calc
+        Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) ≤ (((2/3 : ℝ)^N : ℝ) : EReal) := h_all_n N
+        _ < (ε : EReal) := by exact_mod_cast h_N_lt_ε
+    calc
+      Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' CantorSet) ≤ (ε : EReal) := le_of_lt h_lt
+      _ = (0 : EReal) + (ε : EReal) := by simp
+
+  exact le_antisymm h_zero (Lebesgue_outer_measure.nonneg _)
 
 /-- Exercise 1.2.10 (\[0,1) is not the countable union of pairwise disjoint closed intervals). -/
 example : ¬ ∃ (I: ℕ → BoundedInterval), (∀ n, IsClosed (I n).toSet) ∧ (Set.univ.PairwiseDisjoint (fun n ↦ (I n).toSet) ) ∧ (⋃ n, (I n).toSet = Set.Ico 0 1) := by
