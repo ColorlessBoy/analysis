@@ -573,13 +573,401 @@ example :
 
 
 
+lemma tag_contradiction {n : ℕ} (P : TaggedPartition (Icc 0 1) n) (a : ℝ) (i j k : Fin n)
+    (hij : i < j) (hjk : j < k) (hi : P.x_tag i = a) (hj : P.x_tag j = a) (hk : P.x_tag k = a) : False := by
+  have hi_bound := P.x_tag_between i
+  have hj_bound := P.x_tag_between j
+  have hk_bound := P.x_tag_between k
+  rw [hi] at hi_bound
+  rw [hj] at hj_bound
+  rw [hk] at hk_bound
+  have hx_ij : P.x i.succ ≤ P.x j.castSucc :=
+    P.x_mono.monotone (Fin.succ_le_castSucc_iff.mpr hij)
+  have ha_eq1 : P.x i.succ = a := by
+    rcases hi_bound with ⟨h1, h2⟩
+    rcases hj_bound with ⟨h3, h4⟩
+    linarith
+  have ha_eq2 : P.x j.castSucc = a := by
+    rcases hi_bound with ⟨h1, h2⟩
+    rcases hj_bound with ⟨h3, h4⟩
+    linarith
+  have hx_jk : P.x j.succ ≤ P.x k.castSucc :=
+    P.x_mono.monotone (Fin.succ_le_castSucc_iff.mpr hjk)
+  have ha_eq3 : P.x j.succ = a := by
+    rcases hk_bound with ⟨h5, h6⟩
+    rcases hj_bound with ⟨h3, h4⟩
+    linarith
+  have hx_lt : P.x j.castSucc < P.x j.succ := P.x_mono j.castSucc_lt_succ
+  linarith
+
+lemma tag_count_singleton {n : ℕ} (P : TaggedPartition (Icc 0 1) n) (a : ℝ) :
+    (Finset.filter (fun (i : Fin n) => P.x_tag i = a) Finset.univ).card ≤ 2 := by
+  by_contra! h
+  let S := Finset.filter (fun (i : Fin n) => P.x_tag i = a) Finset.univ
+  have hS_card : 3 ≤ S.card := by
+    have : S.card = (Finset.filter (fun (i : Fin n) => P.x_tag i = a) Finset.univ).card := rfl
+    have h' : ¬ S.card ≤ 2 := by simpa [S] using h
+    omega
+  have hS_nonempty : S.Nonempty := by
+    by_contra! hempty
+    have hcard0 : S.card = 0 := Finset.card_eq_zero.mpr hempty
+    omega
+  let i := S.min' hS_nonempty
+  have hi_mem : i ∈ S := Finset.min'_mem _ hS_nonempty
+  have hi_tag : P.x_tag i = a := by simpa [S] using hi_mem
+  let S1 := S.erase i
+  have hS1_card : 2 ≤ S1.card := by
+    have hcard_erase : (S.erase i).card = S.card - 1 := Finset.card_erase_of_mem hi_mem
+    dsimp [S1]
+    rw [hcard_erase]
+    omega
+  have hS1_nonempty : S1.Nonempty := by
+    apply Finset.one_le_card.mp; omega
+  let j := S1.min' hS1_nonempty
+  have hj_mem : j ∈ S1 := Finset.min'_mem _ hS1_nonempty
+  have hj_tag : P.x_tag j = a := by
+    have : j ∈ S := Finset.mem_of_mem_erase hj_mem
+    simpa [S] using this
+  have hij : i < j := by
+    have htmp : S.min' hS_nonempty < j := Finset.min'_lt_of_mem_erase_min' S hS_nonempty hj_mem
+    simpa using htmp
+  let S2 := S1.erase j
+  have hS2_card : 1 ≤ S2.card := by
+    have hcard_erase : (S1.erase j).card = S1.card - 1 := Finset.card_erase_of_mem hj_mem
+    dsimp [S2]
+    rw [hcard_erase]
+    omega
+  have hS2_nonempty : S2.Nonempty := by
+    apply Finset.one_le_card.mp; omega
+  let k := S2.min' hS2_nonempty
+  have hk_mem : k ∈ S2 := Finset.min'_mem _ hS2_nonempty
+  have hk_tag : P.x_tag k = a := by
+    have : k ∈ S1 := Finset.mem_of_mem_erase hk_mem
+    have : k ∈ S := Finset.mem_of_mem_erase this
+    simpa [S] using this
+  have hjk : j < k := by
+    have htmp : S1.min' hS1_nonempty < k := Finset.min'_lt_of_mem_erase_min' S1 hS1_nonempty hk_mem
+    simpa using htmp
+  exact tag_contradiction P a i j k hij hjk hi_tag hj_tag hk_tag
+
+lemma singleton_integrable (a : ℝ) : RiemannIntegrableOn (Set.indicator' ({a} : Set ℝ)) (Icc 0 1) := by
+  rw [RiemannIntegrableOn.iff_def]
+  refine ⟨rfl, ⟨0, by simp⟩, ?_⟩
+  have hzero : riemann_integral_eq (Set.indicator' ({a} : Set ℝ)) (Icc 0 1) 0 := by
+    rw [riemann_integral_eq_iff 0]
+    intro ε hε
+    use ε/2
+    refine ⟨half_pos hε, ?_⟩
+    intro n P hP_norm
+    have h_norm_nonneg : 0 ≤ P.norm := by
+      by_cases hn : n = 0
+      · subst hn; simp [TaggedPartition.norm]
+      · have hpos : 0 < n := Nat.pos_of_ne_zero hn
+        let i0 : Fin n := ⟨0, hpos⟩
+        have h_delta_nonneg : 0 ≤ P.delta i0 := by
+          unfold TaggedPartition.delta
+          have h_succ_lt : i0.castSucc < i0.succ := i0.castSucc_lt_succ
+          have h_lt : P.x i0.castSucc < P.x i0.succ := P.x_mono h_succ_lt
+          linarith
+        have h_norm_ge_delta : P.delta i0 ≤ P.norm := by
+          unfold TaggedPartition.norm
+          refine le_ciSup (Set.Finite.bddAbove (Set.finite_range P.delta)) i0
+        linarith
+    have h_bound : |P.RiemannSum (Set.indicator' ({a} : Set ℝ))| ≤ 2 * P.norm := by
+      unfold TaggedPartition.RiemannSum
+      let S := Finset.filter (fun (i : Fin n) => P.x_tag i = a) Finset.univ
+      have h_sum_split : ∑ i : Fin n, (Set.indicator' ({a} : Set ℝ) (P.x_tag i)) * P.delta i = Finset.sum S (fun i => P.delta i) := by
+        calc
+          ∑ i : Fin n, (Set.indicator' ({a} : Set ℝ) (P.x_tag i)) * P.delta i
+              = ∑ i : Fin n, (if P.x_tag i = a then (1 : ℝ) else 0) * P.delta i := by
+                simp [Set.indicator'_apply]
+          _ = ∑ i : Fin n, (if P.x_tag i = a then P.delta i else 0) := by
+            refine Finset.sum_congr rfl (fun i hi => ?_)
+            split <;> simp
+          _ = Finset.sum S (fun i => P.delta i) := by
+            simp [S, Finset.sum_filter]
+      rw [h_sum_split]
+      have h_nonneg : 0 ≤ Finset.sum S (fun i => P.delta i) := by
+        apply Finset.sum_nonneg
+        intro i hi
+        unfold TaggedPartition.delta
+        have h_lt' : i.castSucc < i.succ := i.castSucc_lt_succ
+        have h_lt : P.x i.castSucc < P.x i.succ := P.x_mono h_lt'
+        linarith
+      rw [abs_of_nonneg h_nonneg]
+      have h_card : (S.card : ℝ) ≤ 2 := by
+        have h_card_nat : S.card ≤ 2 := tag_count_singleton P a
+        exact_mod_cast h_card_nat
+      have h_delta_le_norm (i : Fin n) : P.delta i ≤ P.norm := by
+        unfold TaggedPartition.norm
+        exact le_ciSup (Set.Finite.bddAbove (Set.finite_range P.delta)) i
+      calc
+        Finset.sum S (fun i => P.delta i) ≤ Finset.sum S (fun i => P.norm) :=
+          Finset.sum_le_sum (fun i hi => h_delta_le_norm i)
+        _ = (S.card : ℝ) * P.norm := by simp
+        _ ≤ 2 * P.norm := by nlinarith
+    have h_final : |P.RiemannSum (Set.indicator' ({a} : Set ℝ)) - 0| ≤ ε := by
+      have h_sub : P.RiemannSum (Set.indicator' ({a} : Set ℝ)) - 0 = P.RiemannSum (Set.indicator' ({a} : Set ℝ)) := by ring
+      rw [h_sub]
+      calc
+        |P.RiemannSum (Set.indicator' ({a} : Set ℝ))| ≤ 2 * P.norm := h_bound
+        _ ≤ 2 * (ε/2) := by nlinarith
+        _ = ε := by ring
+    exact h_final
+  exact ⟨0, hzero⟩
+
+lemma finite_integrable (E : Finset ℝ) : RiemannIntegrableOn (Set.indicator' (E : Set ℝ)) (Icc 0 1) := by
+  induction' E using Finset.induction with a s ha ih
+  · -- empty set: indicator is zero function (everywhere 0)
+    have hzero : RiemannIntegrableOn (fun _ => (0 : ℝ)) (Icc 0 1) := by
+      rw [RiemannIntegrableOn.iff_def]
+      refine ⟨rfl, ⟨0, by simp⟩, ?_⟩
+      have hzero_eq : riemann_integral_eq (fun _ : ℝ => (0 : ℝ)) (Icc 0 1) 0 := by
+        rw [riemann_integral_eq_iff 0]
+        intro ε hε
+        use 1
+        refine ⟨by norm_num, ?_⟩
+        intro n P hP_norm
+        have : P.RiemannSum (fun _ : ℝ => (0 : ℝ)) = 0 := by
+          simp [TaggedPartition.RiemannSum]
+        simp [this, hε.le]
+      exact ⟨0, hzero_eq⟩
+    simpa using hzero
+  · -- insert a s: indicator = {a}.indicator' + (s : Set ℝ).indicator'
+    have h_union : Set.indicator' ((insert a s : Finset ℝ) : Set ℝ) =
+        Set.indicator' ({a} : Set ℝ) + Set.indicator' ((s : Finset ℝ) : Set ℝ) := by
+      ext x
+      classical
+      simp only [Set.indicator'_apply, ha, Finset.mem_insert, Pi.add_apply]
+      by_cases hx_a : x = a
+      · subst x; simp [ha]
+      · by_cases hx_s : x ∈ s
+        · simp [hx_s, hx_a, ha]
+        · simp [hx_s, hx_a, ha]
+    rw [h_union]
+    apply RiemannIntegrableOn.add
+    · exact singleton_integrable a
+    · exact ih
+
+lemma finite_jordanMeasurable (E : Finset ℝ) : JordanMeasurable (Real.equiv_EuclideanSpace' '' (E : Set ℝ)) := by
+  induction' E using Finset.induction with a s ha ih
+  · simp
+    exact JordanMeasurable.empty 1
+  · have h_set : ((insert a s : Finset ℝ) : Set ℝ) = ({a} : Set ℝ) ∪ (s : Set ℝ) := by
+      simp
+    rw [h_set, Set.image_union]
+    apply JordanMeasurable.union ?_ ih
+    have h_singleton_eq : Real.equiv_EuclideanSpace' '' ({a} : Set ℝ) = (BoundedInterval.Icc a a : Box 1).toSet := by
+      rw [BoundedInterval.coe_of_box]
+      simp [BoundedInterval.set_Icc]
+    rw [h_singleton_eq]
+    exact IsElementary.jordanMeasurable (IsElementary.box _)
+
 /-- Exercise 1.2.2 -/
 -- The pointwise limit of uniformly bounded Riemann integrable functions need not be Riemann integrable.
 example : ∃ f: ℕ → ℝ → ℝ, ∃ F: ℝ → ℝ, ∃ M, ∀ n, ∀ x ∈ Set.Icc 0 1, |f n x| ≤ M ∧
     (∀ x ∈ Set.Icc 0 1, Filter.atTop.Tendsto (fun n ↦ f n x) (nhds (F x))) ∧
     (∀ n, RiemannIntegrableOn (f n) (Icc 0 1)) ∧
     ¬ RiemannIntegrableOn F (Icc 0 1) := by
-  sorry
+  -- Enumerate the rationals in [0,1]
+  have h_countable : (Set.Icc (0:ℚ) 1).Countable := Set.countable_coe_iff.mp inferInstance
+  have h_nonempty : (Set.Icc (0:ℚ) 1).Nonempty := ⟨0, by simp⟩
+  obtain ⟨q, hq_surj⟩ := h_countable.exists_surjective h_nonempty
+  let Q : Set ℝ := Set.range (fun (q' : ℚ) => (q' : ℝ))
+  let En (n : ℕ) : Set ℝ := (Finset.image (fun (k : ℕ) => ((q k).val : ℝ)) (Finset.range n) : Set ℝ)
+  let f : ℕ → ℝ → ℝ := fun n => (En n).indicator'
+  let F : ℝ → ℝ := Q.indicator'
+  have h_finite (k : ℕ) : RiemannIntegrableOn (f k) (Icc 0 1) := by
+    dsimp [f]
+    have hEn : En k = (Finset.image (fun (k' : ℕ) => ((q k').val : ℝ)) (Finset.range k) : Set ℝ) := rfl
+    rw [hEn]
+    apply finite_integrable
+  have h_bound : ∀ n x, |f n x| ≤ 1 := by
+    intro n x
+    have : f n x = (if x ∈ En n then (1 : ℝ) else 0) := by
+      dsimp [f, En]
+      classical
+      rw [Set.indicator'_apply (En n) x]
+    rw [this]
+    split <;> norm_num
+  have h_limit : ∀ x ∈ Set.Icc 0 1, Filter.atTop.Tendsto (fun n : ℕ => f n x) (nhds (F x)) := by
+    intro x hx
+    by_cases hx_Q : x ∈ Q
+    · -- Rational case: eventually f n x = 1 = F x
+      have h_Fx : F x = 1 := by
+        dsimp [F]
+        classical
+        rw [Set.indicator'_apply Q x, if_pos hx_Q]
+      rcases hx_Q with ⟨q', hq'⟩
+      have hx_eq_q' : x = (q' : ℝ) := hq'.symm
+      have hq'_bounds : q' ∈ Set.Icc (0 : ℚ) 1 := by
+        have hx0 : (0 : ℝ) ≤ x := hx.1
+        have hx1 : x ≤ 1 := hx.2
+        rw [hx_eq_q'] at hx0 hx1
+        refine ⟨by exact_mod_cast hx0, by exact_mod_cast hx1⟩
+      obtain ⟨k, hk⟩ := hq_surj ⟨q', hq'_bounds⟩
+      have hx_eq_qk : x = ((q k).val : ℝ) := by
+        calc
+          x = (q' : ℝ) := hx_eq_q'
+          _ = ((q k).val : ℝ) := by
+            simp [hk]
+      have h_eventually : ∀ n, k < n → f n x = 1 := by
+        intro n hn
+        have hx_mem : x ∈ En n := by
+          dsimp [En]
+          have : ((q k).val : ℝ) ∈ Finset.image (fun (k' : ℕ) => ((q k').val : ℝ)) (Finset.range n) := by
+            apply Finset.mem_image.mpr
+            refine ⟨k, Finset.mem_range.mpr hn, ?_⟩
+            rfl
+          simpa [hx_eq_qk]
+        dsimp [f]
+        classical
+        rw [Set.indicator'_apply (En n) x]
+        simp [hx_mem]
+      rw [h_Fx]
+      have h_eventually' : ∀ n, n ≥ k+1 → f n x = 1 := by
+        intro n hn
+        apply h_eventually n
+        omega
+      exact tendsto_atTop_of_eventually_const h_eventually'
+    · -- Irrational case: f n x = 0 = F x for all n
+      have h_Fx : F x = 0 := by
+        dsimp [F]
+        classical
+        rw [Set.indicator'_apply Q x, if_neg hx_Q]
+      have h_never : ∀ n, f n x = 0 := by
+        intro n
+        have hx_not_mem : x ∉ En n := by
+          intro hx_mem
+          have hx_in_Q : x ∈ Q := by
+            dsimp [En] at hx_mem
+            have hx_mem' : x ∈ (Finset.image (fun (k' : ℕ) => ((q k').val : ℝ)) (Finset.range n) : Set ℝ) := hx_mem
+            simp at hx_mem'
+            rcases hx_mem' with ⟨k, hk, hx_eq⟩
+            refine ⟨(q k).val, ?_⟩
+            simpa [hx_eq]
+          exact hx_Q hx_in_Q
+        dsimp [f]
+        classical
+        rw [Set.indicator'_apply (En n) x]
+        simp [hx_not_mem]
+      rw [h_Fx]
+      have h_always : (fun n : ℕ => f n x) = fun _ => 0 := by
+        ext n; exact h_never n
+      rw [h_always]
+      exact tendsto_const_nhds
+  have h_F_not_integrable : ¬ RiemannIntegrableOn F (Icc 0 1) := by
+    intro h
+    rcases h with ⟨hI, h_nonempty_I, hR⟩
+    rcases hR with ⟨R, hR_eq⟩
+    have h_eps_delta := ((riemann_integral_eq_iff R).mp hR_eq)
+    have h_13pos : (0 : ℝ) < 1/3 := by norm_num
+    rcases h_eps_delta (1/3) h_13pos with ⟨δ, hδ_pos, hδ⟩
+    have h_ab : (Icc 0 1).a < (Icc 0 1).b := by simp
+    have h_norm_le : (Icc 0 1) = Icc (Icc 0 1).a (Icc 0 1).b := rfl
+    have h_exists := TaggedPartition.exists_norm_le (Icc 0 1) h_norm_le h_ab (δ / 2) (half_pos hδ_pos)
+    rcases h_exists with ⟨n, P, hP_norm⟩
+    have hP_norm_lt : P.norm < δ := by linarith
+    -- Since P has strictly monotone division points, all subintervals have positive length
+    have h_delta_pos (i : Fin n) : 0 < P.delta i := by
+      unfold TaggedPartition.delta
+      have h_lt : P.x i.castSucc < P.x i.succ := P.x_mono i.castSucc_lt_succ
+      linarith
+    -- Construct a partition with all tags rational
+    have h_rational_tag (i : Fin n) : ∃ (r : ℚ), P.x i.castSucc ≤ (r : ℝ) ∧ (r : ℝ) ≤ P.x i.succ := by
+      have h_lt : P.x i.castSucc < P.x i.succ := P.x_mono i.castSucc_lt_succ
+      obtain ⟨r, hr1, hr2⟩ := exists_rat_btwn h_lt
+      refine ⟨r, by linarith, by linarith⟩
+    choose r_trational hr_tational_l hr_rational_r using h_rational_tag
+    let t_rational : Fin n → ℝ := fun i => (r_trational i : ℝ)
+    have ht_rational_case (i : Fin n) : Q (t_rational i) := by
+      dsimp [t_rational, Q]
+      refine ⟨r_trational i, ?_⟩
+      simp
+    let P_rational : TaggedPartition (Icc 0 1) n :=
+      { x := P.x
+        x_tag := t_rational
+        x_start := P.x_start
+        x_end := P.x_end
+        x_mono := P.x_mono
+        x_tag_between := fun i => ⟨hr_tational_l i, hr_rational_r i⟩
+      }
+    have h_norm_rational : P_rational.norm = P.norm := rfl
+    have h_RS_rational : P_rational.RiemannSum F = 1 := by
+      unfold TaggedPartition.RiemannSum
+      calc
+        ∑ i : Fin n, F (t_rational i) * P_rational.delta i = ∑ i : Fin n, F (t_rational i) * P.delta i := rfl
+        _ = ∑ i : Fin n, 1 * P.delta i := by
+          refine Finset.sum_congr rfl (fun i hi => ?_)
+          have hF : F (t_rational i) = 1 := by
+            dsimp [F]
+            classical
+            calc
+              Q.indicator' (t_rational i) = (if t_rational i ∈ Q then (1 : ℝ) else 0) := by
+                rw [Set.indicator'_apply Q (t_rational i)]
+              _ = 1 := by
+                have hmem : t_rational i ∈ Q := ht_rational_case i
+                rw [if_pos hmem]
+          simp [hF]
+        _ = ∑ i : Fin n, P.delta i := by simp
+        _ = (Icc 0 1).b - (Icc 0 1).a := P_rational.sum_delta_eq
+        _ = 1 := by simp
+    have hP_rational_norm : P_rational.norm ≤ δ := by
+      linarith
+    have h_bound1 : |P_rational.RiemannSum F - R| ≤ 1/3 := hδ n P_rational hP_rational_norm
+    have h_eq1 : P_rational.RiemannSum F - R = 1 - R := by rw [h_RS_rational]
+    rw [h_eq1] at h_bound1
+    -- Construct a partition with all tags irrational
+    have h_irrational_tag (i : Fin n) : ∃ (t : ℝ), Irrational t ∧ P.x i.castSucc ≤ t ∧ t ≤ P.x i.succ := by
+      have h_lt : P.x i.castSucc < P.x i.succ := P.x_mono i.castSucc_lt_succ
+      obtain ⟨r, hr_irrational, hr1, hr2⟩ := exists_irrational_btwn h_lt
+      refine ⟨r, hr_irrational, by linarith, by linarith⟩
+    choose t_irrational ht_irrational_i ht_irrational_l ht_irrational_r using h_irrational_tag
+    have ht_irrational_case (i : Fin n) : ¬ Q (t_irrational i) := ht_irrational_i i
+    let P_irrational : TaggedPartition (Icc 0 1) n :=
+      { x := P.x
+        x_tag := t_irrational
+        x_start := P.x_start
+        x_end := P.x_end
+        x_mono := P.x_mono
+        x_tag_between := fun i => ⟨ht_irrational_l i, ht_irrational_r i⟩
+      }
+    have h_norm_irrational : P_irrational.norm = P.norm := rfl
+    have h_RS_irrational : P_irrational.RiemannSum F = 0 := by
+      unfold TaggedPartition.RiemannSum
+      calc
+        ∑ i : Fin n, F (t_irrational i) * P_irrational.delta i = ∑ i : Fin n, F (t_irrational i) * P.delta i := rfl
+        _ = ∑ i : Fin n, 0 * P.delta i := by
+          refine Finset.sum_congr rfl (fun i hi => ?_)
+          have hF : F (t_irrational i) = 0 := by
+            dsimp [F]
+            classical
+            calc
+              Q.indicator' (t_irrational i) = (if t_irrational i ∈ Q then (1 : ℝ) else 0) := by
+                rw [Set.indicator'_apply Q (t_irrational i)]
+              _ = 0 := by
+                have hmem : t_irrational i ∉ Q := ht_irrational_case i
+                rw [if_neg hmem]
+          simp [hF]
+        _ = 0 := by simp
+    have hP_irrational_norm : P_irrational.norm ≤ δ := by
+      linarith
+    have h_bound2 : |P_irrational.RiemannSum F - R| ≤ 1/3 := hδ n P_irrational hP_irrational_norm
+    have h_eq2 : P_irrational.RiemannSum F - R = 0 - R := by rw [h_RS_irrational]
+    rw [h_eq2] at h_bound2
+    have h_contra : (1 : ℝ) ≤ 2/3 := by
+      have h_sub : (1 - R) - (0 - R) = 1 := by ring
+      calc
+        (1 : ℝ) = |(1 - R) - (0 - R)| := by
+          rw [h_sub]
+          simp
+        _ ≤ |1 - R| + |0 - R| := abs_sub _ _
+        _ ≤ 1/3 + 1/3 := by nlinarith
+        _ = 2/3 := by norm_num
+    linarith
+  refine ⟨f, F, 1, λ n x hx => ?_⟩
+  refine ⟨h_bound n x, ?_⟩
+  exact ⟨h_limit, h_finite, h_F_not_integrable⟩
 
 /-- Exercise 1.2.2' -/
 -- Determine whether uniform convergence of uniformly bounded Riemann integrable functions preserves Riemann integrability (true or false).
