@@ -1631,7 +1631,89 @@ theorem CantorSet.null : IsNull (Real.equiv_EuclideanSpace' '' CantorSet) := by
 
   exact le_antisymm h_zero (Lebesgue_outer_measure.nonneg _)
 
-/-- Exercise 1.2.10 (\[0,1) is not the countable union of pairwise disjoint closed intervals). -/
+private lemma strictMono_g : StrictMono fun (x : ℝ) => x / (1 + |x|) := by
+  intro a b h
+  dsimp
+  by_cases ha : 0 ≤ a
+  · have hb : 0 ≤ b := by nlinarith
+    rw [abs_of_nonneg ha, abs_of_nonneg hb]
+    have ha_pos : 0 < 1 + a := by nlinarith
+    have hb_pos : 0 < 1 + b := by nlinarith
+    field_simp [ha_pos.ne', hb_pos.ne']
+    nlinarith
+  · have ha_neg : a < 0 := by nlinarith
+    by_cases hb : 0 ≤ b
+    · rw [abs_of_neg ha_neg, abs_of_nonneg hb]
+      have ha_val : a / (1 - a) < 0 :=
+        (div_neg_iff.mpr (Or.inr ⟨by nlinarith, by nlinarith⟩))
+      have hb_val : b / (1 + b) ≥ 0 := div_nonneg hb (by nlinarith)
+      exact lt_of_lt_of_le ha_val hb_val
+    · have hb_neg : b < 0 := by nlinarith
+      rw [abs_of_neg ha_neg, abs_of_neg hb_neg]
+      have ha_pos : 0 < 1 + (-a) := by nlinarith
+      have hb_pos : 0 < 1 + (-b) := by nlinarith
+      field_simp [ha_pos.ne', hb_pos.ne']
+      nlinarith
+
+private lemma not_countable_Ioo {a b : ℝ} (h : a < b) : ¬ Set.Countable (Set.Ioo a b) := by
+  set g : ℝ → ℝ := λ x => (x / (1 + |x|) + 1) / 2 with hg
+  have hg_range : ∀ x : ℝ, g x ∈ Set.Ioo (0 : ℝ) 1 := by
+    intro x
+    have hlow : 0 < (x / (1 + |x|) + 1) / 2 := by
+      have : -1 < x / (1 + |x|) := by
+        by_cases hx : 0 ≤ x
+        · rw [abs_of_nonneg hx]
+          have : 0 ≤ x / (1 + x) := div_nonneg hx (by nlinarith)
+          nlinarith
+        · rw [abs_of_neg (by nlinarith : x < 0)]
+          have hden : 0 < 1 + (-x) := by nlinarith
+          have h_eq : x / (1 + (-x)) + 1 = 1 / (1 + (-x)) := by
+            field_simp [hden.ne'] ; ring
+          have h_pos : 0 < 1 / (1 + (-x)) := div_pos (by norm_num) hden
+          nlinarith
+      nlinarith
+    have hhigh : (x / (1 + |x|) + 1) / 2 < 1 := by
+      have : x / (1 + |x|) < 1 := by
+        by_cases hx : 0 ≤ x
+        · rw [abs_of_nonneg hx]
+          have hpos : 0 < 1 + x := by nlinarith
+          field_simp [hpos.ne']
+          nlinarith
+        · rw [abs_of_neg (by nlinarith : x < 0)]
+          have hpos : 0 < 1 + (-x) := by nlinarith
+          field_simp [hpos.ne']
+          nlinarith
+      nlinarith
+    exact ⟨hlow, hhigh⟩
+  have hg_inj : Function.Injective g := by
+    intro x y h
+    have : (x / (1 + |x|) + 1) / 2 = (y / (1 + |y|) + 1) / 2 := h
+    have h_eq : x / (1 + |x|) = y / (1 + |y|) := by nlinarith
+    exact strictMono_g.injective h_eq
+  set f : ℝ → Set.Ioo a b := λ x => ⟨a + (b - a) * g x, by
+    have hgx : g x ∈ Set.Ioo (0 : ℝ) 1 := hg_range x
+    rcases hgx with ⟨hlow, hhigh⟩
+    have hpos : 0 < b - a := sub_pos.mpr h
+    have ha_pos : a + (b - a) * g x > a := by nlinarith
+    have hb_less : a + (b - a) * g x < b := by nlinarith
+    exact ⟨ha_pos, hb_less⟩⟩ with hf
+  have hf_inj : Function.Injective f := by
+    intro x y h
+    have hval : (f x : ℝ) = (f y : ℝ) := by simpa using congrArg Subtype.val h
+    have : a + (b - a) * g x = a + (b - a) * g y := hval
+    have hba_ne : b - a ≠ 0 := by nlinarith
+    have : g x = g y := by nlinarith
+    exact hg_inj this
+  intro hcount
+  have hcount_type : Countable (Set.Ioo a b) := Set.Countable.to_subtype hcount
+  have : Countable ℝ := Function.Injective.countable hf_inj
+  have : ¬ Countable ℝ := by
+    intro hc
+    have h' : Set.Countable (Set.univ : Set ℝ) := Set.countable_univ
+    exact Set.not_countable_univ h'
+  exact this ‹_›
+
+/-- Exercise 1.2.10 (\[0,1) is not the countable union of pairwise disjoint closed intervals)-/
 example : ¬ ∃ (I: ℕ → BoundedInterval), (∀ n, IsClosed (I n).toSet) ∧ (Set.univ.PairwiseDisjoint (fun n ↦ (I n).toSet) ) ∧ (⋃ n, (I n).toSet = Set.Ico 0 1) := by
   sorry
 
