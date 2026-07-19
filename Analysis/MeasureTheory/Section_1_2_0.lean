@@ -2063,7 +2063,127 @@ theorem Lebesgue_outer_measure_le_Jordan {d:ℕ} {E: Set (EuclideanSpace' d)} (h
 /-- Example 1.2.1.  With the junk value conventions of this companion, the Jordan outer measure of the rationals is zero rather than infinite (I think). -/
 -- The Jordan outer measure of the rationals in a bounded interval equals the interval length.
 example {R:ℝ} (hR: 0 < R) : Jordan_outer_measure (Real.equiv_EuclideanSpace' '' (Set.Icc (-R) R ∩ Set.range (fun q:ℚ ↦ (q:ℝ)))) = 2*R := by
-  sorry
+  set Q' := Real.equiv_EuclideanSpace' '' (Set.Icc (-R) R ∩ Set.range (fun q:ℚ ↦ (q:ℝ))) with hQ'
+  set B := (BoundedInterval.Icc (-R : ℝ) R : Box 1) with hB
+  have h_vol : |B|ᵥ = 2*R := by
+    rw [hB, Box.volume_of_interval]
+    unfold BoundedInterval.length
+    have hpos : 0 < 2*R := mul_pos (by norm_num : (0:ℝ) < 2) hR
+    simp [show R - (-R : ℝ) = 2*R by ring, hpos.le]
+  have hQ'_subset_B : Q' ⊆ B.toSet := by
+    rw [hQ', BoundedInterval.coe_of_box]
+    intro y hy
+    rcases hy with ⟨x, hx, rfl⟩
+    simpa using ⟨x, hx.1, rfl⟩
+  have hB_bounded : Bornology.IsBounded B.toSet :=
+    IsElementary.isBounded (IsElementary.box B)
+  apply le_antisymm
+  · calc
+      Jordan_outer_measure Q' ≤ Jordan_outer_measure B.toSet :=
+        Jordan_outer_measure_mono_of_subset hQ'_subset_B hB_bounded
+      _ = |B|ᵥ := Jordan_outer_measure_of_box B
+      _ = 2*R := h_vol
+  · have h_2R_le_outer : 2*R ≤ Jordan_outer_measure Q' := by
+      rw [Jordan_outer_measure]
+      apply le_csInf
+      · have hQ'_bounded : Bornology.IsBounded Q' :=
+          Bornology.IsBounded.subset hB_bounded hQ'_subset_B
+        obtain ⟨A, hA, hQ'_sub_A⟩ := IsElementary.contains_bounded hQ'_bounded
+        exact ⟨hA.measure, A, hA, hQ'_sub_A, rfl⟩
+      · intro m hm
+        obtain ⟨A, hA, hQ'_sub_A, rfl⟩ := hm
+        have h_measure_ge_vol : hA.measure ≥ |B|ᵥ := by
+          let A' := A ∩ B.toSet
+          have hA'_elem : IsElementary A' := IsElementary.inter hA (IsElementary.box B)
+          let G := B.toSet \ A'
+          have hG_elem : IsElementary G := IsElementary.sdiff (IsElementary.box B) hA'_elem
+          have hQ'_sub_A' : Q' ⊆ A' := by
+            intro x hx
+            exact ⟨hQ'_sub_A hx, hQ'_subset_B hx⟩
+          have h_disj : Disjoint A' G := by
+            rw [Set.disjoint_iff]
+            intro x ⟨hx_A', hx_G⟩
+            rcases hx_G with ⟨hx_B, hx_not_A'⟩
+            exact hx_not_A' hx_A'
+          have h_union_eq : A' ∪ G = B.toSet := by
+            ext x; constructor
+            · rintro (hx_A' | ⟨hx_B, _⟩); exact hx_A'.2; exact hx_B
+            · intro hx_B
+              by_cases hx_A' : x ∈ A'; exact Or.inl hx_A'; exact Or.inr ⟨hx_B, hx_A'⟩
+          have h_union_meas : (hA'_elem.union hG_elem).measure = hA'_elem.measure + hG_elem.measure :=
+            IsElementary.measure_of_disjUnion hA'_elem hG_elem h_disj
+          have h_union_eq_meas : (hA'_elem.union hG_elem).measure = |B|ᵥ := by
+            calc
+              (hA'_elem.union hG_elem).measure = (IsElementary.box B).measure :=
+                IsElementary.measure_eq_of_set_eq (hA'_elem.union hG_elem) (IsElementary.box B) h_union_eq
+              _ = |B|ᵥ := IsElementary.measure_of_box B
+          have h_eq : hA'_elem.measure + hG_elem.measure = |B|ᵥ := by
+            linarith
+          have hG_measure_zero : hG_elem.measure = 0 := by
+            have hG_no_rationals : ∀ q : ℚ, Real.equiv_EuclideanSpace' (q : ℝ) ∉ G := by
+              intro q hq
+              rcases hq with ⟨hq_B, hq_not_A'⟩
+              have hq_Q' : Real.equiv_EuclideanSpace' (q : ℝ) ∈ Q' := by
+                have hq_Icc : (q : ℝ) ∈ Set.Icc (-R : ℝ) R := by
+                  rw [BoundedInterval.coe_of_box] at hq_B
+                  rcases hq_B with ⟨y, hy, hy'⟩
+                  have h_y_eq_q : y = (q : ℝ) :=
+                    Real.equiv_EuclideanSpace'.injective hy'
+                  rw [h_y_eq_q] at hy
+                  exact hy
+                rw [hQ', Set.mem_image]
+                refine ⟨(q : ℝ), ⟨hq_Icc, ⟨q, rfl⟩⟩, rfl⟩
+              have hq_A' : Real.equiv_EuclideanSpace' (q : ℝ) ∈ A' := hQ'_sub_A' hq_Q'
+              exact hq_not_A' hq_A'
+            have box_no_rational_vol_zero (B' : Box 1) (h_no_q : ∀ q : ℚ, Real.equiv_EuclideanSpace' (q : ℝ) ∉ B'.toSet) : |B'|ᵥ = 0 := by
+              let I := B'.side 0
+              have hB'_eq : B' = (I : Box 1) := by
+                ext i; fin_cases i; rfl
+              rw [hB'_eq, Box.volume_of_interval]
+              unfold BoundedInterval.length
+              by_cases h_lt : I.a < I.b
+              · exfalso
+                obtain ⟨q, hq_a, hq_b⟩ := exists_rat_btwn h_lt
+                have hq_mem : (q : ℝ) ∈ (I : Set ℝ) := by
+                  match I with
+                  | BoundedInterval.Ioo a b =>
+                    simpa [BoundedInterval.toSet] using ⟨hq_a, hq_b⟩
+                  | BoundedInterval.Icc a b =>
+                    simpa [BoundedInterval.toSet] using ⟨by linarith, by linarith⟩
+                  | BoundedInterval.Ioc a b =>
+                    simpa [BoundedInterval.toSet] using ⟨by linarith, hq_b.le⟩
+                  | BoundedInterval.Ico a b =>
+                    simpa [BoundedInterval.toSet] using ⟨hq_a.le, by linarith⟩
+                have hq_B' : Real.equiv_EuclideanSpace' (q : ℝ) ∈ B'.toSet := by
+                  rw [hB'_eq, BoundedInterval.coe_of_box]
+                  simpa using ⟨(q : ℝ), hq_mem, rfl⟩
+                exact h_no_q q hq_B'
+              · simp [not_lt.mp h_lt]
+            classical
+            obtain ⟨T, hT_disj, hG_eq⟩ := hG_elem.partition
+            have hG_eq_measure : hG_elem.measure = ∑ B' ∈ T, |B'|ᵥ :=
+              hG_elem.measure_eq hT_disj hG_eq
+            have h_vol_zero : ∀ B' ∈ T, |B'|ᵥ = 0 := by
+              intro B' hB'
+              apply box_no_rational_vol_zero B'
+              intro q hq
+              have hq_G : Real.equiv_EuclideanSpace' (q : ℝ) ∈ G := by
+                rw [hG_eq]
+                exact Set.mem_biUnion hB' hq
+              exact hG_no_rationals q hq_G
+            rw [hG_eq_measure]
+            apply Finset.sum_eq_zero
+            intro B' hB'
+            exact h_vol_zero B' hB'
+          have hA'_meas_eq : hA'_elem.measure = |B|ᵥ := by
+            linarith
+          have h_mono : hA'_elem.measure ≤ hA.measure :=
+            IsElementary.measure_mono hA'_elem hA (Set.inter_subset_left (s := A) (t := B.toSet))
+          calc |B|ᵥ = hA'_elem.measure := by symm; exact hA'_meas_eq
+            _ ≤ hA.measure := h_mono
+        calc 2*R = |B|ᵥ := by symm; exact h_vol
+          _ ≤ hA.measure := h_measure_ge_vol
+    exact h_2R_le_outer
 
 -- Any countable set (in positive dimension) has Lebesgue outer measure zero.
 theorem Countable.Lebesgue_measure {d:ℕ} (hd : 0 < d) {E: Set (EuclideanSpace' d)} (hE: E.Countable) : Lebesgue_outer_measure E = 0 := by
