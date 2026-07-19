@@ -1158,7 +1158,51 @@ theorem LebesgueMeasurable.TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
 
   /-- Exercise 1.2.8 -/
 theorem Jordan_measurable.lebesgue {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) : LebesgueMeasurable E := by
-  sorry
+  have hE_bounded : Bornology.IsBounded E := hE.1
+  have h_interior_open : IsOpen (interior E) := isOpen_interior
+  have h_interior_meas : LebesgueMeasurable (interior E) :=
+    IsOpen.measurable h_interior_open
+  
+  have h_diff_sub_frontier : E \ interior E ⊆ frontier E := by
+    intro x hx
+    have hxE : x ∈ E := hx.1
+    have hx_not_int : x ∉ interior E := hx.2
+    have hx_cl : x ∈ closure E := subset_closure hxE
+    rw [frontier, Set.mem_diff]
+    exact ⟨hx_cl, hx_not_int⟩
+  
+  have h_frontier_bounded : Bornology.IsBounded (frontier E) :=
+    hE_bounded.closure.subset frontier_subset_closure
+  
+  have h_frontier_null : JordanMeasurable.null (frontier E) :=
+    (JordanMeasurable.iff_boundary_null hE_bounded).mp hE
+  
+  rcases h_frontier_null with ⟨hFrJM, hFr_measure⟩
+  
+  have h_frontier_outer_zero : Jordan_outer_measure (frontier E) = 0 := by
+    calc
+      Jordan_outer_measure (frontier E) = hFrJM.measure := hFrJM.eq_outer.symm
+      _ = 0 := hFr_measure
+  
+  have h_frontier_Lebesgue_null : IsNull (frontier E) := by
+    apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+    calc
+      Lebesgue_outer_measure (frontier E) ≤ Jordan_outer_measure (frontier E) :=
+        Lebesgue_outer_measure_le_Jordan h_frontier_bounded
+      _ = 0 := by
+        simpa using congrArg (fun x : ℝ => (x : EReal)) h_frontier_outer_zero
+  
+  have h_diff_null : IsNull (E \ interior E) :=
+    IsNull.subset h_frontier_Lebesgue_null h_diff_sub_frontier
+  
+  have h_diff_meas : LebesgueMeasurable (E \ interior E) :=
+    IsNull.measurable h_diff_null
+  
+  have h_union_eq : interior E ∪ (E \ interior E) = E :=
+    Set.union_diff_cancel interior_subset
+  
+  rw [← h_union_eq]
+  exact LebesgueMeasurable.union h_interior_meas h_diff_meas
 
 open BoundedInterval
 
