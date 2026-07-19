@@ -1241,8 +1241,287 @@ theorem CantorSet.compact : IsCompact CantorSet := by
 
   exact Metric.isCompact_of_isClosed_isBounded h_closed h_bounded
 
+instance : Uncountable (ℕ → Bool) := by
+  refine ⟨?h⟩
+  intro h
+  have h_nonempty : Nonempty (ℕ → Bool) := ⟨fun _ => false⟩
+  rcases (countable_iff_exists_surjective (α := ℕ → Bool)).mp h with ⟨f, hf⟩
+  let g : ℕ → Bool := fun n => !(f n n)
+  rcases hf g with ⟨k, hk⟩
+  have h_contra : g k = !(g k) := by
+    calc
+      g k = !(f k k) := rfl
+      _ = !(g k) := by rw [hk]
+  cases hg : g k
+  · rw [hg] at h_contra; simp at h_contra
+  · rw [hg] at h_contra; simp at h_contra
+
+noncomputable def cantorEmbedding (b : ℕ → Bool) : ℝ :=
+  ∑' n : ℕ, ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1)
+
+lemma summable_two_div_three_pow : Summable (fun n : ℕ => (2 : ℝ) / (3 : ℝ) ^ (n + 1)) := by
+  have h_geom : Summable (fun n : ℕ => ((1/3 : ℝ) ^ n : ℝ)) := by
+    have h_norm : ‖(1/3 : ℝ)‖ < 1 := by norm_num
+    exact summable_geometric_of_norm_lt_one h_norm
+  have h_nonneg : ∀ n : ℕ, 0 ≤ (2 : ℝ) / (3 : ℝ) ^ (n + 1) := by
+    intro n; positivity
+  have h_le : ∀ n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + 1) ≤ (2/3 : ℝ) * ((1/3 : ℝ) ^ n) := by
+    intro n
+    have h_eq : (2 : ℝ) / (3 : ℝ) ^ (n + 1) = (2/3 : ℝ) * ((1/3 : ℝ) ^ n) := by
+      calc
+        (2 : ℝ) / (3 : ℝ) ^ (n + 1) = (2 : ℝ) * ((3 : ℝ) ^ (n + 1))⁻¹ := rfl
+        _ = (2 : ℝ) * ((3 : ℝ) * (3 : ℝ) ^ n)⁻¹ := by
+          simp [pow_succ, mul_comm]
+        _ = (2 : ℝ) * ((3 : ℝ)⁻¹ * ((3 : ℝ) ^ n)⁻¹) := by
+          rw [mul_inv_rev, mul_comm ((3 : ℝ) ^ n)⁻¹]
+        _ = ((2 : ℝ) * (3 : ℝ)⁻¹) * ((3 : ℝ) ^ n)⁻¹ := by ring
+        _ = (2/3 : ℝ) * ((3 : ℝ) ^ n)⁻¹ := rfl
+        _ = (2/3 : ℝ) * ((1/3 : ℝ) ^ n) := by simp
+    exact h_eq.le
+  exact Summable.of_nonneg_of_le h_nonneg h_le (Summable.mul_left (2/3 : ℝ) h_geom)
+
+lemma cantorEmbedding_tsum (b : ℕ → Bool) : Summable (fun n : ℕ => ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1)) := by
+  have h_nonneg : ∀ n : ℕ, 0 ≤ ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1) := by
+    intro n
+    by_cases h : b n
+    · have hval : ((if b n then 2 else 0 : ℝ)) = (2 : ℝ) := by simp [h]
+      simp [hval]; positivity
+    · have hval : ((if b n then 2 else 0 : ℝ)) = (0 : ℝ) := by simp [h]
+      simp [hval]
+  have h_bound : ∀ n : ℕ, ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1) ≤ (2 : ℝ) / (3 : ℝ) ^ (n + 1) := by
+    intro n
+    by_cases h : b n
+    · have hval : ((if b n then 2 else 0 : ℝ)) = (2 : ℝ) := by simp [h]
+      simp [hval]
+    · have hval : ((if b n then 2 else 0 : ℝ)) = (0 : ℝ) := by simp [h]
+      rw [hval, zero_div]
+      positivity
+  exact Summable.of_nonneg_of_le h_nonneg h_bound summable_two_div_three_pow
+
+lemma tsum_tail_two_three_pow (N : ℕ) : ∑' n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + N + 1) = 1 / (3 : ℝ) ^ N := by
+  have h_geom : ∑' n : ℕ, ((1/3 : ℝ) ^ n : ℝ) = (1 - (1/3 : ℝ))⁻¹ :=
+    tsum_geometric_of_norm_lt_one (by norm_num : ‖(1/3 : ℝ)‖ < 1)
+  calc
+    ∑' n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + N + 1)
+        = ∑' n : ℕ, (((2 : ℝ) / (3 : ℝ) ^ (N + 1 : ℕ)) * ((1/3 : ℝ) ^ n)) := by
+      refine tsum_congr (fun n => ?_)
+      calc
+        (2 : ℝ) / (3 : ℝ) ^ (n + N + 1) = (2 : ℝ) / ((3 : ℝ) ^ (n + N + 1)) := rfl
+        _ = (2 : ℝ) / ((3 : ℝ) ^ (N + 1) * (3 : ℝ) ^ n) := by
+          rw [show (n + N + 1 : ℕ) = (N + 1) + n by omega, pow_add]
+        _ = ((2 : ℝ) / (3 : ℝ) ^ (N + 1)) * (1 / (3 : ℝ) ^ n) := by
+          field_simp
+        _ = ((2 : ℝ) / (3 : ℝ) ^ (N + 1 : ℕ)) * ((1/3 : ℝ) ^ n) := by simp
+    _ = ((2 : ℝ) / (3 : ℝ) ^ (N + 1 : ℕ)) * ∑' n : ℕ, ((1/3 : ℝ) ^ n) := by rw [tsum_mul_left]
+    _ = ((2 : ℝ) / (3 : ℝ) ^ (N + 1 : ℕ)) * ((1 - (1/3 : ℝ))⁻¹) := by rw [h_geom]
+    _ = 1 / (3 : ℝ) ^ N := by
+      field_simp
+      ring
+
+noncomputable def cantorPartialSum (b : ℕ → Bool) (N : ℕ) : ℝ :=
+  ∑ n ∈ Finset.range N, ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1)
+
+lemma cantorPartialSum_nonneg (b : ℕ → Bool) (N : ℕ) : 0 ≤ cantorPartialSum b N := by
+  unfold cantorPartialSum
+  apply Finset.sum_nonneg
+  intro n hn
+  by_cases h : b n
+  · simp [h]; positivity
+  · simp [h]
+
+lemma cantorEmbedding_eq_partial_add_tail (b : ℕ → Bool) (N : ℕ) :
+    cantorPartialSum b N + ∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) = cantorEmbedding b := by
+  have h := Summable.sum_add_tsum_nat_add N (cantorEmbedding_tsum b)
+  unfold cantorPartialSum; unfold cantorEmbedding
+  simpa using h
+
+lemma cantorEmbedding_tail_nonneg (b : ℕ → Bool) (N : ℕ) :
+    0 ≤ ∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) := by
+  apply tsum_nonneg
+  intro n
+  by_cases h : b (n + N)
+  · simp [h]; positivity
+  · simp [h]
+
+lemma cantorTailBound (b : ℕ → Bool) (N : ℕ) :
+    ∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) ≤ 1 / (3 : ℝ) ^ N := by
+  have h_bound : ∀ n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) ≤
+      (2 : ℝ) / (3 : ℝ) ^ (n + N + 1) := by
+    intro n
+    by_cases h : b (n + N)
+    · simp [h]
+    · simp [h]; positivity
+  have hf_summable : Summable (fun n : ℕ => ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) := by
+    simpa using (summable_nat_add_iff (G := ℝ) N).mpr (cantorEmbedding_tsum b)
+  have hg_summable : Summable (fun n : ℕ => (2 : ℝ) / (3 : ℝ) ^ (n + N + 1)) := by
+    simpa using (summable_nat_add_iff (G := ℝ) N).mpr summable_two_div_three_pow
+  have h_hasSum_f : HasSum (fun n : ℕ => ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1))
+      (∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) :=
+    hf_summable.hasSum
+  have h_hasSum_g : HasSum (fun n : ℕ => (2 : ℝ) / (3 : ℝ) ^ (n + N + 1))
+      (∑' n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + N + 1)) :=
+    hg_summable.hasSum
+  have h_le_tsum : (∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) ≤
+      (∑' n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + N + 1)) :=
+    hasSum_le h_bound h_hasSum_f h_hasSum_g
+  calc
+    (∑' n : ℕ, ((if b (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) ≤
+        ∑' n : ℕ, (2 : ℝ) / (3 : ℝ) ^ (n + N + 1) := h_le_tsum
+    _ = 1 / (3 : ℝ) ^ N := tsum_tail_two_three_pow N
+
+lemma cantorPartialSum_le_cantorEmbedding (b : ℕ → Bool) (N : ℕ) :
+    cantorPartialSum b N ≤ cantorEmbedding b := by
+  linarith [cantorEmbedding_eq_partial_add_tail b N, cantorEmbedding_tail_nonneg b N]
+
+lemma cantorEmbedding_le_partial_add_inv (b : ℕ → Bool) (N : ℕ) :
+    cantorEmbedding b ≤ cantorPartialSum b N + 1 / (3 : ℝ) ^ N := by
+  linarith [cantorEmbedding_eq_partial_add_tail b N, cantorTailBound b N]
+
+lemma cantorPartialSum_diff_abs (b₁ b₂ : ℕ → Bool) (k : ℕ) (hk : b₁ k ≠ b₂ k) 
+    (h_agree : ∀ m < k, b₁ m = b₂ m) : 
+    |cantorPartialSum b₁ (k+1) - cantorPartialSum b₂ (k+1)| = 2 / (3 : ℝ) ^ (k+1) := by
+  unfold cantorPartialSum
+  have h_range_split : Finset.range (k+1) = (Finset.range k) ∪ {k} := by
+    simp [Finset.range_succ]
+  have h_disjoint : Disjoint (Finset.range k) ({k} : Finset ℕ) := by
+    simp [Finset.disjoint_singleton_right, Finset.mem_range]
+  have h_sum_cancel : (∑ m ∈ Finset.range k, ((if b₁ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) =
+      (∑ m ∈ Finset.range k, ((if b₂ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) := by
+    apply Finset.sum_congr rfl; intro m hm; simp [h_agree m (Finset.mem_range.1 hm)]
+  have h_sum1 : (∑ m ∈ Finset.range (k+1), ((if b₁ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) =
+      (∑ m ∈ Finset.range k, ((if b₁ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) +
+      ((if b₁ k then 2 else 0 : ℝ)) / (3 : ℝ) ^ (k + 1) := by
+    rw [h_range_split, Finset.sum_union h_disjoint, Finset.sum_singleton]
+  have h_sum2 : (∑ m ∈ Finset.range (k+1), ((if b₂ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) =
+      (∑ m ∈ Finset.range k, ((if b₂ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) +
+      ((if b₂ k then 2 else 0 : ℝ)) / (3 : ℝ) ^ (k + 1) := by
+    rw [h_range_split, Finset.sum_union h_disjoint, Finset.sum_singleton]
+  rw [h_sum1, h_sum2, h_sum_cancel]
+  simp
+  have h_dif : |(if b₁ k then 2 else 0 : ℝ) - (if b₂ k then 2 else 0 : ℝ)| = 2 := by
+    by_cases h₁ : b₁ k
+    · by_cases h₂ : b₂ k
+      · exfalso; exact hk (by simp [h₁, h₂])
+      · simp [h₁, h₂]
+    · by_cases h₂ : b₂ k
+      · simp [h₁, h₂]
+      · exfalso; exact hk (by simp [h₁, h₂])
+  calc
+    |(((if b₁ k then 2 else 0 : ℝ)) / (3 : ℝ) ^ (k + 1)) -
+      ((if b₂ k then 2 else 0 : ℝ)) / (3 : ℝ) ^ (k + 1)|
+        = |((if b₁ k then 2 else 0 : ℝ) - (if b₂ k then 2 else 0 : ℝ)) / (3 : ℝ) ^ (k + 1)| := by
+      field_simp
+    _ = |(if b₁ k then 2 else 0 : ℝ) - (if b₂ k then 2 else 0 : ℝ)| / |(3 : ℝ) ^ (k + 1)| := by rw [abs_div]
+    _ = |(if b₁ k then 2 else 0 : ℝ) - (if b₂ k then 2 else 0 : ℝ)| / ((3 : ℝ) ^ (k + 1)) := by
+      simp [abs_of_pos (by positivity : 0 < (3 : ℝ) ^ (k + 1))]
+    _ = 2 / (3 : ℝ) ^ (k + 1) := by rw [h_dif]
+
+lemma cantorEmbedding_injective : Function.Injective cantorEmbedding := by
+  intro b₁ b₂ h_eq
+  ext n
+  by_contra! h_ne
+  have h_exists : ∃ n, b₁ n ≠ b₂ n := ⟨n, h_ne⟩
+  let k := Nat.find h_exists
+  have hk : b₁ k ≠ b₂ k := Nat.find_spec h_exists
+  have hk_min' : ∀ m < k, b₁ m = b₂ m := by
+    intro m hm
+    have h_not_ne : ¬ b₁ m ≠ b₂ m := Nat.find_min h_exists hm
+    exact not_ne_iff.mp h_not_ne
+  let N := k+1
+  have h_diff_abs : |cantorPartialSum b₁ N - cantorPartialSum b₂ N| = 2 / (3 : ℝ) ^ N :=
+    cantorPartialSum_diff_abs b₁ b₂ k hk hk_min'
+  have h_tail_nonneg₁ : 0 ≤ ∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) :=
+    cantorEmbedding_tail_nonneg b₁ N
+  have h_tail_nonneg₂ : 0 ≤ ∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) :=
+    cantorEmbedding_tail_nonneg b₂ N
+  have h_tail_bound₁ : ∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) ≤ 1 / (3 : ℝ) ^ N :=
+    cantorTailBound b₁ N
+  have h_tail_bound₂ : ∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) ≤ 1 / (3 : ℝ) ^ N :=
+    cantorTailBound b₂ N
+  have h_tail_diff_abs_bound : 
+      |(∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) -
+        (∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1))| ≤ 1 / (3 : ℝ) ^ N := by
+    let A := ∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)
+    let B := ∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)
+    have hA_nonneg : 0 ≤ A := h_tail_nonneg₁
+    have hB_nonneg : 0 ≤ B := h_tail_nonneg₂
+    have hA_bound : A ≤ 1 / (3 : ℝ) ^ N := h_tail_bound₁
+    have hB_bound : B ≤ 1 / (3 : ℝ) ^ N := h_tail_bound₂
+    have h_abs_le_max : |A - B| ≤ max A B := by
+      by_cases hAB : A ≥ B
+      · have h_abs : |A - B| = A - B := abs_of_nonneg (sub_nonneg.mpr hAB)
+        rw [h_abs, max_eq_left hAB]
+        nlinarith
+      · have hBA : B ≥ A := by linarith
+        have h_abs : |A - B| = B - A := by
+          rw [abs_of_nonpos (sub_nonpos.mpr hBA)]
+          ring
+        rw [h_abs, max_eq_right hBA]
+        nlinarith
+    have h_max_bound : max A B ≤ 1 / (3 : ℝ) ^ N := max_le hA_bound hB_bound
+    have h_symm : |B - A| = |A - B| := abs_sub_comm _ _
+    rw [h_symm]
+    exact le_trans h_abs_le_max h_max_bound
+  have h_eq_tails : cantorPartialSum b₁ N - cantorPartialSum b₂ N =
+      (∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) -
+      (∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) := by
+    linarith [cantorEmbedding_eq_partial_add_tail b₁ N, cantorEmbedding_eq_partial_add_tail b₂ N, h_eq]
+  have h_contra : 2 / (3 : ℝ) ^ N ≤ 1 / (3 : ℝ) ^ N := by
+    calc
+      2 / (3 : ℝ) ^ N = |cantorPartialSum b₁ N - cantorPartialSum b₂ N| := by rw [h_diff_abs]
+      _ = |(∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) -
+            (∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1))| := by
+        rw [h_eq_tails]
+      _ ≤ 1 / (3 : ℝ) ^ N := h_tail_diff_abs_bound
+  have hpos : 0 < (3 : ℝ) ^ N := by positivity
+  have : 1 / (3 : ℝ) ^ N < 2 / (3 : ℝ) ^ N := by
+    field_simp [hpos.ne.symm]
+    nlinarith
+  linarith
+
+lemma cantorEmbedding_mem (b : ℕ → Bool) : cantorEmbedding b ∈ CantorSet := by
+  rw [CantorSet]
+  refine Set.mem_iInter.mpr ?_
+  intro N
+  unfold CantorInterval
+  let a : Fin N → ({0, 2} : Set ℕ) := fun i =>
+    if h : b i.val then ⟨2, by norm_num⟩ else ⟨0, by norm_num⟩
+  have ha_val : ∀ i : Fin N, (a i : ℝ) = if b i.val then (2 : ℝ) else (0 : ℝ) := by
+    intro i; dsimp [a]; split_ifs <;> simp
+  have h_left : (∑ i : Fin N, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1))) = cantorPartialSum b N := by
+    unfold cantorPartialSum
+    calc
+      (∑ i : Fin N, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1)))
+          = (∑ i : Fin N, ((if b i.val then 2 else 0 : ℝ)) / (3 : ℝ) ^ (i.val + 1)) := by
+        refine Finset.sum_congr rfl (fun i hi => ?_)
+        rw [ha_val i]
+      _ = ∑ n ∈ Finset.range N, ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1) := by
+        simpa using (Fin.sum_univ_eq_sum_range (fun n : ℕ => ((if b n then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + 1)) N)
+  have h_lower : (∑ i : Fin N, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1))) ≤ cantorEmbedding b := by
+    rw [h_left]
+    exact cantorPartialSum_le_cantorEmbedding b N
+  have h_upper : cantorEmbedding b ≤ (∑ i : Fin N, ((a i : ℝ) / (3 : ℝ) ^ (i.val + 1))) + 1 / (3 : ℝ) ^ N := by
+    rw [h_left]
+    exact cantorEmbedding_le_partial_add_inv b N
+  apply Set.mem_iUnion.mpr
+  refine ⟨a, ?_⟩
+  simp [BoundedInterval.toSet, Set.mem_Icc]
+  constructor
+  · simpa using h_lower
+  · simpa [div_eq_inv_mul] using h_upper
+
 theorem CantorSet.uncountable : Uncountable CantorSet := by
-  sorry
+  have h_uncountable_nat_bool : Uncountable (ℕ → Bool) := by infer_instance
+  have h_injective : Function.Injective (fun (b : ℕ → Bool) => (⟨cantorEmbedding b, cantorEmbedding_mem b⟩ : CantorSet)) := by
+    intro b₁ b₂ h
+    apply cantorEmbedding_injective
+    exact Subtype.ext_iff.mp h
+  refine ⟨?h⟩
+  intro h_countable
+  haveI : Countable CantorSet := h_countable
+  have h_countable_nat_bool : Countable (ℕ → Bool) :=
+    h_injective.countable
+  exact h_uncountable_nat_bool.not_countable h_countable_nat_bool
 
 theorem CantorSet.null : IsNull (Real.equiv_EuclideanSpace' '' CantorSet) := by sorry
 
