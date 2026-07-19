@@ -4697,9 +4697,7 @@ theorem Box.sum_volume_eq {d:ℕ} (B B': ℕ → Box d) (hdisj: Pairwise (Functi
   exact h_toReal_eq
 
 /-- Exercise 1.2.5: For any set that equals a countable union of almost disjoint boxes,
-    the Lebesgue outer measure equals the Jordan inner measure.
-    Note: `Jordan_inner_measure` returns `ℝ`; for infinite total volume the equality is
-    unprovable in the current formalization. -/
+    the Lebesgue outer measure equals the Jordan inner measure. -/
 theorem Lebesgue_outer_measure.eq_Jordan_inner_of_boxes {d:ℕ} (E: Set (EuclideanSpace' d)) (B: ℕ → Box d)
     (hE: E = ⋃ n, (B n).toSet) (hdisj: Pairwise (Function.onFun AlmostDisjoint B)) :
     Lebesgue_outer_measure E = Jordan_inner_measure E := by
