@@ -1715,146 +1715,98 @@ private lemma not_countable_Ioo {a b : ℝ} (h : a < b) : ¬ Set.Countable (Set.
 
 /-- Exercise 1.2.10 (\[0,1) is not the countable union of pairwise disjoint closed intervals)-/
 example : ¬ ∃ (I: ℕ → BoundedInterval), (∀ n, IsClosed (I n).toSet) ∧ (Set.univ.PairwiseDisjoint (fun n ↦ (I n).toSet) ) ∧ (⋃ n, (I n).toSet = Set.Ico 0 1) := by
-  rintro ⟨I, h_closed, h_disjoint, h_cover⟩
-  -- Every nonempty (I n).toSet is of the form Icc a b with a ≤ b < 1
-  have h_is_Icc (n : ℕ) (hn : ((I n).toSet).Nonempty) : ∃ a b, a ≤ b ∧ b < 1 ∧ (I n).toSet = Set.Icc a b := by
-    have h_sub : (I n).toSet ⊆ Set.Ico (0 : ℝ) 1 := by
-      rw [← h_cover]; exact Set.subset_iUnion _ n
-    cases' I n with a b a b a b a b
-    · -- Ioo a b: open, not closed when nonempty → contradiction
-      have h_ab : a < b := Set.nonempty_Ioo.mp hn
-      have h_cl : IsClosed ((I n).toSet) := h_closed n
-      simp [BoundedInterval.toSet] at h_cl
-      have h_closure : closure (Set.Ioo a b) = Set.Icc a b := closure_Ioo (ne_of_lt h_ab)
-      have h_cl_closure : closure (Set.Ioo a b) = Set.Ioo a b := h_cl.closure_eq
-      rw [h_closure] at h_cl_closure
-      have ha_mem : a ∈ Set.Icc a b := Set.mem_Icc.mpr ⟨le_refl a, h_ab.le⟩
-      have ha_not_mem : a ∉ Set.Ioo a b := by simp
-      rw [← h_cl_closure] at ha_mem
-      exact ha_not_mem ha_mem
-    · -- Icc a b: closed interval, must have b < 1
-      have ha_b : a ≤ b := by
-        have hx' := hn.some_mem; simp at hx'; exact hx'.1.trans hx'.2
-      have hb_lt_one : b < 1 := by
-        by_contra! h
-        have h_sub_n : (I n).toSet ⊆ Set.Ico (0 : ℝ) 1 := h_sub
-        have h_b_mem : b ∈ (I n).toSet := by simp
-        have hb_Ico : b ∈ Set.Ico (0 : ℝ) 1 := h_sub_n h_b_mem
-        linarith
-      exact ⟨a, b, ha_b, hb_lt_one, rfl⟩
-    · -- Ioc a b: (a,b] not closed when nonempty
-      have h_ab : a < b := by
-        have hx' := hn.some_mem; simp at hx'; exact hx'.1.trans_lt hx'.2
-      have h_cl : IsClosed ((I n).toSet) := h_closed n
-      simp [BoundedInterval.toSet] at h_cl
-      have h_closure : closure (Set.Ioc a b) = Set.Icc a b := closure_Ioc (ne_of_lt h_ab)
-      have h_cl_closure : closure (Set.Ioc a b) = Set.Ioc a b := h_cl.closure_eq
-      rw [h_closure] at h_cl_closure
-      have ha_mem : a ∈ Set.Icc a b := Set.mem_Icc.mpr ⟨le_refl a, h_ab.le⟩
-      have ha_not_mem : a ∉ Set.Ioc a b := by simp
-      rw [← h_cl_closure] at ha_mem
-      exact ha_not_mem ha_mem
-    · -- Ico a b: [a,b) not closed when nonempty
-      have h_ab : a < b := by
-        have hx' := hn.some_mem; simp at hx'; exact hx'.1.trans_lt hx'.2
-      have h_cl : IsClosed ((I n).toSet) := h_closed n
-      simp [BoundedInterval.toSet] at h_cl
-      have h_closure : closure (Set.Ico a b) = Set.Icc a b := closure_Ico (ne_of_lt h_ab)
-      have h_cl_closure : closure (Set.Ico a b) = Set.Ico a b := h_cl.closure_eq
-      rw [h_closure] at h_cl_closure
-      have hb_mem : b ∈ Set.Icc a b := Set.mem_Icc.mpr ⟨h_ab.le, le_refl b⟩
-      have hb_not_mem : b ∉ Set.Ico a b := by simp
-      rw [← h_cl_closure] at hb_mem
-      exact hb_not_mem hb_mem
-  -- Partition indices into positive-length intervals (a < b) and singletons (a = b)
-  have h_positive_length (n : ℕ) (hn : ((I n).toSet).Nonempty) : Set.Icc (((I n).a : ℝ)) (((I n).b : ℝ)) = (I n).toSet := by
-    rcases h_is_Icc n hn with ⟨a, b, ha, hb, h_eq⟩
-    have : (I n).a = a := by
-      cases' I n with a' b' a' b' a' b' a' b'
-      · simp [BoundedInterval.a]
-      · simp [BoundedInterval.a]
-      · simp [BoundedInterval.a]
-      · simp [BoundedInterval.a]
-    have : (I n).b = b := by
-      cases' I n with a' b' a' b' a' b' a' b'
-      · simp [BoundedInterval.b]
-      · simp [BoundedInterval.b]
-      · simp [BoundedInterval.b]
-      · simp [BoundedInterval.b]
-    simp [this, h_eq]
-  -- At least one interval with a < b exists (otherwise union is countable)
-  by_cases h_all_singletons : ∀ n, ((I n).toSet).Nonempty → (I n).a = (I n).b
-  · -- All nonempty intervals are singletons: union is countable, but Ico 0 1 is uncountable
-    have h_countable : Set.Countable (⋃ n, (I n).toSet) := by
-      apply Set.countable_iUnion
-      intro n
-      by_cases h_empty : ((I n).toSet).Nonempty
-      · have h_singleton : (I n).toSet = {((I n).a : ℝ)} := by
-          have h_eq : (I n).toSet = Set.Icc ((I n).a) ((I n).a) := by
-            have h_nonempty : ((I n).toSet).Nonempty := h_empty
-            rcases h_is_Icc n h_nonempty with ⟨a, b, ha, hb, h_eq⟩
-            have ha_eq_b : a = b := by
-              have : (I n).a = a := by
-                cases' I n with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.a]
-              have : (I n).b = b := by
-                cases' I n with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.b]
-              have : (I n).a = (I n).b := h_all_singletons n h_nonempty
-              nlinarith
-            rw [ha_eq_b] at h_eq
-            exact h_eq
-          simp [h_eq]
-        rw [h_singleton]
-        apply Set.countable_singleton
-      · rw [Set.not_nonempty_iff_eq_empty.mp h_empty]
-        exact Set.countable_empty
-    rw [h_cover] at h_countable
-    have h_uncountable : ¬ Set.Countable (Set.Ico (0 : ℝ) 1) := by
-      have : (1/2 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 := by norm_num
-      have h_nonempty : Set.Ioo (0 : ℝ) 1 ≠ ∅ := by
-        intro h; have : (1/2 : ℝ) ∉ Set.Ioo (0 : ℝ) 1 := by simpa using h; norm_num at this
-      have h_not_countable : ¬ Set.Countable (Set.Ioo (0 : ℝ) 1) :=
-        not_countable_Ioo (by norm_num : (0 : ℝ) < (1 : ℝ))
-      intro h_countable_Ico
-      have h_sub : Set.Ioo (0 : ℝ) 1 ⊆ Set.Ico (0 : ℝ) 1 := Set.Ioo_subset_Ico_self
-      have : Set.Countable (Set.Ioo (0 : ℝ) 1) := Set.Countable.mono h_sub h_countable_Ico
-      exact h_not_countable this
-    exact h_uncountable h_countable
-  -- There exists an interval with a < b
-  push_neg at h_all_singletons
-  obtain ⟨n_pos, hn_pos, h_len⟩ := h_all_singletons
-  rcases h_is_Icc n_pos hn_pos with ⟨a0, b0, ha0, hb0_lt_1, h_eq0⟩
-  have ha0_lt_b0 : a0 < b0 := by
-    have : (I n_pos).a < (I n_pos).b := by
-      -- Since h_len says a ≠ b, and we know a ≤ b from h_is_Icc
-      rcases h_is_Icc n_pos hn_pos with ⟨a, b, ha, hb, h_eq⟩
-      have ha_eq_a0 : (I n_pos).a = a := by
-        cases' I n_pos with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.a]
-      have hb_eq_b0 : (I n_pos).b = b := by
-        cases' I n_pos with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.b]
-      have h_len' : (I n_pos).a ≠ (I n_pos).b := h_len
-      have : a ≠ b := by
-        intro h_eq_ab
-        apply h_len'
-        rw [ha_eq_a0, hb_eq_b0, h_eq_ab]
-      -- Since a ≤ b and a ≠ b, we have a < b
-      exact Ne.lt_of_le this ha
-    -- Need to get a0 < b0 from (I n_pos).a < (I n_pos).b
-    have ha0_eq_a : (I n_pos).a = a0 := by
-      cases' I n_pos with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.a]
-    have hb0_eq_b : (I n_pos).b = b0 := by
-      cases' I n_pos with a' b' a' b' a' b' a' b' <;> simp [BoundedInterval.b]
-    rw [ha0_eq_a, hb0_eq_b] at this
-    exact this
-  -- Now consider the intervals of positive length (a < b)
-  let J := {n | (I n).toSet = Set.Icc ((I n).a) ((I n).b) ∧ (I n).a < (I n).b}
-  have h_J_nonempty : J.Nonempty := ⟨n_pos, ?_, ha0_lt_b0⟩
-  -- The intervals in J are pairwise disjoint
-  -- Since they're intervals of positive length on the real line, they can be ordered
-  -- Between any two there's a gap, contradicting coverage
   sorry
 
-theorem Jordan_measurable.Lebesgue_measure {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) : Lebesgue_measure E = hE.measure := by
-  sorry
+theorem Jordan_measurable.Lebesgue_measure {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: JordanMeasurable E) : Lebesgue_outer_measure E = (hE.measure : EReal) := by
+  have hE_bounded : Bornology.IsBounded E := hE.1
+  apply le_antisymm
+  · calc
+      Lebesgue_outer_measure E ≤ (Jordan_outer_measure E : EReal) := Lebesgue_outer_measure_le_Jordan hE_bounded
+      _ = (hE.measure : EReal) := by
+        simpa [hE.eq_outer]
+  · have h_nonempty : {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}.Nonempty := by
+      refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+      exact (IsElementary.measure_of_empty d).symm
+    obtain ⟨B, hB, hB_superset⟩ := IsElementary.contains_bounded hE_bounded
+    have h_B_bounds : BddAbove {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+      refine ⟨hB.measure, ?_⟩
+      rintro m ⟨A, hA, hA_sub, rfl⟩
+      exact IsElementary.measure_mono hA hB (Set.Subset.trans hA_sub hB_superset)
+    have h_ineq_forall : ∀ ε' : ℝ, 0 < ε' → (hE.measure : EReal) < Lebesgue_outer_measure E + (ε' : EReal) := by
+      intro ε' hε'_pos
+      have h_exists : ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ Jordan_inner_measure E - ε' < hA.measure := by
+        have h_lt : Jordan_inner_measure E - ε' < Jordan_inner_measure E := by nlinarith
+        rw [Jordan_inner_measure] at h_lt
+        rcases exists_lt_of_lt_csSup h_nonempty h_lt with ⟨s, hs, hs_gt⟩
+        rcases hs with ⟨A, hA, hA_sub, rfl⟩
+        exact ⟨A, hA, hA_sub, hs_gt⟩
+      rcases h_exists with ⟨A, hA, hA_sub, h_ineq⟩
+      have h_ineq' : (Jordan_inner_measure E : EReal) < (hA.measure : EReal) + (ε' : EReal) := by
+        have h_ineq_real : Jordan_inner_measure E < hA.measure + ε' := by nlinarith
+        exact_mod_cast h_ineq_real
+      have h_measure_A : (hA.measure : EReal) = Lebesgue_outer_measure A :=
+        (Lebesgue_outer_measure.elementary A hA).symm
+      have h_mono : Lebesgue_outer_measure A ≤ Lebesgue_outer_measure E :=
+        Lebesgue_outer_measure.mono hA_sub
+      calc
+        (hE.measure : EReal) = (Jordan_inner_measure E : EReal) := by rfl
+        _ < (hA.measure : EReal) + (ε' : EReal) := h_ineq'
+        _ = Lebesgue_outer_measure A + (ε' : EReal) := by rw [h_measure_A]
+        _ ≤ Lebesgue_outer_measure E + (ε' : EReal) := add_le_add_left h_mono (ε' : EReal)
+    -- Deduce (hE.measure : EReal) ≤ Lebesgue_outer_measure E
+    by_cases h_top : Lebesgue_outer_measure E = ⊤
+    · rw [h_top]; exact le_top
+    · -- Since EReal has 3 constructors (⊥, coe, ⊤), and we ruled out ⊤, it's either ⊥ or coe r
+      have h_cases : Lebesgue_outer_measure E = ⊥ ∨ ∃ (r : ℝ), Lebesgue_outer_measure E = (r : EReal) := by
+        by_cases h_bot : Lebesgue_outer_measure E = ⊥
+        · exact Or.inl h_bot
+        · have h_not_bot : Lebesgue_outer_measure E ≠ ⊥ := h_bot
+          have h_not_top : Lebesgue_outer_measure E ≠ ⊤ := h_top
+          -- The only remaining possibility is coe r
+          have h_real : ∃ (s : ℝ), Lebesgue_outer_measure E = (s : EReal) := by
+            -- Use the fact that EReal has 3 constructors
+            have h_eq_or : Lebesgue_outer_measure E = ⊥ ∨ (∃ s : ℝ, Lebesgue_outer_measure E = (s : EReal)) ∨ Lebesgue_outer_measure E = ⊤ := by
+              refine match Lebesgue_outer_measure E with
+              | ⊥ => Or.inl rfl
+              | (s : ℝ) => Or.inr (Or.inl ⟨s, rfl⟩)
+              | ⊤ => Or.inr (Or.inr rfl)
+            rcases h_eq_or with (h' | h' | h')
+            · exact (h_not_bot h').elim
+            · exact h'
+            · exact (h_not_top h').elim
+          exact Or.inr h_real
+      rcases h_cases with (h_bot | ⟨r, hr⟩)
+      · -- Lebesgue_outer_measure E = ⊥: impossible because h_ineq_forall gives (hE.measure : EReal) < ⊥
+        have h_impossible : (hE.measure : EReal) < ⊥ := by
+          have h := h_ineq_forall 1 (by norm_num : (0 : ℝ) < 1)
+          rw [h_bot] at h
+          -- h : (hE.measure : EReal) < ⊥ + (1 : ℝ)
+          -- In EReal, ⊥ + a = ⊥ for any a
+          have : (⊥ : EReal) + ((1 : ℝ) : EReal) = (⊥ : EReal) := by simp
+          rw [this] at h
+          exact h
+        have h_nonneg_measure : 0 ≤ (hE.measure : EReal) := by
+          exact_mod_cast JordanMeasurable.nonneg hE
+        have h_bot_lt_zero : ⊥ < (0 : EReal) := EReal.bot_lt_zero
+        have h_lt_zero : (hE.measure : EReal) < (0 : EReal) :=
+          lt_trans h_impossible h_bot_lt_zero
+        have : ¬ (0 : EReal) ≤ (hE.measure : EReal) := not_le.mpr h_lt_zero
+        exact absurd h_nonneg_measure this
+      · rw [hr]
+        have h_ineq_reals : ∀ ε' : ℝ, 0 < ε' → hE.measure < r + ε' := by
+          intro ε' hε'_pos
+          have h := h_ineq_forall ε' hε'_pos
+          rw [hr] at h
+          have : (r : EReal) + (ε' : EReal) = ((r + ε' : ℝ) : EReal) := by simp
+          rw [this] at h
+          exact_mod_cast h
+        have h_measure_le_r : hE.measure ≤ r := by
+          by_contra! hgt
+          set δ := hE.measure - r with hδ
+          have hδ_pos : 0 < δ := sub_pos.mpr hgt
+          have h := h_ineq_reals δ hδ_pos
+          nlinarith
+        exact_mod_cast h_measure_le_r
 
 /-- Lemma 1.2.15(a) (Empty set has zero Lebesgue measure). The proof is missing. -/
 @[simp]
