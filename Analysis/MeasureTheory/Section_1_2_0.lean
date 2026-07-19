@@ -738,12 +738,12 @@ lemma finite_integrable (E : Finset ℝ) : RiemannIntegrableOn (Set.indicator' (
         Set.indicator' ({a} : Set ℝ) + Set.indicator' ((s : Finset ℝ) : Set ℝ) := by
       ext x
       classical
-      simp only [Set.indicator'_apply, ha, Finset.mem_insert, Pi.add_apply]
+      simp only [Set.indicator'_apply, Pi.add_apply]
       by_cases hx_a : x = a
       · subst x; simp [ha]
       · by_cases hx_s : x ∈ s
-        · simp [hx_s, hx_a, ha]
-        · simp [hx_s, hx_a, ha]
+        · simp [hx_s, hx_a]
+        · simp [hx_s, hx_a]
     rw [h_union]
     apply RiemannIntegrableOn.add
     · exact singleton_integrable a
@@ -845,7 +845,7 @@ example : ∃ f: ℕ → ℝ → ℝ, ∃ F: ℝ → ℝ, ∃ M, ∀ n, ∀ x �
             simp at hx_mem'
             rcases hx_mem' with ⟨k, hk, hx_eq⟩
             refine ⟨(q k).val, ?_⟩
-            simpa [hx_eq]
+            simp [hx_eq]
           exact hx_Q hx_in_Q
         dsimp [f]
         classical
