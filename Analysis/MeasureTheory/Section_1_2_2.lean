@@ -1162,7 +1162,7 @@ theorem Jordan_measurable.lebesgue {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Jor
   have h_interior_open : IsOpen (interior E) := isOpen_interior
   have h_interior_meas : LebesgueMeasurable (interior E) :=
     IsOpen.measurable h_interior_open
-  
+
   have h_diff_sub_frontier : E \ interior E ⊆ frontier E := by
     intro x hx
     have hxE : x ∈ E := hx.1
@@ -1170,20 +1170,20 @@ theorem Jordan_measurable.lebesgue {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Jor
     have hx_cl : x ∈ closure E := subset_closure hxE
     rw [frontier, Set.mem_diff]
     exact ⟨hx_cl, hx_not_int⟩
-  
+
   have h_frontier_bounded : Bornology.IsBounded (frontier E) :=
     hE_bounded.closure.subset frontier_subset_closure
-  
+
   have h_frontier_null : JordanMeasurable.null (frontier E) :=
     (JordanMeasurable.iff_boundary_null hE_bounded).mp hE
-  
+
   rcases h_frontier_null with ⟨hFrJM, hFr_measure⟩
-  
+
   have h_frontier_outer_zero : Jordan_outer_measure (frontier E) = 0 := by
     calc
       Jordan_outer_measure (frontier E) = hFrJM.measure := hFrJM.eq_outer.symm
       _ = 0 := hFr_measure
-  
+
   have h_frontier_Lebesgue_null : IsNull (frontier E) := by
     apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
     calc
@@ -1191,16 +1191,16 @@ theorem Jordan_measurable.lebesgue {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Jor
         Lebesgue_outer_measure_le_Jordan h_frontier_bounded
       _ = 0 := by
         simpa using congrArg (fun x : ℝ => (x : EReal)) h_frontier_outer_zero
-  
+
   have h_diff_null : IsNull (E \ interior E) :=
     IsNull.subset h_frontier_Lebesgue_null h_diff_sub_frontier
-  
+
   have h_diff_meas : LebesgueMeasurable (E \ interior E) :=
     IsNull.measurable h_diff_null
-  
+
   have h_union_eq : interior E ∪ (E \ interior E) = E :=
     Set.union_diff_cancel interior_subset
-  
+
   rw [← h_union_eq]
   exact LebesgueMeasurable.union h_interior_meas h_diff_meas
 
@@ -1377,12 +1377,12 @@ lemma cantorEmbedding_le_partial_add_inv (b : ℕ → Bool) (N : ℕ) :
     cantorEmbedding b ≤ cantorPartialSum b N + 1 / (3 : ℝ) ^ N := by
   linarith [cantorEmbedding_eq_partial_add_tail b N, cantorTailBound b N]
 
-lemma cantorPartialSum_diff_abs (b₁ b₂ : ℕ → Bool) (k : ℕ) (hk : b₁ k ≠ b₂ k) 
-    (h_agree : ∀ m < k, b₁ m = b₂ m) : 
+lemma cantorPartialSum_diff_abs (b₁ b₂ : ℕ → Bool) (k : ℕ) (hk : b₁ k ≠ b₂ k)
+    (h_agree : ∀ m < k, b₁ m = b₂ m) :
     |cantorPartialSum b₁ (k+1) - cantorPartialSum b₂ (k+1)| = 2 / (3 : ℝ) ^ (k+1) := by
   unfold cantorPartialSum
   have h_range_split : Finset.range (k+1) = (Finset.range k) ∪ {k} := by
-    simp [Finset.range_succ]
+    simp [Finset.range_add_one]
   have h_disjoint : Disjoint (Finset.range k) ({k} : Finset ℕ) := by
     simp [Finset.disjoint_singleton_right, Finset.mem_range]
   have h_sum_cancel : (∑ m ∈ Finset.range k, ((if b₁ m then 2 else 0 : ℝ)) / (3 : ℝ) ^ (m + 1)) =
@@ -1438,7 +1438,7 @@ lemma cantorEmbedding_injective : Function.Injective cantorEmbedding := by
     cantorTailBound b₁ N
   have h_tail_bound₂ : ∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1) ≤ 1 / (3 : ℝ) ^ N :=
     cantorTailBound b₂ N
-  have h_tail_diff_abs_bound : 
+  have h_tail_diff_abs_bound :
       |(∑' n : ℕ, ((if b₂ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)) -
         (∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1))| ≤ 1 / (3 : ℝ) ^ N := by
     let A := ∑' n : ℕ, ((if b₁ (n + N) then 2 else 0 : ℝ)) / (3 : ℝ) ^ (n + N + 1)
@@ -1713,6 +1713,26 @@ private lemma not_countable_Ioo {a b : ℝ} (h : a < b) : ¬ Set.Countable (Set.
     exact Set.not_countable_univ h'
   exact this ‹_›
 
+/-- If a BoundedInterval has a closed underlying set, it must be of the form {lit}`Icc a b` (possibly empty). -/
+lemma closed_eq_Icc_or_empty {I : BoundedInterval} (h : IsClosed I.toSet) : (∃ a b, I = Icc a b) ∨ (I.toSet = ∅) := by
+  cases I with
+  | Icc a b => left; exact ⟨a, b, rfl⟩
+  | Ioo a b =>
+    right
+    simp [BoundedInterval.toSet] at h
+    have hba : ¬ a < b := by linarith
+    simp [BoundedInterval.toSet, Set.Ioo_eq_empty_iff.mpr hba]
+  | Ioc a b =>
+    right
+    simp [BoundedInterval.toSet] at h
+    have hba : ¬ a < b := by linarith
+    simp [BoundedInterval.toSet, Set.Ioc_eq_empty_iff.mpr hba]
+  | Ico a b =>
+    right
+    simp [BoundedInterval.toSet] at h
+    have hba : ¬ a < b := by linarith
+    simp [BoundedInterval.toSet, Set.Ico_eq_empty_iff.mpr hba]
+
 /-- Exercise 1.2.10 (\[0,1) is not the countable union of pairwise disjoint closed intervals)-/
 example : ¬ ∃ (I: ℕ → BoundedInterval), (∀ n, IsClosed (I n).toSet) ∧ (Set.univ.PairwiseDisjoint (fun n ↦ (I n).toSet) ) ∧ (⋃ n, (I n).toSet = Set.Ico 0 1) := by
   sorry
@@ -1723,7 +1743,7 @@ theorem Jordan_measurable.Lebesgue_measure {d:ℕ} {E: Set (EuclideanSpace' d)} 
   · calc
       Lebesgue_outer_measure E ≤ (Jordan_outer_measure E : EReal) := Lebesgue_outer_measure_le_Jordan hE_bounded
       _ = (hE.measure : EReal) := by
-        simpa [hE.eq_outer]
+        simp [hE.eq_outer]
   · have h_nonempty : {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}.Nonempty := by
       refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
       exact (IsElementary.measure_of_empty d).symm
