@@ -2523,26 +2523,826 @@ theorem Lebesgue_measure.union {d:ℕ} {E F: Set (EuclideanSpace' d)} (hE: Lebes
 
 /-- Exercise 1.2.11(a) (Upward monotone convergence). -/
 theorem Lebesgue_measure.upward_monotone_convergence {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} (hE: ∀ n, LebesgueMeasurable (E n)) (hmono: ∀ n, E n ⊆ E (n + 1)) : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋃ n, E n))) := by
-  sorry
+  have hmono_chain {k m : ℕ} (hkm : k ≤ m) : E k ⊆ E m := by
+    induction' hkm with l hl ih
+    · exact Set.Subset.refl _
+    · exact Set.Subset.trans ih (hmono l)
+  let F : ℕ → Set (EuclideanSpace' d) := fun
+    | 0 => E 0
+    | n+1 => E (n+1) \ E n
+  have hF_mes : ∀ n, LebesgueMeasurable (F n) := by
+    intro n
+    cases n with
+    | zero => simp [F, hE 0]
+    | succ n =>
+      dsimp [F]
+      exact LebesgueMeasurable.inter (hE (n+1)) (LebesgueMeasurable.complement (hE n))
+  have ha_nn : ∀ n, 0 ≤ Lebesgue_measure (F n) := by
+    intro n
+    exact Lebesgue_outer_measure.nonneg (F n)
+  have hF_disj : Set.univ.PairwiseDisjoint F := by
+    intro i _ j _ hij
+    by_cases h_lt : i < j
+    · have h_sub : F i ⊆ E (j - 1) := by
+        intro x hx
+        rcases i with (rfl | i)
+        · dsimp [F] at hx
+          exact hmono_chain (Nat.zero_le (j - 1)) hx
+        · dsimp [F] at hx
+          exact hmono_chain (show i.succ ≤ j - 1 from by omega) hx.1
+      have h_disjoint : Disjoint (E (j - 1)) (F j) := by
+        rcases j with (rfl | j)
+        · omega
+        · dsimp [F]
+          rw [Set.disjoint_iff_inter_eq_empty]
+          ext x; simp
+      exact Set.disjoint_of_subset_left h_sub h_disjoint
+    · have h_lt' : j < i := by
+        by_contra! hge
+        apply hij
+        omega
+      have h_sub : F j ⊆ E (i - 1) := by
+        intro x hx
+        rcases j with (rfl | j)
+        · dsimp [F] at hx
+          exact hmono_chain (Nat.zero_le (i - 1)) hx
+        · dsimp [F] at hx
+          exact hmono_chain (show j.succ ≤ i - 1 from by omega) hx.1
+      have h_disjoint : Disjoint (E (i - 1)) (F i) := by
+        rcases i with (rfl | i)
+        · omega
+        · dsimp [F]
+          rw [Set.disjoint_iff_inter_eq_empty]
+          ext x; simp
+      exact (Set.disjoint_of_subset_left h_sub h_disjoint).symm
+  have h_countable : Lebesgue_measure (⋃ n, F n) = ∑' n, Lebesgue_measure (F n) :=
+    Lebesgue_measure.countable_union hF_mes hF_disj
+  have h_union_total : ⋃ n, F n = ⋃ n, E n := by
+    ext x
+    constructor
+    · intro hx
+      rcases (Set.mem_iUnion.mp hx) with ⟨n, hx⟩
+      induction n with
+      | zero =>
+        dsimp [F] at hx
+        exact Set.mem_iUnion.mpr ⟨0, hx⟩
+      | succ n ih =>
+        dsimp [F] at hx
+        exact Set.mem_iUnion.mpr ⟨n.succ, hx.1⟩
+    · intro hx
+      rcases (Set.mem_iUnion.mp hx) with ⟨n, hx⟩
+      classical
+        have h_exists : ∃ m, x ∈ E m := ⟨n, hx⟩
+        have hm_mem : x ∈ E (Nat.find h_exists) := Nat.find_spec h_exists
+        have hm_min : ∀ k, x ∈ E k → Nat.find h_exists ≤ k := fun k hk => Nat.find_min' h_exists hk
+        by_cases hm0 : Nat.find h_exists = 0
+        · have h0 : x ∈ F 0 := by
+            have hx0 : x ∈ E 0 := by
+              rw [← hm0]; exact hm_mem
+            simp [F, hx0]
+          exact Set.mem_iUnion.mpr ⟨0, h0⟩
+        · have hm_not_prev : x ∉ E (Nat.find h_exists - 1) := by
+            intro hprev
+            have hle : Nat.find h_exists ≤ Nat.find h_exists - 1 := hm_min (Nat.find h_exists - 1) hprev
+            omega
+          have hm_mem_F : x ∈ F (Nat.find h_exists) := by
+            rcases Nat.exists_eq_succ_of_ne_zero hm0 with ⟨k, hk⟩
+            have hk_sub : Nat.find h_exists - 1 = k := by omega
+            have hm_mem_k : x ∈ E (k.succ) := by rw [← hk]; exact hm_mem
+            have hm_not_prev_k : x ∉ E k := by rw [← hk_sub]; exact hm_not_prev
+            simpa [F, hk, hk_sub] using ⟨hm_mem_k, hm_not_prev_k⟩
+          exact Set.mem_iUnion.mpr ⟨Nat.find h_exists, hm_mem_F⟩
+  have h_measure_E_range : ∀ N, Lebesgue_measure (E N) = ∑ k ∈ Finset.range (N + 1), Lebesgue_measure (F k) := by
+    intro N
+    induction' N with N ih
+    · simp [F]
+    · have h_union : E (N + 1) = E N ∪ F (N + 1) := by
+        ext x; constructor
+        · intro hx
+          by_cases hx' : x ∈ E N
+          · exact Set.mem_union_left _ hx'
+          · refine Set.mem_union_right _ ?_
+            simp [F, hx, hx']
+        · intro hx
+          rcases hx with (hx | hx)
+          · exact hmono N hx
+          · simp [F] at hx
+            exact hx.1
+      have h_disjoint : E N ∩ F (N + 1) = ∅ := by
+        ext x; constructor
+        · intro ⟨hxN, hxF⟩; simp [F] at hxF; exact hxF.2 hxN
+        · intro hx; simp at hx
+      have h_union_meas : LebesgueMeasurable (F (N + 1)) := hF_mes (N + 1)
+      rw [h_union, Lebesgue_measure.union (hE N) h_union_meas h_disjoint, ih]
+      simp [Finset.sum_range_succ, add_assoc, add_comm, add_left_comm]
+  let a : ℕ → EReal := fun n => Lebesgue_measure (F n)
+  let g : ℕ → ENNReal := fun n => (a n).toENNReal
+  have ha_eq_g : ∀ n, a n = (g n : EReal) := by
+    intro n
+    dsimp [g, a]
+    rw [EReal.coe_toENNReal (ha_nn n)]
+  have h_tendsto_g : Filter.atTop.Tendsto (fun N : ℕ => ∑ k ∈ Finset.range N, g k) (nhds (∑' k, g k)) :=
+    ENNReal.tendsto_nat_tsum g
+  have h_cont : Continuous (fun (x : ENNReal) => (x : EReal)) := continuous_coe_ennreal_ereal
+  have h_tendsto_sum_coe : Filter.atTop.Tendsto (fun N : ℕ => (∑ k ∈ Finset.range N, g k : ENNReal).toEReal) (nhds ((∑' k, g k : ENNReal).toEReal)) :=
+    (h_cont.tendsto (∑' k, g k)).comp h_tendsto_g
+  have h_sum_eq : ∀ N, (∑ k ∈ Finset.range N, g k : ENNReal).toEReal = ∑ k ∈ Finset.range N, a k := by
+    intro N
+    calc
+      (∑ k ∈ Finset.range N, g k : ENNReal).toEReal = ∑ k ∈ Finset.range N, (g k : EReal) := by
+        simp [EReal.coe_ennreal_finset_sum]
+      _ = ∑ k ∈ Finset.range N, a k := by
+        simp [ha_eq_g]
+  have h_tendsto_sum_a : Filter.atTop.Tendsto (fun N : ℕ => ∑ k ∈ Finset.range N, a k) (nhds ((∑' k, g k : ENNReal).toEReal)) := by
+    simpa [h_sum_eq] using h_tendsto_sum_coe
+  have h_tsum_a_eq : (∑' k, g k : ENNReal).toEReal = ∑' k, a k := by
+    let φ : ENNReal →+ EReal := {
+      toFun := (↑·)
+      map_zero' := by simp
+      map_add' := EReal.coe_ennreal_add
+    }
+    have h_map : ∑' k, (g k : EReal) = (∑' k, g k : ENNReal).toEReal :=
+      (Summable.map_tsum (f := g) ENNReal.summable φ h_cont).symm
+    have h_map' : ∑' k, (g k : EReal) = ∑' k, a k := by
+      refine tsum_congr ?_
+      intro n
+      exact (ha_eq_g n).symm
+    rw [h_map'] at h_map
+    exact h_map.symm
+  rw [h_tsum_a_eq] at h_tendsto_sum_a
+  have h_tendsto_sum_a_succ : Filter.atTop.Tendsto (fun N : ℕ => ∑ k ∈ Finset.range (N + 1), a k) (nhds (∑' k, a k)) :=
+    h_tendsto_sum_a.comp (Filter.tendsto_add_atTop_nat 1)
+  have h_tendsto_E : Filter.atTop.Tendsto (fun N : ℕ => Lebesgue_measure (E N)) (nhds (∑' k, a k)) := by
+    have h_eq : (fun N : ℕ => Lebesgue_measure (E N)) = (fun N : ℕ => ∑ k ∈ Finset.range (N + 1), a k) := by
+      ext N; exact h_measure_E_range N
+    rw [h_eq]
+    exact h_tendsto_sum_a_succ
+  have h_tsum_total : ∑' k, a k = Lebesgue_measure (⋃ n, E n) := by
+    calc
+      ∑' k, a k = ∑' k, Lebesgue_measure (F k) := rfl
+      _ = Lebesgue_measure (⋃ n, F n) := by rw [h_countable.symm]
+      _ = Lebesgue_measure (⋃ n, E n) := by rw [h_union_total]
+  rw [h_tsum_total] at h_tendsto_E
+  exact h_tendsto_E
 
 /-- Exercise 1.2.11(b) (Downward monotone convergence). -/
 theorem Lebesgue_measure.downward_monotone_convergence {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} (hE: ∀ n, LebesgueMeasurable (E n)) (hmono: ∀ n, E (n+1) ⊆ E n) (hfin: ∃ n, Lebesgue_measure (E n) < ⊤) : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by
-  sorry
+  rcases hfin with ⟨n₀, hn₀_fin⟩
+  have hn₀_nn : 0 ≤ Lebesgue_measure (E n₀) := Lebesgue_outer_measure.nonneg (E n₀)
+  have hn₀_fin' : Lebesgue_measure (E n₀) ≠ ⊤ := ne_of_lt hn₀_fin
+  have hn₀_not_bot : Lebesgue_measure (E n₀) ≠ ⊥ := by
+    intro hbot
+    rw [hbot] at hn₀_nn
+    have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+    have h_lt_self : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le hn₀_nn
+    exact lt_irrefl _ h_lt_self
+  obtain ⟨r0, hr0⟩ : ∃ r : ℝ, Lebesgue_measure (E n₀) = r := by
+    refine ⟨(Lebesgue_measure (E n₀)).toReal, ?_⟩
+    rw [EReal.coe_toReal hn₀_fin' hn₀_not_bot]
 
-/-- Exercise 1.2.11 (c) (counterexample). -/
-example : ∃ (d:ℕ) (E: ℕ → Set (EuclideanSpace' d)) (hE: ∀ n, LebesgueMeasurable (E n)) (hmono: ∀ n, E (n+1) ⊆ E n), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by sorry
+  have hmono_chain {k m : ℕ} (hkm : k ≤ m) : E m ⊆ E k := by
+    induction' hkm with l hl ih
+    · exact Set.Subset.refl _
+    · exact Set.Subset.trans (hmono l) ih
+
+  let F : ℕ → Set (EuclideanSpace' d) := fun n => E n₀ \ E (n₀ + n)
+  have hF_mes : ∀ n, LebesgueMeasurable (F n) := by
+    intro n
+    exact LebesgueMeasurable.inter (hE n₀) (LebesgueMeasurable.complement (hE (n₀ + n)))
+  have hF_mono : ∀ n, F n ⊆ F (n+1) := by
+    intro n x hx
+    rcases hx with ⟨hx_n₀, hx_not⟩
+    refine ⟨hx_n₀, ?_⟩
+    intro hx_E
+    apply hx_not
+    exact hmono (n₀ + n) hx_E
+
+  have h_up : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (F n)) (nhds (Lebesgue_measure (⋃ n, F n))) :=
+    Lebesgue_measure.upward_monotone_convergence hF_mes hF_mono
+
+  have h_union_F_sub_E_n0 : (⋃ n, F n) ⊆ E n₀ := by
+    intro x hx
+    rcases Set.mem_iUnion.mp hx with ⟨n, hx⟩
+    exact hx.1
+
+  have h_union_F : ⋃ n, F n = E n₀ \ ⋂ n, E n := by
+    ext x
+    constructor
+    · intro hx
+      rcases Set.mem_iUnion.mp hx with ⟨n, hx⟩
+      rcases hx with ⟨hx_n₀, hx_not⟩
+      refine ⟨hx_n₀, ?_⟩
+      intro hx_inter
+      apply hx_not
+      exact (Set.mem_iInter.mp hx_inter) (n₀ + n)
+    · intro hx
+      rcases hx with ⟨hx_n₀, hx_not_inter⟩
+      have : ∃ k, x ∉ E k := by
+        simpa [Set.mem_iInter] using hx_not_inter
+      rcases this with ⟨k, hk⟩
+      have hk_ge_n₀ : n₀ ≤ k := by
+        by_contra! hlt
+        have : E n₀ ⊆ E k := hmono_chain (Nat.le_of_lt hlt)
+        exact hk (this hx_n₀)
+      have hx_mem_F : x ∈ F (k - n₀) := by
+        refine ⟨hx_n₀, ?_⟩
+        intro hx_E_n0_plus
+        have : E (n₀ + (k - n₀)) = E k := by rw [Nat.add_sub_cancel' hk_ge_n₀]
+        rw [this] at hx_E_n0_plus
+        exact hk hx_E_n0_plus
+      exact Set.mem_iUnion.mpr ⟨k - n₀, hx_mem_F⟩
+
+  have h_inter_mes : LebesgueMeasurable (⋂ n, E n) :=
+    LebesgueMeasurable.countable_inter hE
+  have h_union_F_mes : LebesgueMeasurable (⋃ n, F n) :=
+    LebesgueMeasurable.countable_union hF_mes
+
+  have h_disjoint_inter_union_F : (⋂ n, E n) ∩ (⋃ n, F n) = ∅ := by
+    rw [h_union_F]
+    ext x; simp
+
+  have h_set_eq_inter : E n₀ = (⋂ n, E n) ∪ (E n₀ \ ⋂ n, E n) := by
+    ext x
+    constructor
+    · intro hx
+      by_cases hx_inter : x ∈ ⋂ n, E n
+      · exact Or.inl hx_inter
+      · exact Or.inr ⟨hx, hx_inter⟩
+    · intro hx
+      rcases hx with (hx_inter | ⟨hx, _⟩)
+      · exact (Set.mem_iInter.mp hx_inter) n₀
+      · exact hx
+
+  have h_partition_inter : Lebesgue_measure (E n₀) = Lebesgue_measure (⋂ n, E n) + Lebesgue_measure (⋃ n, F n) := by
+    calc
+      Lebesgue_measure (E n₀) = Lebesgue_measure ((⋂ n, E n) ∪ (E n₀ \ ⋂ n, E n)) :=
+        congrArg Lebesgue_measure h_set_eq_inter
+      _ = Lebesgue_measure ((⋂ n, E n) ∪ (⋃ n, F n)) := by rw [h_union_F]
+      _ = Lebesgue_measure (⋂ n, E n) + Lebesgue_measure (⋃ n, F n) :=
+        Lebesgue_measure.union h_inter_mes h_union_F_mes h_disjoint_inter_union_F
+
+  have h_sub_n (n : ℕ) : E (n₀ + n) ⊆ E n₀ := hmono_chain (Nat.le_add_right n₀ n)
+
+  have h_E_n0_eq_union_n (n : ℕ) : E n₀ = E (n₀ + n) ∪ F n := by
+    ext x
+    constructor
+    · intro hx
+      by_cases hx' : x ∈ E (n₀ + n)
+      · exact Or.inl hx'
+      · exact Or.inr ⟨hx, hx'⟩
+    · intro hx
+      rcases hx with (hx | ⟨hx, _⟩)
+      · exact h_sub_n n hx
+      · exact hx
+
+  have h_disjoint_n (n : ℕ) : E (n₀ + n) ∩ F n = ∅ := by
+    ext x; simp [F]
+
+  have h_partition_n (n : ℕ) : Lebesgue_measure (E n₀) = Lebesgue_measure (E (n₀ + n)) + Lebesgue_measure (F n) := by
+    calc
+      Lebesgue_measure (E n₀) = Lebesgue_measure (E (n₀ + n) ∪ F n) := by rw [h_E_n0_eq_union_n n]
+      _ = Lebesgue_measure (E (n₀ + n)) + Lebesgue_measure (F n) :=
+        Lebesgue_measure.union (hE (n₀ + n)) (hF_mes n) (h_disjoint_n n)
+
+  have hF_n_fin (n : ℕ) : Lebesgue_measure (F n) < ⊤ := by
+    calc
+      Lebesgue_measure (F n) ≤ Lebesgue_measure (E n₀) :=
+        Lebesgue_outer_measure.mono (Set.diff_subset (s := E n₀) (t := E (n₀ + n)))
+      _ < ⊤ := hn₀_fin
+
+  have hF_n_not_top (n : ℕ) : Lebesgue_measure (F n) ≠ ⊤ := ne_of_lt (hF_n_fin n)
+  have hF_n_nn (n : ℕ) : 0 ≤ Lebesgue_measure (F n) := Lebesgue_outer_measure.nonneg _
+  have hF_n_not_bot (n : ℕ) : Lebesgue_measure (F n) ≠ ⊥ := by
+    intro hbot
+    have h_nonneg := hF_n_nn n
+    rw [hbot] at h_nonneg
+    have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+    have h_lt_self : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_nonneg
+    exact lt_irrefl _ h_lt_self
+
+  have h_m_E_n0_plus_n_fin (n : ℕ) : Lebesgue_measure (E (n₀ + n)) < ⊤ := by
+    calc
+      Lebesgue_measure (E (n₀ + n)) ≤ Lebesgue_measure (E n₀) :=
+        Lebesgue_outer_measure.mono (h_sub_n n)
+      _ < ⊤ := hn₀_fin
+
+  have h_m_E_n0_plus_n_not_top (n : ℕ) : Lebesgue_measure (E (n₀ + n)) ≠ ⊤ := ne_of_lt (h_m_E_n0_plus_n_fin n)
+  have h_m_E_n0_plus_n_nn (n : ℕ) : 0 ≤ Lebesgue_measure (E (n₀ + n)) := Lebesgue_outer_measure.nonneg _
+  have h_m_E_n0_plus_n_not_bot (n : ℕ) : Lebesgue_measure (E (n₀ + n)) ≠ ⊥ := by
+    intro hbot
+    have h_nonneg := h_m_E_n0_plus_n_nn n
+    rw [hbot] at h_nonneg
+    have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+    have h_lt_self : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_nonneg
+    exact lt_irrefl _ h_lt_self
+
+  have h_inter_fin : Lebesgue_measure (⋂ n, E n) < ⊤ := by
+    calc
+      Lebesgue_measure (⋂ n, E n) ≤ Lebesgue_measure (E n₀) :=
+        Lebesgue_outer_measure.mono (Set.iInter_subset (fun n : ℕ => E n) n₀)
+      _ < ⊤ := hn₀_fin
+
+  have h_m_union_F_fin : Lebesgue_measure (⋃ n, F n) < ⊤ := by
+    calc
+      Lebesgue_measure (⋃ n, F n) ≤ Lebesgue_measure (E n₀) :=
+        Lebesgue_outer_measure.mono h_union_F_sub_E_n0
+      _ < ⊤ := hn₀_fin
+
+  have h_m_union_F_not_top : Lebesgue_measure (⋃ n, F n) ≠ ⊤ := ne_of_lt h_m_union_F_fin
+  have h_m_union_F_nonneg : 0 ≤ Lebesgue_measure (⋃ n, F n) := Lebesgue_outer_measure.nonneg _
+  have h_m_union_F_not_bot : Lebesgue_measure (⋃ n, F n) ≠ ⊥ := by
+    intro hbot
+    rw [hbot] at h_m_union_F_nonneg
+    have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+    have h_lt_self : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_m_union_F_nonneg
+    exact lt_irrefl _ h_lt_self
+
+  have h_inter_not_top : Lebesgue_measure (⋂ n, E n) ≠ ⊤ := ne_of_lt h_inter_fin
+  have h_inter_nonneg : 0 ≤ Lebesgue_measure (⋂ n, E n) := Lebesgue_outer_measure.nonneg _
+  have h_inter_not_bot : Lebesgue_measure (⋂ n, E n) ≠ ⊥ := by
+    intro hbot
+    rw [hbot] at h_inter_nonneg
+    have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+    have h_lt_self : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_inter_nonneg
+    exact lt_irrefl _ h_lt_self
+
+  have hF_tendsto_real : Filter.atTop.Tendsto (fun n ↦ (Lebesgue_measure (F n)).toReal) (nhds ((Lebesgue_measure (⋃ n, F n)).toReal)) :=
+    (EReal.tendsto_toReal h_m_union_F_not_top h_m_union_F_not_bot).comp h_up
+
+  have h_sum_real (n : ℕ) : (Lebesgue_measure (E (n₀ + n))).toReal + (Lebesgue_measure (F n)).toReal = r0 := by
+    have hE_n0_plus_n : Lebesgue_measure (E (n₀ + n)) = ((Lebesgue_measure (E (n₀ + n))).toReal : EReal) :=
+      (EReal.coe_toReal (h_m_E_n0_plus_n_not_top n) (h_m_E_n0_plus_n_not_bot n)).symm
+    have hF_n : Lebesgue_measure (F n) = ((Lebesgue_measure (F n)).toReal : EReal) :=
+      (EReal.coe_toReal (hF_n_not_top n) (hF_n_not_bot n)).symm
+    have h_ereal_eq : ((Lebesgue_measure (E (n₀ + n))).toReal : EReal) + ((Lebesgue_measure (F n)).toReal : EReal) = (r0 : EReal) := by
+      calc
+        ((Lebesgue_measure (E (n₀ + n))).toReal : EReal) + ((Lebesgue_measure (F n)).toReal : EReal)
+            = Lebesgue_measure (E (n₀ + n)) + Lebesgue_measure (F n) := by
+              rw [hE_n0_plus_n.symm, hF_n.symm]
+        _ = Lebesgue_measure (E n₀) := (h_partition_n n).symm
+        _ = (r0 : EReal) := hr0
+    apply EReal.coe_injective
+    calc
+      (((Lebesgue_measure (E (n₀ + n))).toReal + (Lebesgue_measure (F n)).toReal : ℝ) : EReal)
+          = ((Lebesgue_measure (E (n₀ + n))).toReal : EReal) + ((Lebesgue_measure (F n)).toReal : EReal) := by rw [EReal.coe_add]
+      _ = (r0 : EReal) := h_ereal_eq
+
+  have h_inter_real : (Lebesgue_measure (⋂ n, E n)).toReal + (Lebesgue_measure (⋃ n, F n)).toReal = r0 := by
+    have h_inter_ereal' : Lebesgue_measure (⋂ n, E n) = ((Lebesgue_measure (⋂ n, E n)).toReal : EReal) :=
+      (EReal.coe_toReal h_inter_not_top h_inter_not_bot).symm
+    have h_union_F_ereal : Lebesgue_measure (⋃ n, F n) = ((Lebesgue_measure (⋃ n, F n)).toReal : EReal) :=
+      (EReal.coe_toReal h_m_union_F_not_top h_m_union_F_not_bot).symm
+    have h_ereal_eq : ((Lebesgue_measure (⋂ n, E n)).toReal : EReal) + ((Lebesgue_measure (⋃ n, F n)).toReal : EReal) = (r0 : EReal) := by
+      calc
+        ((Lebesgue_measure (⋂ n, E n)).toReal : EReal) + ((Lebesgue_measure (⋃ n, F n)).toReal : EReal)
+            = Lebesgue_measure (⋂ n, E n) + Lebesgue_measure (⋃ n, F n) := by
+              rw [h_inter_ereal'.symm, h_union_F_ereal.symm]
+        _ = Lebesgue_measure (E n₀) := h_partition_inter.symm
+        _ = (r0 : EReal) := hr0
+    apply EReal.coe_injective
+    calc
+      (((Lebesgue_measure (⋂ n, E n)).toReal + (Lebesgue_measure (⋃ n, F n)).toReal : ℝ) : EReal)
+          = ((Lebesgue_measure (⋂ n, E n)).toReal : EReal) + ((Lebesgue_measure (⋃ n, F n)).toReal : EReal) := by rw [EReal.coe_add]
+      _ = (r0 : EReal) := h_ereal_eq
+
+  have h_eq_diff (n : ℕ) : (Lebesgue_measure (E (n₀ + n))).toReal = r0 - (Lebesgue_measure (F n)).toReal := by
+    calc
+      (Lebesgue_measure (E (n₀ + n))).toReal
+          = ((Lebesgue_measure (E (n₀ + n))).toReal + (Lebesgue_measure (F n)).toReal) - (Lebesgue_measure (F n)).toReal := by ring
+      _ = r0 - (Lebesgue_measure (F n)).toReal := by rw [h_sum_real n]
+
+  have h_inter_diff : (Lebesgue_measure (⋂ n, E n)).toReal = r0 - (Lebesgue_measure (⋃ n, F n)).toReal := by
+    calc
+      (Lebesgue_measure (⋂ n, E n)).toReal
+          = ((Lebesgue_measure (⋂ n, E n)).toReal + (Lebesgue_measure (⋃ n, F n)).toReal) - (Lebesgue_measure (⋃ n, F n)).toReal := by ring
+      _ = r0 - (Lebesgue_measure (⋃ n, F n)).toReal := by rw [h_inter_real]
+
+  have h_tendsto_sub : Filter.atTop.Tendsto (fun n ↦ r0 - (Lebesgue_measure (F n)).toReal) (nhds (r0 - (Lebesgue_measure (⋃ n, F n)).toReal)) :=
+    (tendsto_const_nhds.sub hF_tendsto_real)
+
+  have h_tendsto_E_real : Filter.atTop.Tendsto (fun n ↦ (Lebesgue_measure (E (n₀ + n))).toReal) (nhds ((Lebesgue_measure (⋂ n, E n)).toReal)) := by
+    have h_tendsto_sub' : Filter.atTop.Tendsto (fun n ↦ (Lebesgue_measure (E (n₀ + n))).toReal) (nhds (r0 - (Lebesgue_measure (⋃ n, F n)).toReal)) := by
+      simpa [h_eq_diff] using h_tendsto_sub
+    simpa [h_inter_diff] using h_tendsto_sub'
+
+  have h_eq_ereal (n : ℕ) : Lebesgue_measure (E (n₀ + n)) = ((Lebesgue_measure (E (n₀ + n))).toReal : EReal) :=
+    (EReal.coe_toReal (h_m_E_n0_plus_n_not_top n) (h_m_E_n0_plus_n_not_bot n)).symm
+
+  have h_inter_ereal : Lebesgue_measure (⋂ n, E n) = ((Lebesgue_measure (⋂ n, E n)).toReal : EReal) :=
+    (EReal.coe_toReal h_inter_not_top h_inter_not_bot).symm
+
+  have h_tendsto_E_ereal' : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E (n₀ + n))) (nhds (Lebesgue_measure (⋂ n, E n))) := by
+    have h_temp : Filter.atTop.Tendsto (fun n : ℕ => (((Lebesgue_measure (E (n₀ + n))).toReal : ℝ) : EReal))
+        (nhds (((Lebesgue_measure (⋂ n, E n)).toReal : ℝ) : EReal)) :=
+      (EReal.tendsto_coe (m := fun n : ℕ => (Lebesgue_measure (E (n₀ + n))).toReal)
+        (a := (Lebesgue_measure (⋂ n, E n)).toReal)).mpr h_tendsto_E_real
+    have h_temp' : Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (E (n₀ + n))) (nhds (((Lebesgue_measure (⋂ n, E n)).toReal : ℝ) : EReal)) :=
+      h_temp.congr (fun n => (h_eq_ereal n).symm)
+    rw [h_inter_ereal]
+    exact h_temp'
+
+  intro t ht
+  have h_mem : (fun n : ℕ ↦ Lebesgue_measure (E (n₀ + n)))⁻¹' t ∈ Filter.atTop := h_tendsto_E_ereal' ht
+  rcases Filter.mem_atTop_sets.mp h_mem with ⟨N, hN⟩
+  refine Filter.mem_atTop_sets.mpr ?_
+  refine ⟨n₀ + N, ?_⟩
+  intro m hm
+  have hm_ge_n₀ : n₀ ≤ m := by omega
+  have hm_sub_ge_N : m - n₀ ≥ N := by omega
+  simpa [Nat.add_sub_cancel' hm_ge_n₀] using hN (m - n₀) hm_sub_ge_N
+/-- Exercise 1.2.11 (c) (counterexample)-/
+example : ∃ (d:ℕ) (E: ℕ → Set (EuclideanSpace' d)) (hE: ∀ n, LebesgueMeasurable (E n)) (hmono: ∀ n, E (n+1) ⊆ E n), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by
+  set d := 1 with hd
+  have hd_pos : 0 < d := by decide
+  let E : ℕ → Set (EuclideanSpace' 1) := fun n => {x | ‖x‖ ≥ (n : ℝ)}
+  have hE_mes : ∀ n, LebesgueMeasurable (E n) := by
+    intro n
+    have h_closed : IsClosed (E n) :=
+      isClosed_le continuous_const continuous_norm
+    exact h_closed.measurable
+  have hmono : ∀ n, E (n+1) ⊆ E n := by
+    intro n x hx
+    have hx' : ‖x‖ ≥ (n+1 : ℝ) := by
+      simpa [E] using hx
+    have hn_le_np1 : (n : ℝ) ≤ (n+1 : ℝ) := by norm_num
+    simpa [E] using hn_le_np1.trans hx'
+  have h_inter_empty : ⋂ n, E n = (∅ : Set (EuclideanSpace' 1)) := by
+    ext x
+    simp only [Set.mem_iInter, Set.mem_empty_iff_false, iff_false, E, Set.mem_setOf_eq]
+    intro h
+    have hceil : ‖x‖ ≤ (⌈‖x‖⌉₊ : ℝ) := Nat.le_ceil _
+    have hx_norm : (⌈‖x‖⌉₊ : ℝ) + 1 ≤ ‖x‖ := by
+      simpa [Nat.cast_add, Nat.cast_one] using h (⌈‖x‖⌉₊ + 1)
+    linarith
+  have h_meas_En_top : ∀ n, Lebesgue_measure (E n) = ⊤ := by
+    intro n
+    have hN : ∀ N : ℕ, (N : EReal) ≤ Lebesgue_measure (E n) := by
+      intro N
+      let UnitBox : (Fin 1 → ℤ) → Box 1 := fun a =>
+        { side := fun i => BoundedInterval.Icc (a i : ℝ) ((a i : ℝ) + 1) }
+      have h_vol : ∀ a : Fin 1 → ℤ, (UnitBox a).volume = 1 := by
+        intro a; simp [UnitBox, Box.volume]
+      let pts : Fin N → (Fin 1 → ℤ) := fun i _ => (n : ℤ) + (i : ℤ)
+      have h_pts_inj : Function.Injective pts := by
+        intro i j h
+        apply Fin.ext
+        have h_val : (n : ℤ) + (i : ℤ) = (n : ℤ) + (j : ℤ) := by
+          simpa [pts] using congrArg (fun f : Fin 1 → ℤ => f ⟨0, hd_pos⟩) h
+        exact_mod_cast add_left_cancel h_val
+      have h_interior_box (a : Fin 1 → ℤ) : interior ((UnitBox a).toSet : Set (EuclideanSpace' 1)) =
+          {x | ∀ i : Fin 1, x i ∈ Set.Ioo (a i : ℝ) ((a i : ℝ) + 1)} := by
+        rw [Box.interior_toSet]
+        ext x
+        simp only [UnitBox, BoundedInterval.toSet, interior_Icc, Set.mem_preimage, Set.mem_pi, Set.mem_univ, Set.mem_setOf_eq, Set.mem_Ioo]
+        constructor
+        · intro h i
+          have h' := h i
+          simpa using h'
+        · intro h i
+          have h' : (PiLp.homeomorph 2 (fun (_ : Fin 1) => ℝ)) x i = x i := rfl
+          have : i = (⟨0, hd_pos⟩ : Fin 1) := Subsingleton.elim i ⟨0, hd_pos⟩
+          subst this
+          simpa using h ⟨0, hd_pos⟩
+      have h_almost_disj : ∀ a b : Fin 1 → ℤ, a ≠ b → AlmostDisjoint (UnitBox a) (UnitBox b) := by
+        intro a b hab
+        rw [AlmostDisjoint]
+        ext x
+        simp only [Set.mem_inter_iff, Set.mem_empty_iff_false, iff_false, not_and]
+        intro hxa hxb
+        apply hab
+        funext i
+        have hxa_i : x i ∈ Set.Ioo (a i : ℝ) ((a i : ℝ) + 1) := by
+          have := h_interior_box a ▸ hxa
+          simpa using this i
+        have hxb_i : x i ∈ Set.Ioo (b i : ℝ) ((b i : ℝ) + 1) := by
+          have := h_interior_box b ▸ hxb
+          simpa using this i
+        rw [Set.mem_Ioo] at hxa_i hxb_i
+        have ha_floor : (⌊x i⌋ : ℤ) = a i := by
+          apply Int.floor_eq_iff.mpr
+          constructor
+          · exact_mod_cast hxa_i.1.le
+          · exact_mod_cast hxa_i.2
+        have hb_floor : (⌊x i⌋ : ℤ) = b i := by
+          apply Int.floor_eq_iff.mpr
+          constructor
+          · exact_mod_cast hxb_i.1.le
+          · exact_mod_cast hxb_i.2
+        exact ha_floor.symm.trans hb_floor
+      have h_subset : (⋃ i : Fin N, (UnitBox (pts i)).toSet) ⊆ E n := by
+        intro x hx
+        rcases Set.mem_iUnion.mp hx with ⟨i, hi⟩
+        have hi_mem : x ∈ (UnitBox (pts i)).toSet := hi
+        have hx_coord : ∀ j : Fin 1, x j ∈ Set.Icc ((pts i j : ℝ)) (((pts i j : ℝ)) + 1) := by
+          intro j
+          have htemp := (Box.mem_toSet (B := UnitBox (pts i)) (x := x)).mp hi_mem j
+          simpa [UnitBox, BoundedInterval.toSet] using htemp
+        have hx0_mem : x ⟨0, hd_pos⟩ ∈ Set.Icc ((pts i ⟨0, hd_pos⟩ : ℝ)) (((pts i ⟨0, hd_pos⟩ : ℝ)) + 1) :=
+          hx_coord ⟨0, hd_pos⟩
+        rcases hx0_mem with ⟨hx_l, hx_r⟩
+        have h_pts_ge_n : (n : ℝ) ≤ (pts i ⟨0, hd_pos⟩ : ℝ) := by
+          have h_nonneg : (0 : ℝ) ≤ (i : ℝ) := by exact mod_cast (Nat.zero_le i)
+          calc
+            (n : ℝ) = (n : ℝ) + (0 : ℝ) := by simp
+            _ ≤ (n : ℝ) + (i : ℝ) := by gcongr
+            _ = (pts i ⟨0, hd_pos⟩ : ℝ) := by simp [pts]
+        have hx0_ge_n : (n : ℝ) ≤ x ⟨0, hd_pos⟩ := le_trans h_pts_ge_n hx_l
+        have hn_nonneg : (0 : ℝ) ≤ (n : ℝ) := by exact mod_cast (Nat.zero_le n)
+        have hx0_nonneg : 0 ≤ x ⟨0, hd_pos⟩ := le_trans hn_nonneg hx0_ge_n
+        have hx_norm_ge_n : ‖x‖ ≥ (n : ℝ) :=
+          calc
+            ‖x‖ ≥ |x ⟨0, hd_pos⟩| := EuclideanSpace'.coord_le_norm x ⟨0, hd_pos⟩
+            _ = x ⟨0, hd_pos⟩ := abs_of_nonneg hx0_nonneg
+            _ ≥ (n : ℝ) := hx0_ge_n
+        simpa [E] using hx_norm_ge_n
+      have hElem : IsElementary (⋃ i : Fin N, (UnitBox (pts i)).toSet) :=
+        IsElementary.iUnion_boxes (fun i : Fin N => UnitBox (pts i))
+      have h_pw : Pairwise (Function.onFun AlmostDisjoint (fun i : Fin N => UnitBox (pts i))) := by
+        intro i j hij
+        simp only [Function.onFun]
+        apply h_almost_disj
+        intro heq
+        exact hij (h_pts_inj heq)
+      have h_sum_vol : (∑ i : Fin N, (UnitBox (pts i)).volume) = (N : ℝ) := by
+        simp [h_vol, Finset.sum_const, nsmul_eq_mul, mul_one]
+      have h_elem_eq : hElem.measure = ∑ i : Fin N, (UnitBox (pts i)).volume :=
+        IsElementary.almost_disjoint hElem (fun i : Fin N => UnitBox (pts i)) rfl h_pw
+      calc
+        (N : EReal) = ((N : ℝ) : EReal) := by norm_cast
+        _ = (∑ i : Fin N, (UnitBox (pts i)).volume : ℝ) := by rw [h_sum_vol]
+        _ = (hElem.measure : EReal) := by rw [h_elem_eq]
+        _ = Lebesgue_measure (⋃ i : Fin N, (UnitBox (pts i)).toSet) := by
+          rw [← Lebesgue_outer_measure.elementary _ hElem, Lebesgue_measure]
+        _ ≤ Lebesgue_measure (E n) := Lebesgue_outer_measure.mono h_subset
+    rw [EReal.eq_top_iff_forall_lt]
+    intro r
+    obtain ⟨N, hNr⟩ := exists_nat_gt r
+    calc
+      (r : EReal) < (N : ℝ) := EReal.coe_lt_coe hNr
+      _ = (N : EReal) := by norm_cast
+      _ ≤ Lebesgue_measure (E n) := hN N
+  have h_not_tendsto : ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by
+    rw [h_inter_empty, Lebesgue_measure.empty]
+    intro h_tendsto
+    have h_nhd : Set.Ioo (-1 : EReal) (1 : EReal) ∈ nhds (0 : EReal) := by
+      apply isOpen_Ioo.mem_nhds
+      norm_num
+    have h_event : ∀ᶠ n in Filter.atTop, Lebesgue_measure (E n) ∈ Set.Ioo (-1 : EReal) (1 : EReal) :=
+      h_tendsto h_nhd
+    rcases Filter.Eventually.exists_forall_of_atTop h_event with ⟨N, hN⟩
+    have h_meas_N : Lebesgue_measure (E N) = ⊤ := h_meas_En_top N
+    have h_N_in_Ioo : Lebesgue_measure (E N) ∈ Set.Ioo (-1 : EReal) (1 : EReal) := hN N (le_refl N)
+    rw [h_meas_N] at h_N_in_Ioo
+    rcases h_N_in_Ioo with ⟨h_left, h_right⟩
+    have h_top_not_lt_one : ¬ (⊤ : EReal) < (1 : EReal) := by
+      intro h
+      have : (1 : EReal) < (⊤ : EReal) := EReal.coe_lt_top (1 : ℝ)
+      have : (⊤ : EReal) < (⊤ : EReal) := h.trans this
+      exact lt_irrefl _ this
+    exact h_top_not_lt_one h_right
+  refine ⟨1, E, hE_mes, hmono, h_not_tendsto⟩
+
+private lemma exercise_1_2_12_monotonicity {d:ℕ} (m: Set (EuclideanSpace' d) → EReal) (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E) (hadd: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n)) {E F: Set (EuclideanSpace' d)}
+(hsub: E ⊆ F) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) : m E ≤ m F := by
+  have h_diff_meas : LebesgueMeasurable (F \ E) :=
+    hF.inter (hE.complement)
+  have h_diff_disjoint : Disjoint E (F \ E) := by
+    rw [Set.disjoint_iff_inter_eq_empty]
+    ext x; simp
+  let G : ℕ → Set (EuclideanSpace' d) := fun n =>
+    if n = 0 then E else if n = 1 then F \ E else ∅
+  have hG_meas : ∀ n, LebesgueMeasurable (G n) := by
+    intro n
+    dsimp [G]
+    by_cases hn0 : n = 0
+    · subst hn0; exact hE
+    · by_cases hn1 : n = 1
+      · subst hn1; exact h_diff_meas
+      · simp [hn0, hn1]; exact LebesgueMeasurable.empty
+  have hG_disj : Set.univ.PairwiseDisjoint G := by
+    intro i _ j _ hij
+    by_cases hi0 : i = 0
+    · subst hi0
+      by_cases hj0 : j = 0
+      · exact (hij (hj0.symm)).elim
+      · by_cases hj1 : j = 1
+        · subst hj1; exact h_diff_disjoint
+        · show Disjoint (G 0) (G j)
+          simp [G, hj0, hj1]
+    · by_cases hi1 : i = 1
+      · subst hi1
+        by_cases hj0 : j = 0
+        · subst hj0
+          show Disjoint (G 1) (G 0)
+          simpa [G] using h_diff_disjoint.symm
+        · by_cases hj1 : j = 1
+          · exact (hij (hj1.symm)).elim
+          · show Disjoint (G 1) (G j)
+            simp [G, hj0, hj1]
+      · show Disjoint (G i) (G j)
+        simp [G, hi0, hi1]
+  have h_union : ⋃ n, G n = F := by
+    ext x; constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      simp [G] at hn
+      by_cases hn0 : n = 0
+      · subst hn0; exact hsub hn
+      · by_cases hn1 : n = 1
+        · subst hn1; exact hn.1
+        · simp [hn0, hn1] at hn
+    · intro hx
+      by_cases hxE : x ∈ E
+      · apply Set.mem_iUnion.mpr; refine ⟨0, ?_⟩; simp [G, hxE]
+      · apply Set.mem_iUnion.mpr; refine ⟨1, ?_⟩; simp [G, hx, hxE]
+  have h_sum : ∑' n, m (G n) = m E + m (F \ E) := by
+    have h_support : ∀ n, n ∉ Finset.range 2 → m (G n) = 0 := by
+      intro n hn
+      rw [Finset.mem_range] at hn
+      have hn0 : n ≠ 0 := by omega
+      have hn1 : n ≠ 1 := by omega
+      have hG_empty : G n = ∅ := by
+        dsimp [G]; simp [hn0, hn1]
+      simp [hG_empty, h_empty]
+    calc
+      ∑' n, m (G n) = ∑ n ∈ Finset.range 2, m (G n) := by
+        rw [tsum_eq_sum h_support]
+      _ = m (G 0) + m (G 1) := by
+        simp [Finset.sum_range_succ]
+      _ = m E + m (F \ E) := by
+        simp [G]
+  have h_mF : m F = m E + m (F \ E) := by
+    calc
+      m F = m (⋃ n, G n) := by rw [h_union]
+      _ = ∑' n, m (G n) := hadd G hG_disj hG_meas
+      _ = m E + m (F \ E) := h_sum
+  have h_nonneg_diff : 0 ≤ m (F \ E) := h_pos (F \ E)
+  have h_mE_le : m E ≤ m E + m (F \ E) := by
+    have := add_le_add_right h_nonneg_diff (m E)
+    simpa [add_comm, add_left_comm, add_assoc] using this
+  calc
+    m E ≤ m E + m (F \ E) := h_mE_le
+    _ = m F := by rw [h_mF]
 
 /-- Exercise 1.2.12(i) (Monotonicity)-/
 example {d:ℕ} (m: Set (EuclideanSpace' d) → EReal) (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E) (hadd: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n)) {E F: Set (EuclideanSpace' d)}
 (hsub: E ⊆ F) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) : m E ≤ m F := by
-  sorry
+  exact exercise_1_2_12_monotonicity m h_empty h_pos hadd hsub hE hF
 
 /-- Exercise 1.2.12(ii) (σ-subadditivity)-/
 example {d:ℕ} (m: Set (EuclideanSpace' d) → EReal) (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E) (hadd: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n)) {E: ℕ → Set (EuclideanSpace' d)} (hE: ∀ n, LebesgueMeasurable (E n)):  m (⋃ n, E n) ≤ ∑' n, m (E n) := by
-  sorry
+  let F : ℕ → Set (EuclideanSpace' d) := fun n =>
+    E n \ (⋃ k ∈ Finset.range n, E k)
+  have hF_meas : ∀ n, LebesgueMeasurable (F n) := by
+    intro n
+    dsimp [F]
+    have h_union_meas : LebesgueMeasurable (⋃ k ∈ Finset.range n, E k) := by
+      have : (⋃ k ∈ Finset.range n, E k) = (⋃ i : Fin n, E i.val) := by
+        ext x; constructor
+        · intro hx
+          rcases Set.mem_iUnion₂.mp hx with ⟨k, hk, hx'⟩
+          have hk_lt_n : k < n := Finset.mem_range.mp hk
+          exact Set.mem_iUnion.mpr ⟨⟨k, hk_lt_n⟩, hx'⟩
+        · intro hx
+          rcases Set.mem_iUnion.mp hx with ⟨⟨k, hk_lt_n⟩, hx'⟩
+          have hk_mem : k ∈ Finset.range n := Finset.mem_range.mpr hk_lt_n
+          exact Set.mem_iUnion₂.mpr ⟨k, hk_mem, hx'⟩
+      rw [this]
+      exact LebesgueMeasurable.finite_union (fun i : Fin n => hE i.val)
+    exact (hE n).inter (h_union_meas.complement)
+  have hF_sub : ∀ n, F n ⊆ E n := fun n => Set.diff_subset
+  have hF_disj_aux : ∀ i j, i < j → Disjoint (F i) (F j) := by
+    intro i j hij
+    rw [Set.disjoint_iff_inter_eq_empty]
+    ext x; constructor
+    · intro hx; exfalso
+      rcases hx with ⟨hxFi, hxFj⟩
+      have hxEi : x ∈ E i := hxFi.1
+      have hx_not_union : x ∉ ⋃ k ∈ Finset.range j, E k := hxFj.2
+      apply hx_not_union
+      exact Set.mem_iUnion₂.mpr ⟨i, Finset.mem_range.mpr hij, hxEi⟩
+    · simp
+  have hF_disj : Set.univ.PairwiseDisjoint F := by
+    intro i _ j _ hij
+    by_cases hij' : i < j
+    · exact hF_disj_aux i j hij'
+    · have hji : j < i := by
+        have hle : j ≤ i := Nat.not_lt.mp hij'
+        exact Nat.lt_of_le_of_ne hle hij.symm
+      have h := hF_disj_aux j i hji
+      show Disjoint (F i) (F j)
+      rw [Set.disjoint_iff_inter_eq_empty, Set.inter_comm, ← Set.disjoint_iff_inter_eq_empty]
+      exact h
+  have h_union : ⋃ n, F n = ⋃ n, E n := by
+    ext x; constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      rw [Set.mem_iUnion]
+      exact ⟨n, hn.1⟩
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      have h_exists : ∃ k, x ∈ E k := ⟨n, hn⟩
+      classical
+        let k := Nat.find h_exists
+        have hk_mem : x ∈ E k := Nat.find_spec h_exists
+        have hk_min : ∀ m, m < k → x ∉ E m := by
+          intro m hm
+          exact Nat.find_min h_exists hm
+        have hx_not_union : x ∉ ⋃ m ∈ Finset.range k, E m := by
+          intro hx_union
+          rcases Set.mem_iUnion₂.mp hx_union with ⟨m, hm, hm_mem⟩
+          have hm_lt_k : m < k := Finset.mem_range.mp hm
+          exact hk_min m hm_lt_k hm_mem
+        rw [Set.mem_iUnion]
+        refine ⟨k, ?_⟩
+        exact ⟨hk_mem, hx_not_union⟩
+  have h_mono : ∀ n, m (F n) ≤ m (E n) := by
+    intro n
+    exact exercise_1_2_12_monotonicity m h_empty h_pos hadd (hF_sub n) (hF_meas n) (hE n)
+  have h_m_union : m (⋃ n, E n) = ∑' n, m (F n) := by
+    calc
+      m (⋃ n, E n) = m (⋃ n, F n) := by rw [h_union]
+      _ = ∑' n, m (F n) := hadd F hF_disj hF_meas
+  rw [h_m_union]
+  have h_nn_F : ∀ n, 0 ≤ m (F n) := fun n => h_pos (F n)
+  have h_finset_sum_le_tsum (f : ℕ → EReal) (hf : ∀ n, 0 ≤ f n) (s : Finset ℕ) :
+      (∑ n ∈ s, f n) ≤ ∑' n, f n := by
+    let g : ℕ → ENNReal := fun n => (f n).toENNReal
+    have hf_eq : ∀ n, f n = (g n : EReal) := fun n => (EReal.coe_toENNReal (hf n)).symm
+    have h_tsum_f : ∑' n, f n = (∑' n, g n : ENNReal).toEReal := by
+      calc
+        ∑' n, f n = ∑' n, (g n : EReal) := tsum_congr hf_eq
+        _ = (∑' n, g n : ENNReal).toEReal := by
+          let φ : ENNReal →+ EReal := {
+            toFun := (↑·)
+            map_zero' := by simp
+            map_add' := EReal.coe_ennreal_add
+          }
+          have h_cont : Continuous φ := continuous_coe_ennreal_ereal
+          have h_summable : Summable g := ENNReal.summable
+          exact (h_summable.map_tsum φ h_cont).symm
+    calc
+      (∑ n ∈ s, f n) = (∑ n ∈ s, (g n : EReal)) := by simp [hf_eq]
+      _ = ((∑ n ∈ s, g n : ENNReal) : EReal) := by
+        simp [EReal.coe_ennreal_finset_sum]
+      _ ≤ (∑' n, g n : ENNReal).toEReal := by
+        have h_enn_sum_le : (∑ n ∈ s, g n : ENNReal) ≤ ∑' n, g n := ENNReal.sum_le_tsum s
+        exact EReal.coe_ennreal_le_coe_ennreal_iff.mpr h_enn_sum_le
+      _ = ∑' n, f n := h_tsum_f.symm
+  have h_tsum_F_le_tsum_E : ∑' n, m (F n) ≤ ∑' n, m (E n) := by
+    have h_nonneg : ∀ n, 0 ≤ m (F n) := h_nn_F
+    have h_sum_le : ∀ N : ℕ, ∑ n ∈ Finset.range N, m (F n) ≤ ∑' n, m (E n) := by
+      intro N
+      calc
+        ∑ n ∈ Finset.range N, m (F n) ≤ ∑ n ∈ Finset.range N, m (E n) :=
+          Finset.sum_le_sum (fun n hn => h_mono n)
+        _ ≤ ∑' n, m (E n) := h_finset_sum_le_tsum (m ∘ E) (fun n => h_pos (E n)) (Finset.range N)
+    exact EReal.tsum_le_of_sum_range_le_of_nonneg h_nonneg h_sum_le
+  exact h_tsum_F_le_tsum_E
 
 /-- Exercise 1.2.13(i) -/
-example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀: Set (EuclideanSpace' d)} (hE: ∀ n, LebesgueMeasurable (E n)) (hpoint: ∀ x, Filter.atTop.Tendsto (fun n ↦ (E n).indicator' x) (nhds (E₀.indicator' x))) : LebesgueMeasurable E₀ := by sorry
+example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀: Set (EuclideanSpace' d)} (hE: ∀ n, LebesgueMeasurable (E n)) (hpoint: ∀ x, Filter.atTop.Tendsto (fun n ↦ (E n).indicator' x) (nhds (E₀.indicator' x))) : LebesgueMeasurable E₀ := by
+  have h_liminf : E₀ = Set.iUnion (fun (N : ℕ) => Set.iInter (fun (n : ℕ) => E (N + n))) := by
+    ext x
+    simp only [Set.mem_iUnion, Set.mem_iInter]
+    constructor
+    · intro hx
+      have hx_E0 : E₀.indicator' x = 1 := by simp [hx]
+      have h_conv := hpoint x
+      rw [hx_E0] at h_conv
+      rcases Metric.tendsto_atTop.mp h_conv (1/2 : ℝ) (by norm_num) with ⟨N, hN⟩
+      refine ⟨N, λ n => ?_⟩
+      have h := hN (N + n) (Nat.le_add_right N n)
+      rw [Real.dist_eq] at h
+      by_cases hx_mem : x ∈ E (N + n)
+      · exact hx_mem
+      · have h0 : (E (N + n)).indicator' x = 0 := Set.indicator'_of_notMem hx_mem
+        rw [h0] at h
+        norm_num at h
+    · intro hx
+      rcases hx with ⟨N, hx⟩
+      by_cases hx0 : x ∈ E₀
+      · exact hx0
+      · have hx_not_E0 : E₀.indicator' x = 0 := by simp [hx0]
+        have h_conv := hpoint x
+        rw [hx_not_E0] at h_conv
+        rcases Metric.tendsto_atTop.mp h_conv (1/2 : ℝ) (by norm_num) with ⟨M, hM⟩
+        have hx_E_max : x ∈ E (max N M) := by
+          have hmN : N ≤ max N M := le_max_left _ _
+          have hk : max N M = N + (max N M - N) := by omega
+          rw [hk]
+          exact hx (max N M - N)
+        have h_ind_max : (E (max N M)).indicator' x = 1 := by simp [hx_E_max]
+        have h_max_ev : dist ((E (max N M)).indicator' x) (0 : ℝ) < 1/2 :=
+          hM (max N M) (le_max_right _ _)
+        rw [Real.dist_eq, h_ind_max, sub_zero] at h_max_ev
+        norm_num at h_max_ev
+  rw [h_liminf]
+  refine LebesgueMeasurable.countable_union (fun N => ?_)
+  exact LebesgueMeasurable.countable_inter (fun n => hE (N + n))
 
 /-- Exercise 1.2.13(ii) -/
 example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀ F: Set (EuclideanSpace' d)}
