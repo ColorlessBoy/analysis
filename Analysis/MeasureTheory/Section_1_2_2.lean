@@ -3821,7 +3821,84 @@ theorem inner_measure.eq {d:ℕ} {E A: Set (EuclideanSpace' d)} (hE: Bornology.I
 /-- Exercise 1.2.18(ii) (Inner measure). -/
 theorem inner_measure.le {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E)
   : inner_measure hE ≤ Lebesgue_outer_measure E := by
-  sorry
+  set A₀ := hE.inElementary.choose with hA₀_def
+  have hA₀_elem : IsElementary A₀ := hE.inElementary.choose_spec.1
+  have hE_sub_A₀ : E ⊆ A₀ := hE.inElementary.choose_spec.2
+  have hA₀_bdd : Bornology.IsBounded A₀ := IsElementary.isBounded hA₀_elem
+  have hA₀_fin : Lebesgue_outer_measure A₀ ≠ ⊤ := by
+    have h_compact : IsCompact (closure A₀) :=
+      Metric.isCompact_of_isClosed_isBounded isClosed_closure hA₀_bdd.closure
+    have h_fin : Lebesgue_outer_measure (closure A₀) ≠ ⊤ :=
+      Lebesgue_outer_measure.finite_of_compact h_compact
+    have h_mono : Lebesgue_outer_measure A₀ ≤ Lebesgue_outer_measure (closure A₀) :=
+      Lebesgue_outer_measure.mono subset_closure
+    intro htop
+    apply h_fin
+    exact le_antisymm le_top (by
+      calc
+        ⊤ = Lebesgue_outer_measure A₀ := htop.symm
+        _ ≤ Lebesgue_outer_measure (closure A₀) := h_mono)
+  have h_subadd : Lebesgue_outer_measure A₀ ≤ Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := by
+    let S : Fin 2 → Set (EuclideanSpace' d) := ![E, A₀ \ E]
+    have h_union_eq : (E ∪ (A₀ \ E)) = ⋃ i : Fin 2, S i := by
+      ext x; simp [S]; tauto
+    have h_sum_eq : ∑ i : Fin 2, Lebesgue_outer_measure (S i) = Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := by
+      simp [S, Fin.sum_univ_two]
+    calc
+      Lebesgue_outer_measure A₀ = Lebesgue_outer_measure (E ∪ (A₀ \ E)) := by
+        rw [Set.union_diff_cancel hE_sub_A₀]
+      _ = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union_eq]
+      _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+      _ = Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := by rw [h_sum_eq]
+  have h_diff_not_top : Lebesgue_outer_measure (A₀ \ E) ≠ ⊤ := by
+    intro htop
+    apply hA₀_fin
+    have h_mono : Lebesgue_outer_measure (A₀ \ E) ≤ Lebesgue_outer_measure A₀ :=
+      Lebesgue_outer_measure.mono (fun x hx => hx.1)
+    exact le_antisymm le_top (by
+      calc
+        ⊤ = Lebesgue_outer_measure (A₀ \ E) := htop.symm
+        _ ≤ Lebesgue_outer_measure A₀ := h_mono)
+  unfold inner_measure
+  rw [← hA₀_def]
+  dsimp [Lebesgue_measure]
+  have h_nonneg_E : 0 ≤ Lebesgue_outer_measure E := Lebesgue_outer_measure.nonneg E
+  by_cases hE_top : Lebesgue_outer_measure E = ⊤
+  · rw [hE_top]; exact le_top
+  · have hA₀_nonneg : 0 ≤ Lebesgue_outer_measure A₀ := Lebesgue_outer_measure.nonneg A₀
+    have h_diff_nonneg : 0 ≤ Lebesgue_outer_measure (A₀ \ E) := Lebesgue_outer_measure.nonneg (A₀ \ E)
+    have h0_gt_bot : (⊥ : EReal) < (0 : EReal) := by norm_num
+    have hA₀_not_bot : Lebesgue_outer_measure A₀ ≠ ⊥ := by
+      intro hbot
+      have h_contra : (⊥ : EReal) < (⊥ : EReal) := h0_gt_bot.trans_le (hbot ▸ hA₀_nonneg)
+      exact (lt_irrefl _) h_contra
+    have h_diff_not_bot : Lebesgue_outer_measure (A₀ \ E) ≠ ⊥ := by
+      intro hbot
+      have h_contra : (⊥ : EReal) < (⊥ : EReal) := h0_gt_bot.trans_le (hbot ▸ h_diff_nonneg)
+      exact (lt_irrefl _) h_contra
+    have hE_not_bot : Lebesgue_outer_measure E ≠ ⊥ := by
+      intro hbot
+      have h_contra : (⊥ : EReal) < (⊥ : EReal) := h0_gt_bot.trans_le (hbot ▸ h_nonneg_E)
+      exact (lt_irrefl _) h_contra
+    have hA₀_val : Lebesgue_outer_measure A₀ = ((Lebesgue_outer_measure A₀).toReal : EReal) :=
+      (EReal.coe_toReal hA₀_fin hA₀_not_bot).symm
+    have h_diff_val : Lebesgue_outer_measure (A₀ \ E) = ((Lebesgue_outer_measure (A₀ \ E)).toReal : EReal) :=
+      (EReal.coe_toReal h_diff_not_top h_diff_not_bot).symm
+    have hE_val : Lebesgue_outer_measure E = ((Lebesgue_outer_measure E).toReal : EReal) :=
+      (EReal.coe_toReal hE_top hE_not_bot).symm
+    have h_subadd' : ((Lebesgue_outer_measure A₀).toReal : EReal) ≤ ((Lebesgue_outer_measure E).toReal : EReal) + ((Lebesgue_outer_measure (A₀ \ E)).toReal : EReal) := by
+      rw [hA₀_val, h_diff_val, hE_val] at h_subadd
+      exact h_subadd
+    have h_add : ((Lebesgue_outer_measure E).toReal : EReal) + ((Lebesgue_outer_measure (A₀ \ E)).toReal : EReal) =
+      (((Lebesgue_outer_measure E).toReal + (Lebesgue_outer_measure (A₀ \ E)).toReal : ℝ) : EReal) := by
+      simp
+    have h_subadd_real : (Lebesgue_outer_measure A₀).toReal ≤ (Lebesgue_outer_measure E).toReal + (Lebesgue_outer_measure (A₀ \ E)).toReal := by
+      rw [h_add] at h_subadd'
+      exact (EReal.coe_le_coe_iff.mp h_subadd')
+    have h_goal_real : (Lebesgue_outer_measure A₀).toReal - (Lebesgue_outer_measure (A₀ \ E)).toReal ≤ (Lebesgue_outer_measure E).toReal := by
+      linarith
+    rw [hE_val]
+    exact_mod_cast h_goal_real
 
 /-- Exercise 1.2.18(ii') (Inner measure). -/
 theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E)
