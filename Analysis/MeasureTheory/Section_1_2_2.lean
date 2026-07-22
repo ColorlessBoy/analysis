@@ -3951,7 +3951,35 @@ theorem Lebesgue_measure.unique {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
 instance IsElementary.ae_equiv {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A):
 Setoid (Set A) := {
    r E F := IsNull (Subtype.val '' (_root_.symmDiff E F))
-   iseqv := by sorry
+   iseqv := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro x
+      have : IsNull (∅ : Set (EuclideanSpace' d)) := Lebesgue_outer_measure.of_empty d
+      simpa [symmDiff_self, Set.image_empty] using this
+    · intro x y h
+      rw [symmDiff_comm]
+      exact h
+    · intro x y z hxy hyz
+      have h_triangle : _root_.symmDiff x z ⊆ _root_.symmDiff x y ∪ _root_.symmDiff y z := by
+        simpa using symmDiff_triangle x y z
+      have h_sub : Subtype.val '' (_root_.symmDiff x z) ⊆ Subtype.val '' (_root_.symmDiff x y) ∪ Subtype.val '' (_root_.symmDiff y z) :=
+        calc
+          Subtype.val '' (_root_.symmDiff x z) ⊆ Subtype.val '' (_root_.symmDiff x y ∪ _root_.symmDiff y z) := Set.image_mono h_triangle
+          _ = Subtype.val '' (_root_.symmDiff x y) ∪ Subtype.val '' (_root_.symmDiff y z) := Set.image_union _ _ _
+      have h_union_null : IsNull (Subtype.val '' (_root_.symmDiff x y) ∪ Subtype.val '' (_root_.symmDiff y z)) := by
+        let F : Fin 2 → Set (EuclideanSpace' d) := λ | 0 => Subtype.val '' (_root_.symmDiff x y) | 1 => Subtype.val '' (_root_.symmDiff y z)
+        have h_union_eq : ⋃ i : Fin 2, F i = Subtype.val '' (_root_.symmDiff x y) ∪ Subtype.val '' (_root_.symmDiff y z) := by
+          ext w; simp [F]
+        have h_sum_zero : ∑ i : Fin 2, Lebesgue_outer_measure (F i) = 0 := by
+          simp [F, hxy, hyz]
+        have h_measure_le_zero : Lebesgue_outer_measure (⋃ i : Fin 2, F i) ≤ 0 := by
+          calc
+            Lebesgue_outer_measure (⋃ i : Fin 2, F i) ≤ ∑ i : Fin 2, Lebesgue_outer_measure (F i) :=
+              Lebesgue_outer_measure.finite_union_le F
+            _ = 0 := h_sum_zero
+        rw [← h_union_eq]
+        exact le_antisymm h_measure_le_zero (Lebesgue_outer_measure.nonneg _)
+      exact IsNull.subset h_union_null h_sub
 }
 
 def IsElementary.ae_subsets {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) := Quotient hA.ae_equiv
