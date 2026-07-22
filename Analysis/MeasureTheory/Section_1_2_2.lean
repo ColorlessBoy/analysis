@@ -2951,7 +2951,7 @@ theorem Lebesgue_measure.downward_monotone_convergence {d:ℕ} {E: ℕ → Set (
   have hm_sub_ge_N : m - n₀ ≥ N := by omega
   simpa [Nat.add_sub_cancel' hm_ge_n₀] using hN (m - n₀) hm_sub_ge_N
 /-- Exercise 1.2.11 (c) (counterexample)-/
-example : ∃ (d:ℕ) (E: ℕ → Set (EuclideanSpace' d)) (hE: ∀ n, LebesgueMeasurable (E n)) (hmono: ∀ n, E (n+1) ⊆ E n), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by
+example : ∃ (d:ℕ) (E: ℕ → Set (EuclideanSpace' d)) (_hE: ∀ n, LebesgueMeasurable (E n)) (_hmono: ∀ n, E (n+1) ⊆ E n), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure (⋂ n, E n))) := by
   set d := 1 with hd
   have hd_pos : 0 < d := by decide
   let E : ℕ → Set (EuclideanSpace' 1) := fun n => {x | ‖x‖ ≥ (n : ℝ)}
@@ -3347,7 +3347,7 @@ example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀: Set (EuclideanSpace'
 example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀ F: Set (EuclideanSpace' d)}
   (hE: ∀ n, LebesgueMeasurable (E n))
   (hpoint: ∀ x, Filter.atTop.Tendsto (fun n ↦ (E n).indicator' x) (nhds (E₀.indicator' x)))
-  (hsub: ∀ n, E n ⊆ F) (hFmes: LebesgueMeasurable F) (hfin: Lebesgue_measure F < ⊤) : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure E₀)) := by
+  (hsub: ∀ n, E n ⊆ F) (_hFmes: LebesgueMeasurable F) (hfin: Lebesgue_measure F < ⊤) : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure E₀)) := by
   let A : ℕ → Set (EuclideanSpace' d) := fun k => ⋂ j, E (k + j)
   let B : ℕ → Set (EuclideanSpace' d) := fun k => ⋃ j, E (k + j)
   have hA_mes : ∀ k, LebesgueMeasurable (A k) := by
@@ -3451,8 +3451,7 @@ example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀ F: Set (EuclideanSpac
       rcases hx N with ⟨j, hx_BN⟩
       have hpos : N + j ≥ N := by omega
       exact hx_not_all (N + j) hpos hx_BN
-    · intro hx
-      intro (m : ℕ)
+    · intro hx (m : ℕ)
       have hx_val : E₀.indicator' x = 1 := by simp [hx]
       have h_conv := hpoint x
       rw [hx_val] at h_conv
@@ -3506,9 +3505,9 @@ example {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} {E₀ F: Set (EuclideanSpac
 
 /-- Exercise 1.2.13(iii) -/
 example : ∃ (d:ℕ) (E: ℕ → Set (EuclideanSpace' d)) (E₀ F: Set (EuclideanSpace' d))
-  (hE: ∀ n, LebesgueMeasurable (E n))
-  (hpoint: ∀ x, Filter.atTop.Tendsto (fun n ↦ (E n).indicator' x) (nhds (E₀.indicator' x)))
-  (hsub: ∀ n, E n ⊆ F) (hFmes: LebesgueMeasurable F), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure E₀)) := by
+  (_hE: ∀ n, LebesgueMeasurable (E n))
+  (_hpoint: ∀ x, Filter.atTop.Tendsto (fun n ↦ (E n).indicator' x) (nhds (E₀.indicator' x)))
+  (_hsub: ∀ n, E n ⊆ F) (_hFmes: LebesgueMeasurable F), ¬ Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (E n)) (nhds (Lebesgue_measure E₀)) := by
   set d := 1 with hd
   have hd_pos : 0 < d := by decide
   let E : ℕ → Set (EuclideanSpace' 1) := fun n => {x | ‖x‖ ≥ (n : ℝ)}
@@ -3727,7 +3726,8 @@ example {d:ℕ} (E: Set (EuclideanSpace' d)) : ∃ (F: Set (EuclideanSpace' d)),
             | ⊤ => Or.inr (Or.inr rfl)
           rcases h_cases with (hbot | ⟨s, hF⟩ | htop)
           · exfalso
-            have : (0 : EReal) ≤ (⊥ : EReal) := by simpa [hbot] using h_nonneg_F
+            have : (0 : EReal) ≤ (⊥ : EReal) := by
+              rw [hbot] at h_nonneg_F; exact h_nonneg_F
             exact not_lt.mpr this EReal.bot_lt_zero
           · have h_cases' : Lebesgue_outer_measure E = ⊥ ∨ (∃ r : ℝ, Lebesgue_outer_measure E = (r : EReal)) ∨ Lebesgue_outer_measure E = ⊤ := by
               refine match Lebesgue_outer_measure E with
@@ -3736,7 +3736,8 @@ example {d:ℕ} (E: Set (EuclideanSpace' d)) : ∃ (F: Set (EuclideanSpace' d)),
               | ⊤ => Or.inr (Or.inr rfl)
             rcases h_cases' with (hbot' | ⟨r, hE⟩ | htop')
             · exfalso
-              have : (0 : EReal) ≤ (⊥ : EReal) := by simpa [hbot'] using Lebesgue_outer_measure.nonneg E
+              have : (0 : EReal) ≤ (⊥ : EReal) := by
+                simpa [hbot'] using Lebesgue_outer_measure.nonneg E
               exact not_lt.mpr this EReal.bot_lt_zero
             · have h_rs : r < s := by
                 have : (r : EReal) < (s : EReal) := by
@@ -3880,8 +3881,7 @@ lemma Lebesgue_outer_measure.translate {d:ℕ} (E: Set (EuclideanSpace' d)) (x: 
 theorem LebesgueMeasurable.translate {d:ℕ} (E: Set (EuclideanSpace' d)) (x: EuclideanSpace' d) :
     LebesgueMeasurable E ↔ LebesgueMeasurable (E + {x}) := by
   constructor
-  · intro hE
-    intro ε hε
+  · intro hE ε hε
     rcases hE ε hε with ⟨U, hU_open, hE_sub_U, h_outer⟩
     have h_diff_eq : (U + {x}) \ (E + {x}) = (U \ E) + {x} := by ext y; simp
     refine ⟨U + {x}, IsOpen.add_singleton hU_open x, Set.add_subset_add hE_sub_U (Set.Subset.refl {x}), ?_⟩
@@ -3889,8 +3889,7 @@ theorem LebesgueMeasurable.translate {d:ℕ} (E: Set (EuclideanSpace' d)) (x: Eu
       Lebesgue_outer_measure ((U + {x}) \ (E + {x})) = Lebesgue_outer_measure ((U \ E) + {x}) := by rw [h_diff_eq]
       _ = Lebesgue_outer_measure (U \ E) := Lebesgue_outer_measure.translate (U \ E) x
       _ ≤ ε := h_outer
-  · intro hE
-    intro ε hε
+  · intro hE ε hε
     rcases hE ε hε with ⟨U, hU_open, hE_sub_U, h_outer⟩
     have hU_open' : IsOpen (U + {(-x)}) := IsOpen.add_singleton hU_open (-x)
     have h_sub' : E ⊆ U + {(-x)} := by
@@ -3914,7 +3913,7 @@ theorem LebesgueMeasurable.translate {d:ℕ} (E: Set (EuclideanSpace' d)) (x: Eu
     exact ⟨U + {(-x)}, hU_open', h_sub', h_outer'⟩
 
 theorem Lebesgue_measure.translate {d:ℕ} {E: Set (EuclideanSpace' d)} (x: EuclideanSpace' d)
-   (hE: LebesgueMeasurable E): Lebesgue_measure (E + {x}) = Lebesgue_measure E := by
+   (_hE: LebesgueMeasurable E): Lebesgue_measure (E + {x}) = Lebesgue_measure E := by
   rw [Lebesgue_measure, Lebesgue_measure, Lebesgue_outer_measure.translate E x]
 
 /-- Exercise 1.2.21 (Change of variables) -/
