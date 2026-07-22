@@ -4222,7 +4222,85 @@ noncomputable instance IsElementary.metric {d:ℕ} {A: Set (EuclideanSpace' d)} 
       intro E F
       unfold IsElementary.dist
       simp [symmDiff_comm]
-    dist_triangle := by sorry
+    dist_triangle := by
+      intro x y z
+      refine Quotient.inductionOn₃ x y z ?_
+      intro E F G
+      unfold IsElementary.dist
+      simp
+      have hA_bdd : Bornology.IsBounded A := IsElementary.isBounded hA
+      have h_symm_triangle : _root_.symmDiff E G ⊆ _root_.symmDiff E F ∪ _root_.symmDiff F G := by
+        simpa using symmDiff_triangle E F G
+      have h_image_sub : Subtype.val '' (_root_.symmDiff E G) ⊆
+          (Subtype.val '' (_root_.symmDiff E F)) ∪ (Subtype.val '' (_root_.symmDiff F G)) :=
+        calc
+          Subtype.val '' (_root_.symmDiff E G) ⊆ Subtype.val '' (_root_.symmDiff E F ∪ _root_.symmDiff F G) :=
+            Set.image_mono h_symm_triangle
+          _ = (Subtype.val '' (_root_.symmDiff E F)) ∪ (Subtype.val '' (_root_.symmDiff F G)) :=
+            Set.image_union _ _ _
+      have h_EReal : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E G)) ≤
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) +
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) := by
+        calc
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E G)) ≤
+              Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff E F)) ∪ (Subtype.val '' (_root_.symmDiff F G))) :=
+            Lebesgue_outer_measure.mono h_image_sub
+          _ ≤ Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) := by
+            let S : Fin 2 → Set (EuclideanSpace' d) := λ
+              | 0 => Subtype.val '' (_root_.symmDiff E F)
+              | 1 => Subtype.val '' (_root_.symmDiff F G)
+            have h_union : (⋃ i, S i) = (Subtype.val '' (_root_.symmDiff E F)) ∪ (Subtype.val '' (_root_.symmDiff F G)) := by
+              ext w; simp [S]
+            have h_sum : ∑ i : Fin 2, Lebesgue_outer_measure (S i) =
+                Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) + Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) := by
+              simp [S]
+            calc
+              Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff E F)) ∪ (Subtype.val '' (_root_.symmDiff F G))) =
+                  Lebesgue_outer_measure (⋃ i, S i) := by rw [h_union]
+              _ ≤ ∑ i, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+              _ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) +
+                  Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) := h_sum
+      have h_image_sub_A (U V : Set A) : Subtype.val '' (_root_.symmDiff U V) ⊆ A := by
+        intro z hz
+        rcases hz with ⟨w, hw, rfl⟩
+        exact w.property
+      have h_not_bot (U V : Set A) : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff U V)) ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff U V)) :=
+          Lebesgue_outer_measure.nonneg _
+        have h0_gt_bot : (⊥ : EReal) < (0 : EReal) := by norm_num
+        intro hbot
+        have h_contra : (⊥ : EReal) < (⊥ : EReal) :=
+          h0_gt_bot.trans_le (hbot ▸ h_nonneg)
+        exact (lt_irrefl _) h_contra
+      have h_finite (U V : Set A) : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff U V)) ≠ ⊤ := by
+        have h_bdd : Bornology.IsBounded (Subtype.val '' (_root_.symmDiff U V)) :=
+          Bornology.IsBounded.subset hA_bdd (h_image_sub_A U V)
+        have h_closure_compact : IsCompact (closure (Subtype.val '' (_root_.symmDiff U V))) :=
+          Metric.isCompact_of_isClosed_isBounded isClosed_closure h_bdd.closure
+        have h_fin_closure : Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff U V))) ≠ ⊤ :=
+          Lebesgue_outer_measure.finite_of_compact h_closure_compact
+        have h_mono : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff U V)) ≤
+            Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff U V))) :=
+          Lebesgue_outer_measure.mono subset_closure
+        intro htop
+        apply h_fin_closure
+        exact le_antisymm le_top (calc
+          ⊤ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff U V)) := htop.symm
+          _ ≤ Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff U V))) := h_mono)
+      have h_not_bot_EF : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) ≠ ⊥ := h_not_bot E F
+      have h_not_bot_FG : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) ≠ ⊥ := h_not_bot F G
+      have h_not_top_EF : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) ≠ ⊤ := h_finite E F
+      have h_not_top_FG : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G)) ≠ ⊤ := h_finite F G
+      have h_not_bot_EG : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E G)) ≠ ⊥ := h_not_bot E G
+      calc
+        (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E G))).toReal
+            ≤ (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) +
+                Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G))).toReal :=
+          EReal.toReal_le_toReal h_EReal h_not_bot_EG (EReal.add_ne_top h_not_top_EF h_not_top_FG)
+        _ = (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal +
+            (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F G))).toReal := by
+          rw [EReal.toReal_add h_not_top_EF h_not_bot_EF h_not_top_FG h_not_bot_FG]
   }
 
 instance IsElementary.complete {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : CompleteSpace hA.ae_subsets := by
