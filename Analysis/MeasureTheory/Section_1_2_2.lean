@@ -4024,8 +4024,8 @@ theorem Lebesgue_measure.unique {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
   (hnorm: m (Box.unit_cube d) = 1)
   : ∀ E, LebesgueMeasurable E → m E = Lebesgue_measure E := by sorry
 
-/-- Exercise 1.2.24(i) (Lebesgue measure as the completion of elementary measure). -/
-instance IsElementary.ae_equiv {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A):
+/-- Exercise 1.2.24(i) (Lebesgue measure as the completion of elementary measure)-/
+instance IsElementary.ae_equiv {d:ℕ} {A: Set (EuclideanSpace' d)} (_hA: IsElementary A):
 Setoid (Set A) := {
    r E F := IsNull (Subtype.val '' (_root_.symmDiff E F))
    iseqv := by
@@ -4147,7 +4147,7 @@ noncomputable def IsElementary.dist {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: Is
               simpa [add_comm, add_left_comm, add_assoc] using this
             _ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X X')) +
               Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) +
-              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := by ring
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := by simp [add_assoc]
             _ = 0 + Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) + 0 := by rw [hX, hY]
             _ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := by simp
         calc
@@ -4170,7 +4170,52 @@ noncomputable instance IsElementary.metric {d:ℕ} {A: Set (EuclideanSpace' d)} 
       intro E
       unfold IsElementary.dist
       simp [symmDiff_self, Set.image_empty, Lebesgue_outer_measure.of_empty d]
-    eq_of_dist_eq_zero := by sorry
+    eq_of_dist_eq_zero := by
+      intro x y h
+      revert h
+      refine Quotient.inductionOn₂ x y ?_
+      intro E F h
+      unfold IsElementary.dist at h
+      have h0 : (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal = 0 := h
+      have hA_bdd : Bornology.IsBounded A := IsElementary.isBounded hA
+      have h_image_sub : Subtype.val '' (_root_.symmDiff E F) ⊆ A := by
+        intro z hz
+        rcases hz with ⟨w, hw, rfl⟩
+        exact w.property
+      have h_symmDiff_bdd : Bornology.IsBounded (Subtype.val '' (_root_.symmDiff E F)) :=
+        Bornology.IsBounded.subset hA_bdd h_image_sub
+      have h_closure_compact : IsCompact (closure (Subtype.val '' (_root_.symmDiff E F))) :=
+        Metric.isCompact_of_isClosed_isBounded isClosed_closure h_symmDiff_bdd.closure
+      have h_not_top : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) ≠ ⊤ := by
+        have h_fin_closure : Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff E F))) ≠ ⊤ :=
+          Lebesgue_outer_measure.finite_of_compact h_closure_compact
+        have h_mono : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) ≤
+            Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff E F))) :=
+          Lebesgue_outer_measure.mono subset_closure
+        intro htop
+        apply h_fin_closure
+        exact le_antisymm le_top (by
+          calc
+            ⊤ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) := htop.symm
+            _ ≤ Lebesgue_outer_measure (closure (Subtype.val '' (_root_.symmDiff E F))) := h_mono)
+      have h_not_bot : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) :=
+          Lebesgue_outer_measure.nonneg _
+        have h0_gt_bot : (⊥ : EReal) < (0 : EReal) := by norm_num
+        intro hbot
+        have h_contra : (⊥ : EReal) < (⊥ : EReal) :=
+          h0_gt_bot.trans_le (hbot ▸ h_nonneg)
+        exact (lt_irrefl _) h_contra
+      have h_measure_val : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) =
+          ((Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal : EReal) :=
+        (EReal.coe_toReal h_not_top h_not_bot).symm
+      have h_measure_zero : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) = 0 := by
+        calc
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) =
+              ((Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal : EReal) := h_measure_val
+          _ = (0 : EReal) := by simp [h0]
+      have h_null : IsNull (Subtype.val '' (_root_.symmDiff E F)) := h_measure_zero
+      exact Quotient.sound h_null
     dist_comm := by
       intro x y
       refine Quotient.inductionOn₂ x y ?_
