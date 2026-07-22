@@ -3986,14 +3986,120 @@ def IsElementary.ae_subsets {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementa
 
 def IsElementary.ae_quot {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) (E: Set A): hA.ae_subsets := Quotient.mk' (s := hA.ae_equiv) E
 
-/-- Exercise 1.2.24(ii) (Lebesgue measure as the completion of elementary measure). -/
-noncomputable def IsElementary.dist {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : hA.ae_subsets → hA.ae_subsets → ℝ := Quotient.lift₂ (fun E F ↦ (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal) (by sorry)
+/-- Exercise 1.2.24(ii) (Lebesgue measure as the completion of elementary measure)-/
+noncomputable def IsElementary.dist {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : hA.ae_subsets → hA.ae_subsets → ℝ :=
+  Quotient.lift₂ (fun E F ↦ (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F))).toReal) (by
+    intro E F E' F' hE_eq hF_eq
+    have h_meas_eq : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E F)) =
+        Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff E' F')) := by
+      have h_aux (X Y X' Y' : Set A) (hX : IsNull (Subtype.val '' (_root_.symmDiff X X')))
+          (hY : IsNull (Subtype.val '' (_root_.symmDiff Y Y'))) :
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X Y)) ≤
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := by
+        have h_symm_sub : _root_.symmDiff X Y ⊆ _root_.symmDiff X X' ∪ _root_.symmDiff X' Y' ∪ _root_.symmDiff Y Y' := by
+          intro z hz
+          have hz1 : z ∈ _root_.symmDiff X X' ∪ _root_.symmDiff X' Y := symmDiff_triangle X X' Y hz
+          rcases hz1 with (hz1' | hz2')
+          · exact Or.inl (Or.inl hz1')
+          · have hz3 : z ∈ _root_.symmDiff X' Y' ∪ _root_.symmDiff Y' Y := symmDiff_triangle X' Y' Y hz2'
+            rcases hz3 with (hz3' | hz4')
+            · exact Or.inl (Or.inr hz3')
+            · rw [symmDiff_comm] at hz4'
+              exact Or.inr hz4'
+        have h_image_sub : Subtype.val '' (_root_.symmDiff X Y) ⊆
+            (Subtype.val '' (_root_.symmDiff X X')) ∪ (Subtype.val '' (_root_.symmDiff X' Y')) ∪
+            (Subtype.val '' (_root_.symmDiff Y Y')) :=
+          calc
+            Subtype.val '' (_root_.symmDiff X Y) ⊆
+                Subtype.val '' (_root_.symmDiff X X' ∪ _root_.symmDiff X' Y' ∪ _root_.symmDiff Y Y') :=
+              Set.image_mono h_symm_sub
+            _ = (Subtype.val '' (_root_.symmDiff X X')) ∪ (Subtype.val '' (_root_.symmDiff X' Y')) ∪
+                (Subtype.val '' (_root_.symmDiff Y Y')) := by
+              simp [Set.image_union, Set.union_assoc]
+        have h_mono : Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X Y)) ≤
+            Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+              (Subtype.val '' (_root_.symmDiff X' Y')) ∪ (Subtype.val '' (_root_.symmDiff Y Y'))) :=
+          Lebesgue_outer_measure.mono h_image_sub
+        have h_union_two (A B : Set (EuclideanSpace' d)) : (⋃ i : Fin 2, (λ
+            | 0 => A
+            | 1 => B) i) = A ∪ B := by
+          ext w; simp
+        have h_sub_union : Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+            (Subtype.val '' (_root_.symmDiff X' Y')) ∪ (Subtype.val '' (_root_.symmDiff Y Y'))) ≤
+            Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := by
+          have h_ineq1 : Lebesgue_outer_measure (((Subtype.val '' (_root_.symmDiff X X')) ∪
+              (Subtype.val '' (_root_.symmDiff X' Y'))) ∪ (Subtype.val '' (_root_.symmDiff Y Y'))) ≤
+              Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y'))) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := by
+            let F : Fin 2 → Set (EuclideanSpace' d) := λ
+              | 0 => (Subtype.val '' (_root_.symmDiff X X')) ∪ (Subtype.val '' (_root_.symmDiff X' Y'))
+              | 1 => Subtype.val '' (_root_.symmDiff Y Y')
+            have h_union_eq : (⋃ i : Fin 2, F i) = ((Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y'))) ∪ (Subtype.val '' (_root_.symmDiff Y Y')) := by
+              simpa [F] using h_union_two ((Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y'))) (Subtype.val '' (_root_.symmDiff Y Y'))
+            rw [← h_union_eq]
+            simpa [F] using Lebesgue_outer_measure.finite_union_le F
+          have h_ineq2 : Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+              (Subtype.val '' (_root_.symmDiff X' Y'))) ≤
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X X')) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := by
+            let F : Fin 2 → Set (EuclideanSpace' d) := λ
+              | 0 => Subtype.val '' (_root_.symmDiff X X')
+              | 1 => Subtype.val '' (_root_.symmDiff X' Y')
+            have h_union_eq : (⋃ i : Fin 2, F i) = (Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y')) := by
+              simpa [F] using h_union_two (Subtype.val '' (_root_.symmDiff X X'))
+                (Subtype.val '' (_root_.symmDiff X' Y'))
+            rw [← h_union_eq]
+            simpa [F] using Lebesgue_outer_measure.finite_union_le F
+          calc
+            Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+              (Subtype.val '' (_root_.symmDiff X' Y')) ∪ (Subtype.val '' (_root_.symmDiff Y Y')))
+                = Lebesgue_outer_measure (((Subtype.val '' (_root_.symmDiff X X')) ∪
+                  (Subtype.val '' (_root_.symmDiff X' Y'))) ∪ (Subtype.val '' (_root_.symmDiff Y Y'))) := by
+              simp [Set.union_assoc]
+            _ ≤ Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y'))) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := h_ineq1
+            _ ≤ (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X X')) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y'))) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := by
+              have := add_le_add_right h_ineq2 (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')))
+              simpa [add_comm, add_left_comm, add_assoc] using this
+            _ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X X')) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) +
+              Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff Y Y')) := by ring
+            _ = 0 + Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) + 0 := by rw [hX, hY]
+            _ = Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := by simp
+        calc
+          Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X Y))
+              ≤ Lebesgue_outer_measure ((Subtype.val '' (_root_.symmDiff X X')) ∪
+                (Subtype.val '' (_root_.symmDiff X' Y')) ∪ (Subtype.val '' (_root_.symmDiff Y Y'))) := h_mono
+          _ ≤ Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X' Y')) := h_sub_union
+      have hE_eq' : IsNull (Subtype.val '' (_root_.symmDiff E' E)) := by
+        simpa [symmDiff_comm] using hE_eq
+      have hF_eq' : IsNull (Subtype.val '' (_root_.symmDiff F' F)) := by
+        simpa [symmDiff_comm] using hF_eq
+      exact le_antisymm (h_aux E F E' F' hE_eq hF_eq) (h_aux E' F' E F hE_eq' hF_eq')
+    simp [h_meas_eq])
 
 noncomputable instance IsElementary.metric {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : MetricSpace hA.ae_subsets := {
     dist := hA.dist
-    dist_self := by sorry
+    dist_self := by
+      intro x
+      refine Quotient.inductionOn x ?_
+      intro E
+      unfold IsElementary.dist
+      simp [symmDiff_self, Set.image_empty, Lebesgue_outer_measure.of_empty d]
     eq_of_dist_eq_zero := by sorry
-    dist_comm := by sorry
+    dist_comm := by
+      intro x y
+      refine Quotient.inductionOn₂ x y ?_
+      intro E F
+      unfold IsElementary.dist
+      simp [symmDiff_comm]
     dist_triangle := by sorry
   }
 
