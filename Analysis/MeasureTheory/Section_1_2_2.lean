@@ -3950,7 +3950,9 @@ lemma box_identity {d:ℕ} (B T: Box d) : (B.volume : EReal) = Lebesgue_outer_me
     have h_cover : B.toSet = ⋃ B' ∈ s, B'.toSet := by
       simp [s]
     have h_eq := hB_elem.measure_eq h_partition h_cover
-    simpa using h_eq
+    calc
+      hB_elem.measure = ∑ B' ∈ s, B'.volume := h_eq
+      _ = B.volume := by simp [s]
   rw [← h_volume_eq, h_measure_eq, h_measure_disj_union, EReal.coe_add,
     Lebesgue_outer_measure.elementary (B.toSet ∩ T.toSet) h_inter_elem,
     Lebesgue_outer_measure.elementary (B.toSet \ T.toSet) h_sdiff_elem]
@@ -4404,8 +4406,8 @@ theorem inner_measure.le {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsB
 lemma IsElementary.measurable {d:ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) : LebesgueMeasurable A :=
   Jordan_measurable.lebesgue (IsElementary.jordanMeasurable hA)
 
-/-- If `a` is a finite extended real (neither `⊤` nor `⊥`), then we can cancel it
-    from an `EReal` inequality. -/
+/-- If {lean}`a` is a finite extended real (neither {lit}`⊤` nor {lit}`⊥`), then we can cancel it
+    from an {lean}`EReal` inequality. -/
 lemma cancel_add_left {a b c : EReal} (ha_fin : a ≠ ⊤) (ha_not_bot : a ≠ ⊥) (h : a + b ≤ a + c) : b ≤ c := by
   have ha_real : ∃ (r : ℝ), a = (r : EReal) := by
     match a with
@@ -4427,7 +4429,7 @@ lemma cancel_add_left {a b c : EReal} (ha_fin : a ≠ ⊤) (ha_not_bot : a ≠ �
     _ = (0 : EReal) + c := by rw [add_self_neg_ereal r]
     _ = c := by simp
 
-/-- If `E` satisfies the full Carathéodory splitting property for *every* set `A`,
+/-- If {lean}`E` satisfies the full Carathéodory splitting property for *every* set {lean}`A`,
     then its intersection with any box also satisfies it. -/
 lemma caratheodory_inter_box {d:ℕ} (E : Set (EuclideanSpace' d)) (B : Box d)
     (h_full : ∀ A, Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E)) :
@@ -4466,8 +4468,8 @@ lemma caratheodory_inter_box {d:ℕ} (E : Set (EuclideanSpace' d)) (B : Box d)
     _ = Lebesgue_outer_measure (A ∩ (E ∩ B.toSet)) + Lebesgue_outer_measure (A \ (E ∩ B.toSet)) := by
       rw [h_inter_eq, h_diff_eq]
 
-/-- If `E` satisfies the full Carathéodory splitting property and has finite outer measure,
-    then `E` is Lebesgue measurable. -/
+/-- If {lean}`E` satisfies the full Carathéodory splitting property and has finite outer measure,
+    then {lean}`E` is Lebesgue measurable. -/
 lemma caratheodory_finite_measurable {d:ℕ} (E : Set (EuclideanSpace' d))
     (h_full : ∀ A, Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E))
     (h_fin : Lebesgue_outer_measure E ≠ ⊤) : LebesgueMeasurable E := by
@@ -4476,7 +4478,9 @@ lemma caratheodory_finite_measurable {d:ℕ} (E : Set (EuclideanSpace' d))
   have h_fin_E_not_bot : Lebesgue_outer_measure E ≠ ⊥ := by
     have h_nonneg : 0 ≤ Lebesgue_outer_measure E := Lebesgue_outer_measure.nonneg _
     intro h_eq
-    have : (0 : EReal) ≤ ⊥ := by simpa [h_eq] using h_nonneg
+    have : (0 : EReal) ≤ ⊥ := by
+      rw [h_eq] at h_nonneg
+      exact h_nonneg
     exact not_lt.mpr this (by norm_num : (⊥ : EReal) < (0 : EReal))
   have h_full_U := h_full U
   have h_inter_eq : U ∩ E = E := by
@@ -4504,8 +4508,7 @@ theorem LebesgueMeasurable.caratheodory {d:ℕ} (E: Set (EuclideanSpace' d)) :
   · rw [List.isChain_cons_cons]
     refine ⟨?_, ?_⟩
     · -- 0 → 1
-      intro hE
-      intro A hA
+      intro hE A hA
       have hA_meas : LebesgueMeasurable A := IsElementary.measurable hA
       have hA_inter_meas : LebesgueMeasurable (A ∩ E) := LebesgueMeasurable.inter hA_meas hE
       have hA_diff_meas : LebesgueMeasurable (A \ E) :=
@@ -4536,8 +4539,7 @@ theorem LebesgueMeasurable.caratheodory {d:ℕ} (E: Set (EuclideanSpace' d)) :
     · rw [List.isChain_cons_cons]
       refine ⟨?_, ?_⟩
       · -- 1 → 2
-        intro h
-        intro B
+        intro h B
         apply h (B.toSet)
         exact IsElementary.box B
       · exact List.isChain_singleton _
@@ -4657,7 +4659,7 @@ theorem LebesgueMeasurable.caratheodory {d:ℕ} (E: Set (EuclideanSpace' d)) :
             Lebesgue_outer_measure ((B n).toSet) = (IsElementary.box (B n)).measure :=
               Lebesgue_outer_measure.elementary _ (IsElementary.box (B n))
             _ = (|B n|ᵥ : EReal) := by
-              simpa using congrArg (fun (x : ℝ) => (x : EReal)) (IsElementary.measure_of_box (B n))
+              exact_mod_cast IsElementary.measure_of_box (B n)
             _ = (((2*n : ℝ) ^ (d : ℕ) : ℝ) : EReal) := by
               simp [Box.volume, B, BoundedInterval.length, Finset.prod_const, Fintype.card_fin d, ← two_mul, mul_comm]
         rw [h_vol]
@@ -4784,7 +4786,7 @@ theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology
 def IsFσ  {X:Type*} [TopologicalSpace X] (s : Set X) : Prop :=
   ∃ T : Set (Set X), (∀ t ∈ T, IsClosed t) ∧ T.Countable ∧ s = ⋃₀ T
 
-/-- Helper lemma: if `a ≤ 1/(n+1)` for all n, then `a ≤ 0`. -/
+/-- Helper lemma: if {lit}`a ≤ 1/(n+1)` for all n, then {lit}`a ≤ 0`. -/
 lemma le_of_forall_nat_one_div_ereal {a : EReal} (h : ∀ n : ℕ, a ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal)) : a ≤ 0 := by
   by_contra! hpos
   -- hpos : 0 < a
