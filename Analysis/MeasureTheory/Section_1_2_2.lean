@@ -3783,7 +3783,82 @@ example {d:ℕ} (E: Set (EuclideanSpace' d)) : ∃ (F: Set (EuclideanSpace' d)),
 
 /-- Exercise 1.2.15 (Inner regularity). -/
 theorem Lebesgue_measure.eq {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): Lebesgue_measure E = sSup { M | ∃ K, K ⊆ E ∧ IsCompact K ∧ M = Lebesgue_measure K} := by
-  sorry
+  let S := { M | ∃ K, K ⊆ E ∧ IsCompact K ∧ M = Lebesgue_measure K}
+  have h_sup_le : sSup S ≤ Lebesgue_measure E := by
+    apply sSup_le
+    intro M hM
+    rcases hM with ⟨K, hKE, hK_compact, rfl⟩
+    exact Lebesgue_outer_measure.mono hKE
+  have h_le_sup : Lebesgue_measure E ≤ sSup S := by
+    apply EReal.le_of_forall_pos_le_add'
+    intro ε hε
+    have h_approx : ∀ ε > 0, ∃ F, IsClosed F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε :=
+      ((LebesgueMeasurable.TFAE E).out 0 3).mp hE
+    have hpos : (0 : EReal) < (ε : ℝ) := EReal.coe_pos.mpr hε
+    rcases h_approx ((ε : ℝ) : EReal) hpos with ⟨F, hF_closed, hF_sub_E, hF_diff⟩
+    have hF_meas : LebesgueMeasurable F := hF_closed.measurable
+    have hE_diff_F_meas : LebesgueMeasurable (E \ F) :=
+      LebesgueMeasurable.inter hE (LebesgueMeasurable.complement hF_meas)
+    have h_union_eq_set : F ∪ (E \ F) = E := by
+      ext x
+      constructor
+      · intro hx
+        rcases hx with (hxF | hxEF)
+        · exact hF_sub_E hxF
+        · exact hxEF.1
+      · intro hxE
+        by_cases hxF : x ∈ F
+        · exact Or.inl hxF
+        · exact Or.inr ⟨hxE, hxF⟩
+    have h_disj : F ∩ (E \ F) = ∅ := by
+      ext x; simp
+    have hE_le : Lebesgue_measure E ≤ Lebesgue_measure F + (ε : ℝ) := by
+      rw [show Lebesgue_measure E = Lebesgue_measure (F ∪ (E \ F)) from by rw [h_union_eq_set],
+        Lebesgue_measure.union hF_meas hE_diff_F_meas h_disj]
+      exact add_le_add_right hF_diff (Lebesgue_measure F)
+    let F_n : ℕ → Set (EuclideanSpace' d) := fun n => F ∩ Metric.closedBall (0 : EuclideanSpace' d) n
+    have hF_n_compact : ∀ n, IsCompact (F_n n) := by
+      intro n
+      apply Metric.isCompact_of_isClosed_isBounded
+      · exact hF_closed.inter Metric.isClosed_closedBall
+      · exact Metric.isBounded_closedBall.subset Set.inter_subset_right
+    have hF_n_sub_E : ∀ n, F_n n ⊆ E := fun n =>
+      calc
+        F_n n = F ∩ Metric.closedBall (0 : EuclideanSpace' d) n := rfl
+        _ ⊆ F := Set.inter_subset_left
+        _ ⊆ E := hF_sub_E
+    have hF_n_meas : ∀ n, LebesgueMeasurable (F_n n) := fun n =>
+      LebesgueMeasurable.inter hF_meas Metric.isClosed_closedBall.measurable
+    have hF_n_le_sup : ∀ n, Lebesgue_measure (F_n n) ≤ sSup S := fun n =>
+      le_sSup ⟨F_n n, hF_n_sub_E n, hF_n_compact n, rfl⟩
+    have hF_n_mono : ∀ n, F_n n ⊆ F_n (n+1) := by
+      intro n x hx
+      rcases hx with ⟨hxF, hx_ball⟩
+      refine ⟨hxF, ?_⟩
+      have hx_dist : dist x 0 ≤ (n : ℝ) := by
+        simpa [Metric.mem_closedBall] using hx_ball
+      have hn : (n : ℝ) ≤ (n+1 : ℝ) := by norm_num
+      simpa [Metric.mem_closedBall] using le_trans hx_dist hn
+    have hF_n_union : ⋃ n, F_n n = F := by
+      dsimp [F_n]
+      simpa using Metric.iUnion_inter_closedBall_nat F 0
+    have h_tendsto : Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (F_n n))
+        (nhds (Lebesgue_measure (⋃ n, F_n n))) :=
+      Lebesgue_measure.upward_monotone_convergence hF_n_meas hF_n_mono
+    have h_tendsto_F : Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (F_n n))
+        (nhds (Lebesgue_measure F)) := by
+      rw [hF_n_union] at h_tendsto
+      exact h_tendsto
+    have h_mF_le_sup : Lebesgue_measure F ≤ sSup S := by
+      apply le_of_tendsto' h_tendsto_F
+      intro n
+      exact hF_n_le_sup n
+    calc
+      Lebesgue_measure E ≤ Lebesgue_measure F + (ε : ℝ) := hE_le
+      _ = (ε : ℝ) + Lebesgue_measure F := add_comm _ _
+      _ ≤ (ε : ℝ) + sSup S := add_le_add_right h_mF_le_sup (ε : ℝ)
+      _ = sSup S + (ε : ℝ) := add_comm _ _
+  simpa [S] using le_antisymm h_le_sup h_sup_le
 
 /-- Exercise 1.2.16 (Criteria for finite measure). -/
 theorem LebesgueMeasurable.finite_TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
