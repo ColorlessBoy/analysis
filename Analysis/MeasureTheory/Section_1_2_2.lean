@@ -3875,14 +3875,7 @@ theorem LebesgueMeasurable.finite_TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
     ].TFAE
   := by sorry
 
-/-- Exercise 1.2.17 (Caratheodory criterion one direction). -/
-theorem LebesgueMeasurable.caratheodory {d:ℕ} (E: Set (EuclideanSpace' d)) :
-    [
-      LebesgueMeasurable E,
-      (∀ A: Set (EuclideanSpace' d), IsElementary A → Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E)),
-      (∀ (B:Box d),  Lebesgue_outer_measure B.toSet = Lebesgue_outer_measure (B.toSet ∩ E) + Lebesgue_outer_measure (B.toSet \ E))
-    ].TFAE
-  := by sorry
+/-- `LebesgueMeasurable.caratheodory` is proved below after `IsElementary.measurable`. -/
 
 theorem Bornology.IsBounded.inElementary {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E) : ∃ (A: Set (EuclideanSpace' d)), IsElementary A ∧ E ⊆ A := IsElementary.contains_bounded hE
 
@@ -3957,7 +3950,7 @@ lemma box_identity {d:ℕ} (B T: Box d) : (B.volume : EReal) = Lebesgue_outer_me
     have h_cover : B.toSet = ⋃ B' ∈ s, B'.toSet := by
       simp [s]
     have h_eq := hB_elem.measure_eq h_partition h_cover
-    simpa
+    simpa using h_eq
   rw [← h_volume_eq, h_measure_eq, h_measure_disj_union, EReal.coe_add,
     Lebesgue_outer_measure.elementary (B.toSet ∩ T.toSet) h_inter_elem,
     Lebesgue_outer_measure.elementary (B.toSet \ T.toSet) h_sdiff_elem]
@@ -4410,6 +4403,295 @@ theorem inner_measure.le {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsB
 
 lemma IsElementary.measurable {d:ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) : LebesgueMeasurable A :=
   Jordan_measurable.lebesgue (IsElementary.jordanMeasurable hA)
+
+/-- If `a` is a finite extended real (neither `⊤` nor `⊥`), then we can cancel it
+    from an `EReal` inequality. -/
+lemma cancel_add_left {a b c : EReal} (ha_fin : a ≠ ⊤) (ha_not_bot : a ≠ ⊥) (h : a + b ≤ a + c) : b ≤ c := by
+  have ha_real : ∃ (r : ℝ), a = (r : EReal) := by
+    match a with
+    | ⊥ => exact (ha_not_bot rfl).elim
+    | (r : ℝ) => exact ⟨r, rfl⟩
+    | ⊤ => exact (ha_fin rfl).elim
+  rcases ha_real with ⟨r, hr⟩
+  subst hr
+  have h_neg_add : (-(r : EReal)) + ((r : EReal) + b) ≤ (-(r : EReal)) + ((r : EReal) + c) :=
+    add_le_add_right h (-(r : EReal))
+  calc
+    b = (0 : EReal) + b := by simp
+    _ = ((-(r : EReal)) + (r : EReal)) + b := by rw [add_self_neg_ereal r]
+    _ = (-(r : EReal)) + ((r : EReal) + b) := by
+      simp [add_comm, add_assoc]
+    _ ≤ (-(r : EReal)) + ((r : EReal) + c) := h_neg_add
+    _ = ((-(r : EReal)) + (r : EReal)) + c := by
+      simp [add_comm, add_assoc]
+    _ = (0 : EReal) + c := by rw [add_self_neg_ereal r]
+    _ = c := by simp
+
+/-- If `E` satisfies the full Carathéodory splitting property for *every* set `A`,
+    then its intersection with any box also satisfies it. -/
+lemma caratheodory_inter_box {d:ℕ} (E : Set (EuclideanSpace' d)) (B : Box d)
+    (h_full : ∀ A, Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E)) :
+    ∀ A, Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ (E ∩ B.toSet)) + Lebesgue_outer_measure (A \ (E ∩ B.toSet)) := by
+  intro A
+  have h_full_A := h_full A
+  have h_box_A := box_caratheodory B (A ∩ E)
+  have h_inter_eq : A ∩ (E ∩ B.toSet) = (A ∩ E) ∩ B.toSet := by
+    ext x; constructor
+    · intro ⟨hxA, ⟨hxE, hxB⟩⟩; exact ⟨⟨hxA, hxE⟩, hxB⟩
+    · intro ⟨⟨hxA, hxE⟩, hxB⟩; exact ⟨hxA, ⟨hxE, hxB⟩⟩
+  have h_diff_eq : A \ (E ∩ B.toSet) = (A \ E) ∪ ((A ∩ E) \ B.toSet) := by
+    ext x; constructor
+    · intro ⟨hxA, hx_not⟩
+      by_cases hxE : x ∈ E
+      · right; exact ⟨⟨hxA, hxE⟩, fun hxB => hx_not ⟨hxE, hxB⟩⟩
+      · left; exact ⟨hxA, hxE⟩
+    · intro hx
+      rcases hx with (⟨hxA, hxE⟩ | ⟨⟨hxA, hxE⟩, hxB⟩)
+      · exact ⟨hxA, fun ⟨hxE', _⟩ => hxE hxE'⟩
+      · exact ⟨hxA, fun ⟨_, hxB'⟩ => hxB hxB'⟩
+  have h_full_union : Lebesgue_outer_measure ((A \ E) ∪ ((A ∩ E) \ B.toSet)) =
+      Lebesgue_outer_measure (((A \ E) ∪ ((A ∩ E) \ B.toSet)) ∩ E) + Lebesgue_outer_measure (((A \ E) ∪ ((A ∩ E) \ B.toSet)) \ E) :=
+    h_full ((A \ E) ∪ ((A ∩ E) \ B.toSet))
+  have h_union_inter_E : ((A \ E) ∪ ((A ∩ E) \ B.toSet)) ∩ E = (A ∩ E) \ B.toSet := by
+    ext x; simp; tauto
+  have h_union_diff_E : ((A \ E) ∪ ((A ∩ E) \ B.toSet)) \ E = A \ E := by
+    ext x; simp; tauto
+  rw [h_union_inter_E, h_union_diff_E] at h_full_union
+  calc
+    Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := h_full_A
+    _ = (Lebesgue_outer_measure ((A ∩ E) ∩ B.toSet) + Lebesgue_outer_measure ((A ∩ E) \ B.toSet)) + Lebesgue_outer_measure (A \ E) := by rw [h_box_A]
+    _ = Lebesgue_outer_measure ((A ∩ E) ∩ B.toSet) + (Lebesgue_outer_measure ((A ∩ E) \ B.toSet) + Lebesgue_outer_measure (A \ E)) := by
+      abel
+    _ = Lebesgue_outer_measure ((A ∩ E) ∩ B.toSet) + Lebesgue_outer_measure ((A \ E) ∪ ((A ∩ E) \ B.toSet)) := by rw [h_full_union]
+    _ = Lebesgue_outer_measure (A ∩ (E ∩ B.toSet)) + Lebesgue_outer_measure (A \ (E ∩ B.toSet)) := by
+      rw [h_inter_eq, h_diff_eq]
+
+/-- If `E` satisfies the full Carathéodory splitting property and has finite outer measure,
+    then `E` is Lebesgue measurable. -/
+lemma caratheodory_finite_measurable {d:ℕ} (E : Set (EuclideanSpace' d))
+    (h_full : ∀ A, Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E))
+    (h_fin : Lebesgue_outer_measure E ≠ ⊤) : LebesgueMeasurable E := by
+  intro ε hε
+  rcases Lebesgue_outer_measure.exists_open_superset_measure_le E ε hε with ⟨U, hU_open, hE_sub_U, hU_le⟩
+  have h_fin_E_not_bot : Lebesgue_outer_measure E ≠ ⊥ := by
+    have h_nonneg : 0 ≤ Lebesgue_outer_measure E := Lebesgue_outer_measure.nonneg _
+    intro h_eq
+    have : (0 : EReal) ≤ ⊥ := by simpa [h_eq] using h_nonneg
+    exact not_lt.mpr this (by norm_num : (⊥ : EReal) < (0 : EReal))
+  have h_full_U := h_full U
+  have h_inter_eq : U ∩ E = E := by
+    ext x; constructor
+    · intro hx; exact hx.2
+    · intro hx; exact ⟨hE_sub_U hx, hx⟩
+  rw [h_inter_eq] at h_full_U
+  have h_mE_add_mUdiff : Lebesgue_outer_measure E + Lebesgue_outer_measure (U \ E) ≤ Lebesgue_outer_measure E + ε := by
+    calc
+      Lebesgue_outer_measure E + Lebesgue_outer_measure (U \ E) = Lebesgue_outer_measure U := by
+        rw [← h_full_U]
+      _ ≤ Lebesgue_outer_measure E + ε := hU_le
+  have h_Udiff_le_eps : Lebesgue_outer_measure (U \ E) ≤ ε :=
+    cancel_add_left h_fin h_fin_E_not_bot h_mE_add_mUdiff
+  exact ⟨U, hU_open, hE_sub_U, h_Udiff_le_eps⟩
+
+/-- Exercise 1.2.17 (Caratheodory criterion one direction)-/
+theorem LebesgueMeasurable.caratheodory {d:ℕ} (E: Set (EuclideanSpace' d)) :
+    [
+      LebesgueMeasurable E,
+      (∀ A: Set (EuclideanSpace' d), IsElementary A → Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E)),
+      (∀ (B:Box d),  Lebesgue_outer_measure B.toSet = Lebesgue_outer_measure (B.toSet ∩ E) + Lebesgue_outer_measure (B.toSet \ E))
+    ].TFAE := by
+  apply List.tfae_of_cycle
+  · rw [List.isChain_cons_cons]
+    refine ⟨?_, ?_⟩
+    · -- 0 → 1
+      intro hE
+      intro A hA
+      have hA_meas : LebesgueMeasurable A := IsElementary.measurable hA
+      have hA_inter_meas : LebesgueMeasurable (A ∩ E) := LebesgueMeasurable.inter hA_meas hE
+      have hA_diff_meas : LebesgueMeasurable (A \ E) :=
+        LebesgueMeasurable.inter hA_meas (hE.complement)
+      have h_disj : (A ∩ E) ∩ (A \ E) = ∅ := by
+        calc
+          (A ∩ E) ∩ (A \ E) = A ∩ (E ∩ (A \ E)) := by rw [Set.inter_assoc]
+          _ = A ∩ ∅ := by
+            have h_empty : E ∩ (A \ E) = ∅ := by ext x; simp
+            rw [h_empty]
+          _ = ∅ := by ext x; simp
+      have h_union : A = (A ∩ E) ∪ (A \ E) := by
+        ext x; simp
+      have h_union_meas : Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) =
+          Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) :=
+        calc
+          Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) = Lebesgue_measure ((A ∩ E) ∪ (A \ E)) := by
+            dsimp [Lebesgue_measure]
+          _ = Lebesgue_measure (A ∩ E) + Lebesgue_measure (A \ E) :=
+            Lebesgue_measure.union hA_inter_meas hA_diff_meas h_disj
+          _ = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by
+            dsimp [Lebesgue_measure]
+      have h1 : Lebesgue_outer_measure A = Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) :=
+        congrArg Lebesgue_outer_measure h_union
+      calc
+        Lebesgue_outer_measure A = Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) := h1
+        _ = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := h_union_meas
+    · rw [List.isChain_cons_cons]
+      refine ⟨?_, ?_⟩
+      · -- 1 → 2
+        intro h
+        intro B
+        apply h (B.toSet)
+        exact IsElementary.box B
+      · exact List.isChain_singleton _
+  · -- h_last: condition (2) → condition (0)
+    intro h_box_caratheodory
+    -- Step 1: from the box version to the full Carathéodory property
+    have h_full : ∀ A : Set (EuclideanSpace' d),
+        Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by
+      intro A
+      refine le_antisymm ?_ ?_
+      · -- m(A) ≤ m(A∩E) + m(A\E) by binary subadditivity
+        have h_decomp : A = (A ∩ E) ∪ (A \ E) := by
+          ext x; constructor
+          · intro hx
+            by_cases hxE : x ∈ E
+            · exact Or.inl ⟨hx, hxE⟩
+            · exact Or.inr ⟨hx, hxE⟩
+          · intro hx
+            rcases hx with (⟨hx, _⟩ | ⟨hx, _⟩)
+            · exact hx
+            · exact hx
+        have h_union : (A ∩ E) ∪ (A \ E) = ⋃ i : Fin 2, ![A ∩ E, A \ E] i := by
+          ext x; simp; tauto
+        calc
+          Lebesgue_outer_measure A = Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) :=
+            congrArg Lebesgue_outer_measure h_decomp
+          _ = Lebesgue_outer_measure (⋃ i : Fin 2, ![A ∩ E, A \ E] i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (![A ∩ E, A \ E] i) :=
+            Lebesgue_outer_measure.finite_union_le ![A ∩ E, A \ E]
+          _ = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by simp
+      · -- m(A∩E) + m(A\E) ≤ m(A)
+        by_cases h_fin_A : Lebesgue_outer_measure A = ⊤
+        · rw [h_fin_A]; exact le_top
+        · by_cases hd0 : d = 0
+          · subst hd0
+            -- In dimension 0, the space is a singleton. The outer measure of any set is either 0 or 1.
+            -- The inequality m(A∩E) + m(A\E) ≤ m(A) holds by case analysis.
+            by_cases hA_empty : A = ∅
+            · subst hA_empty
+              simp [Lebesgue_outer_measure.of_empty 0]
+            · have hA_nonempty : Set.Nonempty A := by
+                by_contra h_empty
+                apply hA_empty
+                exact Set.not_nonempty_iff_eq_empty.mp h_empty
+              rcases hA_nonempty with ⟨y, hy⟩
+              have hA_univ : A = Set.univ :=
+                Set.eq_univ_of_forall (fun x => by
+                  have hx_eq_y : x = y := Subsingleton.elim x y
+                  rw [hx_eq_y]
+                  exact hy)
+              subst hA_univ
+              -- Now A = Set.univ
+              -- We need: m(ℝ^0 ∩ E) + m(ℝ^0 \ E) ≤ m(ℝ^0)
+              by_cases hE_empty : E = ∅
+              · subst hE_empty
+                simp [Lebesgue_outer_measure.of_empty 0]
+              · have hE_nonempty : Set.Nonempty E := by
+                  by_contra h_empty
+                  apply hE_empty
+                  exact Set.not_nonempty_iff_eq_empty.mp h_empty
+                rcases hE_nonempty with ⟨z, hz⟩
+                have hE_univ : E = Set.univ :=
+                  Set.eq_univ_of_forall (fun x => by
+                    have hx_eq_z : x = z := Subsingleton.elim x z
+                    have hxE : x ∈ E := by
+                      rw [hx_eq_z]
+                      exact hz
+                    exact hxE)
+                subst hE_univ
+                simp [Lebesgue_outer_measure.of_empty 0]
+          · have hd_pos : 0 < d := Nat.pos_of_ne_zero hd0
+            apply EReal.le_of_forall_pos_le_add'
+            intro ε hε
+            have hε_ereal_pos : (0 : EReal) < (ε : EReal) := EReal.coe_pos.mpr hε
+            rcases em' (Lebesgue_outer_measure A = ⊤) with (hA_not_top | hA_top)
+            · rcases Lebesgue_outer_measure.exists_cover_close hd_pos A ε hε hA_not_top with ⟨S, h_cover_A, h_vol⟩
+              have h_nonneg_inter (n : ℕ) : 0 ≤ Lebesgue_outer_measure ((S n).toSet ∩ E) :=
+                Lebesgue_outer_measure.nonneg _
+              have h_nonneg_diff (n : ℕ) : 0 ≤ Lebesgue_outer_measure ((S n).toSet \ E) :=
+                Lebesgue_outer_measure.nonneg _
+              have h_vol' : ∑' n, Lebesgue_outer_measure ((S n).toSet) ≤ Lebesgue_outer_measure A + (ε : EReal) := by
+                have h_box_meas (n : ℕ) : Lebesgue_outer_measure ((S n).toSet) = (S n).volume.toEReal := by
+                  rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (S n)), IsElementary.measure_of_box]
+                simpa [h_box_meas] using h_vol
+              have h_inter : A ∩ E ⊆ ⋃ n, ((S n).toSet ∩ E) := by
+                intro x hx
+                have hx_cover : x ∈ ⋃ n, (S n).toSet := h_cover_A hx.1
+                rcases Set.mem_iUnion.mp hx_cover with ⟨n, hn⟩
+                have hmem : x ∈ ((S n).toSet ∩ E) := ⟨hn, hx.2⟩
+                exact Set.mem_iUnion.mpr ⟨n, hmem⟩
+              have h_diff : A \ E ⊆ ⋃ n, ((S n).toSet \ E) := by
+                intro x hx
+                have hx_cover : x ∈ ⋃ n, (S n).toSet := h_cover_A hx.1
+                rcases Set.mem_iUnion.mp hx_cover with ⟨n, hn⟩
+                have hmem : x ∈ ((S n).toSet \ E) := ⟨hn, hx.2⟩
+                exact Set.mem_iUnion.mpr ⟨n, hmem⟩
+              calc
+                Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) ≤
+                  Lebesgue_outer_measure (⋃ n, ((S n).toSet ∩ E)) + Lebesgue_outer_measure (⋃ n, ((S n).toSet \ E)) :=
+                  add_le_add (Lebesgue_outer_measure.mono h_inter) (Lebesgue_outer_measure.mono h_diff)
+                _ ≤ (∑' n, Lebesgue_outer_measure ((S n).toSet ∩ E)) + (∑' n, Lebesgue_outer_measure ((S n).toSet \ E)) :=
+                  add_le_add (Lebesgue_outer_measure.union_le _) (Lebesgue_outer_measure.union_le _)
+                _ = ∑' n, (Lebesgue_outer_measure ((S n).toSet ∩ E) + Lebesgue_outer_measure ((S n).toSet \ E)) := by
+                  rw [EReal.tsum_add_of_nonneg h_nonneg_inter h_nonneg_diff]
+                _ = ∑' n, Lebesgue_outer_measure ((S n).toSet) := by
+                  refine tsum_congr (fun n => ?_)
+                  rw [h_box_caratheodory (S n)]
+                _ ≤ Lebesgue_outer_measure A + (ε : EReal) := h_vol'
+            · exfalso; exact h_fin_A hA_top
+    -- Step 2: from the full Carathéodory property to Lebesgue measurability
+    by_cases h_fin : Lebesgue_outer_measure E = ⊤
+    · -- Infinite measure case: decompose E into a countable union of bounded measurable pieces
+      let B (n : ℕ) : Box d := Box.mk (fun i : Fin d => BoundedInterval.Ioo (-(n : ℝ)) (n : ℝ))
+      have h_fin_B (n : ℕ) : Lebesgue_outer_measure ((B n).toSet) ≠ ⊤ := by
+        have h_vol : Lebesgue_outer_measure ((B n).toSet) = (((2*n : ℝ) ^ (d : ℕ) : ℝ) : EReal) := by
+          calc
+            Lebesgue_outer_measure ((B n).toSet) = (IsElementary.box (B n)).measure :=
+              Lebesgue_outer_measure.elementary _ (IsElementary.box (B n))
+            _ = (|B n|ᵥ : EReal) := by
+              simpa using congrArg (fun (x : ℝ) => (x : EReal)) (IsElementary.measure_of_box (B n))
+            _ = (((2*n : ℝ) ^ (d : ℕ) : ℝ) : EReal) := by
+              simp [Box.volume, B, BoundedInterval.length, Finset.prod_const, Fintype.card_fin d, ← two_mul, mul_comm]
+        rw [h_vol]
+        exact EReal.coe_ne_top _
+      have h_cover (x : EuclideanSpace' d) : ∃ n : ℕ, x ∈ (B n).toSet := by
+        have h_norm : ∃ N : ℕ, ‖x‖ < (N : ℝ) := exists_nat_gt (‖x‖)
+        rcases h_norm with ⟨N, hN⟩
+        refine ⟨N, ?_⟩
+        intro i
+        have hx_i : |x i| ≤ ‖x‖ := EuclideanSpace'.coord_le_norm x i
+        have h_abs : |x i| < (N : ℝ) := lt_of_le_of_lt hx_i hN
+        rcases abs_lt.mp h_abs with ⟨h_left, h_right⟩
+        simp [B, h_left, h_right]
+      have h_full_En (n : ℕ) : ∀ A, Lebesgue_outer_measure A =
+          Lebesgue_outer_measure (A ∩ (E ∩ (B n).toSet)) + Lebesgue_outer_measure (A \ (E ∩ (B n).toSet)) :=
+        caratheodory_inter_box E (B n) h_full
+      have h_sub (n : ℕ) : E ∩ (B n).toSet ⊆ (B n).toSet := by intro x hx; exact hx.2
+      have h_fin_En (n : ℕ) : Lebesgue_outer_measure (E ∩ (B n).toSet) ≠ ⊤ :=
+        ne_top_of_le_ne_top (h_fin_B n) (Lebesgue_outer_measure.mono (h_sub n))
+      have h_meas_En (n : ℕ) : LebesgueMeasurable (E ∩ (B n).toSet) :=
+        caratheodory_finite_measurable (E ∩ (B n).toSet) (h_full_En n) (h_fin_En n)
+      have h_union : E = ⋃ n, (E ∩ (B n).toSet) := by
+        ext x; constructor
+        · intro hx
+          rcases h_cover x with ⟨n, hn⟩
+          refine Set.mem_iUnion.mpr ⟨n, ⟨hx, hn⟩⟩
+        · intro hx
+          have hx' := Set.mem_iUnion.mp hx
+          rcases hx' with ⟨n, hn⟩
+          exact hn.1
+      rw [h_union]
+      exact LebesgueMeasurable.countable_union h_meas_En
+    · -- Finite measure case
+      exact caratheodory_finite_measurable E h_full h_fin
 
 theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E)
   : inner_measure hE = Lebesgue_outer_measure E ↔ LebesgueMeasurable E := by
