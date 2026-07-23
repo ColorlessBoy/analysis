@@ -3882,7 +3882,7 @@ lemma box_identity {d:ℕ} (B T: Box d) : (B.volume : EReal) = Lebesgue_outer_me
     have h_cover : B.toSet = ⋃ B' ∈ s, B'.toSet := by
       simp [s]
     have h_eq := hB_elem.measure_eq h_partition h_cover
-    simpa using h_eq
+    simpa
   rw [← h_volume_eq, h_measure_eq, h_measure_disj_union, EReal.coe_add,
     Lebesgue_outer_measure.elementary (B.toSet ∩ T.toSet) h_inter_elem,
     Lebesgue_outer_measure.elementary (B.toSet \ T.toSet) h_sdiff_elem]
@@ -4333,10 +4333,96 @@ theorem inner_measure.le {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsB
     rw [hE_val]
     exact_mod_cast h_goal_real
 
-/-- Exercise 1.2.18(ii') (Inner measure). -/
+lemma IsElementary.measurable {d:ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) : LebesgueMeasurable A :=
+  Jordan_measurable.lebesgue (IsElementary.jordanMeasurable hA)
+
 theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsBounded E)
   : inner_measure hE = Lebesgue_outer_measure E ↔ LebesgueMeasurable E := by
-  sorry
+  constructor
+  · intro h
+    -- (→) direction: requires the Carathéodory criterion (Exercise 1.2.17, still open)
+    sorry
+  · intro hE_meas
+    have h_le : (inner_measure hE : EReal) ≤ Lebesgue_outer_measure E := inner_measure.le hE
+    have h_eq : (Lebesgue_outer_measure E : EReal) = (inner_measure hE : EReal) := by
+      set A₀ := hE.inElementary.choose with hA₀_def
+      have hA₀_elem : IsElementary A₀ := hE.inElementary.choose_spec.1
+      have hE_sub_A₀ : E ⊆ A₀ := hE.inElementary.choose_spec.2
+      have hA₀_meas : LebesgueMeasurable A₀ := IsElementary.measurable hA₀_elem
+      have hA₀_minus_E_meas : LebesgueMeasurable (A₀ \ E) :=
+        LebesgueMeasurable.inter hA₀_meas (hE_meas.complement)
+      have h_disj : E ∩ (A₀ \ E) = ∅ := by ext x; simp
+      have h_union_eq : A₀ = E ∪ (A₀ \ E) := by
+        ext x; simp; tauto
+      have h_measure_union : Lebesgue_measure A₀ = Lebesgue_measure E + Lebesgue_measure (A₀ \ E) := by
+        have h_union_meas := Lebesgue_measure.union hE_meas hA₀_minus_E_meas h_disj
+        calc
+          Lebesgue_measure A₀ = Lebesgue_measure (E ∪ (A₀ \ E)) := congrArg Lebesgue_measure h_union_eq
+          _ = Lebesgue_measure E + Lebesgue_measure (A₀ \ E) := h_union_meas
+      have h_inner_eq : (inner_measure hE : EReal) = Lebesgue_measure A₀ - Lebesgue_measure (A₀ \ E) := by
+        have := inner_measure.eq hE hA₀_elem hE_sub_A₀
+        simpa [Lebesgue_measure] using this
+      have h_fin_diff : Lebesgue_measure (A₀ \ E) ≠ ⊤ := by
+        have hA₀_bdd : Bornology.IsBounded A₀ := IsElementary.isBounded hA₀_elem
+        have h_compact : IsCompact (closure A₀) :=
+          Metric.isCompact_of_isClosed_isBounded isClosed_closure hA₀_bdd.closure
+        have h_fin_closure : Lebesgue_measure (closure A₀) ≠ ⊤ :=
+          Lebesgue_outer_measure.finite_of_compact h_compact
+        have h_mono_closure : Lebesgue_measure A₀ ≤ Lebesgue_measure (closure A₀) :=
+          Lebesgue_outer_measure.mono subset_closure
+        have h_fin_A₀ : Lebesgue_measure A₀ ≠ ⊤ := by
+          intro htop
+          apply h_fin_closure
+          exact le_antisymm le_top (htop.symm ▸ h_mono_closure)
+        have h_mono_diff : Lebesgue_measure (A₀ \ E) ≤ Lebesgue_measure A₀ :=
+          Lebesgue_outer_measure.mono (Set.diff_subset (s := A₀) (t := E))
+        intro htop
+        apply h_fin_A₀
+        exact le_antisymm le_top (htop.symm ▸ h_mono_diff)
+      have h_fin_E : Lebesgue_measure E ≠ ⊤ := by
+        have hA₀_bdd : Bornology.IsBounded A₀ := IsElementary.isBounded hA₀_elem
+        have h_compact : IsCompact (closure A₀) :=
+          Metric.isCompact_of_isClosed_isBounded isClosed_closure hA₀_bdd.closure
+        have h_fin_closure : Lebesgue_measure (closure A₀) ≠ ⊤ :=
+          Lebesgue_outer_measure.finite_of_compact h_compact
+        have h_mono_closure : Lebesgue_measure A₀ ≤ Lebesgue_measure (closure A₀) :=
+          Lebesgue_outer_measure.mono subset_closure
+        have h_fin_A₀ : Lebesgue_measure A₀ ≠ ⊤ := by
+          intro htop
+          apply h_fin_closure
+          exact le_antisymm le_top (htop.symm ▸ h_mono_closure)
+        have h_mono_E : Lebesgue_measure E ≤ Lebesgue_measure A₀ :=
+          Lebesgue_outer_measure.mono hE_sub_A₀
+        intro htop
+        apply h_fin_A₀
+        exact le_antisymm le_top (htop.symm ▸ h_mono_E)
+      have h_not_bot (X : Set (EuclideanSpace' d)) : Lebesgue_measure X ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_measure X := Lebesgue_outer_measure.nonneg X
+        have h0_gt_bot : (⊥ : EReal) < (0 : EReal) := by norm_num
+        intro hbot
+        have h_contra : (⊥ : EReal) < (⊥ : EReal) := h0_gt_bot.trans_le (hbot ▸ h_nonneg)
+        exact (lt_irrefl _) h_contra
+      have hE_real : Lebesgue_measure E = ((Lebesgue_measure E).toReal : EReal) :=
+        (EReal.coe_toReal h_fin_E (h_not_bot E)).symm
+      have h_diff_real : Lebesgue_measure (A₀ \ E) = ((Lebesgue_measure (A₀ \ E)).toReal : EReal) :=
+        (EReal.coe_toReal h_fin_diff (h_not_bot (A₀ \ E))).symm
+      have h_sub_self : Lebesgue_measure (A₀ \ E) - Lebesgue_measure (A₀ \ E) = (0 : EReal) := by
+        rw [h_diff_real, h_diff_real]
+        simp
+      have h_sub_eq : (Lebesgue_measure E + Lebesgue_measure (A₀ \ E)) - Lebesgue_measure (A₀ \ E) = Lebesgue_measure E := by
+        calc
+          (Lebesgue_measure E + Lebesgue_measure (A₀ \ E)) - Lebesgue_measure (A₀ \ E)
+              = (Lebesgue_measure E + Lebesgue_measure (A₀ \ E)) + (-Lebesgue_measure (A₀ \ E)) := by rw [sub_eq_add_neg]
+          _ = Lebesgue_measure E + (Lebesgue_measure (A₀ \ E) + (-Lebesgue_measure (A₀ \ E))) := by rw [add_assoc]
+          _ = Lebesgue_measure E + (Lebesgue_measure (A₀ \ E) - Lebesgue_measure (A₀ \ E)) := by rw [sub_eq_add_neg]
+          _ = Lebesgue_measure E + (0 : EReal) := by rw [h_sub_self]
+          _ = Lebesgue_measure E := by simp
+      calc
+        Lebesgue_outer_measure E = Lebesgue_measure E := rfl
+        _ = (Lebesgue_measure E + Lebesgue_measure (A₀ \ E)) - Lebesgue_measure (A₀ \ E) := by rw [h_sub_eq]
+        _ = Lebesgue_measure A₀ - Lebesgue_measure (A₀ \ E) := by rw [h_measure_union]
+        _ = (inner_measure hE : EReal) := by rw [h_inner_eq]
+    exact le_antisymm h_le h_eq.le
 
 def IsFσ  {X:Type*} [TopologicalSpace X] (s : Set X) : Prop :=
   ∃ T : Set (Set X), (∀ t ∈ T, IsClosed t) ∧ T.Countable ∧ s = ⋃₀ T
