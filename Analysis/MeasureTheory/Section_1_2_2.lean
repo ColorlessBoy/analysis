@@ -4427,14 +4427,176 @@ theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology
 def IsFσ  {X:Type*} [TopologicalSpace X] (s : Set X) : Prop :=
   ∃ T : Set (Set X), (∀ t ∈ T, IsClosed t) ∧ T.Countable ∧ s = ⋃₀ T
 
+/-- Helper lemma: if `a ≤ 1/(n+1)` for all n, then `a ≤ 0`. -/
+lemma le_of_forall_nat_one_div_ereal {a : EReal} (h : ∀ n : ℕ, a ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal)) : a ≤ 0 := by
+  by_contra! hpos
+  -- hpos : 0 < a
+  obtain ⟨ε', hε'_pos, hε'_lt⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) < a := by
+    cases ha : a with
+    | bot =>
+      rw [ha] at hpos
+      simp at hpos
+    | top => exact ⟨1, one_pos, by
+      have h1_lt_top : (1 : EReal) < ⊤ := EReal.coe_lt_top _
+      simpa [ha] using h1_lt_top⟩
+    | coe r =>
+      have hr_pos : 0 < r := EReal.coe_pos.mp (by
+        rw [← ha]; exact hpos)
+      refine ⟨r/2, by linarith, ?_⟩
+      have : (r/2 : ℝ) < r := by linarith
+      simpa [ha] using EReal.coe_lt_coe_iff.mpr this
+  have hN : ∃ N : ℕ, 1 / ((N : ℝ) + 1) < ε' := by
+    have h_arch : ∃ N : ℕ, (N : ℝ) > 1 / ε' := exists_nat_gt (1 / ε')
+    rcases h_arch with ⟨N, hN⟩
+    refine ⟨N, ?_⟩
+    calc
+      1 / ((N : ℝ) + 1) < 1 / (1 / ε') :=
+        (one_div_lt_one_div (by positivity : 0 < (N : ℝ) + 1) (by positivity : 0 < 1 / ε')).mpr (by linarith)
+      _ = ε' := by field_simp [ne_of_gt hε'_pos]
+  rcases hN with ⟨N, hN⟩
+  have h_bound_N : a ≤ ((1 : ℝ) / ((N : ℝ) + 1) : EReal) := h N
+  have h_lt_ereal : ((1 : ℝ) / ((N : ℝ) + 1) : EReal) < (ε' : EReal) :=
+    EReal.coe_lt_coe_iff.mpr hN
+  have h_contra : a < (ε' : EReal) := lt_of_le_of_lt h_bound_N h_lt_ereal
+  exact (lt_irrefl a) (lt_trans h_contra hε'_lt)
+
 /-- Exercise 1.2.19 -/
 theorem LebesgueMeasurable.TFAE' {d:ℕ} (E: Set (EuclideanSpace' d)) :
     [
       LebesgueMeasurable E,
       (∃ F, ∃ N, IsGδ F ∧ IsNull N ∧ E = F \ N),
       (∃ F, ∃ N, IsFσ F ∧ IsNull N ∧ E = F ∪ N)
-    ].TFAE
-  := by sorry
+    ].TFAE := by
+  apply List.tfae_of_cycle
+  · -- chain: 0 → 1 → 2
+    rw [List.isChain_cons_cons]
+    refine ⟨?_, ?_⟩
+    · -- 0 → 1
+      intro hE
+      have h_open : ∀ n : ℕ, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧
+          Lebesgue_outer_measure (U \ E) ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+        intro n
+        have hpos : (0 : EReal) < ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+          have hpos' : (0 : ℝ) < 1 / (n+1 : ℝ) := by positivity
+          exact EReal.coe_pos.mpr hpos'
+        exact hE (((1 : ℝ) / (n+1 : ℝ) : ℝ) : EReal) hpos
+      choose U hU_open hE_sub_U hU_diff using h_open
+      let F := ⋂ n, U n
+      have hF_Gδ : IsGδ F := IsGδ.iInter_of_isOpen hU_open
+      have hE_sub_F : E ⊆ F := by
+        intro x hx
+        refine Set.mem_iInter.mpr (fun n => hE_sub_U n hx)
+      have hF_diff_E_null : IsNull (F \ E) := by
+        rw [IsNull]
+        have h_bound : ∀ n : ℕ, Lebesgue_outer_measure (F \ E) ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+          intro n
+          have h_sub : F \ E ⊆ U n \ E := by
+            intro x ⟨hxF, hxE⟩
+            refine ⟨Set.mem_iInter.mp hxF n, hxE⟩
+          calc
+            Lebesgue_outer_measure (F \ E) ≤ Lebesgue_outer_measure (U n \ E) :=
+              Lebesgue_outer_measure.mono h_sub
+            _ ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := hU_diff n
+        apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+        exact le_of_forall_nat_one_div_ereal h_bound
+      have h_eq : E = F \ (F \ E) := by
+        ext x
+        constructor
+        · intro hx
+          refine ⟨hE_sub_F hx, ?_⟩
+          intro hx'; exact hx'.2 hx
+        · intro hx
+          by_contra hxE
+          exact hx.2 ⟨hx.1, hxE⟩
+      exact ⟨F, F \ E, hF_Gδ, hF_diff_E_null, h_eq⟩
+    · -- chain for [1, 2]
+      rw [List.isChain_cons_cons]
+      refine ⟨?_, List.isChain_singleton _⟩
+      · -- 1 → 2
+        intro h1
+        rcases h1 with ⟨F, N, hF_Gδ, hN_null, h_eq⟩
+        have hE : LebesgueMeasurable E := by
+          have hF_meas : LebesgueMeasurable F := by
+            rcases hF_Gδ.eq_iInter_nat with ⟨f, hf_open, hF_eq⟩
+            rw [hF_eq]
+            have hf_meas : ∀ n, LebesgueMeasurable (f n) := fun n => (hf_open n).measurable
+            exact LebesgueMeasurable.countable_inter hf_meas
+          have hN_meas : LebesgueMeasurable N := IsNull.measurable hN_null
+          rw [h_eq]
+          exact LebesgueMeasurable.inter hF_meas hN_meas.complement
+        -- now use 0 → 2
+        have h_approx : ∀ ε > 0, ∃ F' : Set (EuclideanSpace' d), IsClosed F' ∧ F' ⊆ E ∧
+            Lebesgue_outer_measure (E \ F') ≤ ε :=
+          ((LebesgueMeasurable.TFAE E).out 0 3).mp hE
+        have h_closed : ∀ n : ℕ, ∃ F' : Set (EuclideanSpace' d), IsClosed F' ∧ F' ⊆ E ∧
+            Lebesgue_outer_measure (E \ F') ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+          intro n
+          have hpos : (0 : EReal) < ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+            have hpos' : (0 : ℝ) < 1 / (n+1 : ℝ) := by positivity
+            exact EReal.coe_pos.mpr hpos'
+          exact h_approx (((1 : ℝ) / (n+1 : ℝ) : ℝ) : EReal) hpos
+        choose F' hF'_closed hF'_sub_E hF'_diff using h_closed
+        let F'' := ⋃ n, F' n
+        have hF''_Fσ : IsFσ F'' := by
+          refine ⟨Set.range F', ?_, Set.countable_range F', ?_⟩
+          · rintro t ⟨n, rfl⟩; exact hF'_closed n
+          · rw [Set.sUnion_range]
+        have hF''_sub_E : F'' ⊆ E := by
+          intro x hx
+          rcases Set.mem_iUnion.mp hx with ⟨n, hn⟩
+          have hxE : x ∈ E := hF'_sub_E n hn
+          exact hxE
+        have h_null : IsNull (E \ F'') := by
+          rw [IsNull]
+          have h_bound : ∀ n : ℕ, Lebesgue_outer_measure (E \ F'') ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := by
+            intro n
+            have h_sub : E \ F'' ⊆ E \ F' n := by
+              intro x ⟨hxE, hxF''⟩
+              refine ⟨hxE, ?_⟩
+              intro hxF'
+              apply hxF''
+              exact Set.mem_iUnion.mpr ⟨n, hxF'⟩
+            calc
+              Lebesgue_outer_measure (E \ F'') ≤ Lebesgue_outer_measure (E \ F' n) :=
+                Lebesgue_outer_measure.mono h_sub
+              _ ≤ ((1 : ℝ) / (n+1 : ℝ) : EReal) := hF'_diff n
+          apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+          exact le_of_forall_nat_one_div_ereal h_bound
+        have h_eq' : E = F'' ∪ (E \ F'') := by
+          ext x
+          constructor
+          · intro hx
+            by_cases hx' : x ∈ F''
+            · exact Set.mem_union_left (E \ F'') hx'
+            · exact Set.mem_union_right F'' ⟨hx, hx'⟩
+          · intro hx
+            rcases hx with (hx | hx)
+            · exact hF''_sub_E hx
+            · exact hx.1
+        exact ⟨F'', E \ F'', hF''_Fσ, h_null, h_eq'⟩
+  · -- 2 → 0
+    intro h2
+    rcases h2 with ⟨F, N, hF_Fσ, hN_null, h_eq⟩
+    have hF_meas : LebesgueMeasurable F := by
+      rcases hF_Fσ with ⟨T, hT_closed, hT_count, hF_eq⟩
+      rw [hF_eq]
+      by_cases hT_empty : T = ∅
+      · rw [hT_empty, Set.sUnion_empty]; exact LebesgueMeasurable.empty
+      · have hT_nonempty : T.Nonempty := Set.nonempty_iff_ne_empty.mpr hT_empty
+        obtain ⟨f, hf⟩ : ∃ f : ℕ → Set (EuclideanSpace' d), T = Set.range f :=
+          hT_count.exists_eq_range hT_nonempty
+        rw [hf, Set.sUnion_range]
+        have hf_closed : ∀ n, IsClosed (f n) := by
+          intro n
+          have hf_mem : f n ∈ T := by
+            rw [hf]
+            exact Set.mem_range_self n
+          exact hT_closed (f n) hf_mem
+        have hf_meas : ∀ n, LebesgueMeasurable (f n) := fun n => (hf_closed n).measurable
+        exact LebesgueMeasurable.countable_union hf_meas
+    have hN_meas : LebesgueMeasurable N := IsNull.measurable hN_null
+    rw [h_eq]
+    exact LebesgueMeasurable.union hF_meas hN_meas
 
 open Pointwise
 
