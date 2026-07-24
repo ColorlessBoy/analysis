@@ -5043,9 +5043,101 @@ lemma Lebesgue_measure.linear {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertibl
  {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): Lebesgue_measure (A.linear_equiv '' E) = |A.det| * Lebesgue_measure E := by
   sorry
 
-/-- Exercise 1.2.22(i) (Outer measure product bound)-/
+/-- For non-negative sets of EReals, sInf of products equals product of sInf. -/
+lemma sInf_image2_mul_eq_mul_sInf {A B : Set EReal} (hA : A.Nonempty) (hB : B.Nonempty)
+    (hA_nonneg : ∀ a ∈ A, 0 ≤ a) (hB_nonneg : ∀ b ∈ B, 0 ≤ b) :
+    sInf (Set.image2 (· * ·) A B) = (sInf A) * (sInf B) := by
+  have hAB_nonempty : (Set.image2 (· * ·) A B).Nonempty := Set.image2_nonempty.mpr ⟨hA, hB⟩
+  apply le_antisymm
+  · -- sInf(A*B) ≤ (sInf A)*(sInf B)
+    by_contra! h_lt
+    push_neg at h_lt
+    have h_lt' : (sInf A) * (sInf B) < sInf (Set.image2 (· * ·) A B) := h_lt
+    -- Then (sInf A)*(sInf B) is a lower bound of all elements of A*B
+    -- So (sInf A)*(sInf B) ≤ sInf(A*B), contradicting h_lt'
+    have h_bound : ∀ z ∈ Set.image2 (· * ·) A B, (sInf A) * (sInf B) ≤ z := by
+      intro z hz
+      rcases hz with ⟨a, ha, b, hb, rfl⟩
+      exact mul_le_mul (sInf_le ha) (sInf_le hb) (hA_nonneg a ha) (hB_nonneg b hb)
+    have h_sInf : (sInf A) * (sInf B) ≤ sInf (Set.image2 (· * ·) A B) := le_sInf h_bound
+    exact not_lt.mpr h_sInf h_lt'
+  · -- (sInf A)*(sInf B) ≤ sInf(A*B)
+    have h_bound : ∀ z ∈ Set.image2 (· * ·) A B, (sInf A) * (sInf B) ≤ z := by
+      intro z hz
+      rcases hz with ⟨a, ha, b, hb, rfl⟩
+      have ha_sInf : sInf A ≤ a := sInf_le ha
+      have hb_sInf : sInf B ≤ b := sInf_le hb
+      have ha_nonneg := hA_nonneg a ha
+      have hb_nonneg := hB_nonneg b hb
+      exact mul_le_mul ha_sInf hb_sInf ha_nonneg hb_nonneg
+    exact le_sInf h_bound
+
+/-- Exercise 1.2.22 -/
 theorem Lebesgue_outer_measure.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
-  : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ Lebesgue_outer_measure E₁ * Lebesgue_outer_measure E₂ := by sorry
+  : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ Lebesgue_outer_measure E₁ * Lebesgue_outer_measure E₂ := by
+  have h_nonempty_S₁ : ({ V | ∃ (X : Set ℕ) (S : X → Box d₁), E₁ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal } : Set EReal).Nonempty := by
+    refine ⟨0, ∅, fun x => x.elim, ?_, ?_⟩
+    · exact False.elim
+    · simp
+  have h_nonempty_S₂ : ({ V | ∃ (X : Set ℕ) (S : X → Box d₂), E₂ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal } : Set EReal).Nonempty := by
+    refine ⟨0, ∅, fun x => x.elim, ?_, ?_⟩
+    · exact False.elim
+    · simp
+  have h_nonneg_S₁ : ∀ a ∈ ({ V | ∃ (X : Set ℕ) (S : X → Box d₁), E₁ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal } : Set EReal), 0 ≤ a := by
+    intro a ha; rcases ha with ⟨X, S, _, rfl⟩
+    exact tsum_nonneg (fun n => EReal.coe_nonneg.mpr (Box.volume_nonneg (S n)))
+  have h_nonneg_S₂ : ∀ b ∈ ({ V | ∃ (X : Set ℕ) (S : X → Box d₂), E₂ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal } : Set EReal), 0 ≤ b := by
+    intro b hb; rcases hb with ⟨X, S, _, rfl⟩
+    exact tsum_nonneg (fun n => EReal.coe_nonneg.mpr (Box.volume_nonneg (S n)))
+  unfold Lebesgue_outer_measure
+  let S₁ := { V | ∃ (X : Set ℕ) (S : X → Box d₁), E₁ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal }
+  let S₂ := { V | ∃ (X : Set ℕ) (S : X → Box d₂), E₂ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal }
+  let S_prod := { V | ∃ (X : Set ℕ) (S : X → Box (d₁ + d₂)), EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal }
+  have h_sInf_eq : sInf (Set.image2 (· * ·) S₁ S₂) = (sInf S₁) * (sInf S₂) :=
+    sInf_image2_mul_eq_mul_sInf h_nonempty_S₁ h_nonempty_S₂ h_nonneg_S₁ h_nonneg_S₂
+  -- To prove sInf S_prod ≤ sInf S₁ * sInf S₂, it suffices to show S₁*S₂ ⊆ S_prod
+  -- Then sInf S_prod ≤ sInf (S₁*S₂) = (sInf S₁)*(sInf S₂)
+  have h_subset : Set.image2 (· * ·) S₁ S₂ ⊆ S_prod := by
+    intro z hz; rcases hz with ⟨a, ha, b, hb, rfl⟩
+    rcases ha with ⟨X₁, S₁', hS₁_cover, rfl⟩
+    rcases hb with ⟨X₂, S₂', hS₂_cover, rfl⟩
+    -- Construct product cover
+    -- Use bijection ℕ × ℕ ≃ ℕ to combine index sets
+    let X : Set ℕ := Nat.pairEquiv.symm '' (X₁ ×ˢ X₂)
+    let S' : X → Box (d₁ + d₂) := fun n => 
+      Box.prod (S₁' ((Nat.pairEquiv n).1)) (S₂' ((Nat.pairEquiv n).2))
+    have h_cover : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : X, (S' n).toSet := by
+      intro x hx
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨x₁, x₂⟩, ⟨hx₁, hx₂⟩, rfl⟩
+      have hx₁_cover : x₁ ∈ ⋃ n : X₁, (S₁' n).toSet := hS₁_cover hx₁
+      have hx₂_cover : x₂ ∈ ⋃ n : X₂, (S₂' n).toSet := hS₂_cover hx₂
+      rcases Set.mem_iUnion.mp hx₁_cover with ⟨n₁, hn₁⟩
+      rcases Set.mem_iUnion.mp hx₂_cover with ⟨n₂, hn₂⟩
+      have h_pair : (n₁, n₂) ∈ X₁ ×ˢ X₂ := Set.mem_prod.mpr ⟨hn₁, hn₂⟩
+      let n : ℕ := Nat.pairEquiv.symm (n₁, n₂)
+      have hnX : n ∈ X := by
+        refine Set.mem_image.mpr ⟨(n₁, n₂), h_pair, ?_⟩
+        simp
+      have h_mem : (EuclideanSpace'.prod_equiv d₁ d₂).symm (x₁, x₂) ∈ (S' ⟨n, hnX⟩).toSet := by
+        dsimp [S']
+        rw [Box.prod_toSet, EuclideanSpace'.prod]
+        refine Set.mem_image.mpr ⟨(x₁, x₂), ?_, rfl⟩
+        have h1 : (S₁' ((Nat.pairEquiv (⟨n, hnX⟩ : X)).1)).toSet = (S₁' n₁).toSet := by
+          simp [Nat.pairEquiv]
+        have h2 : (S₂' ((Nat.pairEquiv (⟨n, hnX⟩ : X)).2)).toSet = (S₂' n₂).toSet := by
+          simp [Nat.pairEquiv]
+        -- We need x₁ ∈ S₁' n₁ and x₂ ∈ S₂' n₂, which we have
+        exact ⟨hn₁, hn₂⟩
+      exact Set.mem_iUnion.mpr ⟨⟨n, hnX⟩, h_mem⟩
+    have h_vol_eq : ∑' n : X, (S' n).volume.toEReal = 
+      (∑' n : X₁, (S₁' n).volume.toEReal) * (∑' n : X₂, (S₂' n).volume.toEReal) := by
+      -- Use tsum_image to reindex, then tsum_prod and tsum_mul_tsum_of_nonneg
+      sorry
+    exact ⟨X, S', h_cover, h_vol_eq⟩
+  have h_sInf_le : sInf S_prod ≤ sInf (Set.image2 (· * ·) S₁ S₂) := sInf_le_sInf h_subset
+  rw [h_sInf_eq] at h_sInf_le
+  exact h_sInf_le
 
 /-- Exercise 1.2.22(ii) (Measurability of product)-/
 theorem LebesgueMeasurable.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
