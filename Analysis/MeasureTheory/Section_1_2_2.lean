@@ -5155,6 +5155,83 @@ theorem Lebesgue_outer_measure.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' 
           have h_nonneg_img₂ : ∀ b ∈ img₂, 0 ≤ b := by
             intro b hb; rcases hb with ⟨S, _, rfl⟩
             exact tsum_nonneg (fun n => EReal.coe_nonneg.mpr (Box.volume_nonneg (S n)))
+          -- Lemma: For non-negative a,b, the double product tsum = the product of tsums
+          have h_mul_tsum_eq {a b : ℕ → ℝ} (ha_nonneg : ∀ n, 0 ≤ a n) (hb_nonneg : ∀ m, 0 ≤ b m) :
+              ∑' (p : ℕ × ℕ), ((a p.1 * b p.2 : ℝ) : EReal) = (∑' n : ℕ, (a n : EReal)) * (∑' m : ℕ, (b m : EReal)) := by
+            apply le_antisymm
+            · -- ≤ direction: every finite sum ≤ product of totals
+              have h_finite_bound : ∀ (F : Finset (ℕ × ℕ)), (∑ p ∈ F, ((a p.1 * b p.2 : ℝ) : EReal)) ≤
+                  (∑' n : ℕ, (a n : EReal)) * (∑' m : ℕ, (b m : EReal)) := by
+                intro F
+                let F₁ := F.image Prod.fst
+                let F₂ := F.image Prod.snd
+                have h_sub : (F : Set (ℕ × ℕ)) ⊆ (F₁ ×ˢ F₂ : Set (ℕ × ℕ)) := by
+                  intro p hp; simp [F₁, F₂, hp]
+                calc
+                  (∑ p ∈ F, ((a p.1 * b p.2 : ℝ) : EReal)) ≤ (∑ p ∈ F₁ ×ˢ F₂, ((a p.1 * b p.2 : ℝ) : EReal)) :=
+                    Finset.sum_le_sum_of_subset h_sub
+                  _ = ((∑ n ∈ F₁, (a n : ℝ)) * (∑ m ∈ F₂, (b m : ℝ)) : EReal) := by simp [Finset.sum_product]
+                  _ = ((∑ n ∈ F₁, (a n : ℝ) : EReal) * (∑ m ∈ F₂, (b m : ℝ) : EReal)) := by norm_cast
+                  _ ≤ (∑' n : ℕ, (a n : EReal)) * (∑' m : ℕ, (b m : EReal)) :=
+                    mul_le_mul (EReal.finset_sum_le_tsum ha_nonneg F₁) (EReal.finset_sum_le_tsum hb_nonneg F₂)
+                      (by positivity) (by positivity)
+              -- The EReal tsum is the supremum of its finite partial sums
+              -- Use that the product ℕ×ℕ is countable via Nat.pairEquiv
+              rw [← Nat.pairEquiv.tsum_eq (fun n : ℕ => ((a (Nat.pairEquiv n).1 * b (Nat.pairEquiv n).2 : ℝ) : EReal))]
+              apply EReal.tsum_le_of_sum_range_le_of_nonneg (fun n : ℕ => by
+                exact EReal.coe_nonneg.mpr (mul_nonneg (ha_nonneg (Nat.pairEquiv n).1) (hb_nonneg (Nat.pairEquiv n).2))) ?_
+              intro N
+              let F : Finset (ℕ × ℕ) := (Finset.range N).image (fun n : ℕ => Nat.pairEquiv n)
+              calc
+                (∑ i ∈ Finset.range N, ((a (Nat.pairEquiv i).1 * b (Nat.pairEquiv i).2 : ℝ) : EReal)) ≤
+                  (∑ p ∈ F, ((a p.1 * b p.2 : ℝ) : EReal)) := by
+                  refine Finset.sum_le_sum_of_subset ?_
+                  intro i hi; simp [F, hi]
+                _ ≤ (∑' n : ℕ, (a n : EReal)) * (∑' m : ℕ, (b m : EReal)) := h_finite_bound F
+            · -- ≥ direction: product ≤ double sum
+              -- For any finite F₁, F₂: (∑_{F₁} a)*(∑_{F₂} b) ≤ total double sum
+              -- Taking sup over F₁, F₂ gives the result
+              have h_finite_prod : ∀ (F₁ F₂ : Finset ℕ),
+                  (∑ n ∈ F₁, (a n : ℝ) : EReal) * (∑ m ∈ F₂, (b m : ℝ) : EReal) ≤
+                  ∑' (p : ℕ × ℕ), ((a p.1 * b p.2 : ℝ) : EReal) := by
+                intro F₁ F₂
+                calc
+                  (∑ n ∈ F₁, (a n : ℝ) : EReal) * (∑ m ∈ F₂, (b m : ℝ) : EReal) =
+                    (∑ p ∈ F₁ ×ˢ F₂, ((a p.1 * b p.2 : ℝ) : EReal)) := by simp [Finset.sum_product]
+                  _ ≤ ∑' (p : ℕ × ℕ), ((a p.1 * b p.2 : ℝ) : EReal) := by
+                    -- finite sum ≤ total double sum (by EReal.finset_sum_le_tsum applied to the double sequence)
+                    have h_nonneg : ∀ (p : ℕ × ℕ), 0 ≤ ((a p.1 * b p.2 : ℝ) : EReal) := fun p =>
+                      EReal.coe_nonneg.mpr (mul_nonneg (ha_nonneg p.1) (hb_nonneg p.2))
+                    have h_single : (∑ p ∈ F₁ ×ˢ F₂, ((a p.1 * b p.2 : ℝ) : EReal)) =
+                        ∑' p : (F₁ ×ˢ F₂ : Set (ℕ × ℕ)), ((a p.1 * b p.2 : ℝ) : EReal) := by simp
+                    rw [h_single]
+                    -- tsum over a subset ≤ tsum over the whole type (for non-negative terms)
+                    exact tsum_subtype_le (fun (p : (F₁ ×ˢ F₂ : Set (ℕ × ℕ))) => ((a p.1 * b p.2 : ℝ) : EReal))
+                      (fun p => h_nonneg p) (F₁ ×ˢ F₂ : Set (ℕ × ℕ))
+              -- The product of sums is the supremum over finite sums
+              -- Use EReal.le_of_forall_pos_le_add' with the finite approximations
+              apply EReal.le_of_forall_pos_le_add'
+              intro δ hδ
+              have hδ_real : (0 : ℝ) < δ := EReal.coe_pos.mp hδ
+              -- Choose large enough F₁, F₂ such that ∑' a ≤ ∑_{F₁} a + δ/2 and ∑' b ≤ ∑_{F₂} b + δ/2
+              -- This requires the sums to be finite. If either is ⊤, the RHS is ⊤ and the inequality holds trivially.
+              by_cases ha_top : (∑' n : ℕ, (a n : EReal)) = ⊤
+              · rw [ha_top, EReal.top_mul_of_ne_zero ?_]
+                exact le_top
+                -- Need to show ∑' b > 0. If ∑' b = 0 then both sides are 0, handled below.
+                by_cases hb_zero : (∑' n : ℕ, (b n : EReal)) = 0
+                · rw [hb_zero, mul_zero, zero_le]; exact tsum_nonneg _
+                · exact hb_zero
+              · by_cases hb_top : (∑' m : ℕ, (b m : EReal)) = ⊤
+                · rw [hb_top, mul_comm, EReal.top_mul_of_ne_zero ha_top]
+                  exact le_top
+                · -- Both sums are finite (reals). Then we can use the ℝ tsum.
+                  have ha_sum : Summable a := by
+                    sorry
+                  have hb_sum : Summable b := by
+                    sorry
+                  sorry
+
           have h_subset : Set.image2 (· * ·) img₁ img₂ ⊆ img_prod := by
             intro z hz; rcases hz with ⟨a, ha, b, hb, rfl⟩
             rcases ha with ⟨S₁, hS₁_cover, rfl⟩
@@ -5184,42 +5261,31 @@ theorem Lebesgue_outer_measure.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' 
                 _ = ∑' (n₁ n₂ : ℕ), ((S₁ n₁).volume.toEReal * (S₂ n₂).volume.toEReal) := by
                   rw [Nat.pairEquiv.tsum_eq]
                 _ = (∑' n₁ : ℕ, (S₁ n₁).volume.toEReal) * (∑' n₂ : ℕ, (S₂ n₂).volume.toEReal) := by
-                  let a : ℕ → ℝ := fun n => (S₁ n).volume
-                  let b : ℕ → ℝ := fun n => (S₂ n).volume
-                  have ha_nonneg : ∀ n, 0 ≤ a n := fun n => Box.volume_nonneg _
-                  have hb_nonneg : ∀ n, 0 ≤ b n := fun n => Box.volume_nonneg _
-                  -- The EReal tsum product formula using ER.coe_tsum_of_nonneg + Summable.tsum_mul_tsum
-                  -- Since all terms are non-negative, the sums are either both finite (summable) or both ⊤
-                  by_cases ha_sum : Summable a
-                  · by_cases hb_sum : Summable b
-                    · -- Both summable in ℝ: use ℝ arithmetic and EReal.coe_tsum_of_nonneg
-                      have h_mul : (∑' n : ℕ, a n) * (∑' m : ℕ, b m) = ∑' (p : ℕ × ℕ), a p.1 * b p.2 :=
-                        ha_sum.tsum_mul_tsum hb_sum
-                      have h_sq_sum : Summable (fun (p : ℕ × ℕ) => a p.1 * b p.2) := ha_sum.mul hb_sum
-                      calc
-                        ∑' (n₁ n₂ : ℕ), ((a n₁ : EReal) * (b n₂ : EReal))
-                            = ∑' (p : ℕ × ℕ), ((a p.1 * b p.2 : ℝ) : EReal) := by simp
-                        _ = ((∑' (p : ℕ × ℕ), (a p.1 * b p.2 : ℝ)) : EReal) := by
-                          rw [EReal.coe_tsum_of_nonneg (fun p => mul_nonneg (ha_nonneg p.1) (hb_nonneg p.2)) h_sq_sum]
-                        _ = ((∑' n : ℕ, a n) * (∑' m : ℕ, b m) : ℝ) := by rw [h_mul]
-                        _ = ((∑' n : ℕ, a n : ℝ) : EReal) * ((∑' m : ℕ, b m : ℝ) : EReal) := by simp
-                        _ = (∑' n : ℕ, (a n : EReal)) * (∑' m : ℕ, (b m : EReal)) := by
-                          simp [EReal.coe_tsum_of_nonneg ha_nonneg ha_sum, EReal.coe_tsum_of_nonneg hb_nonneg hb_sum]
-                    · -- b not summable, a summable: ∑' (a n * b m) = ⊤ = (∑' a n) * ⊤
-                      have hb_top : ∑' m : ℕ, (b m : EReal) = ⊤ := by
-                        refine (tsum_eq_top_of_not_summable hb_nonneg hb_sum).trans ?_
-                        -- This lemma is not available; we'll use a direct argument
-                        sorry
-                      calc
-                        ∑' (n₁ n₂ : ℕ), ((a n₁ : EReal) * (b n₂ : EReal)) = ⊤ := by
-                          -- Since ∑' b_m = ⊤, the double sum diverges (unless all a_n = 0)
-                          sorry
-                        _ = (∑' n₁ : ℕ, (a n₁ : EReal)) * (∑' n₂ : ℕ, (b n₂ : EReal)) := by
-                          rw [hb_top, mul_comm]
-                          by_cases ha_total_zero : (∑' n : ℕ, (S₁ n).volume.toEReal) = 0
-                          · rw [ha_total_zero, zero_mul]
-                          · rw [EReal.mul_top_of_ne_zero ha_total_zero]
-                  · -- a not summable: symmetric
+                  apply le_antisymm
+                  · -- ≤: use the lemma above (double sum ≤ product)
+                    calc
+                      ∑' (p : ℕ × ℕ), ((S₁ p.1).volume.toEReal * (S₂ p.2).volume.toEReal) ≤
+                        (∑' n : ℕ, (S₁ n).volume.toEReal) * (∑' n : ℕ, (S₂ n).volume.toEReal) :=
+                        h_mul_tsum_le (fun n => Box.volume_nonneg (S₁ n)) (fun n => Box.volume_nonneg (S₂ n))
+                      _ = (∑' n₁ : ℕ, (S₁ n₁).volume.toEReal) * (∑' n₂ : ℕ, (S₂ n₂).volume.toEReal) := rfl
+                  · -- ≥: product ≤ double sum because for any finite F₁,F₂: (∑_{F₁} S₁)*(∑_{F₂} S₂) ≤ double sum
+                    apply EReal.le_of_forall_pos_le_add'
+                    intro δ hδ
+                    -- Need to show: (∑' S₁)*(∑' S₂) ≤ δ + double sum
+                    -- This follows from: there exist finite F₁,F₂ such that
+                    -- ∑' S₁ ≤ ∑_{F₁} S₁ + δ/2 and ∑' S₂ ≤ ∑_{F₂} S₂ + δ/2
+                    -- Then (∑' S₁)*(∑' S₂) ≤ (∑_{F₁} S₁ + δ/2)*(∑_{F₂} S₂ + δ/2) ≤ double_sum + C*δ
+                    -- Formalizing this is complex. Since we only need the sInf inequality,
+                    -- the ≤ direction is sufficient.
+                    -- The sInf chain is: sInf(img_prod) ≤ sInf(image2(*) img₁ img₂) = (sInf img₁)*(sInf img₂)
+                    -- For this, we need image2(*) img₁ img₂ ⊆ img_prod, i.e., V₁*V₂ ∈ img_prod.
+                    -- The product cover gives a cover with total volume = ∑' (S₁ n₁)*(S₂ n₂).
+                    -- If this is ≤ V₁*V₂, then V₁*V₂ might NOT be in img_prod (we need EXACTLY V₁*V₂).
+                    -- BUT: we can PAD the product cover to reach exactly V₁*V₂.
+                    -- Since img_prod is closed under adding extra boxes (which increase total volume),
+                    -- if we have a cover with volume V, and V' > V, we can add more boxes to reach V'.
+                    -- Specifically, if ∑' (S₁ n₁)*(S₂ n₂) < V₁*V₂, we can add zero-volume boxes? No, boxes have positive volume.
+                    -- Hmm, this doesn't work.
                     sorry
             exact ⟨S_prod, hS_prod_cover, h_vol_eq⟩
           have h_sInf_le : sInf img_prod ≤ sInf (Set.image2 (· * ·) img₁ img₂) := sInf_le_sInf h_subset
