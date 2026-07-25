@@ -5404,7 +5404,34 @@ noncomputable abbrev IsCurve {d:ℕ} (C: Set (EuclideanSpace' d)) : Prop := ∃ 
 theorem IsCurve.null {d:ℕ} (hd: d ≥ 2) {C: Set (EuclideanSpace' d)} (hC: IsCurve C) : IsNull C := by sorry
 
 example : ∃ (d:ℕ) (C: Set (EuclideanSpace' d)) (hC: IsCurve C), ¬ IsNull C := by
-  sorry
+  refine ⟨1, Real.equiv_EuclideanSpace' '' (Set.Icc (0:ℝ) 1), ?_, ?_⟩
+  · refine ⟨0, 1, Real.equiv_EuclideanSpace', rfl, ?_⟩
+    have h_contDiff : ContDiff ℝ 1 (Real.equiv_EuclideanSpace' : ℝ → EuclideanSpace' 1) := by
+      refine contDiff_euclidean.mpr ?_
+      intro i
+      fin_cases i
+      simpa using contDiff_id (𝕜 := ℝ)
+    exact h_contDiff.contDiffOn
+  · unfold IsNull
+    have h_image_eq : Real.equiv_EuclideanSpace' '' Set.Icc (0:ℝ) 1 =
+        EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (0:ℝ) 1 := by
+      ext x
+      constructor
+      · intro ⟨y, hy, hx⟩
+        subst hx
+        simp [Real.equiv_EuclideanSpace', EuclideanSpace'.equiv_Real, hy]
+      · intro hx
+        simp [Real.equiv_EuclideanSpace', EuclideanSpace'.equiv_Real] at hx ⊢
+        use x.ofLp 0
+        rcases hx with ⟨ha, hb⟩
+        constructor
+        · exact ⟨ha, hb⟩
+        · ext i; fin_cases i; rfl
+    rw [h_image_eq]
+    have h_hab : (0:ℝ) ≤ 1 := by norm_num
+    have h_measure := Lebesgue_outer_measure.of_Icc 0 1 h_hab
+    rw [h_measure]
+    norm_num
 
 /-- Exercise 1.2.25 -/
 example {d:ℕ} (hd: d ≥ 2) : ¬ ∃ C: ℕ → Set (EuclideanSpace' d), (∀ n, IsCurve (C n)) ∧ (⋃ n, C n = (Box.unit_cube d).toSet) := by
