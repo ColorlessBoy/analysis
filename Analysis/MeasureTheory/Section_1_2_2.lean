@@ -4699,8 +4699,255 @@ theorem inner_measure.eq_iff {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology
   : inner_measure hE = Lebesgue_outer_measure E ↔ LebesgueMeasurable E := by
   constructor
   · intro h
-    -- (→) direction: requires the Carathéodory criterion (Exercise 1.2.17, still open)
-    sorry
+    set A₀ := hE.inElementary.choose with hA₀_def
+    have hA₀_elem : IsElementary A₀ := hE.inElementary.choose_spec.1
+    have hE_sub_A₀ : E ⊆ A₀ := hE.inElementary.choose_spec.2
+    have hA₀_fin : Lebesgue_outer_measure A₀ ≠ ⊤ := by
+      have h_compact : IsCompact (closure A₀) :=
+        Metric.isCompact_of_isClosed_isBounded isClosed_closure (IsElementary.isBounded hA₀_elem).closure
+      have h_fin_closure : Lebesgue_outer_measure (closure A₀) ≠ ⊤ :=
+        Lebesgue_outer_measure.finite_of_compact h_compact
+      have h_mono_closure : Lebesgue_outer_measure A₀ ≤ Lebesgue_outer_measure (closure A₀) :=
+        Lebesgue_outer_measure.mono subset_closure
+      intro htop
+      apply h_fin_closure
+      exact le_antisymm le_top (htop.symm ▸ h_mono_closure)
+    have h_not_bot (X : Set (EuclideanSpace' d)) : Lebesgue_outer_measure X ≠ ⊥ := by
+      have h_nonneg : 0 ≤ Lebesgue_outer_measure X := Lebesgue_outer_measure.nonneg X
+      have h0_gt_bot : (⊥ : EReal) < (0 : EReal) := by norm_num
+      intro hbot
+      have h_contra : (⊥ : EReal) < (⊥ : EReal) := h0_gt_bot.trans_le (hbot ▸ h_nonneg)
+      exact (lt_irrefl _) h_contra
+    have h_fin_sub_A₀ (X : Set (EuclideanSpace' d)) (hX : X ⊆ A₀) : Lebesgue_outer_measure X ≠ ⊤ := by
+      have h_mono : Lebesgue_outer_measure X ≤ Lebesgue_outer_measure A₀ := Lebesgue_outer_measure.mono hX
+      intro htop
+      apply hA₀_fin
+      exact le_antisymm le_top (htop.symm ▸ h_mono)
+    have h_fin_diff : Lebesgue_outer_measure (A₀ \ E) ≠ ⊤ :=
+      h_fin_sub_A₀ (A₀ \ E) (Set.diff_subset (s := A₀) (t := E))
+    have h_fin_E : Lebesgue_outer_measure E ≠ ⊤ :=
+      h_fin_sub_A₀ E hE_sub_A₀
+    have h_A₀_eq : Lebesgue_outer_measure A₀ = Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := by
+      have h_inner_eq : (inner_measure hE : EReal) = Lebesgue_outer_measure A₀ - Lebesgue_outer_measure (A₀ \ E) := by
+        have := inner_measure.eq hE hA₀_elem hE_sub_A₀
+        simpa [Lebesgue_measure] using this
+      have h_temp : (Lebesgue_outer_measure A₀ - Lebesgue_outer_measure (A₀ \ E)) + Lebesgue_outer_measure (A₀ \ E) = Lebesgue_outer_measure A₀ :=
+        sub_add_cancel_finite h_fin_diff (h_not_bot (A₀ \ E))
+      calc
+        Lebesgue_outer_measure A₀ = (Lebesgue_outer_measure A₀ - Lebesgue_outer_measure (A₀ \ E)) + Lebesgue_outer_measure (A₀ \ E) := by rw [h_temp]
+        _ = (inner_measure hE : EReal) + Lebesgue_outer_measure (A₀ \ E) := by rw [h_inner_eq]
+        _ = Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := by rw [h]
+    have h_caratheodory_elem : ∀ (A : Set (EuclideanSpace' d)), IsElementary A →
+        Lebesgue_outer_measure A = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by
+      intro A hA
+      set S := A ∩ A₀ with hS_def
+      set R := A \ A₀ with hR_def
+      have hS_elem : IsElementary S := IsElementary.inter hA hA₀_elem
+      have hR_elem : IsElementary R := IsElementary.sdiff hA hA₀_elem
+      have hS_sub_A₀ : S ⊆ A₀ := Set.inter_subset_right (s := A) (t := A₀)
+      have h_union_eq : S ∪ R = A := by
+        ext x; simp [S, R]
+      have h_disj_SR : Disjoint S R := by
+        rw [Set.disjoint_iff]
+        intro x hx
+        rcases hx with ⟨⟨hxA, hxA₀⟩, ⟨hxA', hx_not_A₀⟩⟩
+        exact hx_not_A₀ hxA₀
+      have hA_meas_eq : Lebesgue_outer_measure A = Lebesgue_outer_measure S + Lebesgue_outer_measure R := by
+        calc
+          Lebesgue_outer_measure A = Lebesgue_outer_measure (S ∪ R) := by rw [h_union_eq]
+          _ = Lebesgue_outer_measure S + Lebesgue_outer_measure R :=
+            outer_measure_add_of_disjoint_elementary hR_elem h_disj_SR
+      have h_inter_E_eq : A ∩ E = S ∩ E := by
+        ext x; constructor
+        · intro ⟨hxA, hxE⟩; exact ⟨⟨hxA, hE_sub_A₀ hxE⟩, hxE⟩
+        · intro ⟨⟨hxA, hxA₀⟩, hxE⟩; exact ⟨hxA, hxE⟩
+      have h_diff_E_eq : A \ E = (S \ E) ∪ R := by
+        ext x; constructor
+        · intro ⟨hxA, hx_not_E⟩
+          by_cases hxA₀ : x ∈ A₀
+          · exact Or.inl ⟨⟨hxA, hxA₀⟩, hx_not_E⟩
+          · exact Or.inr ⟨hxA, hxA₀⟩
+        · intro hx
+          rcases hx with (⟨⟨hxA, hxA₀⟩, hx_not_E⟩ | ⟨hxA, hxA₀⟩)
+          · exact ⟨hxA, hx_not_E⟩
+          · exact ⟨hxA, fun hxE => hxA₀ (hE_sub_A₀ hxE)⟩
+      have h_disj_SdiffE_R : Disjoint (S \ E) R := by
+        rw [Set.disjoint_iff]
+        intro x hx
+        rcases hx with ⟨⟨⟨hxA, hxA₀⟩, hx_not_E⟩, ⟨hxA', hx_not_A₀⟩⟩
+        exact hx_not_A₀ hxA₀
+      have h_diff_E_meas_eq : Lebesgue_outer_measure (A \ E) = Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure R := by
+        calc
+          Lebesgue_outer_measure (A \ E) = Lebesgue_outer_measure ((S \ E) ∪ R) := by rw [h_diff_E_eq]
+          _ = Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure R :=
+            outer_measure_add_of_disjoint_elementary hR_elem h_disj_SdiffE_R
+      have h_S_leq : Lebesgue_outer_measure S ≤ Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E) := by
+        have h_decomp_S : S = (S ∩ E) ∪ (S \ E) := by
+          ext x; simp
+        have h_union_sets : ((S ∩ E) ∪ (S \ E)) = ⋃ i : Fin 2, ![S ∩ E, S \ E] i := by
+          ext x; simp [Set.mem_iUnion, Matrix.cons_val_zero, Matrix.cons_val_one]
+          by_cases hxE : x ∈ E <;> simp [hxE]
+        have h_measure : Lebesgue_outer_measure ((S ∩ E) ∪ (S \ E)) ≤ Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E) :=
+          calc
+            Lebesgue_outer_measure ((S ∩ E) ∪ (S \ E)) = Lebesgue_outer_measure (⋃ i : Fin 2, ![S ∩ E, S \ E] i) := by rw [h_union_sets]
+            _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (![S ∩ E, S \ E] i) := Lebesgue_outer_measure.finite_union_le ![S ∩ E, S \ E]
+            _ = Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E) := by simp
+        have h_eq : Lebesgue_outer_measure S = Lebesgue_outer_measure ((S ∩ E) ∪ (S \ E)) :=
+          congrArg Lebesgue_outer_measure h_decomp_S
+        exact h_eq.le.trans h_measure
+      have h_S_geq : Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E) ≤ Lebesgue_outer_measure S := by
+        set T := A₀ \ S with hT_def
+        have hT_elem : IsElementary T := IsElementary.sdiff hA₀_elem hS_elem
+        have hT_sub_A₀ : T ⊆ A₀ := Set.diff_subset (s := A₀) (t := S)
+        have h_disj_ST : Disjoint S T := by
+          rw [Set.disjoint_iff]
+          intro x hx
+          rcases hx with ⟨hxS, hxT⟩
+          exact hxT.2 hxS
+        have h_union_A₀ : S ∪ T = A₀ := by
+          ext x; constructor
+          · intro hx; rcases hx with (hxS | hxT)
+            · exact hxS.2
+            · exact hxT.1
+          · intro hxA₀
+            by_cases hxS : x ∈ S
+            · exact Or.inl hxS
+            · exact Or.inr ⟨hxA₀, hxS⟩
+        have h_A₀_meas_split : Lebesgue_outer_measure A₀ = Lebesgue_outer_measure S + Lebesgue_outer_measure T := by
+          calc
+            Lebesgue_outer_measure A₀ = Lebesgue_outer_measure (S ∪ T) := by rw [h_union_A₀]
+            _ = Lebesgue_outer_measure S + Lebesgue_outer_measure T :=
+              outer_measure_add_of_disjoint_elementary hT_elem h_disj_ST
+        have h_A₀_diff_E_split : Lebesgue_outer_measure (A₀ \ E) = Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E) := by
+          have h_caratheodory := IsElementary.caratheodory hT_elem (A₀ \ E)
+          have h_inter_eq : (A₀ \ E) ∩ T = T \ E := by
+            ext x; simp; tauto
+          have h_diff_eq : (A₀ \ E) \ T = S \ E := by
+            ext x; constructor
+            · intro ⟨⟨hxA₀, hx_not_E⟩, hx_not_T⟩
+              have hxS : x ∈ S := by
+                by_contra hx_not_S
+                apply hx_not_T
+                exact ⟨hxA₀, hx_not_S⟩
+              exact ⟨hxS, hx_not_E⟩
+            · intro ⟨hxS, hx_not_E⟩
+              refine ⟨⟨hxS.2, hx_not_E⟩, ?_⟩
+              intro hxT
+              exact hxT.2 hxS
+          rw [h_inter_eq, h_diff_eq] at h_caratheodory
+          simpa [add_comm] using h_caratheodory
+        have h_eq_sum : Lebesgue_outer_measure S + Lebesgue_outer_measure T = Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E) := by
+          calc
+            Lebesgue_outer_measure S + Lebesgue_outer_measure T = Lebesgue_outer_measure A₀ := by rw [h_A₀_meas_split]
+            _ = Lebesgue_outer_measure E + Lebesgue_outer_measure (A₀ \ E) := h_A₀_eq
+            _ = Lebesgue_outer_measure E + (Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E)) := by rw [h_A₀_diff_E_split]
+            _ = Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E) := by abel
+        have h_subadd_T : Lebesgue_outer_measure T ≤ Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) := by
+          have h_decomp_T : T = (T ∩ E) ∪ (T \ E) := by
+            ext x; simp
+          have h_union_sets_T : ((T ∩ E) ∪ (T \ E)) = ⋃ i : Fin 2, ![T ∩ E, T \ E] i := by
+            ext x; simp [Set.mem_iUnion, Matrix.cons_val_zero, Matrix.cons_val_one]
+            by_cases hxE : x ∈ E <;> simp [hxE]
+          have h_measure_T : Lebesgue_outer_measure ((T ∩ E) ∪ (T \ E)) ≤ Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) :=
+            calc
+              Lebesgue_outer_measure ((T ∩ E) ∪ (T \ E)) = Lebesgue_outer_measure (⋃ i : Fin 2, ![T ∩ E, T \ E] i) := by rw [h_union_sets_T]
+              _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (![T ∩ E, T \ E] i) := Lebesgue_outer_measure.finite_union_le ![T ∩ E, T \ E]
+              _ = Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) := by simp
+          have h_eq_T : Lebesgue_outer_measure T = Lebesgue_outer_measure ((T ∩ E) ∪ (T \ E)) :=
+            congrArg Lebesgue_outer_measure h_decomp_T
+          exact h_eq_T.le.trans h_measure_T
+        have h_fin_T_diff_E : Lebesgue_outer_measure (T \ E) ≠ ⊤ :=
+          h_fin_sub_A₀ (T \ E) (Set.Subset.trans (Set.diff_subset (s := T) (t := E)) hT_sub_A₀)
+        have h_fin_T_inter_E : Lebesgue_outer_measure (T ∩ E) ≠ ⊤ :=
+          h_fin_sub_A₀ (T ∩ E) (Set.Subset.trans (Set.inter_subset_left (s := T) (t := E)) hT_sub_A₀)
+        have h_E_split : Lebesgue_outer_measure E = Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (E \ T) := by
+          have h_temp := IsElementary.caratheodory hT_elem E
+          have h_inter_comm : E ∩ T = T ∩ E := Set.inter_comm _ _
+          rw [h_inter_comm] at h_temp
+          exact h_temp
+        have h_E_diff_T_eq_S_inter_E : E \ T = S ∩ E := by
+          ext x; constructor
+          · intro ⟨hxE, hx_not_T⟩
+            have hxA₀ : x ∈ A₀ := hE_sub_A₀ hxE
+            have hxS : x ∈ S := by
+              by_contra hx_not_S
+              apply hx_not_T
+              exact ⟨hxA₀, hx_not_S⟩
+            exact ⟨hxS, hxE⟩
+          · intro ⟨hxS, hxE⟩
+            refine ⟨hxE, ?_⟩
+            intro hxT
+            exact hxT.2 hxS
+        have h_ineq1 : Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E)
+            ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) := by
+          -- from h_eq_sum and h_subadd_T
+          have h1 : Lebesgue_outer_measure S + Lebesgue_outer_measure T ≤ Lebesgue_outer_measure S + (Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E)) :=
+            add_le_add_right h_subadd_T (Lebesgue_outer_measure S)
+          have h_temp : Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E) = Lebesgue_outer_measure S + Lebesgue_outer_measure T := by
+            rw [h_eq_sum]
+          calc
+            Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E)
+                = Lebesgue_outer_measure S + Lebesgue_outer_measure T := h_temp
+            _ ≤ Lebesgue_outer_measure S + (Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E)) := h1
+            _ = Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) := by abel
+        have h_ineq2 : Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E) := by
+          have h_rearr : Lebesgue_outer_measure (T \ E) + (Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E))
+              ≤ Lebesgue_outer_measure (T \ E) + (Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E)) := by
+            calc
+              Lebesgue_outer_measure (T \ E) + (Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E))
+                  = Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure (T \ E) := by abel
+              _ ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure (T \ E) := h_ineq1
+              _ = Lebesgue_outer_measure (T \ E) + (Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E)) := by abel
+          exact cancel_add_left h_fin_T_diff_E (h_not_bot (T \ E)) h_rearr
+        have h_ineq3 : Lebesgue_outer_measure (E \ T) + Lebesgue_outer_measure (S \ E) ≤ Lebesgue_outer_measure S := by
+          have h_rearr : Lebesgue_outer_measure (T ∩ E) + (Lebesgue_outer_measure (E \ T) + Lebesgue_outer_measure (S \ E))
+              ≤ Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure S := by
+            calc
+              Lebesgue_outer_measure (T ∩ E) + (Lebesgue_outer_measure (E \ T) + Lebesgue_outer_measure (S \ E))
+                  = Lebesgue_outer_measure E + Lebesgue_outer_measure (S \ E) := by
+                rw [h_E_split]
+                abel
+              _ ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure (T ∩ E) := h_ineq2
+              _ = Lebesgue_outer_measure (T ∩ E) + Lebesgue_outer_measure S := by abel
+          exact cancel_add_left h_fin_T_inter_E (h_not_bot (T ∩ E)) h_rearr
+        calc
+          Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E)
+              = Lebesgue_outer_measure (E \ T) + Lebesgue_outer_measure (S \ E) := by rw [h_E_diff_T_eq_S_inter_E]
+          _ ≤ Lebesgue_outer_measure S := h_ineq3
+      have h_geq : Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) ≤ Lebesgue_outer_measure A := by
+        calc
+          Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E)
+              = Lebesgue_outer_measure (S ∩ E) + (Lebesgue_outer_measure (S \ E) + Lebesgue_outer_measure R) := by
+            rw [h_inter_E_eq, h_diff_E_meas_eq]
+          _ = (Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E)) + Lebesgue_outer_measure R := by abel
+          _ ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure R := by
+            have h_temp : Lebesgue_outer_measure R + (Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E))
+                ≤ Lebesgue_outer_measure R + Lebesgue_outer_measure S :=
+              add_le_add_right h_S_geq (Lebesgue_outer_measure R)
+            calc
+              (Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E)) + Lebesgue_outer_measure R
+                  = Lebesgue_outer_measure R + (Lebesgue_outer_measure (S ∩ E) + Lebesgue_outer_measure (S \ E)) := by abel
+              _ ≤ Lebesgue_outer_measure R + Lebesgue_outer_measure S := h_temp
+              _ = Lebesgue_outer_measure S + Lebesgue_outer_measure R := by abel
+          _ = Lebesgue_outer_measure A := by rw [hA_meas_eq]
+      have h_leq : Lebesgue_outer_measure A ≤ Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by
+        have h_decomp_A : A = (A ∩ E) ∪ (A \ E) := by
+          ext x; simp
+        have h_union_sets_A : ((A ∩ E) ∪ (A \ E)) = ⋃ i : Fin 2, ![A ∩ E, A \ E] i := by
+          ext x; simp [Set.mem_iUnion, Matrix.cons_val_zero, Matrix.cons_val_one]
+          by_cases hxE : x ∈ E <;> simp [hxE]
+        have h_measure_A : Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) ≤ Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) :=
+          calc
+            Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) = Lebesgue_outer_measure (⋃ i : Fin 2, ![A ∩ E, A \ E] i) := by rw [h_union_sets_A]
+            _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (![A ∩ E, A \ E] i) := Lebesgue_outer_measure.finite_union_le ![A ∩ E, A \ E]
+            _ = Lebesgue_outer_measure (A ∩ E) + Lebesgue_outer_measure (A \ E) := by simp
+        have h_eq_A : Lebesgue_outer_measure A = Lebesgue_outer_measure ((A ∩ E) ∪ (A \ E)) :=
+          congrArg Lebesgue_outer_measure h_decomp_A
+        exact h_eq_A.le.trans h_measure_A
+      exact le_antisymm h_leq h_geq
+    have h_meas : LebesgueMeasurable E :=
+      ((LebesgueMeasurable.caratheodory E).out 1 0).mp h_caratheodory_elem
+    exact h_meas
   · intro hE_meas
     have h_le : (inner_measure hE : EReal) ≤ Lebesgue_outer_measure E := inner_measure.le hE
     have h_eq : (Lebesgue_outer_measure E : EReal) = (inner_measure hE : EReal) := by
