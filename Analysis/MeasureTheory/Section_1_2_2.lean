@@ -5047,37 +5047,7 @@ lemma Lebesgue_measure.linear {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertibl
 lemma sInf_image2_mul_eq_mul_sInf {A B : Set EReal} (hA : A.Nonempty) (hB : B.Nonempty)
     (hA_nonneg : ∀ a ∈ A, 0 ≤ a) (hB_nonneg : ∀ b ∈ B, 0 ≤ b) :
     sInf (Set.image2 (· * ·) A B) = (sInf A) * (sInf B) := by
-  have h0_sInf_A : 0 ≤ sInf A := by
-    apply le_sInf; intro a ha; exact hA_nonneg a ha
-  have h0_sInf_B : 0 ≤ sInf B := by
-    apply le_sInf; intro b hb; exact hB_nonneg b hb
-  apply le_antisymm
-  · -- sInf(A*B) ≤ (sInf A)*(sInf B)
-    -- Use the fact that sInf(A*B) = inf_{a∈A,b∈B} a*b, which equals (inf A)*(inf B)
-    -- For non-negative sets, this holds because multiplication is continuous
-    apply le_of_forall_pos_le_add
-    intro ε hε
-    have hε_real : (0 : ℝ) < ε := EReal.coe_pos.mp hε
-    -- For any ε>0, we need sInf(A*B) ≤ (sInf A)*(sInf B) + ε
-    -- By definition of sInf, there exist a∈A, b∈B with a < sInf A + ε and b < sInf B + ε
-    -- Then sInf(A*B) ≤ a*b < (sInf A + ε)*(sInf B + ε)
-    -- And (sInf A + ε)*(sInf B + ε) = (sInf A)*(sInf B) + ... which is ≤ (sInf A)*(sInf B) + ε for small ε
-    -- This epsilon-delta argument is complex. For now, use the simple proof:
-    -- Since sInf(A*B) ≤ a*b for all a∈A, b∈B, taking inf over a,b gives sInf(A*B) ≤ (sInf A)*(sInf B)
-    -- Wait, this is exactly what we're trying to prove!
-    sorry
-  · -- (sInf A)*(sInf B) ≤ sInf(A*B)
-    -- For any a∈A, b∈B: (sInf A)*(sInf B) ≤ a*b since sInf A ≤ a, sInf B ≤ b, and all ≥ 0
-    have h_bound : ∀ z ∈ Set.image2 (· * ·) A B, (sInf A) * (sInf B) ≤ z := by
-      intro z hz
-      rcases hz with ⟨a, ha, b, hb, rfl⟩
-      have ha_sInf : sInf A ≤ a := sInf_le ha
-      have hb_sInf : sInf B ≤ b := sInf_le hb
-      have ha0 : 0 ≤ a := hA_nonneg a ha
-      calc
-        (sInf A) * (sInf B) ≤ a * (sInf B) := mul_le_mul_of_nonneg_right ha_sInf h0_sInf_B
-        _ ≤ a * b := mul_le_mul_of_nonneg_left hb_sInf ha0
-    exact le_sInf h_bound
+  sorry
 
 /-- For a non-negative ℝ sequence, its EReal tsum is ⊤ exactly when the ℝ series diverges. -/
 lemma tsum_eq_top_of_not_summable {a : ℕ → ℝ} (ha_nonneg : ∀ n, 0 ≤ a n) (ha : ¬ Summable a) :
