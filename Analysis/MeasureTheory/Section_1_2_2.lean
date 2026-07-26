@@ -5533,10 +5533,224 @@ theorem Lebesgue_measure.translate {d:ℕ} {E: Set (EuclideanSpace' d)} (x: Eucl
    (_hE: LebesgueMeasurable E): Lebesgue_measure (E + {x}) = Lebesgue_measure E := by
   rw [Lebesgue_measure, Lebesgue_measure, Lebesgue_outer_measure.translate E x]
 
+lemma box_image_outer_measure_le {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) (B: Box d) : 
+    Lebesgue_outer_measure (T '' B.toSet) ≤ ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * Box.volume B : ℝ) := by
+  have h_bounded : Bornology.IsBounded (T '' B.toSet) := by
+    apply linear_isBounded_image T
+    exact (IsElementary.box B).isBounded
+  have h_le_Jordan : Lebesgue_outer_measure (T '' B.toSet) ≤ (Jordan_outer_measure (T '' B.toSet) : EReal) :=
+    Lebesgue_outer_measure_le_Jordan h_bounded
+  have hJM : JordanMeasurable (T '' B.toSet) := JordanMeasurable.linear_of_elem T (IsElementary.box B)
+  have h_outer_eq : (Jordan_outer_measure (T '' B.toSet) : EReal) = ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) := by
+    rw [hJM.eq_outer]
+  have h_measure_eq : ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) = 
+      ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * (IsElementary.box B).measure : ℝ) := by
+    rw [linear_of_elem_measure_eq T (IsElementary.box B)]
+  have h_box_measure : (IsElementary.box B).measure = Box.volume B := IsElementary.measure_of_box B
+  calc
+    Lebesgue_outer_measure (T '' B.toSet) ≤ (Jordan_outer_measure (T '' B.toSet) : EReal) := h_le_Jordan
+    _ = ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) := h_outer_eq
+    _ = ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * (IsElementary.box B).measure : ℝ) := h_measure_eq
+    _ = ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * Box.volume B : ℝ) := by rw [h_box_measure]
+
+lemma mul_finset_sum_ereal_nonneg (c : EReal) (t : Finset ℕ) (f : ℕ → EReal) (hf : ∀ n, 0 ≤ f n) : 
+    c * (∑ n ∈ t, f n) = ∑ n ∈ t, c * f n := by
+  induction t using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih =>
+    rw [Finset.sum_insert ha]
+    rw [EReal.left_distrib_of_nonneg (hf a) (Finset.sum_nonneg (fun i hi => hf i))]
+    rw [ih]
+    rw [Finset.sum_insert ha]
+
+lemma Lebesgue_outer_measure.linear_bound {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    (S: Set (EuclideanSpace' d)) : Lebesgue_outer_measure (T '' S) ≤ ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ) * Lebesgue_outer_measure S := by
+  set D := abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)) with hD_def
+  have hD_nonneg : 0 ≤ D := abs_nonneg _
+  have hD_pos : 0 < D := by
+    rw [abs_pos]
+    exact (LinearEquiv.isUnit_det' T).ne_zero
+  by_cases hS_top : Lebesgue_outer_measure S = ⊤
+  · rw [hS_top]
+    have h_mul_top : (D : EReal) * (⊤ : EReal) = ⊤ := EReal.coe_mul_top_of_pos hD_pos
+    rw [h_mul_top]
+    exact le_top
+  have hS_nonneg : 0 ≤ Lebesgue_outer_measure S := Lebesgue_outer_measure.nonneg S
+  have hS_ne_bot : Lebesgue_outer_measure S ≠ ⊥ := by
+    intro h_eq
+    rw [h_eq] at hS_nonneg
+    have h_lt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero
+    exact not_lt.mpr hS_nonneg h_lt
+  refine EReal.le_of_forall_pos_le_add' ?_
+  intro ε hε
+  by_cases hd : 0 < d
+  · have h_epsD_real_pos : (0 : ℝ) < ε / D := div_pos hε hD_pos
+    have h_outer_lt : Lebesgue_outer_measure S < Lebesgue_outer_measure S + (ε / D : ℝ) :=
+      EReal.lt_add_of_pos_coe h_epsD_real_pos hS_ne_bot hS_top
+    let C := ((fun S' : ℕ → Box d ↦ ∑' n, (S' n).volume.toEReal)) '' { S' | S ⊆ ⋃ n, (S' n).toSet }
+    have hC_sInf_eq_outer : sInf C = Lebesgue_outer_measure S := by
+      rw [← Lebesgue_outer_measure_eq_nat_indexed hd S, Lebesgue_outer_measure]
+    have hC_nonempty : C.Nonempty := by
+      by_contra h_empty
+      have h_C_empty : C = ∅ := Set.not_nonempty_iff_eq_empty.mp h_empty
+      have h_sInf_top : sInf C = ⊤ := by
+        rw [h_C_empty]
+        exact sInf_empty
+      rw [hC_sInf_eq_outer] at h_sInf_top
+      exact hS_top h_sInf_top
+    have h_sInf_lt : sInf C < sInf C + (ε / D : ℝ) := by
+      rw [hC_sInf_eq_outer]
+      exact h_outer_lt
+    rcases exists_lt_of_csInf_lt hC_nonempty h_sInf_lt with ⟨V, hV_mem, hV_lt⟩
+    rcases hV_mem with ⟨S_boxes, (hS_cover_prop : S ⊆ ⋃ (n : ℕ), (S_boxes n).toSet), hV_eq⟩
+    have h_tsum_vol_lt : V < Lebesgue_outer_measure S + (ε / D : ℝ) := by
+      rw [hC_sInf_eq_outer] at hV_lt
+      exact hV_lt
+    have hV_tsum_val : ∑' n : ℕ, ((S_boxes n).volume.toEReal) = V := hV_eq
+    have h_cover_TS : T '' S ⊆ ⋃ (n : ℕ), (T '' (S_boxes n).toSet) := by
+      rintro y ⟨x, hx, rfl⟩
+      have hx_cover : x ∈ ⋃ (n : ℕ), (S_boxes n).toSet := hS_cover_prop hx
+      have hx_cover' : ∃ (n : ℕ), x ∈ (S_boxes n).toSet := by
+        simpa using hx_cover
+      rcases hx_cover' with ⟨n, hn⟩
+      refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+      exact ⟨x, hn, rfl⟩
+    set f := fun n : ℕ => Lebesgue_outer_measure (T '' (S_boxes n).toSet) with hf_def
+    have hf_nonneg : ∀ n, 0 ≤ f n := by
+      intro n; dsimp [f]; exact Lebesgue_outer_measure.nonneg _
+    have hf_vol : ∀ n, f n ≤ ((D : ℝ) * ((S_boxes n).volume : ℝ) : EReal) := by
+      intro n
+      have h := box_image_outer_measure_le T (S_boxes n)
+      simpa [hD_def, mul_comm] using h
+    have h_outer_union : Lebesgue_outer_measure (T '' S) ≤ ∑' n : ℕ, f n :=
+      calc
+        Lebesgue_outer_measure (T '' S) ≤ Lebesgue_outer_measure (⋃ (n : ℕ), (T '' (S_boxes n).toSet)) :=
+          Lebesgue_outer_measure.mono h_cover_TS
+        _ ≤ ∑' n : ℕ, Lebesgue_outer_measure (T '' (S_boxes n).toSet) := Lebesgue_outer_measure.union_le _
+        _ = ∑' n : ℕ, f n := rfl
+    have h_vol_nonneg : ∀ n : ℕ, 0 ≤ (S_boxes n).volume := fun n => Box.volume_nonneg _
+    have h_tsum_vol_lt' : ∑' n : ℕ, ((S_boxes n).volume.toEReal) < Lebesgue_outer_measure S + (ε / D : ℝ) := by
+      simpa [hV_tsum_val] using h_tsum_vol_lt
+    have h_tsum_Dvol_bound : ∑' n : ℕ, f n ≤ (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) := by
+      apply EReal.tsum_le_of_sum_range_le_of_nonneg hf_nonneg
+      intro N
+      have h_fin_f_le_fin_Dvol : (∑ n ∈ Finset.range N, f n) ≤ (∑ n ∈ Finset.range N, ((D : ℝ) * ((S_boxes n).volume : ℝ) : EReal)) :=
+        Finset.sum_le_sum (fun n hn => hf_vol n)
+      have h_fin_Dvol : (∑ n ∈ Finset.range N, ((D : ℝ) * ((S_boxes n).volume : ℝ) : EReal)) = (D : ℝ) * (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) := by
+        calc
+          (∑ n ∈ Finset.range N, ((D : ℝ) * ((S_boxes n).volume : ℝ) : EReal))
+              = (∑ n ∈ Finset.range N, ((D : EReal) * (((S_boxes n).volume : ℝ) : EReal))) := by
+                refine Finset.sum_congr rfl (fun n hn => ?_)
+                norm_cast
+          _ = (D : EReal) * (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) := by
+            rw [mul_finset_sum_ereal_nonneg (D : EReal) (Finset.range N) (fun n => (((S_boxes n).volume : ℝ) : EReal))
+              (fun n => by exact EReal.coe_nonneg.mpr (h_vol_nonneg n))]
+      have h_fin_vol_le : (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) ≤ Lebesgue_outer_measure S + (ε / D : ℝ) := by
+        have h_partial_le_tsum : (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) ≤ ∑' n : ℕ, (((S_boxes n).volume : ℝ) : EReal) :=
+          EReal.finset_sum_le_tsum h_vol_nonneg (Finset.range N)
+        have h_tsum_eq : ∑' n : ℕ, (((S_boxes n).volume : ℝ) : EReal) = ∑' n : ℕ, ((S_boxes n).volume.toEReal) := by
+          refine tsum_congr (fun n => ?_)
+          simp
+        have h_tsum_lt : ∑' n : ℕ, (((S_boxes n).volume : ℝ) : EReal) < Lebesgue_outer_measure S + (ε / D : ℝ) := by
+          simpa [h_tsum_eq] using h_tsum_vol_lt'
+        exact h_partial_le_tsum.trans h_tsum_lt.le
+      have h_mul_temp : (D : ℝ) * (Lebesgue_outer_measure S + (ε / D : ℝ)) = (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) := by
+        rw [EReal.left_distrib_of_nonneg hS_nonneg (by positivity : 0 ≤ ((ε / D : ℝ) : EReal))]
+        have : (D : ℝ) * ((ε / D : ℝ) : EReal) = (ε : ℝ) := by
+          have hcalc : (D : ℝ) * (ε / D) = ε := by field_simp [hD_pos.ne']
+          calc
+            (D : ℝ) * ((ε / D : ℝ) : EReal) = ((D * (ε / D) : ℝ) : EReal) := by norm_cast
+            _ = (ε : ℝ) := by simp [hcalc]
+        rw [this]
+      have h_mul_ineq : (D : ℝ) * (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) ≤ (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) :=
+        calc
+          (D : ℝ) * (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) ≤ (D : ℝ) * (Lebesgue_outer_measure S + (ε / D : ℝ)) :=
+            mul_le_mul_of_nonneg_left h_fin_vol_le (by exact_mod_cast hD_nonneg)
+          _ = (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) := h_mul_temp
+      calc
+        (∑ n ∈ Finset.range N, f n) ≤ (∑ n ∈ Finset.range N, ((D : ℝ) * ((S_boxes n).volume : ℝ) : EReal)) := h_fin_f_le_fin_Dvol
+        _ = (D : ℝ) * (∑ n ∈ Finset.range N, (((S_boxes n).volume : ℝ) : EReal)) := h_fin_Dvol
+        _ ≤ (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) := h_mul_ineq
+    calc
+      Lebesgue_outer_measure (T '' S) ≤ ∑' n : ℕ, f n := h_outer_union
+      _ ≤ (D : ℝ) * Lebesgue_outer_measure S + (ε : ℝ) := h_tsum_Dvol_bound
+  · have h0 : d = 0 := by omega
+    subst h0
+    have h_finrank : Module.finrank ℝ (EuclideanSpace' 0) = 0 := by
+      simp
+    have h_det_one : LinearMap.det (T : EuclideanSpace' 0 →ₗ[ℝ] EuclideanSpace' 0) = 1 :=
+      LinearMap.det_eq_one_of_finrank_eq_zero h_finrank (T : EuclideanSpace' 0 →ₗ[ℝ] EuclideanSpace' 0)
+    have hD_one : D = 1 := by
+      simp [hD_def, h_det_one]
+    have h_dim : Subsingleton (EuclideanSpace' 0) := by
+      refine Subsingleton.intro ?_
+      intro x y
+      ext i
+      exact i.elim0
+    have h_triv : T '' S = S := by
+      apply Set.Subset.antisymm
+      · rintro y ⟨x, hx, rfl⟩
+        have : T x = x := h_dim.elim (T x) x
+        rw [this]
+        exact hx
+      · rintro x hx
+        refine ⟨x, hx, ?_⟩
+        exact h_dim.elim (T x) x
+    rw [h_triv, hD_one]
+    simp
+    have h_eps_nonneg : (0 : EReal) ≤ (ε : ℝ) := by exact_mod_cast le_of_lt hε
+    exact le_add_of_nonneg_right h_eps_nonneg
+
 /-- Exercise 1.2.21 (Change of variables) -/
 lemma LebesgueMeasurable.linear {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
-{E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): LebesgueMeasurable (T '' E) := by
-  sorry
+    {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): LebesgueMeasurable (T '' E) := by
+  intro ε hε
+  obtain ⟨ε', hε'_pos, hε'_le⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) ≤ ε := by
+    cases ε with
+    | bot => exact absurd hε (not_lt.mpr bot_le)
+    | top => exact ⟨1, one_pos, le_top⟩
+    | coe r =>
+      have hr : 0 < r := EReal.coe_pos.mp hε
+      exact ⟨r, hr, le_refl _⟩
+  set D := |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| with hD_def
+  have hD_nonneg : 0 ≤ D := abs_nonneg _
+  have hD_pos : 0 < D := by
+    rw [abs_pos]
+    exact (LinearEquiv.isUnit_det' T).ne_zero
+  have h_epsD_pos : 0 < ε' / (D : ℝ) := div_pos hε'_pos hD_pos
+  rcases hE (ε' / (D : ℝ)) (by
+    have : (0 : EReal) < (ε' / (D : ℝ) : ℝ) := by exact_mod_cast h_epsD_pos
+    exact this) with ⟨U, hU_open, hE_sub_U, h_outer⟩
+  refine ⟨T '' U, ?_, Set.image_mono hE_sub_U, ?_⟩
+  · exact ContinuousLinearEquiv.isOpenMap (T.toContinuousLinearEquiv) U hU_open
+  · have h_diff_eq : (T '' U) \ (T '' E) = T '' (U \ E) := by
+      ext y; constructor
+      · rintro ⟨⟨x, hxU, rfl⟩, hy_not⟩
+        refine ⟨x, ⟨hxU, ?_⟩, rfl⟩
+        intro hxE
+        apply hy_not
+        exact ⟨x, hxE, rfl⟩
+      · rintro ⟨x, ⟨hxU, hx_notE⟩, rfl⟩
+        refine ⟨⟨x, hxU, rfl⟩, ?_⟩
+        intro h
+        rcases h with ⟨x', hx'E, h⟩
+        have hx_eq : x = x' := T.injective h.symm
+        subst hx_eq
+        exact hx_notE hx'E
+    rw [h_diff_eq]
+    have h_bound : Lebesgue_outer_measure (T '' (U \ E)) ≤ (D : ℝ) * Lebesgue_outer_measure (U \ E) :=
+      Lebesgue_outer_measure.linear_bound T (U \ E)
+    have h_outer_mul : (D : ℝ) * ((ε' / (D : ℝ)) : EReal) = (ε' : EReal) := by
+      have hcalc : (D : ℝ) * (ε' / D) = ε' := by field_simp [hD_pos.ne']
+      calc
+        (D : ℝ) * ((ε' / (D : ℝ)) : EReal) = ((D * (ε' / D) : ℝ) : EReal) := by norm_cast
+        _ = (ε' : EReal) := by simp [hcalc]
+    calc
+      Lebesgue_outer_measure (T '' (U \ E)) ≤ (D : ℝ) * Lebesgue_outer_measure (U \ E) := h_bound
+      _ ≤ (D : ℝ) * ((ε' / (D : ℝ)) : EReal) :=
+        mul_le_mul_of_nonneg_left h_outer (by exact_mod_cast hD_nonneg)
+      _ = (ε' : EReal) := h_outer_mul
+      _ ≤ ε := hε'_le
 
 /-- Exercise 1.2.21 (Change of variables) -/
 lemma Lebesgue_measure.linear {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A]
@@ -5899,7 +6113,7 @@ noncomputable abbrev IsCurve {d:ℕ} (C: Set (EuclideanSpace' d)) : Prop := ∃ 
 /-- Exercise 1.2.25(i) -/
 theorem IsCurve.null {d:ℕ} (hd: d ≥ 2) {C: Set (EuclideanSpace' d)} (hC: IsCurve C) : IsNull C := by sorry
 
-example : ∃ (d:ℕ) (C: Set (EuclideanSpace' d)) (hC: IsCurve C), ¬ IsNull C := by
+example : ∃ (d:ℕ) (C: Set (EuclideanSpace' d)) (_ : IsCurve C), ¬ IsNull C := by
   refine ⟨1, Real.equiv_EuclideanSpace' '' (Set.Icc (0:ℝ) 1), ?_, ?_⟩
   · refine ⟨0, 1, Real.equiv_EuclideanSpace', rfl, ?_⟩
     have h_contDiff : ContDiff ℝ 1 (Real.equiv_EuclideanSpace' : ℝ → EuclideanSpace' 1) := by
