@@ -5533,7 +5533,7 @@ theorem Lebesgue_measure.translate {d:ℕ} {E: Set (EuclideanSpace' d)} (x: Eucl
    (_hE: LebesgueMeasurable E): Lebesgue_measure (E + {x}) = Lebesgue_measure E := by
   rw [Lebesgue_measure, Lebesgue_measure, Lebesgue_outer_measure.translate E x]
 
-lemma box_image_outer_measure_le {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) (B: Box d) : 
+lemma box_image_outer_measure_le {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) (B: Box d) :
     Lebesgue_outer_measure (T '' B.toSet) ≤ ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * Box.volume B : ℝ) := by
   have h_bounded : Bornology.IsBounded (T '' B.toSet) := by
     apply linear_isBounded_image T
@@ -5543,7 +5543,7 @@ lemma box_image_outer_measure_le {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] Eucli
   have hJM : JordanMeasurable (T '' B.toSet) := JordanMeasurable.linear_of_elem T (IsElementary.box B)
   have h_outer_eq : (Jordan_outer_measure (T '' B.toSet) : EReal) = ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) := by
     rw [hJM.eq_outer]
-  have h_measure_eq : ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) = 
+  have h_measure_eq : ((JordanMeasurable.linear_of_elem T (IsElementary.box B)).measure : EReal) =
       ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * (IsElementary.box B).measure : ℝ) := by
     rw [linear_of_elem_measure_eq T (IsElementary.box B)]
   have h_box_measure : (IsElementary.box B).measure = Box.volume B := IsElementary.measure_of_box B
@@ -5553,7 +5553,7 @@ lemma box_image_outer_measure_le {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] Eucli
     _ = ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * (IsElementary.box B).measure : ℝ) := h_measure_eq
     _ = ((abs (LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) * Box.volume B : ℝ) := by rw [h_box_measure]
 
-lemma mul_finset_sum_ereal_nonneg (c : EReal) (t : Finset ℕ) (f : ℕ → EReal) (hf : ∀ n, 0 ≤ f n) : 
+lemma mul_finset_sum_ereal_nonneg (c : EReal) (t : Finset ℕ) (f : ℕ → EReal) (hf : ∀ n, 0 ≤ f n) :
     c * (∑ n ∈ t, f n) = ∑ n ∈ t, c * f n := by
   induction t using Finset.induction_on with
   | empty => simp
@@ -5754,7 +5754,7 @@ lemma LebesgueMeasurable.linear {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] Euclid
 
 /-- Exercise 1.2.21 (Change of variables) -/
 lemma Lebesgue_measure.linear {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A]
- {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): Lebesgue_measure (A.linear_equiv '' E) = |A.det| * Lebesgue_measure E := by
+ {E: Set (EuclideanSpace' d)} (_hE: LebesgueMeasurable E): Lebesgue_measure (A.linear_equiv '' E) = |A.det| * Lebesgue_measure E := by
   unfold Lebesgue_measure
   apply le_antisymm
   · -- Upper bound: m(T '' E) ≤ |A.det| * m(E)
