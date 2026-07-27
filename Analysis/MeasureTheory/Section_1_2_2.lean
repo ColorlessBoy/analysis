@@ -5755,7 +5755,47 @@ lemma LebesgueMeasurable.linear {d:ℕ} (T: EuclideanSpace' d ≃ₗ[ℝ] Euclid
 /-- Exercise 1.2.21 (Change of variables) -/
 lemma Lebesgue_measure.linear {d:ℕ} (A: Matrix (Fin d) (Fin d) ℝ) [Invertible A]
  {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E): Lebesgue_measure (A.linear_equiv '' E) = |A.det| * Lebesgue_measure E := by
-  sorry
+  unfold Lebesgue_measure
+  apply le_antisymm
+  · -- Upper bound: m(T '' E) ≤ |A.det| * m(E)
+    simpa [Matrix.linear_equiv_det A] using Lebesgue_outer_measure.linear_bound (A.linear_equiv) E
+  · -- Lower bound: |A.det| * m(E) ≤ m(T '' E)
+    set T := A.linear_equiv with hT
+    have h_abs_nonneg : 0 ≤ |A.det| := abs_nonneg _
+    have h_symm_image : T.symm '' (T '' E) = E := by
+      rw [Set.image_image]
+      simp
+    have h_det_prod : |A.det| * |LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| = (1 : ℝ) := by
+      have h_detT : LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) = A.det := Matrix.linear_equiv_det A
+      have h_comp_id : (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) ∘ₗ (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) = LinearMap.id := by
+        ext x; simp
+      calc
+        |A.det| * |LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| = |A.det * LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| := by
+          rw [abs_mul]
+        _ = |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) * LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| := by
+          rw [h_detT]
+        _ = |LinearMap.det ((T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) ∘ₗ (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))| := by
+          rw [LinearMap.det_comp]
+        _ = |LinearMap.det (LinearMap.id : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| := by rw [h_comp_id]
+        _ = |(1 : ℝ)| := by rw [LinearMap.det_id]
+        _ = (1 : ℝ) := abs_one
+    have h_lower : Lebesgue_outer_measure (T.symm '' (T '' E)) ≤ ((abs (LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ) * Lebesgue_outer_measure (T '' E) :=
+      Lebesgue_outer_measure.linear_bound (T.symm) (T '' E)
+    have h_symm_image' : Lebesgue_outer_measure E ≤ ((abs (LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ) * Lebesgue_outer_measure (T '' E) := by
+      simpa [h_symm_image] using h_lower
+    have h_nonneg_cast : (0 : EReal) ≤ (|A.det| : ℝ) := by exact_mod_cast h_abs_nonneg
+    have h_mul_lower : (|A.det| : ℝ) * Lebesgue_outer_measure E ≤ Lebesgue_outer_measure (T '' E) := by
+      calc
+        (|A.det| : ℝ) * Lebesgue_outer_measure E
+            ≤ (|A.det| : ℝ) * (((abs (LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ) * Lebesgue_outer_measure (T '' E)) :=
+          mul_le_mul_of_nonneg_left h_symm_image' h_nonneg_cast
+        _ = ((|A.det| : ℝ) * ((abs (LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ)) * Lebesgue_outer_measure (T '' E) := by
+          rw [← mul_assoc]
+        _ = ((|A.det| * |LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| : ℝ) : EReal) * Lebesgue_outer_measure (T '' E) := by
+          norm_cast
+        _ = ((1 : ℝ) : EReal) * Lebesgue_outer_measure (T '' E) := by rw [h_det_prod]
+        _ = Lebesgue_outer_measure (T '' E) := by simp
+    simpa [hT] using h_mul_lower
 
 
 
