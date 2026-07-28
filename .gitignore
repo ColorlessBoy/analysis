@@ -26,4 +26,5 @@ Claude.md
 **/tmp
 **/docker/
 
-# .agents/  # uncommented to track subagent scripts and experience DB
+# # .agents/  # uncommented to track subagent scripts and experience DB
+**/__pycache__/
