@@ -62,6 +62,13 @@
       "tactics": "adapted prod_null_right proof with d\u2081/d\u2082 swapped",
       "description": "Symmetric version of prod_null_right for when the other factor has measure 0",
       "time": "2026-07-27T10:00:41.281586"
+    },
+    {
+      "theorem": "finite_TFAE_0_implies_3",
+      "file": "_temp_finite_TFAE_0_implies_3.lean",
+      "tactics": "TFAE 0\u21923, upward_monotone_convergence, Metric.tendsto_atTop, EReal.coe_toReal, Lebesgue_measure.union, finite_union_le, ProperSpace.isCompact_closedBall, IsCompact.inter_right",
+      "description": "Inner regularity of Lebesgue measure: from measurable + finite measure, get compact subset within \u03b5",
+      "time": "2026-07-28T19:25:22.705634"
     }
   ],
   "errors": [
