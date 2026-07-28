@@ -1,0 +1,111 @@
+{
+  "_metadata": {
+    "description": "Project-specific Lean 4 pitfalls for the analysis formalization project",
+    "note": "Standard mathlib4 lemmas may not exist or may have different names in this project. Subagents should check the existence of any lemma before using it."
+  },
+  "pitfalls": [
+    {
+      "expected": "x ∉ (∅ : Set α)",
+      "problem": "Set.not_mem_empty does NOT exist as a global mathlib lemma in this project.",
+      "solution": "Use `by simp` instead. Or use the project's custom lemma at `Chapter3.SetTheory.Set.not_mem_empty` (if the namespace is open). Prefer `by simp`.",
+      "examples": [
+        "`by simp` instead of `Set.not_mem_empty x`",
+        "`exact Set.not_mem_empty x` → `simp at h` or `exact by simp`"
+      ]
+    },
+    {
+      "expected": "0 ∈ Set.Ico 0 1",
+      "problem": "Set.Ico 0 1 needs TWO conditions: 0 ≤ 0 AND 0 < 1. Using `⟨by norm_num⟩` gives only one field.",
+      "solution": "Use `⟨by norm_num, by norm_num⟩` to provide both fields.",
+      "examples": [
+        "`have h0 : (0:ℝ) ∈ Set.Ico 0 1 := ⟨by norm_num, by norm_num⟩`",
+        "NOT: `⟨by norm_num⟩`"
+      ]
+    },
+    {
+      "expected": "a ≤ b from ha: a ≤ 0 and hb: 0 ≤ b",
+      "problem": "Subagents often write `hb.trans ?_` but hb = 0 ≤ b, so hb.trans X gives 0 ≤ something, NOT a ≤ b.",
+      "solution": "Use `ha.trans hb` to get a ≤ b (transitivity: a ≤ 0 ≤ b → a ≤ b). NOT `hb.trans ha`.",
+      "examples": [
+        "`have hab : a ≤ b := ha.trans hb` (where ha: a ≤ 0, hb: 0 ≤ b)",
+        "DON'T: `hb.trans ?_`"
+      ]
+    },
+    {
+      "expected": "Disjoint (A : Set ℝ) (B : Set ℝ)",
+      "problem": "`h_disj` is of type `Set.univ.PairwiseDisjoint (fun n ↦ (I n).toSet)`. To get `Disjoint (I n).toSet (I m).toSet` for n ≠ m, use `h_disj (Set.mem_univ n) (Set.mem_univ m) h_ne`.",
+      "solution": "`h_disj (Set.mem_univ n) (Set.mem_univ m) h_ne` gives `Disjoint ... ...`. Then use `Set.disjoint_iff.mp` to get intersection = ∅.",
+      "examples": [
+        "`have h_d : Disjoint ((I n).toSet) ((I m).toSet) := h_disj (Set.mem_univ n) (Set.mem_univ m) h_ne`",
+        "`have h_empty : (I n).toSet ∩ (I m).toSet = ∅ := Set.disjoint_iff.mp h_d`"
+      ]
+    },
+    {
+      "expected": "Proving b < 1 from b ∈ Ico 0 1",
+      "problem": "The `h_sub` lemma says `(I k).toSet ⊆ Set.Ico 0 1`. To get b < 1, first show `b ∈ (I k).toSet` then use `h_sub`.",
+      "solution": "Show `b` is in the set membership (e.g., `⟨h0b, le_refl b⟩` for Icc a b). Then `h_sub` gives both bounds.",
+      "examples": [
+        "`have hb_mem : b ∈ (Set.Icc a b) := ⟨h0b, le_refl b⟩`",
+        "`have hb_lt_one : b < 1 := (h_sub hb_mem).2`"
+      ]
+    },
+    {
+      "expected": "I n = BoundedInterval.Icc a b",
+      "problem": "The lemma `closed_eq_Icc_or_empty` returns `I n = Icc a b` where `Icc` is `BoundedInterval.Icc` (constructor), NOT `Set.Icc`. But `I n : BoundedInterval` while `(I n).toSet : Set ℝ`.",
+      "solution": "Use `(I n : Set ℝ) = Set.Icc a b` via `rw [h_eq, BoundedInterval.set_Icc]` where `h_eq : I n = BoundedInterval.Icc a b`.",
+      "examples": [
+        "`rcases closed_eq_Icc_or_empty (h_closed n) with (h | h)`",
+        "`rw [h, BoundedInterval.set_Icc] at hx` to get `hx : x ∈ Set.Icc a b`"
+      ]
+    },
+    {
+      "expected": "csInf_mem h_nonempty",
+      "problem": "csInf_mem requires WellFoundedLT ℝ, which does NOT exist. ℝ has infinite descending sequences (no well-founded < relation).",
+      "solution": "Don't use csInf_mem. Use csInf_le + a specific element from the set. For proving sInf A ∈ A, use a different argument or pick an explicit element.",
+      "examples": [
+        "let a0 := hA_nonempty.choose; have ha0_mem : a0 ∈ A := hA_nonempty.choose_spec"
+      ]
+    },
+    {
+      "expected": "hn_k.symm (where hn_k : ¬ n = k)",
+      "problem": "The `.symm` field is not available on `¬` type (function type). `Ne.symm` works on `Ne` type but `¬ n = k` is syntactically different from `Ne n k`.",
+      "solution": "Use `by intro h; apply hn_k; exact h.symm` or `fun h => hn_k h.symm`.",
+      "examples": [
+        "h_disj (Set.mem_univ k) (Set.mem_univ n) (by intro h; apply hn_k; exact h.symm)"
+      ]
+    },
+    {
+      "expected": "rw [hIk, BoundedInterval.set_Icc] at hm (where hm : x ∈ Set.Icc c d)",
+      "problem": "rw fails when hm is already about Set.Icc c d but hIk : I m = BoundedInterval.Icc c d. The rewrite target doesn't contain I m.",
+      "solution": "Only rewrite when the target contains the BoundedInterval term. If hm : x ∈ Set.Icc c d, no rewrite needed.",
+      "examples": [
+        "// hm is already Set.Icc, just use hm directly",
+        "// If you have (I n).toSet, rewrite: rw [hIn, BoundedInterval.set_Icc] at hn"
+      ]
+    },
+    {
+      "expected": "h_sub ⟨h0b, le_refl b⟩ where h_sub : Set.Icc a b ⊆ ...",
+      "problem": "Set.Icc a b requires a ≤ x AND x ≤ b. When x = b, need a ≤ b NOT 0 ≤ b for the first argument.",
+      "solution": "Use ⟨ha0.trans h0b, le_refl b⟩ (which gives a ≤ b as the first argument).",
+      "examples": [
+        "- h_sub ⟨ha0.trans h0b, le_refl b⟩"
+      ]
+    },
+    {
+      "expected": "rw [ha_eq_0] where target doesn't contain a",
+      "problem": "rw [ha_eq_0] fails when rewriting a in a target that doesn't contain a (e.g., target is Set.Icc 0 b ⊆ Ico 0 1). The rewrite key a is not in the target.",
+      "solution": "Use simpa [ha_eq_0] using ... instead of rw. Or use have h0_Icc : 0 ∈ Set.Icc (0:ℝ) b := ⟨by norm_num, h0b⟩ and simpa.",
+      "examples": [
+        "simpa [ha_eq_0] using h_sub_k"
+      ]
+    },
+    {
+      "expected": "hne : (I n).toSet.Nonempty vs h_others_exist expects (I n).toSet ≠ ∅",
+      "problem": "Nonempty and ≠ ∅ are equivalent but not definitionally equal. by_contra! gives Nonempty but (I n).toSet ≠ ∅ is needed.",
+      "solution": "Use Set.nonempty_iff_ne_empty.mp to convert.",
+      "examples": [
+        "h_others_exist ⟨n, hn_k, Set.nonempty_iff_ne_empty.mp hne⟩"
+      ]
+    }
+  ]
+}

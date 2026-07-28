@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "tips": [
+    {
+      "tag": "environment",
+      "text": "This project is NOT Mathlib4. Lemma names differ. Always use lean_local_search before guessing."
+    },
+    {
+      "tag": "decomposition",
+      "text": "Proofs >30 lines must be decomposed into helper lemmas (each \u226415 lines). Write them BEFORE the main theorem."
+    },
+    {
+      "tag": "lsp",
+      "text": "lean_diagnostic_messages with timeout_s=30 after EVERY edit. partial:true means still elaborating \u2014 poll again."
+    },
+    {
+      "tag": "editing",
+      "text": "Max 1-3 lines per edit. Check errors after each edit. If errors increase, revert immediately."
+    },
+    {
+      "tag": "tactics",
+      "text": "Tactic order: rfl \u2192 simp \u2192 norm_num \u2192 linarith \u2192 nlinarith \u2192 omega \u2192 exact \u2192 apply \u2192 rw \u2192 have \u2192 calc"
+    },
+    {
+      "tag": "measure",
+      "text": "LebesgueOuterMeasure.of_Icc a b gives measure of preimage of [a,b] as b-a. Use Real.equiv_EuclideanSpace' to embed \u211d."
+    },
+    {
+      "tag": "interval",
+      "text": "BoundedInterval with IsClosed.toSet is Icc a b or empty, by closed_eq_Icc_or_empty."
+    },
+    {
+      "tag": "measure",
+      "text": "LebesgueMeasure.countable_union gives m(\u22c3 E_n) = \u2211' m(E_n) for measurable disjoint E_n."
+    }
+  ],
+  "successes": [
+    {
+      "theorem": "Section_1_2_2_line1737",
+      "file": "_temp_Section_1_2_2_line1737.lean",
+      "tactics": "BaireSpace.baire_property, IsClosed.sdiff, IsComplete.completeSpace_coe, exists_surjective_nat, interior_eq_empty_iff_dense_compl, Set.countable_iUnion",
+      "description": "[0,1) is not a countable disjoint union of closed intervals: Baire on endpoint set K=[0,1]\\\u22c3Ioo; isolated point x>0 gives gap contradiction; if x=0 isolated, zoom to K\u2229[\u03b5\u2081,1] and reapply Baire",
+      "time": "2026-07-26T21:38:28.841202"
+    },
+    {
+      "theorem": "Lebesgue_measure.linear",
+      "file": "/Users/penglingwei/Documents/lean/analysis/analysis/MeasureTheory/Section_1_2_2.lean",
+      "tactics": "unfold, le_antisymm, linear_bound, Matrix.linear_equiv_det, det_comp, det_id, abs_mul, abs_one, mul_assoc, norm_cast, Set.image_image",
+      "description": "Change-of-variables formula: measure scales by |det A|. Upper bound via linear_bound, lower bound via linear_bound on T.symm and det(T)*det(T.symm)=1.",
+      "time": "2026-07-27T07:59:51.699734"
+    },
+    {
+      "theorem": "prod_null_right",
+      "file": "_temp_prod_test.lean",
+      "tactics": "Summable.map_tsum, EReal.coe_ennreal_lt_coe_ennreal_iff, key_real_ineq, ENNReal.tsum_lt_tsum",
+      "description": "Proved product outer measure \u2264 \u03b5 when one factor has measure 0, using box covers and the key real inequality",
+      "time": "2026-07-27T10:00:38.125264"
+    },
+    {
+      "theorem": "prod_null_left",
+      "file": "_temp_prod_test.lean",
+      "tactics": "adapted prod_null_right proof with d\u2081/d\u2082 swapped",
+      "description": "Symmetric version of prod_null_right for when the other factor has measure 0",
+      "time": "2026-07-27T10:00:41.281586"
+    }
+  ],
+  "errors": [
+    {
+      "file": "Section_1_2_2.lean",
+      "line": "5547",
+      "type": "false_lemma",
+      "message": "Lemma sInf_image2_mul_eq_mul_sInf is false. Counterexample: A positive reals approaching 0, B = {infinity}. sInf A * sInf B = 0*infinity = 0 but sInf {a*infinity | a in A} = sInf {infinity} = infinity.",
+      "solution": "--solution Add condition that sets are subsets of R (no infinite values), or that 0 in A whenever sInf A = 0 and infinity in B.",
+      "time": "2026-07-26T22:27:28.637690"
+    }
+  ]
+}
