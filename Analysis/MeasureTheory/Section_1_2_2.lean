@@ -6128,8 +6128,267 @@ noncomputable instance IsElementary.metric {d:ℕ} {A: Set (EuclideanSpace' d)} 
           rw [EReal.toReal_add h_not_top_EF h_not_bot_EF h_not_top_FG h_not_bot_FG]
   }
 
+/-- Exercise 1.2.24(ii) (Lebesgue measure as the completion of elementary measure)-/
+def limsup_set_ {α : Type*} (E : ℕ → Set α) : Set α := ⋂ k, ⋃ (j : ℕ) (_ : j ≥ k), E j
+
+lemma mem_limsup_set_iff_ {α : Type*} {E : ℕ → Set α} {x : α} : x ∈ limsup_set_ E ↔ ∀ k, ∃ j, j ≥ k ∧ x ∈ E j := by
+  simp [limsup_set_, Set.mem_iInter, Set.mem_iUnion]
+
+lemma symmDiff_limsup_subset_union' {α : Type*} (E : ℕ → Set α) (k : ℕ) :
+    _root_.symmDiff (E k) (limsup_set_ E) ⊆ ⋃ (j : ℕ) (_ : j ≥ k), _root_.symmDiff (E j) (E (j+1)) := by
+  classical
+  intro x hx
+  rw [_root_.symmDiff_def] at hx
+  rcases hx with (hx | hx)
+  · rcases hx with ⟨hxE_k, hx_not_limsup⟩
+    rw [mem_limsup_set_iff_] at hx_not_limsup
+    push_neg at hx_not_limsup
+    rcases hx_not_limsup with ⟨m, hm⟩
+    have hm_all : ∀ j, j ≥ m → x ∉ E j := by
+      intro j hj; exact hm j hj
+    have hm_gt_k : k < m := by
+      by_contra! hle; apply hm_all k hle; exact hxE_k
+    have h_exists : ∃ j, k ≤ j ∧ x ∉ E j := ⟨m, le_of_lt hm_gt_k, hm_all m (le_refl m)⟩
+    let j0 := Nat.find h_exists
+    have hj0_spec : k ≤ j0 ∧ x ∉ E j0 := Nat.find_spec h_exists
+    have hj0_min : ∀ j, k ≤ j → (x ∉ E j) → j0 ≤ j := λ j hj hx_not => Nat.find_min' h_exists ⟨hj, hx_not⟩
+    by_cases h_j0_eq_k : j0 = k
+    · rw [h_j0_eq_k] at hj0_spec; exact absurd hxE_k hj0_spec.2
+    · have hk_lt_j0 : k < j0 := by omega
+      have hx_E_j0m1 : x ∈ E (j0-1) := by
+        by_contra! hx_not; have : j0 ≤ j0-1 := hj0_min (j0-1) (by omega) hx_not; omega
+      have h_symm : x ∈ _root_.symmDiff (E (j0-1)) (E j0) := by
+        rw [_root_.symmDiff_def]; exact Or.inl ⟨hx_E_j0m1, hj0_spec.2⟩
+      by_cases h_j0m1_ge_k : k ≤ j0-1
+      · have h_eq : (j0-1 : ℕ) + 1 = j0 := by omega
+        have hx' : x ∈ _root_.symmDiff (E (j0-1)) (E ((j0-1)+1)) := by simpa [h_eq] using h_symm
+        refine Set.mem_iUnion.mpr ⟨j0-1, ?_⟩
+        exact Set.mem_iUnion.mpr ⟨h_j0m1_ge_k, hx'⟩
+      · have h_j0_eq_kp1 : j0 = k+1 := by omega
+        have h_symm_k : x ∈ _root_.symmDiff (E k) (E (k+1)) := by rw [h_j0_eq_kp1] at h_symm; exact h_symm
+        refine Set.mem_iUnion.mpr ⟨k, Set.mem_iUnion.mpr ⟨le_refl k, h_symm_k⟩⟩
+  · rcases hx with ⟨hx_limsup, hx_not_Ek⟩
+    rw [mem_limsup_set_iff_] at hx_limsup
+    have h_some_j : ∃ j, k ≤ j ∧ x ∈ E (j+1) := by
+      have h := hx_limsup (k+1)
+      rcases h with ⟨j, hj, hx_j⟩
+      by_cases h_j_eq_k : j = k
+      · subst h_j_eq_k; exact absurd hx_j hx_not_Ek
+      · have h_eq : (j-1 : ℕ) + 1 = j := by omega
+        refine ⟨j-1, by omega, ?_⟩; simpa [h_eq] using hx_j
+    let j0 := Nat.find h_some_j
+    have hj0_spec : k ≤ j0 ∧ x ∈ E (j0+1) := Nat.find_spec h_some_j
+    have hj0_min : ∀ j, k ≤ j → x ∈ E (j+1) → j0 ≤ j := λ j hj hx => Nat.find_min' h_some_j ⟨hj, hx⟩
+    have hx_not_j0 : x ∉ E j0 := by
+      intro hx_j0
+      by_cases h_j0_eq_k : j0 = k
+      · rw [h_j0_eq_k] at hx_j0; exact hx_not_Ek hx_j0
+      · have hk_le_j0m1 : k ≤ j0-1 := by omega
+        have h_eq : (j0-1 : ℕ) + 1 = j0 := by omega
+        have hx_j0_at_j0m1p1 : x ∈ E ((j0-1)+1) := by simpa [h_eq] using hx_j0
+        have : j0 ≤ j0-1 := hj0_min (j0-1) hk_le_j0m1 hx_j0_at_j0m1p1; omega
+    have h_symm : x ∈ _root_.symmDiff (E j0) (E (j0+1)) := by
+      rw [_root_.symmDiff_def]; exact Or.inr ⟨hj0_spec.2, hx_not_j0⟩
+    refine Set.mem_iUnion.mpr ⟨j0, Set.mem_iUnion.mpr ⟨hj0_spec.1, h_symm⟩⟩
+
 instance IsElementary.complete {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : CompleteSpace hA.ae_subsets := by
-  sorry
+  apply Metric.complete_of_cauchySeq_tendsto
+  intro u hu
+  have h_rep : ∀ n, ∃ (E : Set A), u n = hA.ae_quot E := by
+    intro n
+    have h_surj : Function.Surjective (hA.ae_quot : Set A → hA.ae_subsets) := by
+      intro x; refine Quotient.inductionOn x ?_; intro E; exact ⟨E, rfl⟩
+    rcases h_surj (u n) with ⟨E, hE⟩; exact ⟨E, hE.symm⟩
+  choose E hE using h_rep
+  have h_cauchy : ∀ ε > 0, ∃ N, ∀ m ≥ N, ∀ n ≥ N, hA.dist (u m) (u n) < ε :=
+    Metric.cauchySeq_iff.mp hu
+
+  let ε_seq (k : ℕ) : ℝ := ((1 : ℝ)/2)^(k+1)
+  have h_pos : ∀ k : ℕ, 0 < ε_seq k := fun k => pow_pos (by norm_num) (k+1)
+  have h_exists_N : ∀ k : ℕ, ∃ N : ℕ, ∀ p q, p ≥ N → q ≥ N → hA.dist (u p) (u q) < ε_seq k := by
+    intro k; rcases h_cauchy (ε_seq k) (h_pos k) with ⟨N, hN⟩
+    exact ⟨N, fun p q hp hq => hN p hp q hq⟩
+  choose N hN using h_exists_N
+  let n : ℕ → ℕ := Nat.rec (N 0) (fun k n_k => max (N (k+1)) (n_k + 1))
+  have h_nk_ge_Nk : ∀ k, n k ≥ N k := by
+    intro k; dsimp [n]; induction' k with m ih; rfl; exact le_max_left _ _
+  have h_nkp1_ge_Nk : ∀ k, n (k+1) ≥ N k := by
+    intro k; have h_incr : n (k+1) ≥ n k := by dsimp [n]; simp
+    exact le_trans (h_nk_ge_Nk k) h_incr
+  have h_dist_subseq : ∀ k, hA.dist (u (n k)) (u (n (k+1))) < ε_seq k := by
+    intro k; apply hN k (n k) (n (k+1)) (h_nk_ge_Nk k) (h_nkp1_ge_Nk k)
+
+  let F_set : Set A := limsup_set_ (fun j => E (n j))
+  let F_quot : hA.ae_subsets := hA.ae_quot F_set
+
+  have h_symm_sub : ∀ k, _root_.symmDiff (E (n k)) F_set ⊆ ⋃ (j : ℕ) (_ : j ≥ k), _root_.symmDiff (E (n j)) (E (n (j+1))) := by
+    intro k; simpa [F_set] using symmDiff_limsup_subset_union' (fun j => E (n j)) k
+
+  have hA_bdd : Bornology.IsBounded A := IsElementary.isBounded hA
+  have h_closure_compact : IsCompact (closure A) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure hA_bdd.closure
+  have h_fin_closure : Lebesgue_outer_measure (closure A) ≠ ⊤ :=
+    Lebesgue_outer_measure.finite_of_compact h_closure_compact
+  have h_val_finite (S : Set (EuclideanSpace' d)) (hS : S ⊆ A) : Lebesgue_outer_measure S ≠ ⊤ := by
+    have h_mono : Lebesgue_outer_measure S ≤ Lebesgue_outer_measure (closure A) :=
+      Lebesgue_outer_measure.mono (Set.Subset.trans hS subset_closure)
+    intro htop; apply h_fin_closure; apply le_antisymm le_top; rw [htop] at h_mono; exact h_mono
+
+  have h_dist_bound : ∀ k, hA.dist (u (n k)) F_quot ≤ ((1 : ℝ)/2)^k := by
+    intro k
+    let S_j := λ j : ℕ => Subtype.val '' _root_.symmDiff (E (n (j+k))) (E (n (j+k+1)))
+    have h_set_sub : Subtype.val '' _root_.symmDiff (E (n k)) F_set ⊆ ⋃ (j : ℕ), S_j j := by
+      intro x hx
+      rcases hx with ⟨y, hy, rfl⟩
+      have hy_symm : y ∈ _root_.symmDiff (E (n k)) F_set := hy
+      have hy_union : y ∈ ⋃ (j : ℕ) (_ : j ≥ k), _root_.symmDiff (E (n j)) (E (n (j+1))) :=
+        h_symm_sub k hy_symm
+      rcases Set.mem_iUnion.mp hy_union with ⟨j, hj_mem⟩
+      rcases Set.mem_iUnion.mp hj_mem with ⟨hj, hy_j⟩
+      have h_add : (j - k) + k = j := Nat.sub_add_cancel hj
+      have h_symm_eq : _root_.symmDiff (E (n ((j - k) + k))) (E (n (((j - k) + k) + 1))) = 
+            _root_.symmDiff (E (n j)) (E (n (j + 1))) := by simp [h_add]
+      have hy_j' : y ∈ _root_.symmDiff (E (n ((j - k) + k))) (E (n (((j - k) + k) + 1))) := by
+        rw [h_symm_eq]; exact hy_j
+      have h_mem : Subtype.val y ∈ S_j (j - k) := by
+        dsimp [S_j]
+        exact ⟨y, hy_j', rfl⟩
+      exact Set.mem_iUnion.mpr ⟨j - k, h_mem⟩
+    have h_measure_sub : Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) ≤
+        Lebesgue_outer_measure (⋃ (j : ℕ), S_j j) := Lebesgue_outer_measure.mono h_set_sub
+    have h_subadd : Lebesgue_outer_measure (⋃ (j : ℕ), S_j j) ≤ ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) :=
+      Lebesgue_outer_measure.union_le (fun j : ℕ => S_j j)
+    have h_term_bound_real : ∀ j, (Lebesgue_outer_measure (S_j j)).toReal < ε_seq (j + k) := by
+      intro j; unfold S_j
+      have h_dist_eq : hA.dist (u (n (j + k))) (u (n (j + k + 1))) = (Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n (j + k))) (E (n (j + k + 1))))).toReal := by
+        rw [hE (n (j + k)), hE (n (j + k + 1))]
+        rfl
+      rw [← h_dist_eq]; exact h_dist_subseq (j + k)
+    have h_tsum_shift_real : ∑' (j : ℕ), ε_seq (j + k) = ((1 : ℝ)/2)^k := by
+      calc
+        ∑' (j : ℕ), ε_seq (j + k) = ∑' (j : ℕ), ((1 : ℝ)/2)^(j + k + 1) := rfl
+        _ = ((1 : ℝ)/2)^(k+1) * ∑' (j : ℕ), ((1 : ℝ)/2)^j := by
+          calc
+            ∑' (j : ℕ), ((1 : ℝ)/2)^(j + k + 1) = ∑' (j : ℕ), (((1 : ℝ)/2)^(k+1) * ((1 : ℝ)/2)^j) := by
+              refine tsum_congr (fun j => ?_); ring
+            _ = ((1 : ℝ)/2)^(k+1) * ∑' (j : ℕ), ((1 : ℝ)/2)^j := by rw [tsum_mul_left]
+        _ = ((1 : ℝ)/2)^(k+1) * 2 := by rw [tsum_geometric_two]
+        _ = ((1 : ℝ)/2)^k := by ring
+    have h_union_sub_A : (⋃ (j : ℕ), S_j j) ⊆ A := by
+      intro x hx
+      rcases Set.mem_iUnion.mp hx with ⟨j, hj⟩
+      rcases (Set.mem_image (f := Subtype.val) (s := _root_.symmDiff (E (n (j + k))) (E (n (j + k + 1)))) (y := x)).mp hj with ⟨y, hy, rfl⟩
+      exact y.property
+    have h_subadd_tsum : Lebesgue_outer_measure (⋃ (j : ℕ), S_j j) ≤ ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) :=
+      Lebesgue_outer_measure.union_le (fun j : ℕ => S_j j)
+    have h_fin_Sj (j : ℕ) : Lebesgue_outer_measure (S_j j) ≠ ⊤ :=
+      h_val_finite (S_j j) (by intro x hx; rcases hx with ⟨y, hy, rfl⟩; exact y.property)
+    have h_not_bot_Sj (j : ℕ) : Lebesgue_outer_measure (S_j j) ≠ ⊥ := by
+      have h_nonneg : 0 ≤ Lebesgue_outer_measure (S_j j) := Lebesgue_outer_measure.nonneg _
+      intro hbot; rw [hbot] at h_nonneg
+      have h := (by norm_num : (⊥ : EReal) < (0 : EReal))
+      exact lt_irrefl (0 : EReal) (h_nonneg.trans_lt h)
+    let a_j (j : ℕ) : ℝ := (Lebesgue_outer_measure (S_j j)).toReal
+    have ha_nonneg : ∀ j, 0 ≤ a_j j := by
+      intro j; dsimp [a_j]
+      have h_nonneg : 0 ≤ Lebesgue_outer_measure (S_j j) := Lebesgue_outer_measure.nonneg _
+      have h_val : Lebesgue_outer_measure (S_j j) = ((Lebesgue_outer_measure (S_j j)).toReal : EReal) :=
+        (EReal.coe_toReal (h_fin_Sj j) (h_not_bot_Sj j)).symm
+      rw [h_val] at h_nonneg
+      exact_mod_cast h_nonneg
+    have ha_bound : ∀ j, a_j j ≤ ε_seq (j + k) := fun j => le_of_lt (h_term_bound_real j)
+    have h_summable_ε_shift : Summable (fun j : ℕ => ε_seq (j + k)) := by
+      have h_shift : (fun j : ℕ => ε_seq (j + k)) = (fun j : ℕ => (((1 : ℝ)/2)^(k+1)) * ((1 : ℝ)/2)^j) := by
+        ext j; dsimp [ε_seq]; ring
+      rw [h_shift]
+      exact (summable_geometric_two).mul_left (((1 : ℝ)/2)^(k+1))
+    have h_hasSum_ε : HasSum (fun j : ℕ => ε_seq (j + k)) (((1 : ℝ)/2)^k) := by
+      simpa [h_tsum_shift_real] using h_summable_ε_shift.hasSum
+    have h_summable_a : Summable a_j :=
+      Summable.of_nonneg_of_le ha_nonneg ha_bound h_summable_ε_shift
+    have h_tsum_a_le : (∑' j, a_j j) ≤ ((1 : ℝ)/2)^k :=
+      hasSum_le ha_bound h_summable_a.hasSum h_hasSum_ε
+    have h_coe_Sj (j : ℕ) : Lebesgue_outer_measure (S_j j) = (a_j j : EReal) :=
+      (EReal.coe_toReal (h_fin_Sj j) (h_not_bot_Sj j)).symm
+    have h_tsum_Sj_eq : ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) = ((∑' j, a_j j : ℝ) : EReal) := by
+      calc
+        ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) = ∑' (j : ℕ), (a_j j : EReal) := by
+          refine tsum_congr (fun j => ?_)
+          rw [h_coe_Sj j]
+        _ = ((∑' j, a_j j : ℝ) : EReal) := by rw [EReal.coe_tsum_of_nonneg ha_nonneg h_summable_a]
+    have h_top_tsum_Sj : ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) ≠ ⊤ := by
+      rw [h_tsum_Sj_eq]; exact EReal.coe_ne_top _
+    have h_chain_ereal : Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) ≤ ((∑' j, a_j j : ℝ) : EReal) := by
+      calc
+        Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) ≤
+            Lebesgue_outer_measure (⋃ (j : ℕ), S_j j) := h_measure_sub
+        _ ≤ ∑' (j : ℕ), Lebesgue_outer_measure (S_j j) := h_subadd_tsum
+        _ = ((∑' j, a_j j : ℝ) : EReal) := h_tsum_Sj_eq
+    have h_top_chain : Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) ≠ ⊤ :=
+      h_val_finite _ (by intro x hx; rcases hx with ⟨y, hy, rfl⟩; exact y.property)
+    have h_not_bot_chain : Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) ≠ ⊥ := by
+      have h_nonneg : 0 ≤ Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set) :=
+        Lebesgue_outer_measure.nonneg _
+      intro hbot; rw [hbot] at h_nonneg
+      have h := (by norm_num : (⊥ : EReal) < (0 : EReal))
+      exact lt_irrefl (0 : EReal) (h_nonneg.trans_lt h)
+    have h_total_toReal : (Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set)).toReal ≤ ((1 : ℝ)/2)^k := by
+      have h_rhs_fin : ((∑' j, a_j j : ℝ) : EReal) ≠ ⊤ := EReal.coe_ne_top _
+      calc
+        (Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set)).toReal ≤
+            (((∑' j, a_j j : ℝ) : EReal)).toReal :=
+          EReal.toReal_le_toReal h_chain_ereal h_not_bot_chain h_rhs_fin
+        _ = (∑' j, a_j j : ℝ) := by simp
+        _ ≤ ((1 : ℝ)/2)^k := h_tsum_a_le
+    have h_dist_eq : hA.dist (u (n k)) F_quot =
+        (Lebesgue_outer_measure (Subtype.val '' _root_.symmDiff (E (n k)) F_set)).toReal := by
+      dsimp [F_quot]
+      rw [hE (n k)]
+      rfl
+    rw [h_dist_eq]
+    exact h_total_toReal
+
+  have h_subseq_conv : Filter.Tendsto (fun k : ℕ => u (n k)) Filter.atTop (nhds F_quot) := by
+    have h_tendsto_dist : ∀ ε > (0 : ℝ), ∃ N, ∀ k ≥ N, hA.dist (u (n k)) F_quot < ε := by
+      intro ε hε
+      have h_exists_K : ∃ K : ℕ, ((1 : ℝ)/2)^K < ε := by
+        have h_tendsto_geom : Filter.Tendsto (fun (k : ℕ) => ((1 : ℝ)/2)^k) Filter.atTop (nhds (0 : ℝ)) :=
+          tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+        rcases Metric.tendsto_atTop.mp h_tendsto_geom ε hε with ⟨K, hK⟩
+        refine ⟨K, ?_⟩
+        have hK_K := hK K (le_refl K); rw [Real.dist_eq, sub_zero] at hK_K
+        have h_nonneg : 0 ≤ ((1 : ℝ)/2)^K := pow_nonneg (by norm_num) K
+        rw [abs_of_nonneg h_nonneg] at hK_K; exact hK_K
+      rcases h_exists_K with ⟨K, hK⟩
+      refine ⟨K, fun k hk => ?_⟩
+      have h_pow_le : ((1 : ℝ)/2)^k ≤ ((1 : ℝ)/2)^K :=
+        pow_le_pow_of_le_one (by norm_num) (by norm_num) (by omega)
+      calc
+        hA.dist (u (n k)) F_quot ≤ ((1 : ℝ)/2)^k := h_dist_bound k
+        _ ≤ ((1 : ℝ)/2)^K := h_pow_le
+        _ < ε := hK
+    rw [Metric.tendsto_atTop]
+    intro ε hε
+    rcases h_tendsto_dist ε hε with ⟨N, hN⟩
+    refine ⟨N, fun k hk => ?_⟩
+    simpa using hN k hk
+
+  have h_n_attop : Filter.Tendsto n Filter.atTop Filter.atTop := by
+    apply Filter.tendsto_atTop_atTop.mpr
+    intro M
+    have hM : n M ≥ M := by
+      induction' M with i ih
+      · exact Nat.zero_le _
+      · have h_incr : n (i+1) ≥ n i + 1 := by dsimp [n]; simp
+        omega
+    refine ⟨M, λ m hm => ?_⟩
+    induction' hm with m' hm' ih
+    · exact hM
+    · have h_incr : n (m' + 1) ≥ n m' := by dsimp [n]; simp
+      exact le_trans ih h_incr
+  have h_u_conv : Filter.Tendsto u Filter.atTop (nhds F_quot) :=
+    tendsto_nhds_of_cauchySeq_of_subseq hu h_n_attop h_subseq_conv
+  exact ⟨F_quot, h_u_conv⟩
 
 noncomputable def IsElementary.ae_elem {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : Set hA.ae_subsets := { E | ∃ F: Set A, IsElementary (Subtype.val '' F) ∧ hA.ae_quot F = E }
 
