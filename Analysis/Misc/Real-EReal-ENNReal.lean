@@ -447,8 +447,8 @@ lemma EReal.tsum_const_eq_top_of_pos {α : Type*} [Infinite α] {c : EReal} (hc 
 
 /-- Product of tsums of nonnegative reals in EReal.
 
-For nonnegative real sequences `a n` and `b n`, the product of their EReal tsums
-equals the EReal tsum of the product over ℕ×ℕ.
+For nonnegative real sequences {lit}`a n` and {lit}`b n`, the product of their EReal tsums
+    equals the EReal tsum of the product over ℕ×ℕ.
 -/
 lemma tsum_prod_mul_ereal_of_nonneg (a b : ℕ → ℝ) (ha : ∀ n, 0 ≤ a n) (hb : ∀ n, 0 ≤ b n) :
     (∑' (ij : ℕ × ℕ), ((a ij.1 * b ij.2 : ℝ) : EReal)) = (∑' i, (a i : EReal)) * (∑' j, (b j : EReal)) := by

@@ -6148,10 +6148,391 @@ theorem IsElementary.ae_measure_eq_completion {d:ℕ} {A: Set (EuclideanSpace' d
 ContinuousOn m hA.ae_measurable ∧ (∀ (E:hA.ae_elem), m E.val = hA.ae_elem_measure E)
 ↔ (∀ (E:hA.ae_measurable), m E.val = hA.ae_measure E) := by sorry
 
+lemma Lebesgue_outer_measure.le_of_cover {d:ℕ} (E : Set (EuclideanSpace' d)) (X : Set ℕ) (S : X → Box d) (h : E ⊆ ⋃ i, (S i).toSet) :
+    Lebesgue_outer_measure E ≤ ∑' i : X, ((S i).volume : EReal) := by
+  unfold Lebesgue_outer_measure
+  apply sInf_le
+  refine ⟨X, S, h, rfl⟩
+
+lemma Lebesgue_outer_measure.singleton_zero {d:ℕ} (hd : d ≠ 0) (x : EuclideanSpace' d) : Lebesgue_outer_measure ({x} : Set (EuclideanSpace' d)) = 0 := by
+  let B : Box d := {
+    side := fun i : Fin d => BoundedInterval.Icc (x i) (x i)
+  }
+  have hB_vol : |B|ᵥ = 0 := by
+    simp [Box.volume, BoundedInterval.length, B, hd]
+  have hB_cover : ({x} : Set (EuclideanSpace' d)) ⊆ B.toSet := by
+    intro y hy
+    rcases hy with rfl
+    intro i
+    simp [B, BoundedInterval.toSet]
+  have h_cov' : ({x} : Set (EuclideanSpace' d)) ⊆ ⋃ i : ({0} : Set ℕ), ((fun _ : ({0} : Set ℕ) => B) i).toSet := by
+    calc
+      ({x} : Set (EuclideanSpace' d)) ⊆ B.toSet := hB_cover
+      _ = ⋃ i : ({0} : Set ℕ), ((fun _ : ({0} : Set ℕ) => B) i).toSet := by simp
+  have h_outer_le : Lebesgue_outer_measure ({x} : Set (EuclideanSpace' d)) ≤ 0 := by
+    calc
+      Lebesgue_outer_measure ({x} : Set (EuclideanSpace' d))
+          ≤ ∑' i : ({0} : Set ℕ), ((fun _ : ({0} : Set ℕ) => B) i).volume.toEReal :=
+        Lebesgue_outer_measure.le_of_cover ({x}) ({0}) (fun _ => B) h_cov'
+      _ = 0 := by simp [hB_vol]
+  exact le_antisymm h_outer_le (Lebesgue_outer_measure.nonneg _)
+
 noncomputable abbrev IsCurve {d:ℕ} (C: Set (EuclideanSpace' d)) : Prop := ∃ (a b:ℝ) (γ: ℝ → EuclideanSpace' d), C = γ '' (Set.Icc a b) ∧ ContDiffOn ℝ 1 γ (Set.Icc a b)
 
+/-- N ≤ N^k for N ≥ 1, k ≥ 1. -/
+private lemma one_le_pow_of_one_le {a : ℝ} (ha : 1 ≤ a) (k : ℕ) : 1 ≤ a ^ k := by
+  induction' k with k ih
+  · simp
+  · rw [pow_succ]
+    calc
+      (1 : ℝ) = 1 * 1 := by ring
+      _ ≤ a * a ^ k := mul_le_mul ha ih (by positivity) (by positivity)
+      _ = a ^ (k+1) := by ring
+
+private lemma N_le_N_pow (N : ℕ) (hN : 1 ≤ N) (k : ℕ) (hk : 1 ≤ k) : (N : ℝ) ≤ (N : ℝ)^k := by
+  have hN_nonneg : (0 : ℝ) ≤ (N : ℝ) := by exact_mod_cast (Nat.zero_le N)
+  have hN_ge1' : (1 : ℝ) ≤ (N : ℝ) := by exact_mod_cast hN
+  have hp : (1 : ℝ) ≤ (N : ℝ)^k := one_le_pow_of_one_le hN_ge1' k
+  by_cases hk1 : k = 1
+  · subst hk1; simp
+  · have hk2 : 2 ≤ k := by omega
+    calc
+      (N : ℝ) = (N : ℝ) * 1 := by ring
+      _ ≤ (N : ℝ) * (N : ℝ)^(k-1) := mul_le_mul_of_nonneg_left (one_le_pow_of_one_le hN_ge1' (k-1)) hN_nonneg
+      _ = (N : ℝ)^(k-1) * (N : ℝ) := by ring
+      _ = (N : ℝ)^k := by
+        rw [← pow_succ, show (k-1 : ℕ) + 1 = k by omega]
+
+/-- Interval partition lemma: any point in the interval between a and b is within distance
+    (b-a)/N of some equally-spaced grid point with index j less than N. -/
+private lemma exists_subinterval_index {a b : ℝ} (h_lt : a < b) (N : ℕ) (hN_pos : 0 < N) (t : ℝ) (ht : t ∈ Set.Icc a b) :
+    ∃ j : Fin N, |t - (a + (j.val : ℝ) * ((b - a) / (N : ℝ)))| ≤ (b - a) / (N : ℝ) := by
+  have hδ_pos : 0 < b - a := sub_pos.mpr h_lt
+  have hN_pos' : 0 < (N : ℝ) := by exact_mod_cast hN_pos
+  set s := (t - a) * (N : ℝ) / (b - a) with hs
+  have hs_nonneg : 0 ≤ s := by
+    have : 0 ≤ t - a := sub_nonneg.mpr ht.1
+    positivity
+  have hs_le_N : s ≤ (N : ℝ) := by
+    calc
+      s = (t - a) / (b - a) * (N : ℝ) := by ring
+      _ ≤ 1 * (N : ℝ) := by
+        have hdiv : (t - a) / (b - a) ≤ 1 := (div_le_one (by linarith)).mpr (by linarith [ht.2])
+        nlinarith
+      _ = (N : ℝ) := by ring
+  set j0 := Nat.floor s with hj0
+  have hj0_le_s : (j0 : ℝ) ≤ s := Nat.floor_le hs_nonneg
+  have hs_lt_j0p1 : s < (j0 : ℝ) + 1 := Nat.lt_floor_add_one s
+  have hj0_le_N : (j0 : ℕ) ≤ N := by
+    have : (j0 : ℝ) ≤ (N : ℝ) := hj0_le_s.trans hs_le_N
+    exact_mod_cast this
+  by_cases hj0_eq_N : j0 = N
+  · have hN_le_s : (N : ℝ) ≤ s := by
+      simpa [hj0_eq_N] using hj0_le_s
+    have ht_eq_b : t = b := by
+      have : s = (N : ℝ) := le_antisymm hs_le_N hN_le_s
+      dsimp [s] at this
+      field_simp [hδ_pos.ne'] at this
+      nlinarith
+    have hNpos' : 0 < (N : ℝ) := by exact_mod_cast hN_pos
+    have hcalc : |b - (a + ((N-1 : ℕ) : ℝ) * ((b - a) / (N : ℝ)))| ≤ (b - a) / (N : ℝ) := by
+      have hinner : b - (a + ((N-1 : ℕ) : ℝ) * ((b - a) / (N : ℝ))) = (b - a) * (1 / (N : ℝ)) := by
+        field_simp [hNpos'.ne']
+        simp [Nat.cast_sub (Nat.one_le_of_lt hN_pos)]
+        ring
+      have hcalc' : |b - (a + ((N-1 : ℕ) : ℝ) * ((b - a) / (N : ℝ)))| = (b - a) / (N : ℝ) :=
+        calc
+          |b - (a + ((N-1 : ℕ) : ℝ) * ((b - a) / (N : ℝ)))|
+              = |(b - a) * (1 / (N : ℝ))| := by rw [hinner]
+          _ = (b - a) * (1 / (N : ℝ)) := abs_of_pos (by positivity)
+          _ = (b - a) / (N : ℝ) := by ring
+      exact hcalc'.le
+    rw [ht_eq_b]
+    refine ⟨⟨N-1, by omega⟩, ?_⟩
+    simpa using hcalc
+  · have hj0_lt_N : j0 < N := Nat.lt_of_le_of_ne hj0_le_N hj0_eq_N
+    refine ⟨⟨j0, hj0_lt_N⟩, ?_⟩
+    have hNpos' : 0 < (N : ℝ) := by exact_mod_cast hN_pos
+    have h_mul : (j0 : ℝ) * (b - a) ≤ (t - a) * (N : ℝ) := by
+      calc
+        (j0 : ℝ) * (b - a) ≤ s * (b - a) := mul_le_mul_of_nonneg_right hj0_le_s (by positivity)
+        _ = (t - a) * (N : ℝ) := by
+          dsimp [s]
+          field_simp [hδ_pos.ne']
+    have hdiv_low : (j0 : ℝ) * ((b - a) / (N : ℝ)) ≤ t - a := by
+      calc
+        (j0 : ℝ) * ((b - a) / (N : ℝ)) = ((j0 : ℝ) * (b - a)) / (N : ℝ) := by ring
+        _ ≤ ((t - a) * (N : ℝ)) / (N : ℝ) := (div_le_div_iff_of_pos_right hNpos').mpr h_mul
+        _ = t - a := by field_simp [hNpos'.ne']
+    have h_low : a + (j0 : ℝ) * ((b - a) / (N : ℝ)) ≤ t := by nlinarith
+    have h_mul' : (t - a) * (N : ℝ) < ((j0 : ℝ) + 1) * (b - a) := by
+      calc
+        (t - a) * (N : ℝ) = s * (b - a) := by
+          dsimp [s]
+          field_simp [hδ_pos.ne']
+        _ < ((j0 : ℝ) + 1) * (b - a) := mul_lt_mul_of_pos_right hs_lt_j0p1 (by positivity)
+    have hdiv_high : t - a ≤ ((j0 : ℝ) + 1) * ((b - a) / (N : ℝ)) := by
+      calc
+        t - a = ((t - a) * (N : ℝ)) / (N : ℝ) := by field_simp [hNpos'.ne']
+        _ ≤ (((j0 : ℝ) + 1) * (b - a)) / (N : ℝ) := (div_le_div_iff_of_pos_right hNpos').mpr h_mul'.le
+        _ = ((j0 : ℝ) + 1) * ((b - a) / (N : ℝ)) := by ring
+    have h_high : t ≤ a + ((j0 : ℝ) + 1) * ((b - a) / (N : ℝ)) := by nlinarith
+    have h_diff_nonneg : 0 ≤ t - (a + (j0 : ℝ) * ((b - a) / (N : ℝ))) := by
+      have : a + (j0 : ℝ) * ((b - a) / (N : ℝ)) ≤ t := h_low
+      nlinarith
+    have h_bound : t - (a + (j0 : ℝ) * ((b - a) / (N : ℝ))) ≤ (b - a) / (N : ℝ) := by
+      have : a + (j0 : ℝ) * ((b - a) / (N : ℝ)) ≤ t := h_low
+      have h_top : t ≤ a + ((j0 : ℝ) + 1) * ((b - a) / (N : ℝ)) := h_high
+      nlinarith
+    calc
+      |t - (a + (j0 : ℝ) * ((b - a) / (N : ℝ)))| = t - (a + (j0 : ℝ) * ((b - a) / (N : ℝ))) :=
+        abs_of_nonneg h_diff_nonneg
+      _ ≤ (b - a) / (N : ℝ) := h_bound
+
+/-- For a Lipschitz curve to R^d with d at least 2, its image has zero Lebesgue measure.
+    The strategy: for any N, cover by N boxes each of volume (2K*(b-a)/N)^d,
+    so total volume = (2K*(b-a))^d / N^(d-1) converges to 0 as N goes to infinity. -/
+private lemma lipschitz_curve_null_aux {d : ℕ} (hd : d ≥ 2) (a b : ℝ) (γ : ℝ → EuclideanSpace' d)
+    (h_lt : a < b) (K : NNReal) (h_lip : LipschitzOnWith K γ (Set.Icc a b)) :
+    Lebesgue_outer_measure (γ '' Set.Icc a b) = 0 := by
+  set δ := b - a with hδ
+  have hδ_pos : 0 < δ := sub_pos.mpr h_lt
+  have hd_pos : d ≠ 0 := by omega
+  apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+  apply EReal.le_of_forall_pos_le_add' (b := 0)
+  intro ε hε
+  -- hε : 0 < ε, where ε : ℝ
+  have hε_ereal_pos : (0 : EReal) < (ε : EReal) := EReal.coe_pos.mpr hε
+
+  by_cases hK_zero : (K : ℝ) = 0
+  · -- Lipschitz constant zero → γ is constant on [a,b]
+    have ha_mem : a ∈ Set.Icc a b := Set.mem_Icc.mpr ⟨le_refl a, h_lt.le⟩
+    have h_const : γ '' Set.Icc a b = {γ a} := by
+      apply Set.Subset.antisymm
+      · intro y hy
+        rcases hy with ⟨t, ht, rfl⟩
+        have h_dist : dist (γ t) (γ a) ≤ (0 : ℝ) * dist t a := by
+          simpa [hK_zero] using h_lip.dist_le_mul t ht a ha_mem
+        have h_zero : dist (γ t) (γ a) = 0 := by
+          have : dist (γ t) (γ a) ≤ 0 := by nlinarith
+          have : 0 ≤ dist (γ t) (γ a) := dist_nonneg
+          linarith
+        have h_eq : γ t = γ a := by rwa [dist_eq_zero] at h_zero
+        simp [h_eq]
+      · refine Set.singleton_subset_iff.mpr ?_
+        exact Set.mem_image_of_mem γ (Set.mem_Icc.mpr ⟨le_refl a, h_lt.le⟩)
+    rw [h_const]
+    have h_singleton_zero : Lebesgue_outer_measure ({γ a} : Set (EuclideanSpace' d)) = 0 :=
+      Lebesgue_outer_measure.singleton_zero hd_pos (γ a)
+    rw [h_singleton_zero]
+    simpa using le_of_lt hε_ereal_pos
+
+  have hK_pos : 0 < (K : ℝ) := by
+    have h_nonneg : 0 ≤ (K : ℝ) := NNReal.coe_nonneg _
+    exact lt_of_le_of_ne h_nonneg (Ne.symm hK_zero)
+
+  set C := (2 * (K : ℝ) * δ)^d with hC_def
+  have hC_pos : 0 < C := by positivity
+  have h_arch : ∃ N : ℕ, C / ε < (N : ℝ) := exists_nat_gt (C / ε)
+  rcases h_arch with ⟨N, hN⟩
+  have hN_pos : 0 < N := by
+    by_contra! hN0
+    have hN0' : (N : ℝ) ≤ 0 := by exact_mod_cast hN0
+    have h_pos : 0 < C / ε := div_pos hC_pos hε
+    have : C / ε < (N : ℝ) := hN
+    linarith
+
+  set r := (K : ℝ) * δ / (N : ℝ) with hr
+  have hr_pos : 0 < r := by positivity
+
+  let B (j : ℕ) : Box d := {
+    side := fun i : Fin d => BoundedInterval.Icc ((γ (a + (j : ℝ) * (δ / (N : ℝ)))) i - r)
+      ((γ (a + (j : ℝ) * (δ / (N : ℝ)))) i + r)
+  }
+
+  have h_N_pow_add : (N : ℝ) * (N : ℝ)^(d-1 : ℕ) = (N : ℝ)^d := by
+    calc
+      (N : ℝ) * (N : ℝ)^(d-1 : ℕ) = (N : ℝ)^(1 : ℕ) * (N : ℝ)^(d-1 : ℕ) := by simp
+      _ = (N : ℝ)^((1 : ℕ) + (d-1 : ℕ)) := by rw [pow_add]
+      _ = (N : ℝ)^d := by
+        rw [show (1 : ℕ) + (d-1 : ℕ) = d by omega]
+
+  have h_volume (j : ℕ) : |B j|ᵥ = (2 * r)^d := by
+    unfold B Box.volume BoundedInterval.length
+    simp [hr_pos.le]
+    ring
+
+  have h_cover : (γ '' Set.Icc a b) ⊆ ⋃ j : Fin N, (B j.val).toSet := by
+    intro x hx
+    rcases hx with ⟨t, ht, rfl⟩
+    rcases exists_subinterval_index h_lt N hN_pos t ht with ⟨j, hj⟩
+    set a_j := a + (j.val : ℝ) * (δ / (N : ℝ)) with ha_j
+    have ha_j_mem : a_j ∈ Set.Icc a b := by
+      have hpos : a_j ≤ b := by
+        have h_div_le_one : (j.val : ℝ) / (N : ℝ) ≤ 1 := by
+          have : (j.val : ℝ) ≤ (N : ℝ) := by exact_mod_cast j.2.le
+          exact (div_le_one (by positivity)).mpr this
+        have h_mul : (j.val : ℝ) * ((b - a) / (N : ℝ)) ≤ b - a := by
+          calc
+            (j.val : ℝ) * ((b - a) / (N : ℝ)) = ((j.val : ℝ) / (N : ℝ)) * (b - a) := by ring
+            _ ≤ 1 * (b - a) := mul_le_mul_of_nonneg_right h_div_le_one (by positivity)
+            _ = b - a := by ring
+        dsimp [a_j]
+        nlinarith
+      have hneg : a ≤ a_j := by
+        dsimp [a_j]
+        have : 0 ≤ (j.val : ℝ) * ((b - a) / (N : ℝ)) := by positivity
+        nlinarith
+      exact Set.mem_Icc.mpr ⟨hneg, hpos⟩
+    have h_dist : dist (γ t) (γ a_j) ≤ (K : ℝ) * dist t a_j :=
+      h_lip.dist_le_mul t ht a_j ha_j_mem
+    have h_norm_bound : ‖γ t - γ a_j‖ ≤ (K : ℝ) * (δ / (N : ℝ)) := by
+      have h_dist_abs : dist (γ t) (γ a_j) ≤ (K : ℝ) * |t - a_j| := by
+        have : dist t a_j = |t - a_j| := by simp [Real.dist_eq]
+        simpa [this] using h_dist
+      calc
+        ‖γ t - γ a_j‖ = dist (γ t) (γ a_j) := by simp [dist_eq_norm]
+        _ ≤ (K : ℝ) * |t - a_j| := h_dist_abs
+        _ ≤ (K : ℝ) * (δ / (N : ℝ)) := mul_le_mul_of_nonneg_left (by
+          calc
+            |t - a_j| = |t - (a + (j.val : ℝ) * (δ / (N : ℝ)))| := rfl
+            _ ≤ δ / (N : ℝ) := hj
+        ) (by positivity)
+    refine Set.mem_iUnion.mpr ⟨j, ?_⟩
+    intro i
+    have hi_bound : |(γ t) i - (γ a_j) i| ≤ ‖γ t - γ a_j‖ :=
+      EuclideanSpace'.coord_le_norm (γ t - γ a_j) i
+    have h_abs_bound : |(γ t) i - (γ a_j) i| ≤ r := by
+      calc
+        |(γ t) i - (γ a_j) i| ≤ ‖γ t - γ a_j‖ := hi_bound
+        _ ≤ (K : ℝ) * (δ / (N : ℝ)) := h_norm_bound
+        _ = r := by dsimp [r]; ring
+    rcases abs_le.mp h_abs_bound with ⟨h_low_bound, h_high_bound⟩
+    have h_low : (γ a_j) i - r ≤ (γ t) i := by nlinarith
+    have h_high : (γ t) i ≤ (γ a_j) i + r := by nlinarith
+    rw [ha_j] at h_low h_high
+    have h_left : (γ (a + (j.val : ℝ) * (δ / (N : ℝ)))) i ≤ (γ t) i + r := by nlinarith
+    have h_right : (γ t) i ≤ (γ (a + (j.val : ℝ) * (δ / (N : ℝ)))) i + r := h_high
+    simpa [B, BoundedInterval.toSet] using ⟨h_left, h_right⟩
+
+  -- Use finite union subadditivity for Fin N index set
+  have h_subadd : Lebesgue_outer_measure (⋃ j : Fin N, (B j.val).toSet) ≤
+      ∑ j : Fin N, Lebesgue_outer_measure ((B j.val).toSet) :=
+    Lebesgue_outer_measure.finite_union_le (λ j : Fin N => (B j.val).toSet)
+
+  have h_mono : Lebesgue_outer_measure (γ '' Set.Icc a b) ≤ Lebesgue_outer_measure (⋃ j : Fin N, (B j.val).toSet) :=
+    Lebesgue_outer_measure.mono h_cover
+
+  have h_box_measure (j : Fin N) : Lebesgue_outer_measure ((B j.val).toSet) = (|B j.val|ᵥ : EReal) := by
+    rw [Lebesgue_outer_measure.elementary _ (IsElementary.box _), IsElementary.measure_of_box]
+
+  have h_sum_eq : ∑ j : Fin N, Lebesgue_outer_measure ((B j.val).toSet) = ((∑ j : Fin N, (2 * r)^d : ℝ) : EReal) := by
+    simp [h_box_measure, h_volume]
+
+  have h_sum_ℝ : ∑ j : Fin N, ((2 * r)^d : ℝ) = (N : ℝ) * ((2 * r)^d) := by
+    simp
+
+  have h_total_lt_ε : (N : ℝ) * ((2 * r)^d) < ε := by
+      have h_N_ge_1 : (1 : ℝ) ≤ (N : ℝ) := by exact_mod_cast (Nat.one_le_of_lt hN_pos)
+      have h_pow_ge : (N : ℝ) ≤ (N : ℝ)^(d-1 : ℕ) := N_le_N_pow N (Nat.one_le_of_lt hN_pos) (d-1) (by omega)
+      have h_one_div : 1 / (N : ℝ)^(d-1 : ℕ) ≤ 1 / (N : ℝ) :=
+        (one_div_le_one_div (by positivity) (by positivity)).mpr h_pow_ge
+      have h_div : C / (N : ℝ)^(d-1 : ℕ) ≤ C / (N : ℝ) := by
+        calc
+          C / (N : ℝ)^(d-1 : ℕ) = C * (1 / (N : ℝ)^(d-1 : ℕ)) := by ring
+          _ ≤ C * (1 / (N : ℝ)) := mul_le_mul_of_nonneg_left h_one_div (by positivity)
+          _ = C / (N : ℝ) := by ring
+      have h_C_div_N_lt_ε : C / (N : ℝ) < ε := by
+        have hN_real_pos : 0 < (N : ℝ) := by exact_mod_cast hN_pos
+        have hN_real_ne : (N : ℝ) ≠ 0 := by exact_mod_cast hN_pos.ne.symm
+        have h_eq1 : C / (N : ℝ) = (C / ε) * (ε / (N : ℝ)) := by
+          field_simp [hN_real_ne, hε.ne']
+        calc
+          C / (N : ℝ) = (C / ε) * (ε / (N : ℝ)) := h_eq1
+          _ < (N : ℝ) * (ε / (N : ℝ)) := mul_lt_mul_of_pos_right hN (div_pos hε hN_real_pos)
+          _ = ε := by field_simp [hN_real_ne]
+      have h_eq : (N : ℝ) * ((2 * r)^d) = C / (N : ℝ)^(d-1 : ℕ) := by
+        have hN_ne : (N : ℝ) ≠ 0 := by exact_mod_cast hN_pos.ne.symm
+        calc
+          (N : ℝ) * ((2 * r)^d) = (N : ℝ) * ((2 * ((K : ℝ) * δ / (N : ℝ)))^d) := rfl
+          _ = (N : ℝ) * ((2 * (K : ℝ) * δ)^d / (N : ℝ)^d) := by ring_nf
+          _ = ((2 * (K : ℝ) * δ)^d * (N : ℝ)) / (N : ℝ)^d := by ring
+          _ = ((2 * (K : ℝ) * δ)^d * (N : ℝ)) / ((N : ℝ) * (N : ℝ)^(d-1 : ℕ)) := by
+            rw [← h_N_pow_add, mul_comm]
+          _ = (2 * (K : ℝ) * δ)^d / (N : ℝ)^(d-1 : ℕ) := by
+            field_simp [hN_ne]
+          _ = C / (N : ℝ)^(d-1 : ℕ) := rfl
+      calc
+        (N : ℝ) * ((2 * r)^d) = C / (N : ℝ)^(d-1 : ℕ) := h_eq
+        _ ≤ C / (N : ℝ) := h_div
+        _ < ε := h_C_div_N_lt_ε
+      
+
+  have h_C_div_N_pow_eq_N_mul_two_r_pow : C / (N : ℝ)^(d-1 : ℕ) = (N : ℝ) * ((2 * r)^d) := by
+    calc
+      C / (N : ℝ)^(d-1 : ℕ) = (2 * (K : ℝ) * δ)^d / (N : ℝ)^(d-1 : ℕ) := rfl
+      _ = (N : ℝ) * ((2 * ((K : ℝ) * δ / (N : ℝ)))^d) := by
+        have hN_ne : (N : ℝ) ≠ 0 := by exact_mod_cast hN_pos.ne.symm
+        calc
+          (2 * (K : ℝ) * δ)^d / (N : ℝ)^(d-1 : ℕ)
+              = ((2 * (K : ℝ) * δ)^d * (N : ℝ)) / ((N : ℝ)^(d-1 : ℕ) * (N : ℝ)) := by
+            have h_temp : (2 * (K : ℝ) * δ)^d / (N : ℝ)^(d-1 : ℕ) =
+                ((2 * (K : ℝ) * δ)^d * (N : ℝ)) / ((N : ℝ)^(d-1 : ℕ) * (N : ℝ)) := by
+              field_simp [hN_ne]
+            exact h_temp
+          _ = ((2 * (K : ℝ) * δ)^d * (N : ℝ)) / (N : ℝ)^d := by
+            have h_denom : (N : ℝ)^(d-1 : ℕ) * (N : ℝ) = (N : ℝ)^d := by
+              calc
+                (N : ℝ)^(d-1 : ℕ) * (N : ℝ) = (N : ℝ) * (N : ℝ)^(d-1 : ℕ) := by ring
+                _ = (N : ℝ)^d := h_N_pow_add
+            rw [h_denom]
+          _ = (N : ℝ) * ((2 * (K : ℝ) * δ)^d / (N : ℝ)^d) := by ring_nf
+          _ = (N : ℝ) * ((2 * ((K : ℝ) * δ / (N : ℝ)))^d) := by ring_nf
+      _ = (N : ℝ) * ((2 * r)^d) := rfl
+
+  have h_outer_bound : Lebesgue_outer_measure (γ '' Set.Icc a b) < (ε : EReal) :=
+    calc
+      Lebesgue_outer_measure (γ '' Set.Icc a b) ≤ Lebesgue_outer_measure (⋃ j : Fin N, (B j.val).toSet) := h_mono
+      _ ≤ ∑ j : Fin N, Lebesgue_outer_measure ((B j.val).toSet) := h_subadd
+      _ = ((∑ j : Fin N, (2 * r)^d : ℝ) : EReal) := h_sum_eq
+      _ = (((N : ℝ) * ((2 * r)^d) : ℝ) : EReal) := by simp
+      _ = ((C / (N : ℝ)^(d-1 : ℕ) : ℝ) : EReal) := by
+        rw [h_C_div_N_pow_eq_N_mul_two_r_pow]
+      _ < (ε : EReal) := by
+        rw [h_C_div_N_pow_eq_N_mul_two_r_pow]
+        exact EReal.coe_lt_coe_iff.mpr h_total_lt_ε
+
+  have h_goal : Lebesgue_outer_measure (γ '' Set.Icc a b) ≤ 0 + (ε : EReal) :=
+    calc
+      Lebesgue_outer_measure (γ '' Set.Icc a b) ≤ (ε : EReal) := le_of_lt h_outer_bound
+      _ = 0 + (ε : EReal) := by simp
+  exact h_goal
+
 /-- Exercise 1.2.25(i) -/
-theorem IsCurve.null {d:ℕ} (hd: d ≥ 2) {C: Set (EuclideanSpace' d)} (hC: IsCurve C) : IsNull C := by sorry
+theorem IsCurve.null {d:ℕ} (hd: d ≥ 2) {C: Set (EuclideanSpace' d)} (hC: IsCurve C) : IsNull C := by
+  rcases hC with ⟨a, b, γ, h_eq, h_contDiff⟩
+  rw [h_eq]
+  have hd_pos : d ≠ 0 := by omega
+
+  by_cases hba : b < a
+  · have h_empty : Set.Icc a b = ∅ := Set.Icc_eq_empty_of_lt hba
+    rw [h_empty, Set.image_empty]
+    exact Lebesgue_outer_measure.of_empty d
+
+  push_neg at hba
+  by_cases ha_eq_b : a = b
+  · subst ha_eq_b
+    have h_singleton : γ '' (Set.Icc a a) = {γ a} := by ext x; simp
+    rw [h_singleton]
+    exact Lebesgue_outer_measure.singleton_zero hd_pos (γ a)
+
+  have h_lt : a < b := lt_of_le_of_ne hba ha_eq_b
+  have h_convex : Convex ℝ (Set.Icc a b) := convex_Icc a b
+  have h_locLip : LocallyLipschitzOn (Set.Icc a b) γ :=
+    ContDiffOn.locallyLipschitzOn h_convex h_contDiff
+  have h_compact : IsCompact (Set.Icc a b) := isCompact_Icc
+  rcases h_locLip.exists_lipschitzOnWith_of_compact h_compact with ⟨K, h_lip⟩
+  exact lipschitz_curve_null_aux hd a b γ h_lt K h_lip
 
 example : ∃ (d:ℕ) (C: Set (EuclideanSpace' d)) (_ : IsCurve C), ¬ IsNull C := by
   refine ⟨1, Real.equiv_EuclideanSpace' '' (Set.Icc (0:ℝ) 1), ?_, ?_⟩
@@ -6185,4 +6566,22 @@ example : ∃ (d:ℕ) (C: Set (EuclideanSpace' d)) (_ : IsCurve C), ¬ IsNull C 
 
 /-- Exercise 1.2.25 -/
 example {d:ℕ} (hd: d ≥ 2) : ¬ ∃ C: ℕ → Set (EuclideanSpace' d), (∀ n, IsCurve (C n)) ∧ (⋃ n, C n = (Box.unit_cube d).toSet) := by
-  sorry
+  rintro ⟨C, hC_curves, h_union⟩
+  have h_null : ∀ n, IsNull (C n) := fun n => IsCurve.null hd (hC_curves n)
+  have h_union_null : IsNull (⋃ n, C n) := by
+    rw [IsNull]
+    apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+    calc
+      Lebesgue_outer_measure (⋃ n, C n) ≤ ∑' n, Lebesgue_outer_measure (C n) :=
+        Lebesgue_outer_measure.union_le C
+      _ = ∑' n, (0 : EReal) := by
+        refine tsum_congr (fun n => ?_)
+        rw [h_null n]
+      _ = 0 := by simp
+  rw [h_union] at h_union_null
+  unfold IsNull at h_union_null
+  have h_cube_vol : Lebesgue_outer_measure ((Box.unit_cube d).toSet) = 1 := by
+    rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (Box.unit_cube d)), IsElementary.measure_of_box]
+    simp [Box.volume, BoundedInterval.length]
+  rw [h_cube_vol] at h_union_null
+  norm_num at h_union_null
