@@ -192,6 +192,43 @@
       "status": "success",
       "notes": "Proved IsElementary.complete via limsup construction + EReal tsum arg. Key: used hasSum_le + EReal.coe_tsum_of_nonneg to avoid EReal tsum lemma gap. ~287 lines total.",
       "end": "2026-07-28T22:16:48.940780"
+    },
+    {
+      "id": 15,
+      "theorem": "Section_1_2_2_line5835",
+      "file": "/Users/penglingwei/Documents/lean/analysis/analysis/MeasureTheory/Section_1_2_2.lean",
+      "goal": "Lebesgue_outer_measure.prod",
+      "start": "2026-07-28T22:45:22.384566",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 16,
+      "theorem": "finite_TFAE",
+      "file": "_temp_Section_1_2_2_line4129.lean",
+      "goal": "Prove 9-condition TFAE about finite Lebesgue measure",
+      "start": "2026-07-29T07:10:22.620311",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 17,
+      "theorem": "prod_null_of_null_second",
+      "file": "_temp_prod_null.lean",
+      "goal": "prove: if Lebesgue_outer_measure E\u2082 = 0 then Lebesgue_outer_measure (EuclideanSpace'.prod E\u2081 E\u2082) = 0",
+      "start": "2026-07-29T09:25:31.069456",
+      "attempts": [
+        {
+          "edit": "final version",
+          "errors_before": 20,
+          "errors_after": 20,
+          "excerpt": "Incomplete proof: key lemmas proven but main inequality still has sorries",
+          "time": "2026-07-29T10:10:54.847477"
+        }
+      ],
+      "status": "fail",
+      "notes": "Proof incomplete: the key inequality bounding the grouped sum by \u03a3_k |B_k|*\u03b7_k is still missing. The approach is sound (concentric boxes + per-k grouping + EReal.finset_sum_le_tsum + geometric series), but the formalization requires more time to handle the sum identity and strict inequality.",
+      "end": "2026-07-29T10:10:59.707609"
     }
   ]
 }
