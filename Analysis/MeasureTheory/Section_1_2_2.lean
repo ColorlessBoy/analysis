@@ -5885,23 +5885,21 @@ private lemma tsum_vol_prod_eq_mul_tsum {d₁ d₂ : ℕ} (S₁ : ℕ → Box d�
 private lemma mul_le_mul_ereal_fin {a b c d : EReal} (ha : 0 ≤ a) (hb : 0 ≤ b) (hc : 0 ≤ c) (hd : 0 ≤ d)
     (hac : a ≤ c) (hbd : b ≤ d) (hc_fin : c ≠ ⊤) (hd_fin : d ≠ ⊤) : a * b ≤ c * d := by
   have ha_fin : a ≠ ⊤ := by
-    intro h; apply hc_fin; have htop : (⊤ : EReal) ≤ c := by simpa [h] using hac
+    intro h; apply hc_fin; have htop : (⊤ : EReal) ≤ c := by
+      rw [h] at hac; exact hac
     exact le_antisymm le_top htop
   have ha_not_bot : a ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using ha
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at ha; exact not_le.mpr EReal.bot_lt_zero ha
   have hb_fin : b ≠ ⊤ := by
-    intro h; apply hd_fin; have htop : (⊤ : EReal) ≤ d := by simpa [h] using hbd
+    intro h; apply hd_fin; have htop : (⊤ : EReal) ≤ d := by
+      rw [h] at hbd; exact hbd
     exact le_antisymm le_top htop
   have hb_not_bot : b ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using hb
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at hb; exact not_le.mpr EReal.bot_lt_zero hb
   have hc_not_bot : c ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using hc
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at hc; exact not_le.mpr EReal.bot_lt_zero hc
   have hd_not_bot : d ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using hd
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at hd; exact not_le.mpr EReal.bot_lt_zero hd
   have ha_real : (a.toReal : EReal) = a := EReal.coe_toReal ha_fin ha_not_bot
   have hb_real : (b.toReal : EReal) = b := EReal.coe_toReal hb_fin hb_not_bot
   have hc_real : (c.toReal : EReal) = c := EReal.coe_toReal hc_fin hc_not_bot
@@ -5937,11 +5935,9 @@ private lemma prod_le_of_finite {d₁ d₂ : ℕ} {E₁ : Set (EuclideanSpace' d
   set m₁ := Lebesgue_outer_measure E₁ with hm₁_def; set m₂ := Lebesgue_outer_measure E₂ with hm₂_def
   have hm₁_nonneg : 0 ≤ m₁ := Lebesgue_outer_measure.nonneg E₁; have hm₂_nonneg : 0 ≤ m₂ := Lebesgue_outer_measure.nonneg E₂
   have hm₁_ne_bot : m₁ ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using hm₁_nonneg
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at hm₁_nonneg; exact not_le.mpr EReal.bot_lt_zero hm₁_nonneg
   have hm₂_ne_bot : m₂ ≠ ⊥ := by
-    intro h; have : (0 : EReal) ≤ ⊥ := by simpa [h] using hm₂_nonneg
-    have hlt : (⊥ : EReal) < (0 : EReal) := EReal.bot_lt_zero; exact not_le.mpr hlt this
+    intro h; rw [h] at hm₂_nonneg; exact not_le.mpr EReal.bot_lt_zero hm₂_nonneg
   have hm₁_real : (m₁.toReal : EReal) = m₁ := EReal.coe_toReal h₁_fin hm₁_ne_bot
   have hm₂_real : (m₂.toReal : EReal) = m₂ := EReal.coe_toReal h₂_fin hm₂_ne_bot
   set a := m₁.toReal with ha_def; set b := m₂.toReal with hb_def
@@ -5985,12 +5981,16 @@ private lemma prod_le_of_finite {d₁ d₂ : ℕ} {E₁ : Set (EuclideanSpace' d
   have h_nonneg_a_add : 0 ≤ (a + δ : ℝ) := by positivity
   have h_nonneg_b_add : 0 ≤ (b + δ : ℝ) := by positivity
   have hS₁_sum' : (∑' i, ((S₁ i).volume.toEReal)) ≤ ((a + δ : ℝ) : EReal) := by
-    calc ∑' i, ((S₁ i).volume.toEReal) ≤ Lebesgue_outer_measure E₁ + (δ : ℝ) := hS₁_sum
-      _ = m₁ + (δ : ℝ) := by rw [hm₁_def]; _ = ((a : ℝ) : EReal) + (δ : ℝ) := by rw [hm₁_real]
+    calc
+      ∑' i, ((S₁ i).volume.toEReal) ≤ Lebesgue_outer_measure E₁ + (δ : ℝ) := hS₁_sum
+      _ = m₁ + (δ : ℝ) := by rw [hm₁_def]
+      _ = ((a : ℝ) : EReal) + (δ : ℝ) := by rw [hm₁_real]
       _ = ((a + δ : ℝ) : EReal) := by simp
   have hS₂_sum' : (∑' j, ((S₂ j).volume.toEReal)) ≤ ((b + δ : ℝ) : EReal) := by
-    calc ∑' j, ((S₂ j).volume.toEReal) ≤ Lebesgue_outer_measure E₂ + (δ : ℝ) := hS₂_sum
-      _ = m₂ + (δ : ℝ) := by rw [hm₂_def]; _ = ((b : ℝ) : EReal) + (δ : ℝ) := by rw [hm₂_real]
+    calc
+      ∑' j, ((S₂ j).volume.toEReal) ≤ Lebesgue_outer_measure E₂ + (δ : ℝ) := hS₂_sum
+      _ = m₂ + (δ : ℝ) := by rw [hm₂_def]
+      _ = ((b : ℝ) : EReal) + (δ : ℝ) := by rw [hm₂_real]
       _ = ((b + δ : ℝ) : EReal) := by simp
   have h_vol_bound : (∑' i, ((S₁ i).volume.toEReal)) * (∑' j, ((S₂ j).volume.toEReal)) ≤
       ((a + δ : ℝ) : EReal) * ((b + δ : ℝ) : EReal) := by
@@ -6014,124 +6014,307 @@ theorem Lebesgue_outer_measure.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' 
   set m₁ := Lebesgue_outer_measure E₁ with hm₁_def; set m₂ := Lebesgue_outer_measure E₂ with hm₂_def
   by_cases h₁_top : m₁ = ⊤
   · by_cases h₂_zero : m₂ = 0
-    · rw [h₁_top, h₂_zero, mul_zero]; -- TODO: prove product with null set is null
-      sorry
-    · rw [h₁_top]; have hm₂_nonneg : 0 ≤ m₂ := Lebesgue_outer_measure.nonneg E₂
+    · rw [h₁_top, h₂_zero, mul_zero]
+      have hm₂_eq0 : Lebesgue_outer_measure E₂ = 0 := by
+        calc
+          Lebesgue_outer_measure E₂ = m₂ := hm₂_def.symm
+          _ = 0 := h₂_zero
+      by_cases hd₂ : d₂ = 0
+      · subst hd₂
+        rw [Lebesgue_outer_measure_of_dim_zero] at hm₂_eq0
+        have hE₂_empty : E₂ = ∅ := by
+          contrapose! hm₂_eq0; simp [hm₂_eq0]
+        subst hE₂_empty
+        simp [EuclideanSpace'.prod, Lebesgue_outer_measure.of_empty]
+      · have hd₂_pos : 0 < d₂ := Nat.pos_of_ne_zero hd₂
+        have hE₂_fin : Lebesgue_outer_measure E₂ ≠ ⊤ := by rw [hm₂_eq0]; exact EReal.zero_ne_top
+        by_cases hd₁ : d₁ = 0
+        · subst hd₁
+          have h_nat_lift : ∀ (S : ℕ → Box d₂), E₂ ⊆ ⋃ n : ℕ, (S n).toSet →
+              EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (Box.unit_cube 0) (S n)).toSet := by
+            intro S hS_cover y hy
+            rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
+            obtain ⟨n, hn⟩ : ∃ (n : ℕ), b ∈ (S n).toSet := by simpa using hS_cover hb
+            refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+            have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by
+              ext x; simp [Box.toSet]
+            rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+            refine ⟨(a, b), ⟨by rw [h_cube_univ]; exact Set.mem_univ _, hn⟩, hy_eq⟩
+          have h_nat_sum : ∀ (S : ℕ → Box d₂), ∑' (n : ℕ), (Box.prod (Box.unit_cube 0) (S n)).volume.toEReal =
+              ∑' (n : ℕ), (S n).volume.toEReal := by
+            intro S; refine tsum_congr (fun n => ?_)
+            rw [Box.volume_prod, show (Box.unit_cube 0).volume = (1 : ℝ) by
+              unfold Box.unit_cube Box.volume; simp, one_mul]
+          refine EReal.le_of_forall_pos_le_add' ?_
+          intro ε hε
+          obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₂_pos E₂ ε hε hE₂_fin
+          have h_prod_cover : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (Box.unit_cube 0) (S n)).toSet :=
+            h_nat_lift S hS_cover
+          have h_vol_eq : ∑' (n : ℕ), ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) =
+              ∑' (n : ℕ), ((S n).volume.toEReal : EReal) := h_nat_sum S
+          have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
+              ∑' (n : ℕ), ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) := by
+            have hd_sum_pos : 0 < 0 + d₂ := by simpa using hd₂_pos
+            rw [Lebesgue_outer_measure_eq_nat_indexed hd_sum_pos (EuclideanSpace'.prod E₁ E₂)]
+            apply sInf_le
+            refine ⟨fun n : ℕ => Box.prod (Box.unit_cube 0) (S n), h_prod_cover, rfl⟩
+          have h_final : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ (ε : EReal) :=
+            h_m_le_vol.trans (h_vol_eq.le.trans (hS_sum.trans (by
+              rw [hm₂_eq0]
+              simp)))
+          simpa using h_final
+        · have hd₁_pos : 0 < d₁ := Nat.pos_of_ne_zero hd₁
+          have h_union : E₁ = ⋃ n : ℕ, (E₁ ∩ Metric.closedBall 0 (n : ℝ)) :=
+            (Metric.iUnion_inter_closedBall_nat E₁ 0).symm
+          rw [h_union]
+          have h_prod_union : EuclideanSpace'.prod (⋃ n : ℕ, (E₁ ∩ Metric.closedBall 0 (n : ℝ))) E₂ =
+              ⋃ n : ℕ, EuclideanSpace'.prod (E₁ ∩ Metric.closedBall 0 (n : ℝ)) E₂ := by
+            dsimp [EuclideanSpace'.prod]
+            rw [Set.iUnion_prod_const, Set.image_iUnion]
+          rw [h_prod_union]
+          apply le_trans (Lebesgue_outer_measure.union_le (fun n : ℕ => EuclideanSpace'.prod (E₁ ∩ Metric.closedBall 0 (n : ℝ)) E₂)) ?_
+          have h_each_zero : ∀ n : ℕ, Lebesgue_outer_measure (EuclideanSpace'.prod (E₁ ∩ Metric.closedBall 0 (n : ℝ)) E₂) = 0 := by
+            intro n
+            set F_n := E₁ ∩ Metric.closedBall (0 : EuclideanSpace' d₁) (n : ℝ) with hF_n_def
+            have hF_n_fin : Lebesgue_outer_measure F_n ≠ ⊤ := by
+              have h_ball_fin : Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₁) (n : ℝ)) ≠ ⊤ :=
+                Lebesgue_outer_measure.finite_of_compact (isCompact_closedBall (0 : EuclideanSpace' d₁) (n : ℝ))
+              have h_sub : F_n ⊆ Metric.closedBall (0 : EuclideanSpace' d₁) (n : ℝ) := Set.inter_subset_right
+              have h_mono : Lebesgue_outer_measure F_n ≤ Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₁) (n : ℝ)) :=
+                Lebesgue_outer_measure.mono h_sub
+              intro h_eq; apply h_ball_fin
+              have h_top : (⊤ : EReal) ≤ Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₁) (n : ℝ)) := by
+                simpa [h_eq] using h_mono
+              exact le_antisymm le_top h_top
+            have h_ineq : Lebesgue_outer_measure (EuclideanSpace'.prod F_n E₂) ≤
+                Lebesgue_outer_measure F_n * Lebesgue_outer_measure E₂ :=
+              prod_le_of_finite hd₁_pos hd₂_pos hF_n_fin hE₂_fin
+            rw [hm₂_eq0, mul_zero] at h_ineq
+            exact le_antisymm h_ineq (Lebesgue_outer_measure.nonneg _)
+          simp [h_each_zero]
+    · rw [h₁_top]
+      have hm₂_nonneg : 0 ≤ m₂ := Lebesgue_outer_measure.nonneg E₂
       have hm₂_pos : 0 < m₂ := by
-        by_contra! hle; have : m₂ = 0 := le_antisymm hle hm₂_nonneg; exact h₂_zero this
-      have htop_mul : (⊤ : EReal) * m₂ = ⊤ := EReal.top_mul_of_pos hm₂_pos; rw [htop_mul]; exact le_top
+        by_contra! hle
+        have : m₂ = 0 := le_antisymm hle hm₂_nonneg
+        exact h₂_zero this
+      have htop_mul : (⊤ : EReal) * m₂ = ⊤ := EReal.top_mul_of_pos hm₂_pos
+      rw [htop_mul]
+      exact le_top
   · by_cases h₂_top : m₂ = ⊤
     · by_cases h₁_zero : m₁ = 0
-      · rw [h₁_zero, h₂_top, zero_mul]; sorry
-      · rw [h₂_top]; have hm₁_nonneg : 0 ≤ m₁ := Lebesgue_outer_measure.nonneg E₁
+      · rw [h₁_zero, h₂_top, zero_mul]
+        have hm₁_eq0 : Lebesgue_outer_measure E₁ = 0 := by
+          calc
+            Lebesgue_outer_measure E₁ = m₁ := hm₁_def.symm
+            _ = 0 := h₁_zero
+        by_cases hd₁ : d₁ = 0
+        · subst hd₁
+          rw [Lebesgue_outer_measure_of_dim_zero] at hm₁_eq0
+          have hE₁_empty : E₁ = ∅ := by
+            contrapose! hm₁_eq0; simp [hm₁_eq0]
+          subst hE₁_empty
+          simp [EuclideanSpace'.prod, Lebesgue_outer_measure.of_empty]
+        · have hd₁_pos : 0 < d₁ := Nat.pos_of_ne_zero hd₁
+          have hE₁_fin : Lebesgue_outer_measure E₁ ≠ ⊤ := by rw [hm₁_eq0]; exact EReal.zero_ne_top
+          by_cases hd₂ : d₂ = 0
+          · subst hd₂
+            have h_nat_lift : ∀ (S : ℕ → Box d₁), E₁ ⊆ ⋃ n : ℕ, (S n).toSet →
+                EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (S n) (Box.unit_cube 0)).toSet := by
+              intro S hS_cover y hy
+              rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
+              obtain ⟨n, hn⟩ : ∃ (n : ℕ), a ∈ (S n).toSet := by simpa using hS_cover ha
+              refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+              have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by
+                ext x; simp [Box.toSet]
+              rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+              refine ⟨(a, b), ⟨hn, by rw [h_cube_univ]; exact Set.mem_univ _⟩, hy_eq⟩
+            have h_nat_sum : ∀ (S : ℕ → Box d₁), ∑' (n : ℕ), (Box.prod (S n) (Box.unit_cube 0)).volume.toEReal =
+                ∑' (n : ℕ), (S n).volume.toEReal := by
+              intro S; refine tsum_congr (fun n => ?_)
+              rw [Box.volume_prod, show (Box.unit_cube 0).volume = (1 : ℝ) by
+                unfold Box.unit_cube Box.volume; simp, mul_one]
+            refine EReal.le_of_forall_pos_le_add' ?_
+            intro ε hε
+            obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₁_pos E₁ ε hε hE₁_fin
+            have h_prod_cover : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (S n) (Box.unit_cube 0)).toSet :=
+              h_nat_lift S hS_cover
+            have h_vol_eq : ∑' (n : ℕ), ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) =
+                ∑' (n : ℕ), ((S n).volume.toEReal : EReal) := h_nat_sum S
+            have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
+                ∑' (n : ℕ), ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) := by
+              have hd_sum_pos : 0 < d₁ + 0 := by simpa using hd₁_pos
+              rw [Lebesgue_outer_measure_eq_nat_indexed hd_sum_pos (EuclideanSpace'.prod E₁ E₂)]
+              apply sInf_le
+              refine ⟨fun n : ℕ => Box.prod (S n) (Box.unit_cube 0), h_prod_cover, rfl⟩
+            have h_final : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ (ε : EReal) :=
+              h_m_le_vol.trans (h_vol_eq.le.trans (hS_sum.trans (by
+                rw [hm₁_eq0]
+                simp)))
+            simpa using h_final
+          · have hd₂_pos : 0 < d₂ := Nat.pos_of_ne_zero hd₂
+            have h_union : E₂ = ⋃ n : ℕ, (E₂ ∩ Metric.closedBall 0 (n : ℝ)) :=
+              (Metric.iUnion_inter_closedBall_nat E₂ 0).symm
+            rw [h_union]
+            have h_prod_union : EuclideanSpace'.prod E₁ (⋃ n : ℕ, (E₂ ∩ Metric.closedBall 0 (n : ℝ))) =
+                ⋃ n : ℕ, EuclideanSpace'.prod E₁ (E₂ ∩ Metric.closedBall 0 (n : ℝ)) := by
+              dsimp [EuclideanSpace'.prod]
+              rw [Set.prod_iUnion, Set.image_iUnion]
+            rw [h_prod_union]
+            apply le_trans (Lebesgue_outer_measure.union_le (fun n : ℕ => EuclideanSpace'.prod E₁ (E₂ ∩ Metric.closedBall 0 (n : ℝ)))) ?_
+            have h_each_zero : ∀ n : ℕ, Lebesgue_outer_measure (EuclideanSpace'.prod E₁ (E₂ ∩ Metric.closedBall 0 (n : ℝ))) = 0 := by
+              intro n
+              set G_n := E₂ ∩ Metric.closedBall (0 : EuclideanSpace' d₂) (n : ℝ) with hG_n_def
+              have hG_n_fin : Lebesgue_outer_measure G_n ≠ ⊤ := by
+                have h_ball_fin : Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₂) (n : ℝ)) ≠ ⊤ :=
+                  Lebesgue_outer_measure.finite_of_compact (isCompact_closedBall (0 : EuclideanSpace' d₂) (n : ℝ))
+                have h_sub : G_n ⊆ Metric.closedBall (0 : EuclideanSpace' d₂) (n : ℝ) := Set.inter_subset_right
+                have h_mono : Lebesgue_outer_measure G_n ≤ Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₂) (n : ℝ)) :=
+                  Lebesgue_outer_measure.mono h_sub
+                intro h_eq; apply h_ball_fin
+                have h_top : (⊤ : EReal) ≤ Lebesgue_outer_measure (Metric.closedBall (0 : EuclideanSpace' d₂) (n : ℝ)) := by
+                  simpa [h_eq] using h_mono
+                exact le_antisymm le_top h_top
+              have h_ineq : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ G_n) ≤
+                  Lebesgue_outer_measure E₁ * Lebesgue_outer_measure G_n :=
+                prod_le_of_finite hd₁_pos hd₂_pos hE₁_fin hG_n_fin
+              rw [hm₁_eq0, zero_mul] at h_ineq
+              exact le_antisymm h_ineq (Lebesgue_outer_measure.nonneg _)
+            simp [h_each_zero]
+      · rw [h₂_top]
+        have hm₁_nonneg : 0 ≤ m₁ := Lebesgue_outer_measure.nonneg E₁
         have hm₁_pos : 0 < m₁ := by
-          by_contra! hle; have : m₁ = 0 := le_antisymm hle hm₁_nonneg; exact h₁_zero this
+          by_contra! hle
+          have : m₁ = 0 := le_antisymm hle hm₁_nonneg
+          exact h₁_zero this
         have htemp : (⊤ : EReal) * m₁ = ⊤ := EReal.top_mul_of_pos hm₁_pos
-        have htop_mul : m₁ * (⊤ : EReal) = ⊤ := by simpa [mul_comm] using htemp; rw [htop_mul]; exact le_top
+        have htop_mul : m₁ * (⊤ : EReal) = ⊤ := by
+          simpa [mul_comm] using htemp
+        rw [htop_mul]
+        exact le_top
     · -- m₁, m₂ both finite
       have hm₁_fin : m₁ ≠ ⊤ := h₁_top; have hm₂_fin : m₂ ≠ ⊤ := h₂_top
       by_cases hd₁ : 0 < d₁
       · by_cases hd₂ : 0 < d₂
         · exact prod_le_of_finite hd₁ hd₂ hm₁_fin hm₂_fin
-        · have hd₂_eq0 : d₂ = 0 := by omega; subst hd₂_eq0
-          have hm₂_one : m₂ = (1 : EReal) := by
-            by_cases hE₂_empty : E₂ = ∅
-            · subst hE₂_empty; simp at hm₂_fin
-            · have hE₂_ne : E₂.Nonempty := Set.nonempty_iff_ne_empty.mpr hE₂_empty
-              rw [hm₂_def, Lebesgue_outer_measure_of_dim_zero, if_pos hE₂_ne]
-          have hm₁_one : m₁ = Lebesgue_outer_measure E₁ := rfl
-          -- d₂=0, d₁>0: use box-cover-lifting from E₁ to product
-          calc
-            Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ m₁ := by
-              refine EReal.le_of_forall_pos_le_add' ?_
-              intro ε hε
-              obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₁ E₁ ε hε hm₁_fin
-              have h_lift : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (S n) (Box.unit_cube 0)).toSet := by
-                intro y hy; rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
-                obtain ⟨n, hn⟩ : ∃ (n : ℕ), a ∈ (S n).toSet := by simpa using hS_cover ha
-                refine Set.mem_iUnion.mpr ⟨n, ?_⟩
-                have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by ext x; simp [Box.unit_cube, Box.toSet]
-                rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
-                refine ⟨(a, b), ⟨hn, by rw [h_cube_univ]; exact Set.mem_univ _⟩, hy_eq⟩
-              have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
-                  ∑' n : ℕ, ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) := by
-                unfold Lebesgue_outer_measure; apply sInf_le
-                refine ⟨Set.univ, (fun (m : (Set.univ : Set ℕ)) => Box.prod (S m.val) (Box.unit_cube 0)), ?_, ?_⟩
-                · intro y hy; have hy' : y ∈ ⋃ n : ℕ, (Box.prod (S n) (Box.unit_cube 0)).toSet := h_lift hy
-                  rcases hy' with ⟨k, hk⟩; refine Set.mem_iUnion.mpr ⟨⟨k, trivial⟩, ?_⟩; simpa using hk
-                · simp
-              have h_vol_eq : ∑' n : ℕ, ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) =
-                  ∑' n : ℕ, ((S n).volume.toEReal : EReal) := by
-                refine tsum_congr (fun n => ?_); simp [Box.volume_prod, Box.unit_cube, Box.volume]
+        · have hd₂_eq0 : d₂ = 0 := by omega
+          subst hd₂_eq0
+          by_cases hE₂_empty : E₂ = ∅
+          · subst hE₂_empty
+            simp [EuclideanSpace'.prod, Lebesgue_outer_measure.of_empty, hm₂_def,
+              Lebesgue_outer_measure_of_dim_zero, hm₁_def]
+          · have hE₂_ne : E₂.Nonempty := Set.nonempty_iff_ne_empty.mpr hE₂_empty
+            have hm₂_one : m₂ = (1 : EReal) :=
               calc
-                Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
-                    ∑' n : ℕ, ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) := h_m_le_vol
-                _ = ∑' n : ℕ, ((S n).volume.toEReal : EReal) := h_vol_eq
-                _ ≤ Lebesgue_outer_measure E₁ + (ε : ℝ) := hS_sum
-                _ = m₁ + (ε : ℝ) := by rw [hm₁_def]
-            _ = m₁ * (1 : EReal) := by simp
-            _ = m₁ * m₂ := by rw [hm₂_one]
-      · have hd₁_eq0 : d₁ = 0 := by omega; subst hd₁_eq0
-        calc
-          Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ m₂ := by
+                m₂ = Lebesgue_outer_measure E₂ := hm₂_def.symm
+                _ = (1 : EReal) := by
+                  rw [Lebesgue_outer_measure_of_dim_zero, if_pos hE₂_ne]
+            rw [hm₂_one, mul_one]
+            -- d₂=0, d₁>0: use box-cover-lifting from E₁ to product
             refine EReal.le_of_forall_pos_le_add' ?_
             intro ε hε
-            by_cases hd₂_pos : 0 < d₂
-            · obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₂_pos E₂ ε hε hm₂_fin
-              have h_lift : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (Box.unit_cube 0) (S n)).toSet := by
-                intro y hy; rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
-                obtain ⟨n, hn⟩ : ∃ (n : ℕ), b ∈ (S n).toSet := by simpa using hS_cover hb
-                refine Set.mem_iUnion.mpr ⟨n, ?_⟩
-                have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by ext x; simp [Box.unit_cube, Box.toSet]
-                rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
-                refine ⟨(a, b), ⟨by rw [h_cube_univ]; exact Set.mem_univ _, hn⟩, hy_eq⟩
-              have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
-                  ∑' n : ℕ, ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) := by
-                unfold Lebesgue_outer_measure; apply sInf_le
-                refine ⟨Set.univ, (fun (m : (Set.univ : Set ℕ)) => Box.prod (Box.unit_cube 0) (S m.val)), ?_, ?_⟩
-                · intro y hy; have hy' : y ∈ ⋃ n : ℕ, (Box.prod (Box.unit_cube 0) (S n)).toSet := h_lift hy
-                  rcases hy' with ⟨k, hk⟩; refine Set.mem_iUnion.mpr ⟨⟨k, trivial⟩, ?_⟩; simpa using hk
-                · simp
-              have h_vol_eq : ∑' n : ℕ, ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) =
-                  ∑' n : ℕ, ((S n).volume.toEReal : EReal) := by
-                refine tsum_congr (fun n => ?_); simp [Box.volume_prod, Box.unit_cube, Box.volume]
+            obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₁ E₁ ε hε hm₁_fin
+            have h_lift : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (S n) (Box.unit_cube 0)).toSet := by
+              intro y hy; rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
+              obtain ⟨n, hn⟩ : ∃ (n : ℕ), a ∈ (S n).toSet := by simpa using hS_cover ha
+              refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+              have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by
+                ext x; simp [Box.toSet]
+              rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+              refine ⟨(a, b), ⟨hn, by rw [h_cube_univ]; exact Set.mem_univ _⟩, hy_eq⟩
+            have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
+                ∑' n : ℕ, ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) := by
+              have hd_sum_pos : 0 < d₁ + 0 := by simpa using hd₁
+              rw [Lebesgue_outer_measure_eq_nat_indexed hd_sum_pos (EuclideanSpace'.prod E₁ E₂)]
+              apply sInf_le
+              refine ⟨fun n : ℕ => Box.prod (S n) (Box.unit_cube 0), h_lift, rfl⟩
+            have h_vol_eq : ∑' n : ℕ, ((Box.prod (S n) (Box.unit_cube 0)).volume.toEReal : EReal) =
+                ∑' n : ℕ, ((S n).volume.toEReal : EReal) := by
+              refine tsum_congr (fun n => ?_)
               calc
-                Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
-                    ∑' n : ℕ, ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) := h_m_le_vol
-                _ = ∑' n : ℕ, ((S n).volume.toEReal : EReal) := h_vol_eq
-                _ ≤ Lebesgue_outer_measure E₂ + (ε : ℝ) := hS_sum
-                _ = m₂ + (ε : ℝ) := by rw [hm₂_def]
-            · have hd₂_eq0 : d₂ = 0 := by omega; subst hd₂_eq0
-              have hm₂_one : m₂ = (1 : EReal) := by
-                by_cases hE₂_empty : E₂ = ∅
-                · subst hE₂_empty; simp at hm₂_fin
-                · have hE₂_ne : E₂.Nonempty := Set.nonempty_iff_ne_empty.mpr hE₂_empty
-                  rw [hm₂_def, Lebesgue_outer_measure_of_dim_zero, if_pos hE₂_ne]
-              have hm₁_one : m₁ = (1 : EReal) := by
-                rw [hm₁_def, Lebesgue_outer_measure_of_dim_zero, if_pos (by
-                  -- E₁ is nonempty because we're in the hE₁_ne branch
-                  have : (E₁ : Set (EuclideanSpace' 0)).Nonempty := by
-                    by_contra! h; have hE₁_empty : E₁ = ∅ := Set.not_nonempty_iff_eq_empty.mp h
-                    subst hE₁_empty; simp at *
-                  exact this)]
+                ((Box.prod (S n) (Box.unit_cube 0)).volume : EReal) =
+                    (((S n).volume * (Box.unit_cube 0).volume : ℝ) : EReal) := by
+                  rw [Box.volume_prod, EReal.coe_mul]
+                _ = (((S n).volume * 1 : ℝ) : EReal) := by simp [Box.volume]
+                _ = ((S n).volume : EReal) := by simp
+            have h_final : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ m₁ + (ε : EReal) :=
+              h_m_le_vol.trans (h_vol_eq.le.trans (by
+                -- hS_sum: ∑ (S n).volume ≤ Lebesgue_outer_measure E₁ + ε
+                -- need: ∑ (S n).volume ≤ m₁ + ε
+                rw [hm₁_def.symm] at hS_sum
+                exact hS_sum))
+            simpa using h_final
+      · have hd₁_eq0 : d₁ = 0 := by omega
+        subst hd₁_eq0
+        by_cases hE₁_empty : E₁ = ∅
+        · subst hE₁_empty
+          simp [EuclideanSpace'.prod, Lebesgue_outer_measure.of_empty, hm₁_def,
+            Lebesgue_outer_measure_of_dim_zero, hm₂_def]
+        · have hE₁_ne : E₁.Nonempty := Set.nonempty_iff_ne_empty.mpr hE₁_empty
+          have hm₁_one : m₁ = (1 : EReal) :=
+            calc
+              m₁ = Lebesgue_outer_measure E₁ := hm₁_def.symm
+              _ = (1 : EReal) := by
+                rw [Lebesgue_outer_measure_of_dim_zero, if_pos hE₁_ne]
+          rw [hm₁_one, one_mul]
+          refine EReal.le_of_forall_pos_le_add' ?_
+          intro ε hε
+          by_cases hd₂_pos : 0 < d₂
+          · obtain ⟨S, hS_cover, hS_sum⟩ := Lebesgue_outer_measure.exists_cover_close hd₂_pos E₂ ε hε hm₂_fin
+            have h_lift : EuclideanSpace'.prod E₁ E₂ ⊆ ⋃ n : ℕ, (Box.prod (Box.unit_cube 0) (S n)).toSet := by
+              intro y hy; rw [EuclideanSpace'.prod] at hy; rcases hy with ⟨⟨a, b⟩, ⟨ha, hb⟩, hy_eq⟩
+              obtain ⟨n, hn⟩ : ∃ (n : ℕ), b ∈ (S n).toSet := by simpa using hS_cover hb
+              refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+              have h_cube_univ : (Box.unit_cube 0).toSet = Set.univ := by
+                ext x; simp [Box.toSet]
+              rw [Box.prod_toSet, EuclideanSpace'.prod, Set.mem_image]
+              refine ⟨(a, b), ⟨by rw [h_cube_univ]; exact Set.mem_univ _, hn⟩, hy_eq⟩
+            have h_m_le_vol : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤
+                ∑' n : ℕ, ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) := by
+              have hd_sum_pos : 0 < 0 + d₂ := by simpa using hd₂_pos
+              rw [Lebesgue_outer_measure_eq_nat_indexed hd_sum_pos (EuclideanSpace'.prod E₁ E₂)]
+              apply sInf_le
+              refine ⟨fun n : ℕ => Box.prod (Box.unit_cube 0) (S n), h_lift, rfl⟩
+            have h_vol_eq : ∑' n : ℕ, ((Box.prod (Box.unit_cube 0) (S n)).volume.toEReal : EReal) =
+                ∑' n : ℕ, ((S n).volume.toEReal : EReal) := by
+              refine tsum_congr (fun n => ?_)
               calc
-                Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ (1 : EReal) := by
-                  have h_univ_meas : Lebesgue_outer_measure (Set.univ : Set (EuclideanSpace' 0)) = (1 : EReal) := by
-                    rw [Lebesgue_outer_measure_of_dim_zero, if_pos (by simp)]
-                  calc
-                    Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ Lebesgue_outer_measure (Set.univ : Set (EuclideanSpace' 0)) :=
-                      Lebesgue_outer_measure.mono (Set.subset_univ _)
-                    _ = (1 : EReal) := h_univ_meas
-                _ = m₁ * m₂ := by rw [hm₁_one, hm₂_one, mul_one]
-          _ = (1 : EReal) * m₂ := by simp
-          _ = m₁ * m₂ := by
-            have hm₁_one : m₁ = (1 : EReal) := by
-              rw [hm₁_def, Lebesgue_outer_measure_of_dim_zero]
-              have hE₁_nonempty : (E₁ : Set (EuclideanSpace' 0)).Nonempty := by
-                by_contra! h; have hE₁_empty : E₁ = ∅ := Set.not_nonempty_iff_eq_empty.mp h
-                subst hE₁_empty; simp at *
-              simp [hE₁_nonempty]
-            rw [hm₁_one]
+                ((Box.prod (Box.unit_cube 0) (S n)).volume : EReal) =
+                    (((Box.unit_cube 0).volume * (S n).volume : ℝ) : EReal) := by
+                  rw [Box.volume_prod, EReal.coe_mul]
+                _ = ((1 * (S n).volume : ℝ) : EReal) := by
+                  simp [Box.volume]
+                _ = ((S n).volume : EReal) := by simp
+            have h_final : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ m₂ + (ε : EReal) :=
+              h_m_le_vol.trans (h_vol_eq.le.trans (by
+                rw [hm₂_def.symm] at hS_sum
+                exact hS_sum))
+            simpa using h_final
+          · have hd₂_eq0 : d₂ = 0 := by omega
+            subst hd₂_eq0
+            by_cases hE₂_empty : E₂ = ∅
+            · subst hE₂_empty
+              have h_nonneg_eps : (0 : EReal) ≤ (ε : EReal) := by exact_mod_cast hε.le
+              simp [EuclideanSpace'.prod, hm₂_def,
+                Lebesgue_outer_measure_of_dim_zero, h_nonneg_eps]
+            · have hE₂_ne : E₂.Nonempty := Set.nonempty_iff_ne_empty.mpr hE₂_empty
+              have hm₂_one : m₂ = (1 : EReal) :=
+                calc
+                  m₂ = Lebesgue_outer_measure E₂ := hm₂_def.symm
+                  _ = (1 : EReal) := by
+                    rw [Lebesgue_outer_measure_of_dim_zero, if_pos hE₂_ne]
+              have h_univ_meas : Lebesgue_outer_measure (Set.univ : Set (EuclideanSpace' 0)) = (1 : EReal) := by
+                rw [Lebesgue_outer_measure_of_dim_zero, if_pos (by simp)]
+              have h_le_one : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ (1 : EReal) :=
+                calc
+                  Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ Lebesgue_outer_measure (Set.univ : Set (EuclideanSpace' 0)) :=
+                    Lebesgue_outer_measure.mono (Set.subset_univ _)
+                  _ = (1 : EReal) := h_univ_meas
+              have h_one_le_add : (1 : EReal) ≤ (1 : EReal) + (ε : EReal) :=
+                le_add_of_nonneg_right (by exact_mod_cast hε.le)
+              have h_goal : Lebesgue_outer_measure (EuclideanSpace'.prod E₁ E₂) ≤ m₂ + (ε : EReal) :=
+                h_le_one.trans (h_one_le_add.trans (by rw [hm₂_one]))
+              exact h_goal
 theorem LebesgueMeasurable.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
   (hE₁: LebesgueMeasurable E₁) (hE₂: LebesgueMeasurable E₂) : LebesgueMeasurable (EuclideanSpace'.prod E₁ E₂) := by sorry
 
