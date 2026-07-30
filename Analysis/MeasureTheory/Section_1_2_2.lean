@@ -7145,9 +7145,131 @@ noncomputable def IsElementary.ae_elem {d:ℕ} {A: Set (EuclideanSpace' d)} (hA:
 
 noncomputable def IsElementary.ae_measurable {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : Set hA.ae_subsets := { E | ∃ F: Set A, LebesgueMeasurable (Subtype.val '' F) ∧ hA.ae_quot F = E }
 
-/-- Exercise 1.2.24(iii) (Lebesgue measure as the completion of elementary measure). -/
+/-- If a ≥ 0, a ≠ ⊤, and a.toReal < ε, then a < (ε : EReal). -/
+lemma toReal_lt_imp_lt_ereal {a : EReal} {ε : ℝ} (ha_nonneg : 0 ≤ a) (ha_fin : a ≠ ⊤) (h : a.toReal < ε) : a < (ε : EReal) := by
+  have ha_not_bot : a ≠ ⊥ := by
+    intro hbot; rw [hbot] at ha_nonneg; exact not_lt.mpr ha_nonneg EReal.bot_lt_zero
+  have ha_eq : a = (a.toReal : EReal) := (EReal.coe_toReal ha_fin ha_not_bot).symm
+  rw [ha_eq]
+  exact EReal.coe_lt_coe_iff.mpr h
+
+/-- If Eₙ are measurable and converge to F in outer measure of symmetric difference,
+    then F is also measurable. -/
+lemma measurable_limit_of_measurable {d : ℕ} {F : Set (EuclideanSpace' d)}
+    {E : ℕ → Set (EuclideanSpace' d)} (hE_meas : ∀ n, LebesgueMeasurable (E n))
+    (h_tendsto : Filter.Tendsto (fun n : ℕ => Lebesgue_outer_measure (symmDiff F (E n))) Filter.atTop (nhds 0)) :
+    LebesgueMeasurable F := by
+  have hTFAE := LebesgueMeasurable.TFAE F
+  have h5 : (∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧
+      Lebesgue_outer_measure (symmDiff E' F) ≤ ε) := by
+    intro ε hε
+    have hmem : Set.Ioo (-ε) ε ∈ nhds (0 : EReal) := by
+      apply Ioo_mem_nhds
+      · exact (EReal.neg_lt_zero.mpr hε)
+      · exact hε
+    have h_event : ∀ᶠ n in Filter.atTop, Lebesgue_outer_measure (symmDiff F (E n)) ∈ Set.Ioo (-ε) ε :=
+      h_tendsto.eventually_mem hmem
+    rcases (Filter.mem_atTop_sets.mp h_event) with ⟨N, hN⟩
+    have h_small : Lebesgue_outer_measure (symmDiff F (E N)) < ε :=
+      (Set.mem_Ioo.mp (hN N (le_refl N))).2
+    refine ⟨E N, hE_meas N, ?_⟩
+    rw [symmDiff_comm]
+    exact le_of_lt h_small
+  have h0 : LebesgueMeasurable F := (List.TFAE.out hTFAE 5 0).mp h5
+  exact h0
+
+/-- If x ∈ closure ae_elem, then x ∈ ae_measurable. -/
+lemma closure_ae_elem_sub_ae_measurable {d : ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) :
+    closure hA.ae_elem ⊆ hA.ae_measurable := by
+  intro x hx
+  rw [Metric.mem_closure_iff] at hx
+  obtain ⟨F, hF_quot⟩ : ∃ (F : Set A), hA.ae_quot F = x := Quotient.exists_rep x
+  have hF_meas : LebesgueMeasurable (Subtype.val '' F) := by
+    have hTFAE := LebesgueMeasurable.TFAE (Subtype.val '' F)
+    have h5 : (∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧
+        Lebesgue_outer_measure (_root_.symmDiff E' (Subtype.val '' F)) ≤ ε) := by
+      intro ε hε
+      obtain ⟨ε', hε'_pos, hε'_le⟩ : ∃ ε' : ℝ, (0 : ℝ) < ε' ∧ (ε' : EReal) ≤ ε := by
+        cases ε with
+        | bot => exact absurd hε (not_lt.mpr bot_le)
+        | top => exact ⟨1, by norm_num, le_top⟩
+        | coe r =>
+          have hr_pos : (0 : ℝ) < r := EReal.coe_pos.mp hε
+          exact ⟨r, hr_pos, le_refl _⟩
+      rcases hx ε' hε'_pos with ⟨y, hy, h_dist⟩
+      obtain ⟨G, hG_elem, hG_quot⟩ : ∃ (G : Set A), IsElementary (Subtype.val '' G) ∧ hA.ae_quot G = y := by
+        exact Set.mem_setOf.mp hy
+      set S := Subtype.val '' (_root_.symmDiff G F) with hS_def
+      have hS_fin : Lebesgue_outer_measure S ≠ ⊤ := by
+        have hA_fin : Lebesgue_outer_measure A ≠ ⊤ := by
+          have hA_bdd : Bornology.IsBounded A := IsElementary.isBounded hA
+          have h_compact : IsCompact (closure A) :=
+            Metric.isCompact_of_isClosed_isBounded isClosed_closure hA_bdd.closure
+          have h_fin_closure : Lebesgue_outer_measure (closure A) ≠ ⊤ :=
+            Lebesgue_outer_measure.finite_of_compact h_compact
+          have h_mono_A : Lebesgue_outer_measure A ≤ Lebesgue_outer_measure (closure A) :=
+            Lebesgue_outer_measure.mono subset_closure
+          intro h_eq; apply h_fin_closure; exact le_antisymm le_top (h_eq ▸ h_mono_A)
+        have hS_sub : S ⊆ A := by
+          intro z hz; rcases hz with ⟨w, hw, rfl⟩; exact w.property
+        have h_mono : Lebesgue_outer_measure S ≤ Lebesgue_outer_measure A :=
+          Lebesgue_outer_measure.mono hS_sub
+        intro h_eq_top
+        apply hA_fin
+        rw [h_eq_top] at h_mono
+        exact (le_antisymm h_mono le_top).symm
+      have h_nonneg : 0 ≤ Lebesgue_outer_measure S := Lebesgue_outer_measure.nonneg _
+      have h_dist_toReal : (Lebesgue_outer_measure S).toReal < ε' := by
+        have h_dist_def : dist y x = (Lebesgue_outer_measure S).toReal := by
+          calc
+            dist y x = hA.dist y x := rfl
+            _ = hA.dist (hA.ae_quot G) (hA.ae_quot F) := by rw [hG_quot, hF_quot]
+            _ = (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff G F))).toReal := by
+              unfold IsElementary.dist; rfl
+            _ = (Lebesgue_outer_measure S).toReal := rfl
+        have h_lt : dist x y < ε' := h_dist
+        rw [dist_comm] at h_lt
+        rw [h_dist_def] at h_lt
+        exact h_lt
+      have hS_lt_ereal : Lebesgue_outer_measure S < (ε' : EReal) :=
+        toReal_lt_imp_lt_ereal h_nonneg hS_fin h_dist_toReal
+      have hS_le_ε : Lebesgue_outer_measure S ≤ ε :=
+        le_trans (le_of_lt hS_lt_ereal) hε'_le
+      refine ⟨Subtype.val '' G, hG_elem.measurable, ?_⟩
+      have h_img_symmEq : Subtype.val '' (_root_.symmDiff G F) = _root_.symmDiff (Subtype.val '' G) (Subtype.val '' F) := by
+        calc
+          Subtype.val '' (_root_.symmDiff G F) = Subtype.val '' ((G \ F) ∪ (F \ G)) := by
+            simp [symmDiff_def, Set.sup_eq_union]
+          _ = Subtype.val '' (G \ F) ∪ Subtype.val '' (F \ G) := by rw [Set.image_union]
+          _ = (Subtype.val '' G \ Subtype.val '' F) ∪ (Subtype.val '' F \ Subtype.val '' G) := by
+            rw [Set.image_diff Subtype.coe_injective, Set.image_diff Subtype.coe_injective]
+          _ = _root_.symmDiff (Subtype.val '' G) (Subtype.val '' F) := by
+            simp [symmDiff_def, Set.sup_eq_union]
+      have hS_eq : S = _root_.symmDiff (Subtype.val '' G) (Subtype.val '' F) := h_img_symmEq
+      rw [hS_eq] at hS_le_ε
+      exact hS_le_ε
+    exact (List.TFAE.out hTFAE 5 0).mp h5
+  have h_mem : x ∈ hA.ae_measurable := by
+    refine Set.mem_setOf.mpr ?_
+    exact ⟨F, hF_meas, hF_quot⟩
+  exact h_mem
+
+/-- Exercise 1.2.24(iii) (Lebesgue measure as the completion of elementary measure)-/
 theorem IsElementary.measurable_eq_closure_elem {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : closure hA.ae_elem = hA.ae_measurable := by
-  sorry
+  apply Set.Subset.antisymm
+  · exact closure_ae_elem_sub_ae_measurable hA
+  · -- hA.ae_measurable ⊆ closure hA.ae_elem
+    -- This direction requires the Carathéodory approximation theorem:
+    -- every Lebesgue measurable set can be approximated by elementary sets
+    -- in the measure distance. Known as the completion theorem.
+    -- Strategy: Use TFAE (open approximation) + dyadic cube decomposition.
+    -- TODO: fill this direction.
+    -- See `_temp_direction2_final.lean` and `_temp_tail_bound.lean` for a partial proof.
+    sorry
+
+/-- Exercise 1.2.24(c) (Lebesgue measure as the completion of elementary measure)-/
+theorem IsElementary.measurable_complete {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : closure hA.ae_elem = hA.ae_measurable :=
+  hA.measurable_eq_closure_elem
 
 noncomputable def IsElementary.ae_measure {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) (E: hA.ae_measurable) : ℝ := (Lebesgue_measure (Subtype.val '' E.property.choose)).toReal
 

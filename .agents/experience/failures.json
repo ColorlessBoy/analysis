@@ -229,6 +229,35 @@
       "status": "fail",
       "notes": "Proof incomplete: the key inequality bounding the grouped sum by \u03a3_k |B_k|*\u03b7_k is still missing. The approach is sound (concentric boxes + per-k grouping + EReal.finset_sum_le_tsum + geometric series), but the formalization requires more time to handle the sum identity and strict inequality.",
       "end": "2026-07-29T10:10:59.707609"
+    },
+    {
+      "id": 18,
+      "theorem": "Section_1_2_2_line7155",
+      "file": "/Users/bilibili/Documents/lean/analysis/Analysis/MeasureTheory/Section_1_2_2.lean",
+      "goal": "closure hA.ae_elem = hA.ae_measurable",
+      "start": "2026-07-30T14:39:07.178423",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 19,
+      "theorem": "measurable_limit_of_measurable",
+      "file": "_temp_measurable_closure_helper.lean",
+      "goal": "Prove measurable_limit_of_measurable using TFAE (5)\u2192(0)",
+      "start": "2026-07-30T16:57:02.685681",
+      "attempts": [],
+      "status": "success",
+      "notes": "Used Ioo_mem_nhds + h_tendsto.eventually_mem + mem_atTop_sets + Set.mem_Ioo + List.TFAE.out.mp",
+      "end": "2026-07-30T16:57:05.414977"
+    },
+    {
+      "id": 20,
+      "theorem": "ae_measurable_sub_closure_ae_elem",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_caratheodory_approx.lean",
+      "goal": "Prove existence of elementary subset approximating measurable subset",
+      "start": "2026-07-30T17:42:55.932129",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }
