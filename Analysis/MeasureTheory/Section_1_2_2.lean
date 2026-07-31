@@ -4113,20 +4113,8 @@ theorem Lebesgue_measure.eq {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: LebesgueMe
       _ = sSup S + (ε : ℝ) := add_comm _ _
   simpa [S] using le_antisymm h_le_sup h_sup_le
 
-/-- Exercise 1.2.16 (Criteria for finite measure). -/
-theorem LebesgueMeasurable.finite_TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
-    [
-      LebesgueMeasurable E ∧ Lebesgue_measure E < ⊤,
-      (∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_measure U < ⊤ ∧ Lebesgue_outer_measure (U \ E) ≤ ε),
-      (∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ Bornology.IsBounded U ∧ Lebesgue_outer_measure (symmDiff U E) ≤ ε),
-      (∀ ε > 0, ∃ F: Set (EuclideanSpace' d), IsCompact F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε),
-      (∀ ε > 0, ∃ F: Set (EuclideanSpace' d), IsCompact F ∧ Lebesgue_outer_measure (symmDiff F E) ≤ ε),
-      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Lebesgue_measure E' < ⊤ ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
-      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Bornology.IsBounded E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
-      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), IsElementary E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
-      (∀ ε > 0, ∃ (n:ℤ) (F: Finset (Box d)), (∀ B ∈ F, B.IsDyadicAtScale n) ∧ Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) ≤ ε)
-    ].TFAE
-  := by sorry
+
+
 
 /-- `LebesgueMeasurable.caratheodory` is proved below after `IsElementary.measurable`. -/
 
@@ -4658,6 +4646,1543 @@ theorem inner_measure.le {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: Bornology.IsB
 
 lemma IsElementary.measurable {d:ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) : LebesgueMeasurable A :=
   Jordan_measurable.lebesgue (IsElementary.jordanMeasurable hA)
+
+section FiniteTFAECycle
+open Set Filter EReal
+set_option maxHeartbeats 1000000
+
+namespace LebesgueMeasurableFiniteTFAE
+
+-- ============ 7 → 8 machinery (dyadic approximation) ============
+lemma two_zpow_succ (n : ℤ) : (2:ℝ)^(n+1) = 2 * (2:ℝ)^n := by
+  rw [zpow_add₀ (by norm_num : (2:ℝ) ≠ 0)]; ring
+
+-- Building block: a scale-n dyadic cube is the union of its scale-(n+1) children.
+lemma dyadic_subdivide {d : ℕ} (n : ℤ) (a : Fin d → ℤ) :
+    (DyadicCube n a).toSet = ⋃ (k : Fin d → ℤ),
+      (if ∀ i, k i = 0 ∨ k i = 1 then (DyadicCube (n+1 : ℤ) (fun i => 2*a i + k i)).toSet else ∅) := by
+  have h2n : (2:ℝ)^(n:ℤ) ≠ 0 := by positivity
+  have h2n1 : (2:ℝ)^(n+1:ℤ) ≠ 0 := by positivity
+  have hsucc : (2:ℝ)^(n+1) = 2 * (2:ℝ)^n := two_zpow_succ n
+  ext x; constructor
+  · intro hx
+    have hx_mem i : (a i : ℝ) / ((2 : ℝ)^(n : ℤ)) ≤ x i ∧ x i ≤ ((a i : ℝ) + 1) / ((2 : ℝ)^(n : ℤ)) := by
+      simpa [DyadicCube, Box.mem_toSet, BoundedInterval.set_Icc] using hx i
+    let k : Fin d → ℤ := fun i => if x i ≤ ((2 : ℝ) * (a i : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) then (0 : ℤ) else (1 : ℤ)
+    have hk_range i : k i = 0 ∨ k i = 1 := by
+      dsimp [k]; split_ifs <;> simp
+    refine Set.mem_iUnion.mpr ⟨k, ?_⟩
+    rw [if_pos hk_range]
+    simp only [DyadicCube, Box.mem_toSet, BoundedInterval.set_Icc, Set.mem_Icc]
+    intro i
+    have hx_low := (hx_mem i).1
+    have hx_high := (hx_mem i).2
+    dsimp [k]
+    split_ifs with h
+    · refine ⟨?_, ?_⟩
+      · have : ((2 * a i + 0 : ℤ) : ℝ) / ((2 : ℝ)^(n+1 : ℤ)) = (a i : ℝ) / ((2 : ℝ)^n) := by
+          push_cast; rw [hsucc]; field_simp; ring
+        rw [this]; exact hx_low
+      · calc x i ≤ ((2 : ℝ)*(a i : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) := h
+          _ = (((2 * a i + 0 : ℤ) : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) := by push_cast; ring
+    · refine ⟨?_, ?_⟩
+      · have hlt : ((2 : ℝ)*(a i : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) ≤ x i := by linarith [h]
+        calc ((2 * a i + 1 : ℤ) : ℝ) / ((2 : ℝ)^(n+1 : ℤ))
+            = ((2 : ℝ)*(a i : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) := by push_cast; ring
+          _ ≤ x i := hlt
+      · have : (((2 * a i + 1 : ℤ) : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) = ((a i : ℝ) + 1) / ((2 : ℝ)^n) := by
+          push_cast; rw [hsucc]; field_simp; ring
+        rw [this]; exact hx_high
+  · intro hx
+    rcases Set.mem_iUnion.mp hx with ⟨k, hxk⟩
+    by_cases hk : ∀ i, k i = 0 ∨ k i = 1
+    · rw [if_pos hk] at hxk
+      have hx_mem' i : (((2 * a i + k i : ℤ) : ℝ)) / ((2 : ℝ)^(n+1 : ℤ)) ≤ x i ∧
+          x i ≤ (((2 * a i + k i : ℤ) : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) := by
+        simpa [DyadicCube, Box.mem_toSet, BoundedInterval.set_Icc] using hxk i
+      simp only [DyadicCube, Box.mem_toSet, BoundedInterval.set_Icc, Set.mem_Icc]
+      intro i
+      rcases hx_mem' i with ⟨hx_low, hx_high⟩
+      have hk0i : (0:ℝ) ≤ (k i : ℝ) := by rcases hk i with h|h <;> simp [h]
+      have hk1i : (k i : ℝ) ≤ 1 := by rcases hk i with h|h <;> simp [h]
+      have hpos1 : (0:ℝ) < (2:ℝ)^(n+1:ℤ) := by positivity
+      refine ⟨?_, ?_⟩
+      · calc (a i : ℝ) / ((2 : ℝ)^(n : ℤ))
+            = ((2 * a i : ℤ) : ℝ) / ((2 : ℝ)^(n+1 : ℤ)) := by push_cast; rw [hsucc]; field_simp
+          _ ≤ ((2 * a i + k i : ℤ) : ℝ) / ((2 : ℝ)^(n+1 : ℤ)) := by
+                apply (div_le_div_iff_of_pos_right hpos1).mpr; push_cast; nlinarith [hk0i]
+          _ ≤ x i := hx_low
+      · calc x i ≤ (((2 * a i + k i : ℤ) : ℝ) + 1) / ((2 : ℝ)^(n+1 : ℤ)) := hx_high
+          _ ≤ (((2 * a i + 2 : ℤ) : ℝ)) / ((2 : ℝ)^(n+1 : ℤ)) := by
+                apply (div_le_div_iff_of_pos_right hpos1).mpr; push_cast; nlinarith [hk1i]
+          _ = ((a i : ℝ) + 1) / ((2 : ℝ)^(n : ℤ)) := by push_cast; rw [hsucc]; field_simp
+    · rw [if_neg hk] at hxk; exact absurd hxk (Set.notMem_empty x)
+
+-- The corner point of a dyadic cube (all coords at left endpoint) lies in the cube.
+lemma dyadic_corner_mem {d : ℕ} (n : ℤ) (a : Fin d → ℤ) :
+    ((.toLp 2 (fun i => (a i : ℝ) / (2:ℝ)^n)) : EuclideanSpace' d) ∈ (DyadicCube n a).toSet := by
+  intro i
+  simp only [DyadicCube, BoundedInterval.toSet, Set.mem_Icc]
+  have h2n : (0:ℝ) < (2:ℝ)^n := by positivity
+  refine ⟨le_refl _, ?_⟩
+  rw [div_le_div_iff_of_pos_right h2n]; linarith
+
+-- The corner point map coordinates
+lemma dyadic_corner_coord {d : ℕ} (n : ℤ) (a : Fin d → ℤ) (i : Fin d) :
+    ((.toLp 2 (fun i => (a i : ℝ) / (2:ℝ)^n)) : EuclideanSpace' d) i = (a i : ℝ) / (2:ℝ)^n := rfl
+
+-- Finiteness: for bounded E', the set of scale-n indices whose cube ⊆ E' is finite.
+lemma dyadic_indices_finite {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E')
+    (n : ℤ) : {a : Fin d → ℤ | (DyadicCube n a).toSet ⊆ E'}.Finite := by
+  rw [Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)] at hbdd
+  obtain ⟨R, hR⟩ := hbdd
+  have h2n : (0:ℝ) < (2:ℝ)^n := by positivity
+  -- Each valid a satisfies |a i| ≤ R * 2^n, so a lives in a finite product of intervals.
+  set M : ℤ := ⌈R * (2:ℝ)^n⌉ with hM
+  have hfin : {f : Fin d → ℤ | ∀ i, f i ∈ Set.Icc (-M) M}.Finite :=
+    Set.Finite.pi' (fun _ => Set.finite_Icc (-M) M)
+  apply Set.Finite.subset hfin
+  intro a ha
+  simp only [Set.mem_setOf_eq] at ha ⊢
+  intro i
+  -- corner point x is in the cube ⊆ E' ⊆ closedBall 0 R, so |a i / 2^n| ≤ R
+  have hmem : ((.toLp 2 (fun j => (a j : ℝ) / (2:ℝ)^n)) : EuclideanSpace' d) ∈ E' :=
+    ha (dyadic_corner_mem n a)
+  have hball := hR hmem
+  rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at hball
+  have hcoord : |((.toLp 2 (fun j => (a j : ℝ) / (2:ℝ)^n)) : EuclideanSpace' d) i| ≤ R :=
+    le_trans (EuclideanSpace'.coord_le_norm _ i) hball
+  rw [dyadic_corner_coord] at hcoord
+  -- |a i / 2^n| ≤ R  ⟹  |a i| ≤ R * 2^n  ⟹  -M ≤ a i ≤ M
+  rw [abs_div, abs_of_pos h2n] at hcoord
+  have hai : |(a i : ℝ)| ≤ R * (2:ℝ)^n := by
+    rw [div_le_iff₀ h2n] at hcoord; exact hcoord
+  rw [Set.mem_Icc]
+  have hle : (a i : ℝ) ≤ R * (2:ℝ)^n := le_trans (le_abs_self _) hai
+  have hge : -(R * (2:ℝ)^n) ≤ (a i : ℝ) := neg_le_of_abs_le hai
+  have hMR : (R * (2:ℝ)^n) ≤ (M : ℝ) := by rw [hM]; exact Int.le_ceil _
+  constructor
+  · have : -(M : ℝ) ≤ (a i : ℝ) := by linarith
+    exact_mod_cast this
+  · have : (a i : ℝ) ≤ (M : ℝ) := by linarith
+    exact_mod_cast this
+
+noncomputable def Gset {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    Finset (Box d) :=
+  (dyadic_indices_finite E' hbdd (n:ℤ)).toFinset.image (fun a => DyadicCube (n:ℤ) a)
+
+-- Gunion : the point set
+noncomputable def Gunion {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    Set (EuclideanSpace' d) := ⋃ B ∈ Gset E' hbdd n, B.toSet
+
+lemma Gunion_eq {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    Gunion E' hbdd n = ⋃ a ∈ {a : Fin d → ℤ | (DyadicCube (n:ℤ) a).toSet ⊆ E'}, (DyadicCube (n:ℤ) a).toSet := by
+  simp only [Gunion, Gset]
+  ext x
+  simp only [Set.mem_iUnion, Finset.mem_image, Set.Finite.mem_toFinset, Set.mem_setOf_eq]
+  constructor
+  · rintro ⟨B, ⟨a, ha, rfl⟩, hx⟩; exact ⟨a, ha, hx⟩
+  · rintro ⟨a, ha, hx⟩; exact ⟨DyadicCube (n:ℤ) a, ⟨a, ha, rfl⟩, hx⟩
+
+-- Gunion n ⊆ E'
+lemma Gunion_subset {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    Gunion E' hbdd n ⊆ E' := by
+  rw [Gunion_eq]
+  apply Set.iUnion₂_subset
+  intro a ha
+  exact ha
+
+-- Monotonicity: Gunion n ⊆ Gunion (n+1)
+lemma Gunion_mono {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    Gunion E' hbdd n ⊆ Gunion E' hbdd (n+1) := by
+  rw [Gunion_eq, Gunion_eq]
+  intro x hx
+  simp only [Set.mem_iUnion, Set.mem_setOf_eq] at hx ⊢
+  obtain ⟨a, ha_sub, hx_mem⟩ := hx
+  -- x ∈ DyadicCube n a ⊆ E'. Subdivide: x is in some child DyadicCube (n+1) (2a+k), which ⊆ DyadicCube n a ⊆ E'.
+  rw [dyadic_subdivide (n:ℤ) a] at hx_mem
+  rcases Set.mem_iUnion.mp hx_mem with ⟨k, hxk⟩
+  by_cases hk : ∀ i, k i = 0 ∨ k i = 1
+  · rw [if_pos hk] at hxk
+    refine ⟨fun i => 2 * a i + k i, ?_, ?_⟩
+    · -- child cube ⊆ E'
+      have hchild_sub_parent : (DyadicCube ((n:ℤ)+1) (fun i => 2 * a i + k i)).toSet ⊆ (DyadicCube (n:ℤ) a).toSet := by
+        rw [dyadic_subdivide (n:ℤ) a]
+        intro y hy
+        exact Set.mem_iUnion.mpr ⟨k, by rw [if_pos hk]; exact hy⟩
+      have : ((n:ℤ)+1) = ((n+1:ℕ):ℤ) := by push_cast; ring
+      rw [this] at hchild_sub_parent hxk
+      exact hchild_sub_parent.trans ha_sub
+    · have : ((n:ℤ)+1) = ((n+1:ℕ):ℤ) := by push_cast; ring
+      rw [this] at hxk
+      exact hxk
+  · rw [if_neg hk] at hxk; exact absurd hxk (Set.notMem_empty x)
+
+-- interior E' ⊆ ⋃ₙ Gunion n
+lemma interior_subset_iUnion_Gunion {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') :
+    interior E' ⊆ ⋃ n, Gunion E' hbdd n := by
+  intro x hx
+  have hopen : IsOpen (interior E') := isOpen_interior
+  obtain ⟨n, a, hx_mem, hcube_sub⟩ := hopen.exists_dyadic_cube_subset hx
+  refine Set.mem_iUnion.mpr ⟨n, ?_⟩
+  rw [Gunion_eq]
+  refine Set.mem_iUnion₂.mpr ⟨a, ?_, hx_mem⟩
+  exact hcube_sub.trans interior_subset
+
+-- Gunion n is elementary (finite union of boxes)
+lemma Gunion_elementary {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    IsElementary (Gunion E' hbdd n) := by
+  rw [Gunion]
+  exact ⟨Gset E' hbdd n, rfl⟩
+
+lemma Gunion_measurable {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    LebesgueMeasurable (Gunion E' hbdd n) :=
+  (Gunion_elementary E' hbdd n).measurable
+
+-- For elementary E', E' \ interior E' is null (frontier of a Jordan-measurable set is null).
+lemma elem_diff_interior_null {d : ℕ} {E' : Set (EuclideanSpace' d)} (hE' : IsElementary E') :
+    IsNull (E' \ interior E') := by
+  have hbdd : Bornology.IsBounded E' := hE'.isBounded
+  have hJM : JordanMeasurable E' := hE'.jordanMeasurable
+  have h_diff_sub_frontier : E' \ interior E' ⊆ frontier E' := by
+    intro x hx
+    rw [frontier, Set.mem_diff]
+    exact ⟨subset_closure hx.1, hx.2⟩
+  have h_frontier_bounded : Bornology.IsBounded (frontier E') :=
+    hbdd.closure.subset frontier_subset_closure
+  have h_frontier_null : JordanMeasurable.null (frontier E') :=
+    (JordanMeasurable.iff_boundary_null hbdd).mp hJM
+  rcases h_frontier_null with ⟨hFrJM, hFr_measure⟩
+  have h_frontier_outer_zero : Jordan_outer_measure (frontier E') = 0 := by
+    calc Jordan_outer_measure (frontier E') = hFrJM.measure := hFrJM.eq_outer.symm
+      _ = 0 := hFr_measure
+  have h_frontier_Lebesgue_null : IsNull (frontier E') := by
+    apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+    calc Lebesgue_outer_measure (frontier E') ≤ Jordan_outer_measure (frontier E') :=
+          Lebesgue_outer_measure_le_Jordan h_frontier_bounded
+      _ = 0 := by simpa using congrArg (fun x : ℝ => (x : EReal)) h_frontier_outer_zero
+  exact IsNull.subset h_frontier_Lebesgue_null h_diff_sub_frontier
+
+-- The countable union ⋃ₙ Gunion n has the same measure as E'.
+lemma iUnion_Gunion_measure_eq {d : ℕ} {E' : Set (EuclideanSpace' d)} (hE' : IsElementary E') :
+    Lebesgue_measure (⋃ n, Gunion E' hE'.isBounded n) = Lebesgue_measure E' := by
+  set hbdd := hE'.isBounded
+  have h_sub : (⋃ n, Gunion E' hbdd n) ⊆ E' :=
+    Set.iUnion_subset (fun n => Gunion_subset E' hbdd n)
+  have h_int_sub : interior E' ⊆ ⋃ n, Gunion E' hbdd n := interior_subset_iUnion_Gunion E' hbdd
+  -- E' \ (⋃ₙ Gunion n) ⊆ E' \ interior E', which is null
+  have h_diff_null : IsNull (E' \ ⋃ n, Gunion E' hbdd n) := by
+    apply IsNull.subset (elem_diff_interior_null hE')
+    exact Set.diff_subset_diff_right h_int_sub
+  -- measure of E' = measure of union + measure of null diff
+  apply le_antisymm
+  · exact Lebesgue_outer_measure.mono h_sub
+  · -- m(E') ≤ m(union) : E' ⊆ union ∪ (E' \ union), and diff is null
+    have h_cover : E' ⊆ (⋃ n, Gunion E' hbdd n) ∪ (E' \ ⋃ n, Gunion E' hbdd n) := by
+      intro x hx
+      by_cases hxU : x ∈ ⋃ n, Gunion E' hbdd n
+      · exact Or.inl hxU
+      · exact Or.inr ⟨hx, hxU⟩
+    calc Lebesgue_measure E'
+        ≤ Lebesgue_outer_measure ((⋃ n, Gunion E' hbdd n) ∪ (E' \ ⋃ n, Gunion E' hbdd n)) :=
+          Lebesgue_outer_measure.mono h_cover
+      _ ≤ Lebesgue_outer_measure (⋃ n, Gunion E' hbdd n) + Lebesgue_outer_measure (E' \ ⋃ n, Gunion E' hbdd n) := by
+          let S : Fin 2 → Set (EuclideanSpace' d) := ![⋃ n, Gunion E' hbdd n, E' \ ⋃ n, Gunion E' hbdd n]
+          have h_union : ((⋃ n, Gunion E' hbdd n) ∪ (E' \ ⋃ n, Gunion E' hbdd n)) = ⋃ i : Fin 2, S i := by
+            ext x; simp only [S, Set.mem_union, Set.mem_iUnion, Fin.exists_fin_two,
+              Matrix.cons_val_zero, Matrix.cons_val_one]
+          calc Lebesgue_outer_measure ((⋃ n, Gunion E' hbdd n) ∪ (E' \ ⋃ n, Gunion E' hbdd n))
+              = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+            _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+            _ = Lebesgue_outer_measure (⋃ n, Gunion E' hbdd n) + Lebesgue_outer_measure (E' \ ⋃ n, Gunion E' hbdd n) := by
+                simp [S, Fin.sum_univ_two]
+      _ = Lebesgue_measure (⋃ n, Gunion E' hbdd n) := by
+          rw [show Lebesgue_outer_measure (E' \ ⋃ n, Gunion E' hbdd n) = 0 from h_diff_null]
+          rw [add_zero]; rfl
+
+-- E' has finite measure
+lemma elem_measure_lt_top {d : ℕ} {E' : Set (EuclideanSpace' d)} (hE' : IsElementary E') :
+    Lebesgue_measure E' < ⊤ := by
+  have hj : JordanMeasurable E' := hE'.jordanMeasurable
+  rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure hj]
+  simp
+
+-- Main approximation: for elementary bounded E' and ε>0, there is a scale N with
+-- m(E' \ Gunion N) ≤ ε.
+lemma exists_dyadic_approx {d : ℕ} {E' : Set (EuclideanSpace' d)} (hE' : IsElementary E')
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ N : ℕ, Lebesgue_outer_measure (E' \ Gunion E' hE'.isBounded N) ≤ (ε : EReal) := by
+  set hbdd := hE'.isBounded
+  set U := ⋃ n, Gunion E' hbdd n with hU
+  have hU_measure : Lebesgue_measure U = Lebesgue_measure E' := iUnion_Gunion_measure_eq hE'
+  have h_tendsto : Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (Gunion E' hbdd n))
+      (nhds (Lebesgue_measure U)) :=
+    Lebesgue_measure.upward_monotone_convergence (Gunion_measurable E' hbdd) (Gunion_mono E' hbdd)
+  rw [hU_measure] at h_tendsto
+  -- finiteness
+  have hE'_fin : Lebesgue_measure E' < ⊤ := elem_measure_lt_top hE'
+  have hE'_ne_top : Lebesgue_measure E' ≠ ⊤ := hE'_fin.ne
+  have hE'_ne_bot : Lebesgue_measure E' ≠ ⊥ := by
+    have h : (0:EReal) ≤ Lebesgue_measure E' := Lebesgue_outer_measure.nonneg E'
+    intro hbot; rw [hbot] at h; exact (EReal.bot_lt_zero.trans_le h).ne rfl
+  have h_tendsto_real : Filter.atTop.Tendsto (fun n : ℕ => (Lebesgue_measure (Gunion E' hbdd n)).toReal)
+      (nhds ((Lebesgue_measure E').toReal)) :=
+    (EReal.tendsto_toReal hE'_ne_top hE'_ne_bot).comp h_tendsto
+  have h_event : ∀ᶠ n in Filter.atTop,
+      |(Lebesgue_measure (Gunion E' hbdd n)).toReal - (Lebesgue_measure E').toReal| < ε := by
+    rw [Metric.tendsto_nhds] at h_tendsto_real
+    exact h_tendsto_real ε hε
+  rcases Filter.eventually_atTop.mp h_event with ⟨N, hN⟩
+  refine ⟨N, ?_⟩
+  -- Gunion N ⊆ E' measurable, so m(E' \ Gunion N) = m(E') - m(Gunion N)
+  have hGN_sub : Gunion E' hbdd N ⊆ E' := Gunion_subset E' hbdd N
+  have hGN_meas : LebesgueMeasurable (Gunion E' hbdd N) := Gunion_measurable E' hbdd N
+  have hGN_fin : Lebesgue_measure (Gunion E' hbdd N) < ⊤ :=
+    lt_of_le_of_lt (Lebesgue_outer_measure.mono hGN_sub) hE'_fin
+  have hGN_ne_top : Lebesgue_measure (Gunion E' hbdd N) ≠ ⊤ := hGN_fin.ne
+  have hGN_ne_bot : Lebesgue_measure (Gunion E' hbdd N) ≠ ⊥ := by
+    have h : (0:EReal) ≤ Lebesgue_measure (Gunion E' hbdd N) := Lebesgue_outer_measure.nonneg _
+    intro hbot; rw [hbot] at h; exact (EReal.bot_lt_zero.trans_le h).ne rfl
+  -- diff measurable
+  have hdiff_meas : LebesgueMeasurable (E' \ Gunion E' hbdd N) :=
+    LebesgueMeasurable.inter hE'.measurable hGN_meas.complement
+  -- m(Gunion N) + m(E' \ Gunion N) = m(E')
+  have h_add : Lebesgue_measure (Gunion E' hbdd N) + Lebesgue_measure (E' \ Gunion E' hbdd N)
+      = Lebesgue_measure E' := by
+    have h_union : Gunion E' hbdd N ∪ (E' \ Gunion E' hbdd N) = E' := by
+      rw [Set.union_diff_cancel hGN_sub]
+    have h_disj : Gunion E' hbdd N ∩ (E' \ Gunion E' hbdd N) = ∅ := by
+      ext x; simp
+    calc Lebesgue_measure (Gunion E' hbdd N) + Lebesgue_measure (E' \ Gunion E' hbdd N)
+        = Lebesgue_measure (Gunion E' hbdd N ∪ (E' \ Gunion E' hbdd N)) :=
+          (Lebesgue_measure.union hGN_meas hdiff_meas h_disj).symm
+      _ = Lebesgue_measure E' := by rw [h_union]
+  -- Now bound m(E' \ Gunion N) = m(E') - m(Gunion N) < ε
+  have hdiff_fin : Lebesgue_measure (E' \ Gunion E' hbdd N) < ⊤ :=
+    lt_of_le_of_lt (Lebesgue_outer_measure.mono Set.diff_subset) hE'_fin
+  have hdiff_ne_top : Lebesgue_measure (E' \ Gunion E' hbdd N) ≠ ⊤ := hdiff_fin.ne
+  have hdiff_ne_bot : Lebesgue_measure (E' \ Gunion E' hbdd N) ≠ ⊥ := by
+    have h : (0:EReal) ≤ Lebesgue_measure (E' \ Gunion E' hbdd N) := Lebesgue_outer_measure.nonneg _
+    intro hbot; rw [hbot] at h; exact (EReal.bot_lt_zero.trans_le h).ne rfl
+  -- convert to reals
+  have h_add_real : (Lebesgue_measure (Gunion E' hbdd N)).toReal + (Lebesgue_measure (E' \ Gunion E' hbdd N)).toReal
+      = (Lebesgue_measure E').toReal := by
+    rw [← EReal.toReal_add hGN_ne_top hGN_ne_bot hdiff_ne_top hdiff_ne_bot, h_add]
+  have hdiff_toReal_lt : (Lebesgue_measure (E' \ Gunion E' hbdd N)).toReal < ε := by
+    have habs := hN N (le_refl N)
+    rcases abs_lt.mp habs with ⟨hlo, _⟩
+    -- (m Gunion).toReal - (m E').toReal > -ε, i.e. (m E').toReal - (m Gunion).toReal < ε
+    linarith [h_add_real]
+  -- conclude
+  have h_eq : Lebesgue_outer_measure (E' \ Gunion E' hbdd N) = Lebesgue_measure (E' \ Gunion E' hbdd N) := rfl
+  rw [h_eq]
+  rw [show Lebesgue_measure (E' \ Gunion E' hbdd N) = ((Lebesgue_measure (E' \ Gunion E' hbdd N)).toReal : EReal)
+      from (EReal.coe_toReal hdiff_ne_top hdiff_ne_bot).symm]
+  exact_mod_cast hdiff_toReal_lt.le
+
+-- Gset boxes are dyadic at scale N
+lemma Gset_dyadic {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    ∀ B ∈ Gset E' hbdd n, B.IsDyadicAtScale (n:ℤ) := by
+  intro B hB
+  simp only [Gset, Finset.mem_image, Set.Finite.mem_toFinset, Set.mem_setOf_eq] at hB
+  obtain ⟨a, _, rfl⟩ := hB
+  exact ⟨a, rfl⟩
+
+-- ⋃ B ∈ Gset, B = Gunion
+lemma biUnion_Gset_eq {d : ℕ} (E' : Set (EuclideanSpace' d)) (hbdd : Bornology.IsBounded E') (n : ℕ) :
+    (⋃ B ∈ Gset E' hbdd n, B.toSet) = Gunion E' hbdd n := rfl
+
+-- THE MAIN LEMMA
+lemma finite_TFAE_7_implies_8 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h7 : ∀ ε > 0, ∃ E', IsElementary E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε) :
+    ∀ ε > 0, ∃ (n : ℤ) (F : Finset (Box d)), (∀ B ∈ F, B.IsDyadicAtScale n) ∧
+      Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) ≤ ε := by
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  · subst hε_top
+    exact ⟨0, ∅, by intro B hB; simp at hB, le_top⟩
+  -- ε is a positive real r
+  have hε_real : ∃ r : ℝ, 0 < r ∧ (r : EReal) = ε := by
+    cases ε with
+    | bot => exact absurd hε (by simp)
+    | top => exact (hε_top rfl).elim
+    | coe r => exact ⟨r, EReal.coe_pos.mp hε, rfl⟩
+  rcases hε_real with ⟨r, hr_pos, hr_eq⟩; subst hr_eq
+  have hr2_pos : (0:ℝ) < r / 2 := by linarith
+  have hr2_ereal : (0:EReal) < ((r/2 : ℝ) : EReal) := by exact_mod_cast hr2_pos
+  -- Step 1: elementary E' with m(symmDiff E' E) ≤ r/2
+  rcases h7 ((r/2:ℝ):EReal) hr2_ereal with ⟨E', hE'_elem, h_symm⟩
+  -- Step 2: dyadic approx of E' with m(E' \ Gunion N) ≤ r/2
+  rcases exists_dyadic_approx hE'_elem (r/2) hr2_pos with ⟨N, hN⟩
+  set hbdd := hE'_elem.isBounded
+  refine ⟨(N:ℤ), Gset E' hbdd N, Gset_dyadic E' hbdd N, ?_⟩
+  rw [biUnion_Gset_eq]
+  -- symmDiff (Gunion N) E ⊆ (E' \ Gunion N) ∪ symmDiff E' E
+  have hGN_sub : Gunion E' hbdd N ⊆ E' := Gunion_subset E' hbdd N
+  have h_symm_sub : symmDiff (Gunion E' hbdd N) E ⊆ (E' \ Gunion E' hbdd N) ∪ symmDiff E' E := by
+    intro x hx
+    rw [Set.symmDiff_def] at hx
+    rcases hx with ⟨hxG, hxnE⟩ | ⟨hxE, hxnG⟩
+    · -- x ∈ Gunion \ E ⊆ E' \ E ⊆ symmDiff E' E
+      have hxE' : x ∈ E' := hGN_sub hxG
+      right; rw [Set.symmDiff_def]; exact Or.inl ⟨hxE', hxnE⟩
+    · -- x ∈ E \ Gunion. Either x ∈ E' (then E' \ Gunion) or x ∉ E' (then E \ E' ⊆ symmDiff)
+      by_cases hxE' : x ∈ E'
+      · left; exact ⟨hxE', hxnG⟩
+      · right; rw [Set.symmDiff_def]; exact Or.inr ⟨hxE, hxE'⟩
+  -- bound by subadditivity
+  have h_le : Lebesgue_outer_measure (symmDiff (Gunion E' hbdd N) E) ≤
+      Lebesgue_outer_measure (E' \ Gunion E' hbdd N) + Lebesgue_outer_measure (symmDiff E' E) := by
+    let S : Fin 2 → Set (EuclideanSpace' d) := ![E' \ Gunion E' hbdd N, symmDiff E' E]
+    have h_union : ((E' \ Gunion E' hbdd N) ∪ symmDiff E' E) = ⋃ i : Fin 2, S i := by
+      ext x; simp only [S, Set.mem_union, Set.mem_iUnion, Fin.exists_fin_two,
+        Matrix.cons_val_zero, Matrix.cons_val_one]
+    calc Lebesgue_outer_measure (symmDiff (Gunion E' hbdd N) E)
+        ≤ Lebesgue_outer_measure ((E' \ Gunion E' hbdd N) ∪ symmDiff E' E) :=
+          Lebesgue_outer_measure.mono h_symm_sub
+      _ = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+      _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+      _ = Lebesgue_outer_measure (E' \ Gunion E' hbdd N) + Lebesgue_outer_measure (symmDiff E' E) := by
+          simp [S, Fin.sum_univ_two]
+  calc Lebesgue_outer_measure (symmDiff (Gunion E' hbdd N) E)
+      ≤ Lebesgue_outer_measure (E' \ Gunion E' hbdd N) + Lebesgue_outer_measure (symmDiff E' E) := h_le
+    _ ≤ ((r/2:ℝ):EReal) + ((r/2:ℝ):EReal) := add_le_add hN h_symm
+    _ = (r:EReal) := by rw [← EReal.coe_add]; norm_num
+
+
+-- ============ 0 → 1 ============
+lemma finite_TFAE_0_implies_1 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h0 : LebesgueMeasurable E ∧ Lebesgue_measure E < ⊤) :
+    ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_measure U < ⊤ ∧ Lebesgue_outer_measure (U \ E) ≤ ε := by
+  rcases h0 with ⟨hE_meas, hE_fin⟩
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  · subst hε_top
+    rcases hE_meas 1 (by norm_num : (0 : EReal) < 1) with ⟨V, hV_open, hE_sub_V, hV_diff⟩
+    have h_one_pos : (0 : EReal) < 1 := by norm_num
+    rcases Lebesgue_outer_measure.exists_open_superset_measure_le E 1 h_one_pos with ⟨W, hW_open, hE_sub_W, hW_le⟩
+    have hW_fin : Lebesgue_measure W < ⊤ := by
+      have : Lebesgue_outer_measure E < ⊤ := hE_fin
+      have : Lebesgue_outer_measure E + (1 : EReal) < ⊤ := by
+        have h_add : (Lebesgue_outer_measure E : EReal) + (1 : EReal) < ⊤ :=
+          EReal.add_lt_top (ne_of_lt this) (EReal.coe_ne_top (1 : ℝ))
+        exact h_add
+      have hW_le' : Lebesgue_outer_measure W ≤ Lebesgue_outer_measure E + (1 : EReal) := hW_le
+      exact lt_of_le_of_lt hW_le' this
+    let U := V ∩ W
+    have hU_open : IsOpen U := IsOpen.inter hV_open hW_open
+    have hE_sub_U : E ⊆ U := by
+      intro x hx; exact ⟨hE_sub_V hx, hE_sub_W hx⟩
+    have hU_fin : Lebesgue_measure U < ⊤ := by
+      have h_sub : U ⊆ W := Set.inter_subset_right
+      have h_mono : Lebesgue_outer_measure U ≤ Lebesgue_outer_measure W := Lebesgue_outer_measure.mono h_sub
+      exact lt_of_le_of_lt h_mono hW_fin
+    have hU_diff : Lebesgue_outer_measure (U \ E) ≤ ⊤ := le_top
+    exact ⟨U, hU_open, hE_sub_U, hU_fin, hU_diff⟩
+  · -- ε is not ⊤, so it's either ⊥ (impossible since ε > 0) or coe r
+    have hε_fin : ε ≠ ⊤ := hε_top
+    have h_pos : 0 < ε := hε
+    rcases hE_meas ε h_pos with ⟨V, hV_open, hE_sub_V, hV_diff⟩
+    rcases Lebesgue_outer_measure.exists_open_superset_measure_le E ε h_pos with ⟨W, hW_open, hE_sub_W, hW_le⟩
+    have hW_fin : Lebesgue_measure W < ⊤ := by
+      have : Lebesgue_outer_measure E < ⊤ := hE_fin
+      have h_add : (Lebesgue_outer_measure E : EReal) + ε < ⊤ := by
+        apply EReal.add_lt_top (ne_of_lt this) hε_fin
+      have hW_le' : Lebesgue_outer_measure W ≤ Lebesgue_outer_measure E + ε := hW_le
+      exact lt_of_le_of_lt hW_le' h_add
+    let U := V ∩ W
+    have hU_open : IsOpen U := IsOpen.inter hV_open hW_open
+    have hE_sub_U : E ⊆ U := by
+      intro x hx; exact ⟨hE_sub_V hx, hE_sub_W hx⟩
+    have hU_fin : Lebesgue_measure U < ⊤ := by
+      have h_sub : U ⊆ W := Set.inter_subset_right
+      have h_mono : Lebesgue_outer_measure U ≤ Lebesgue_outer_measure W := Lebesgue_outer_measure.mono h_sub
+      exact lt_of_le_of_lt h_mono hW_fin
+    have hU_diff : Lebesgue_outer_measure (U \ E) ≤ ε := by
+      have h_sub : U \ E ⊆ V \ E := by
+        intro x hx; rcases hx with ⟨⟨hxV, _⟩, hxE⟩; exact ⟨hxV, hxE⟩
+      have h_mono : Lebesgue_outer_measure (U \ E) ≤ Lebesgue_outer_measure (V \ E) :=
+        Lebesgue_outer_measure.mono h_sub
+      exact le_trans h_mono hV_diff
+    exact ⟨U, hU_open, hE_sub_U, hU_fin, hU_diff⟩
+
+-- ============ 1 → 2 ============
+lemma add_sub_cancel_finite' {x y : EReal} (hy_fin : y ≠ ⊤) (hy_not_bot : y ≠ ⊥) : (x + y) - y = x := by
+  have hy_real : ∃ (r : ℝ), y = (r : EReal) := by
+    have h_cases : y = ⊥ ∨ (∃ r : ℝ, y = (r : EReal)) ∨ y = ⊤ := by
+      match y with
+      | ⊥ => exact Or.inl rfl
+      | (r : ℝ) => exact Or.inr (Or.inl ⟨r, rfl⟩)
+      | ⊤ => exact Or.inr (Or.inr rfl)
+    rcases h_cases with (hbot | hreal | htop)
+    · exact (hy_not_bot hbot).elim
+    · exact hreal
+    · exact (hy_fin htop).elim
+  rcases hy_real with ⟨r, hr⟩
+  subst hr
+  have h_add_neg : ((r : ℝ) : EReal) + (-((r : ℝ) : EReal)) = (0 : EReal) := by
+    have h : (r : ℝ) + (-(r : ℝ)) = (0 : ℝ) := by ring
+    exact_mod_cast h
+  calc
+    (x + ((r : ℝ) : EReal)) - ((r : ℝ) : EReal) = (x + ((r : ℝ) : EReal)) + (-((r : ℝ) : EReal)) := rfl
+    _ = x + (((r : ℝ) : EReal) + (-((r : ℝ) : EReal))) := by rw [add_assoc]
+    _ = x + (0 : EReal) := by rw [h_add_neg]
+    _ = x := by simp
+
+lemma finite_TFAE_1_implies_2 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h1 : ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_measure U < ⊤ ∧ Lebesgue_outer_measure (U \ E) ≤ ε) :
+    ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ Bornology.IsBounded U ∧ Lebesgue_outer_measure (symmDiff U E) ≤ ε := by
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  · subst hε_top
+    refine ⟨Metric.ball 0 1, Metric.isOpen_ball, Metric.isBounded_ball, le_top⟩
+  · -- ε ≠ ⊤, and ε > 0, so ε must be a positive real
+    have hε_real : ∃ (r : ℝ), 0 < r ∧ (r : EReal) = ε := by
+      have h_cases : ε = ⊥ ∨ (∃ r : ℝ, ε = (r : EReal)) ∨ ε = ⊤ := by
+        match ε with
+        | ⊥ => exact Or.inl rfl
+        | (r : ℝ) => exact Or.inr (Or.inl ⟨r, rfl⟩)
+        | ⊤ => exact Or.inr (Or.inr rfl)
+      rcases h_cases with (hbot | hreal | htop)
+      · exfalso
+        rw [hbot] at hε
+        exact (EReal.bot_lt_zero.trans hε).ne rfl
+      · rcases hreal with ⟨r, hr⟩
+        refine ⟨r, ?_, hr.symm⟩
+        have hpos : (0 : EReal) < (r : EReal) := by rw [← hr]; exact hε
+        exact_mod_cast hpos
+      · exact (hε_top htop).elim
+    rcases hε_real with ⟨r, hr_pos, hr_eq⟩
+    subst hr_eq
+    -- Now ε = (r : EReal) with r > 0
+    have hr4_pos : (r / 4 : ℝ) > 0 := by linarith
+    rcases h1 ((r / 4 : ℝ) : EReal) (by exact_mod_cast hr4_pos) with ⟨U0, hU0_open, hE_sub_U0, hU0_fin, hU0_diff⟩
+    -- U0 is open, contains E, has finite measure, and μ(U0\E) ≤ r/4
+    
+    -- We need: find open bounded V with μ(symmDiff V E) ≤ r
+    -- Strategy: V = U0 ∩ B_R for a large ball B_R such that μ(U0\B_R) ≤ r/4
+    
+    -- First, get R using upward monotone convergence
+    let A : ℕ → Set (EuclideanSpace' d) := fun n => U0 ∩ Metric.ball (0 : EuclideanSpace' d) (n : ℝ)
+    have hA_mes : ∀ n, LebesgueMeasurable (A n) := by
+      intro n
+      exact hU0_open.measurable.inter Metric.isOpen_ball.measurable
+    have hA_mono : ∀ n, A n ⊆ A (n + 1) := by
+      intro n x ⟨hxU0, hxball⟩
+      refine ⟨hxU0, Metric.ball_subset_ball (by exact_mod_cast Nat.le_succ n) hxball⟩
+    have h_union_A_eq_U0 : ⋃ n, A n = U0 := by
+      ext x; constructor
+      · intro hx; rcases Set.mem_iUnion.mp hx with ⟨n, hx'⟩; exact hx'.1
+      · intro hxU0
+        rcases exists_nat_gt (‖x‖) with ⟨n, hn⟩
+        refine Set.mem_iUnion.mpr ⟨n, hxU0, ?_⟩
+        rw [Metric.mem_ball, dist_eq_norm, sub_zero]
+        exact hn
+    have h_tendsto_A : Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (A n)) (nhds (Lebesgue_measure U0)) := by
+      have h_temp := Lebesgue_measure.upward_monotone_convergence hA_mes hA_mono
+      simpa [h_union_A_eq_U0] using h_temp
+    -- Since μ(U0) < ⊤, convert to ℝ-convergence
+    have hU0_not_top : Lebesgue_measure U0 ≠ ⊤ := hU0_fin.ne
+    have hU0_not_bot : Lebesgue_measure U0 ≠ ⊥ := by
+      have h_nonneg : 0 ≤ Lebesgue_measure U0 := Lebesgue_outer_measure.nonneg _
+      intro hbot; rw [hbot] at h_nonneg; exact (EReal.bot_lt_zero.trans_le h_nonneg).ne rfl
+    have h_tendsto_A_real : Filter.atTop.Tendsto (fun n ↦ (Lebesgue_measure (A n)).toReal) (nhds ((Lebesgue_measure U0).toReal)) :=
+      (EReal.tendsto_toReal hU0_not_top hU0_not_bot).comp h_tendsto_A
+    -- Find N such that |μ(A_N).toReal - μ(U0).toReal| < r/4
+    have h_exists_N : ∃ N : ℕ, |(Lebesgue_measure (A N)).toReal - (Lebesgue_measure U0).toReal| < r / 4 := by
+      have h := Metric.tendsto_atTop.mp h_tendsto_A_real (r / 4) (by linarith)
+      rcases h with ⟨N, hN⟩
+      refine ⟨N, ?_⟩
+      have := hN N (le_refl N)
+      rw [Real.dist_eq] at this
+      exact this
+    rcases h_exists_N with ⟨N, hN⟩
+    -- hN gives |μ(A_N).toReal - μ(U0).toReal| < r/4
+    have h_mono_real : (Lebesgue_measure (A N)).toReal ≤ (Lebesgue_measure U0).toReal := by
+      have h_sub : A N ⊆ U0 := fun x hx => hx.1
+      have h_mu : Lebesgue_measure (A N) ≤ Lebesgue_measure U0 :=
+        Lebesgue_outer_measure.mono h_sub
+      have h_not_bot : Lebesgue_measure (A N) ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_measure (A N) := Lebesgue_outer_measure.nonneg _
+        intro hbot; rw [hbot] at h_nonneg; exact (EReal.bot_lt_zero.trans_le h_nonneg).ne rfl
+      have h_not_top_U0 : Lebesgue_measure U0 ≠ ⊤ := hU0_not_top
+      exact EReal.toReal_le_toReal h_mu h_not_bot h_not_top_U0
+    have h_diff_real_bound : (Lebesgue_measure U0).toReal - (Lebesgue_measure (A N)).toReal < r / 4 := by
+      have h_abs_eq : |(Lebesgue_measure (A N)).toReal - (Lebesgue_measure U0).toReal| =
+          (Lebesgue_measure U0).toReal - (Lebesgue_measure (A N)).toReal := by
+        have h_nonpos : (Lebesgue_measure (A N)).toReal - (Lebesgue_measure U0).toReal ≤ 0 := by linarith
+        rw [abs_of_nonpos h_nonpos]
+        ring
+      rw [h_abs_eq] at hN
+      exact hN
+    
+    -- Now V = A N = U0 ∩ ball(0, N) is open and bounded
+    let V : Set (EuclideanSpace' d) := A N
+    have hV_open : IsOpen V := IsOpen.inter hU0_open Metric.isOpen_ball
+    have hV_bounded : Bornology.IsBounded V :=
+      Bornology.IsBounded.subset Metric.isBounded_ball (Set.inter_subset_right)
+    
+    have h_AN_fin : Lebesgue_measure (A N) < ⊤ := by
+      have h_sub : A N ⊆ U0 := fun x hx => hx.1
+      calc
+        Lebesgue_measure (A N) ≤ Lebesgue_measure U0 := Lebesgue_outer_measure.mono h_sub
+        _ < ⊤ := hU0_fin
+    
+    -- Show μ(U0 \ V) = μ(U0) - μ(V) (both finite and V ⊆ U0)
+    have h_mu_diff_exact : Lebesgue_outer_measure (U0 \ V) = (Lebesgue_measure U0).toReal - (Lebesgue_measure V).toReal := by
+      have h_meas_V : LebesgueMeasurable V := hA_mes N
+      have h_disj : V ∩ (U0 \ V) = ∅ := by ext x; simp
+      have hV_sub_U0 : V ⊆ U0 := by
+        intro x hx
+        -- V = A N = U0 ∩ ball(0, N)
+        have hxV : x ∈ A N := hx
+        exact hxV.1
+      have h_union : U0 = V ∪ (U0 \ V) := by
+        apply Set.Subset.antisymm
+        · intro x hxU0
+          by_cases hxV : x ∈ V
+          · exact Set.mem_union_left _ hxV
+          · exact Set.mem_union_right _ ⟨hxU0, hxV⟩
+        · intro x hx
+          rcases hx with (hxV | ⟨hxU0, _⟩)
+          · exact hV_sub_U0 hxV
+          · exact hxU0
+      have h_union_meas : LebesgueMeasurable (U0 \ V) :=
+        hU0_open.measurable.inter (LebesgueMeasurable.complement h_meas_V)
+      have h_add : Lebesgue_measure U0 = Lebesgue_measure V + Lebesgue_measure (U0 \ V) := by
+        -- Write U0 as V ∪ (U0 \ V) and apply Lebesgue_measure.union
+        calc
+          Lebesgue_measure U0 = Lebesgue_measure (V ∪ (U0 \ V)) := by
+            -- Use h_union to rewrite: U0 = V ∪ (U0 \ V)
+            -- We need to rewrite U0 only in the argument of Lebesgue_measure, not in (U0 \ V)
+            -- Use `rw` with `h_union` only at the `U0` occurrence
+            conv => lhs; rw [h_union]
+          _ = Lebesgue_measure V + Lebesgue_measure (U0 \ V) :=
+            Lebesgue_measure.union h_meas_V h_union_meas h_disj
+      have h_V_not_top : Lebesgue_measure V ≠ ⊤ := h_AN_fin.ne
+      have h_V_not_bot : Lebesgue_measure V ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_measure V := Lebesgue_outer_measure.nonneg _
+        intro hbot; rw [hbot] at h_nonneg; exact (EReal.bot_lt_zero.trans_le h_nonneg).ne rfl
+      have h_diff_not_top : Lebesgue_measure (U0 \ V) ≠ ⊤ := by
+        have h_sub : U0 \ V ⊆ U0 := Set.diff_subset
+        have h_le : Lebesgue_measure (U0 \ V) ≤ Lebesgue_measure U0 :=
+          Lebesgue_outer_measure.mono h_sub
+        exact ne_of_lt (lt_of_le_of_lt h_le hU0_fin)
+      have h_diff_not_bot : Lebesgue_measure (U0 \ V) ≠ ⊥ := by
+        have h_nonneg : 0 ≤ Lebesgue_measure (U0 \ V) := Lebesgue_outer_measure.nonneg _
+        intro hbot; rw [hbot] at h_nonneg; exact (EReal.bot_lt_zero.trans_le h_nonneg).ne rfl
+      calc
+        Lebesgue_outer_measure (U0 \ V) = Lebesgue_measure (U0 \ V) := rfl
+        _ = Lebesgue_measure V + Lebesgue_measure (U0 \ V) - Lebesgue_measure V := by
+          rw [add_comm, add_sub_cancel_finite' h_V_not_top h_V_not_bot]
+        _ = Lebesgue_measure U0 - Lebesgue_measure V := by rw [h_add]
+        _ = ((Lebesgue_measure U0).toReal : EReal) - ((Lebesgue_measure V).toReal : EReal) := by
+          simp [EReal.coe_toReal hU0_not_top hU0_not_bot, EReal.coe_toReal h_V_not_top h_V_not_bot]
+        _ = (((Lebesgue_measure U0).toReal - (Lebesgue_measure V).toReal : ℝ) : EReal) := by simp
+    
+    have h_mu_U0_diff_V : Lebesgue_outer_measure (U0 \ V) ≤ (r / 4 : ℝ) := by
+      rw [h_mu_diff_exact]
+      have h_bound : (Lebesgue_measure U0).toReal - (Lebesgue_measure V).toReal < r / 4 := by
+        simpa [V] using h_diff_real_bound
+      -- Convert the real inequality to EReal
+      have h_bound_ereal : (((Lebesgue_measure U0).toReal - (Lebesgue_measure V).toReal : ℝ) : EReal) ≤ ((r / 4 : ℝ) : EReal) := by
+        exact_mod_cast h_bound.le
+      exact h_bound_ereal
+    
+    -- Claim: μ(symmDiff V E) ≤ (r : EReal)
+    have h_symmDiff_bound : Lebesgue_outer_measure (symmDiff V E) ≤ (r : EReal) := by
+      rw [Set.symmDiff_def]
+      have h_sub1 : V \ E ⊆ U0 \ E := Set.diff_subset_diff_left (by
+        -- V ⊆ U0 because V = A N ⊆ U0
+        have hV_sub_U0 : V ⊆ U0 := fun x hx => hx.1
+        exact hV_sub_U0)
+      have h_sub2 : E \ V ⊆ U0 \ V := by
+        intro x ⟨hxE, hxnotV⟩
+        refine ⟨hE_sub_U0 hxE, ?_⟩
+        intro hxUV; apply hxnotV; exact hxUV
+      have h_sub_union : (V \ E) ∪ (E \ V) ⊆ (U0 \ E) ∪ (U0 \ V) := by
+        apply Set.union_subset
+        · exact Set.Subset.trans h_sub1
+            (Set.subset_union_left (s := U0 \ E) (t := U0 \ V))
+        · exact Set.Subset.trans h_sub2
+            (Set.subset_union_right (s := U0 \ E) (t := U0 \ V))
+      have h_mu_union : Lebesgue_outer_measure ((V \ E) ∪ (E \ V)) ≤ Lebesgue_outer_measure ((U0 \ E) ∪ (U0 \ V)) :=
+        Lebesgue_outer_measure.mono h_sub_union
+      -- Use subadditivity: μ((U0\E)∪(U0\V)) ≤ μ(U0\E) + μ(U0\V)
+      have h_subadd : Lebesgue_outer_measure ((U0 \ E) ∪ (U0 \ V)) ≤
+          Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) := by
+        let F : Fin 2 → Set (EuclideanSpace' d) := ![U0 \ E, U0 \ V]
+        have h_union : (⋃ i, F i) = (U0 \ E) ∪ (U0 \ V) := by
+          ext x; simp [F]
+        have h_fin_union : Lebesgue_outer_measure (⋃ i, F i) ≤ ∑ i : Fin 2, Lebesgue_outer_measure (F i) :=
+          Lebesgue_outer_measure.finite_union_le F
+        have h_sum : ∑ i : Fin 2, Lebesgue_outer_measure (F i) = Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) := by
+          simp [F, Fin.sum_univ_two]
+        calc
+          Lebesgue_outer_measure ((U0 \ E) ∪ (U0 \ V)) = Lebesgue_outer_measure (⋃ i, F i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (F i) := h_fin_union
+          _ = Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) := h_sum
+      have h_total : Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) ≤ (r : EReal) := by
+        have hU0_diff' : Lebesgue_outer_measure (U0 \ E) ≤ ((r / 4 : ℝ) : EReal) := hU0_diff
+        have h_mu_U0_diff_V' : Lebesgue_outer_measure (U0 \ V) ≤ ((r / 4 : ℝ) : EReal) := h_mu_U0_diff_V
+        have h_sum : Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) ≤
+            ((r / 4 : ℝ) : EReal) + ((r / 4 : ℝ) : EReal) := add_le_add hU0_diff' h_mu_U0_diff_V'
+        have h_sum_eq : ((r / 4 : ℝ) : EReal) + ((r / 4 : ℝ) : EReal) = ((r / 2 : ℝ) : EReal) := by
+          have h_real : (r / 4 : ℝ) + (r / 4 : ℝ) = (r / 2 : ℝ) := by ring
+          simpa [add_comm, add_left_comm, add_assoc] using congrArg (fun x : ℝ => (x : EReal)) h_real
+        have h_lt : ((r / 2 : ℝ) : EReal) < (r : EReal) := by
+          have : (r / 2 : ℝ) < r := by linarith
+          exact_mod_cast this
+        calc
+          Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) ≤ ((r / 4 : ℝ) : EReal) + ((r / 4 : ℝ) : EReal) := h_sum
+          _ = ((r / 2 : ℝ) : EReal) := h_sum_eq
+          _ ≤ (r : EReal) := h_lt.le
+      calc
+        Lebesgue_outer_measure (symmDiff V E) = Lebesgue_outer_measure ((V \ E) ∪ (E \ V)) := by rw [Set.symmDiff_def]
+        _ ≤ Lebesgue_outer_measure ((U0 \ E) ∪ (U0 \ V)) := h_mu_union
+        _ ≤ Lebesgue_outer_measure (U0 \ E) + Lebesgue_outer_measure (U0 \ V) := h_subadd
+        _ ≤ (r : EReal) := h_total
+    
+    exact ⟨V, hV_open, hV_bounded, h_symmDiff_bound⟩
+
+-- ============ 2 → 3 ============
+lemma finite_TFAE_2_implies_3 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h2 : ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ Bornology.IsBounded U ∧ Lebesgue_outer_measure (symmDiff U E) ≤ ε) :
+    ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsCompact F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε := by
+  -- From h2, E is Lebesgue measurable (using standard TFAE)
+  have hE_meas : LebesgueMeasurable E := by
+    have h_symm_approx : ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ Lebesgue_outer_measure (symmDiff U E) ≤ ε := by
+      intro ε hε
+      rcases h2 ε hε with ⟨U, hU_open, hU_bdd, h_symm⟩
+      exact ⟨U, hU_open, h_symm⟩
+    exact ((LebesgueMeasurable.TFAE E).out 2 0).mp h_symm_approx
+
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  ·     subst hε_top; refine ⟨∅, isCompact_empty, Set.empty_subset _, ?_⟩; simp; exact le_top
+  have hε_real : ∃ r : ℝ, 0 < r ∧ (r : EReal) = ε := by
+    cases ε with
+    | bot => exact absurd hε (not_lt.mpr bot_le)
+    | top => exact (hε_top rfl).elim
+    | coe r => exact ⟨r, EReal.coe_pos.mp hε, rfl⟩
+  rcases hε_real with ⟨r, hr_pos, hr_eq⟩; subst hr_eq
+  have hr2_pos : (r / 2 : ℝ) > 0 := by linarith
+  have h_hr2_pos : (0 : EReal) < (r / 2 : ℝ) := EReal.coe_pos.mpr hr2_pos
+  rcases h2 ((r / 2 : ℝ) : EReal) h_hr2_pos with ⟨U, hU_open, hU_bdd, h_symm⟩
+
+  -- From h_symm: m*(symmDiff U E) ≤ r/2, so m*(E\U) ≤ r/2
+  have h_EU_sub : E \ U ⊆ symmDiff U E := by rw [symmDiff_def]; simp
+  have h_EU_bound : Lebesgue_outer_measure (E \ U) ≤ (r / 2 : ℝ) :=
+    le_trans (Lebesgue_outer_measure.mono h_EU_sub) h_symm
+
+  -- From standard TFAE (3), E measurable gives closed F ⊆ E with m*(E\F) ≤ r/2
+  have h_closed_approx : ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsClosed F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε :=
+    ((LebesgueMeasurable.TFAE E).out 0 3).mp hE_meas
+  rcases h_closed_approx ((r / 2 : ℝ) : EReal) h_hr2_pos with ⟨F, hF_closed, hF_sub_E, hF_diff⟩
+
+  -- closure(U) is compact (bounded closed in ℝ^d)
+  have h_closure_compact : IsCompact (closure U) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure hU_bdd.closure
+
+  -- K = closure(U) ∩ F is compact and ⊆ E
+  let K := closure U ∩ F
+  have hK_closed : IsClosed K := IsClosed.inter isClosed_closure hF_closed
+  have hK_bounded : Bornology.IsBounded K := hU_bdd.closure.subset Set.inter_subset_left
+  have hK_compact : IsCompact K := Metric.isCompact_of_isClosed_isBounded hK_closed hK_bounded
+  have hK_sub_E : K ⊆ E := Set.Subset.trans (Set.inter_subset_right) hF_sub_E
+
+  -- E \ K ⊆ (E \ U) ∪ (E \ F) (since closure U ⊇ U)
+  have h_diff_sub : E \ K ⊆ (E \ U) ∪ (E \ F) := by
+    intro x hx
+    rcases hx with ⟨hxE, hxK⟩
+    have hx_not_in : x ∉ closure U ∨ x ∉ F := by
+      by_cases hx_closure : x ∈ closure U
+      · right; intro hxF; apply hxK; exact ⟨hx_closure, hxF⟩
+      · left; exact hx_closure
+    rcases hx_not_in with (hx_not_closure | hx_not_F)
+    · have hx_not_U : x ∉ U := mt (fun hxU : x ∈ U => subset_closure hxU) hx_not_closure
+      apply Set.mem_union_left
+      exact ⟨hxE, hx_not_U⟩
+    · apply Set.mem_union_right
+      exact ⟨hxE, hx_not_F⟩
+
+  have hK_bound : Lebesgue_outer_measure (E \ K) ≤ (r : ℝ) := by
+    have h_subadd : Lebesgue_outer_measure ((E \ U) ∪ (E \ F)) ≤
+        Lebesgue_outer_measure (E \ U) + Lebesgue_outer_measure (E \ F) := by
+      let S : Fin 2 → Set (EuclideanSpace' d) := ![E \ U, E \ F]
+      have h_union : ⋃ i : Fin 2, S i = (E \ U) ∪ (E \ F) := by ext x; simp [S]
+      calc
+        Lebesgue_outer_measure ((E \ U) ∪ (E \ F)) = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+        _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+        _ = Lebesgue_outer_measure (E \ U) + Lebesgue_outer_measure (E \ F) := by simp [S, Fin.sum_univ_two]
+    calc
+      Lebesgue_outer_measure (E \ K) ≤ Lebesgue_outer_measure ((E \ U) ∪ (E \ F)) :=
+        Lebesgue_outer_measure.mono h_diff_sub
+      _ ≤ Lebesgue_outer_measure (E \ U) + Lebesgue_outer_measure (E \ F) := h_subadd
+      _ ≤ ((r / 2 : ℝ) : EReal) + ((r / 2 : ℝ) : EReal) := add_le_add h_EU_bound hF_diff
+      _ = ((r : ℝ) : EReal) := by
+        calc
+          ((r / 2 : ℝ) : EReal) + ((r / 2 : ℝ) : EReal) = ((r / 2 + r / 2 : ℝ) : EReal) := by rw [EReal.coe_add]
+          _ = (r : EReal) := by
+            have h : (r / 2 : ℝ) + (r / 2 : ℝ) = r := by ring
+            rw [h]
+
+  exact ⟨K, hK_compact, hK_sub_E, hK_bound⟩
+
+-- ============ 3 → 4, 4 → 5 ============
+lemma finite_TFAE_3_implies_4 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h3 : ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsCompact F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε) :
+    ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsCompact F ∧ Lebesgue_outer_measure (symmDiff F E) ≤ ε := by
+  intro ε hε
+  rcases h3 ε hε with ⟨F, hF_compact, hF_sub_E, h_diff⟩
+  refine ⟨F, hF_compact, ?_⟩
+  have h_symm_eq : symmDiff F E = E \ F := by
+    rw [symmDiff_def]
+    simp [Set.diff_eq_empty.mpr hF_sub_E]
+  rw [h_symm_eq]
+  exact h_diff
+
+lemma finite_TFAE_4_implies_5 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h4 : ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsCompact F ∧ Lebesgue_outer_measure (symmDiff F E) ≤ ε) :
+    ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Lebesgue_measure E' < ⊤ ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε := by
+  intro ε hε
+  rcases h4 ε hε with ⟨F, hF_compact, h_symm⟩
+  refine ⟨F, hF_compact.isClosed.measurable, ?_, h_symm⟩
+  have h_fin : Lebesgue_outer_measure F ≠ ⊤ := Lebesgue_outer_measure.finite_of_compact hF_compact
+  rw [show Lebesgue_measure F = Lebesgue_outer_measure F from rfl]
+  by_cases h_nonneg : 0 ≤ Lebesgue_outer_measure F
+  · cases h : Lebesgue_outer_measure F with
+    | bot => exact (not_lt.mpr h_nonneg (by rw [h]; exact EReal.bot_lt_zero)).elim
+    | top => exact (h_fin h).elim
+    | coe r => exact EReal.coe_lt_top r
+  · exact (h_nonneg (Lebesgue_outer_measure.nonneg F)).elim
+
+-- ============ 5 → 6 ============
+lemma finite_TFAE_5_implies_6 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h5 : ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Lebesgue_measure E' < ⊤ ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε) :
+    ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Bornology.IsBounded E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε := by
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  · subst hε_top
+    refine ⟨∅, LebesgueMeasurable.empty, Bornology.isBounded_empty, ?_⟩
+    exact le_top
+  · -- ε is a positive real number
+    have hε_pos_real : ∃ r : ℝ, ε = (r : EReal) ∧ 0 < r := by
+      have h_cases : ε = ⊥ ∨ (∃ r : ℝ, ε = (r : EReal)) ∨ ε = ⊤ := by
+        match ε with
+        | ⊥ => exact Or.inl rfl
+        | (r : ℝ) => exact Or.inr (Or.inl ⟨r, rfl⟩)
+        | ⊤ => exact Or.inr (Or.inr rfl)
+      rcases h_cases with (hbot | hreal | htop)
+      · -- ε = ⊥, but ε > 0 contradicts EReal.bot_lt_zero
+        rw [hbot] at hε
+        have hpos : (0 : EReal) < (⊥ : EReal) := hε
+        have hbot_lt_zero : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+        have : (0 : EReal) < 0 := hpos.trans hbot_lt_zero
+        exact (lt_irrefl (0 : EReal) this).elim
+      · rcases hreal with ⟨r, hr⟩
+        have hr_pos : 0 < r := by
+          have hpos_ereal : (0 : EReal) < (r : EReal) := by rw [← hr]; exact hε
+          exact_mod_cast hpos_ereal
+        exact ⟨r, hr, hr_pos⟩
+      · exact (hε_top htop).elim
+    rcases hε_pos_real with ⟨r, hr, hr_pos⟩
+    subst hr
+    -- Now ε = (r : EReal) with r > 0
+    have hr_div_pos : 0 < r/2 := by linarith
+    rcases h5 ((r/2 : ℝ) : EReal) (by exact_mod_cast hr_div_pos) with ⟨E', hE'_meas, hE'_fin, h_symm⟩
+    
+    -- Define A_n = E' ∩ closedBall 0 n (increasing to E')
+    let A (n : ℕ) : Set (EuclideanSpace' d) := E' ∩ Metric.closedBall (0 : EuclideanSpace' d) ((n : ℕ) : ℝ)
+    
+    have hA_meas (n : ℕ) : LebesgueMeasurable (A n) :=
+      LebesgueMeasurable.inter hE'_meas (Metric.isClosed_closedBall (x := 0) (ε := ((n : ℕ) : ℝ))).measurable
+    
+    have hA_mono (n : ℕ) : A n ⊆ A (n+1) := by
+      intro x hx
+      rcases hx with ⟨hxE', hx_ball⟩
+      refine ⟨hxE', ?_⟩
+      have h_dist : dist x (0 : EuclideanSpace' d) ≤ ((n : ℕ) : ℝ) := Metric.mem_closedBall.mp hx_ball
+      have hn : ((n : ℕ) : ℝ) ≤ (((n+1 : ℕ) : ℕ) : ℝ) := by push_cast; nlinarith
+      exact Metric.mem_closedBall.mpr (le_trans h_dist hn)
+    
+    have hA_union : ⋃ n, A n = E' := Metric.iUnion_inter_closedBall_nat E' 0
+    
+    have h_tendsto : Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (A n)) (nhds (Lebesgue_measure E')) := by
+      have h_temp := Lebesgue_measure.upward_monotone_convergence hA_meas hA_mono
+      rw [hA_union] at h_temp
+      exact h_temp
+    
+    have h_E'_fin_ne_top : Lebesgue_measure E' ≠ ⊤ := ne_of_lt hE'_fin
+    have h_E'_nonneg : 0 ≤ Lebesgue_measure E' := Lebesgue_outer_measure.nonneg E'
+    have h_E'_not_bot : Lebesgue_measure E' ≠ ⊥ := by
+      intro hbot
+      rw [hbot] at h_E'_nonneg
+      have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+      have : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_E'_nonneg
+      exact lt_irrefl _ this
+    
+    -- Convert to ℝ-valued convergence
+    have h_tendsto_real : Filter.atTop.Tendsto (fun n : ℕ => (Lebesgue_measure (A n)).toReal) (nhds ((Lebesgue_measure E').toReal)) :=
+      (EReal.tendsto_toReal h_E'_fin_ne_top h_E'_not_bot).comp h_tendsto
+    
+    -- Since (m(A_n)).toReal → (m(E')).toReal, for δ = r/4 > 0, there exists N such that
+    -- (m(E')).toReal - (m(A_N)).toReal < r/4
+    have h_limit : ∀ᶠ n in atTop, |(Lebesgue_measure (A n)).toReal - (Lebesgue_measure E').toReal| < r/4 := by
+      rw [Metric.tendsto_nhds] at h_tendsto_real
+      exact h_tendsto_real (r/4) (by nlinarith)
+    
+    rcases Filter.eventually_atTop.mp h_limit with ⟨N, hN⟩
+    have h_N_bound : (Lebesgue_measure E').toReal - (Lebesgue_measure (A N)).toReal < r/4 := by
+      have h_abs := hN N (le_refl N)
+      have h_abs_symm : |(Lebesgue_measure E').toReal - (Lebesgue_measure (A N)).toReal| < r/4 := by
+        simpa [abs_sub_comm] using h_abs
+      rcases abs_lt.mp h_abs_symm with ⟨h_low, h_high⟩
+      linarith
+    
+    -- Let E'' = A N = E' ∩ closedBall 0 N (bounded and measurable)
+    set E'' := A N with hE''_def
+    
+    have hE''_meas : LebesgueMeasurable E'' := hA_meas N
+    
+    have hE''_bounded : Bornology.IsBounded E'' := by
+      dsimp [E'', A]
+      apply (Metric.isBounded_closedBall (x := 0) (r := ((N : ℕ) : ℝ))).subset
+      exact Set.inter_subset_right
+    
+    -- Main inequality: m*(symmDiff(E'', E)) ≤ r
+    have h_main : Lebesgue_outer_measure (symmDiff E'' E) ≤ (r : EReal) := by
+      -- SymmDiff bound: symmDiff(E'', E) ⊆ symmDiff(E', E) ∪ (E' \ closedBall 0 N)
+      have h_symm_sub : symmDiff E'' E ⊆ symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)) := by
+        intro x hx
+        rw [symmDiff_def] at hx
+        rcases hx with (⟨hxE'', hx_not_E⟩ | ⟨hxE, hx_not_E''⟩)
+        · -- x ∈ E'' \ E ⊆ E' \ E ⊆ symmDiff(E',E)
+          dsimp [E'', A] at hxE''
+          rcases hxE'' with ⟨hxE', _⟩
+          have : x ∈ symmDiff E' E := by
+            rw [symmDiff_def]
+            exact Or.inl ⟨hxE', hx_not_E⟩
+          exact Set.mem_union_left _ this
+        · -- x ∈ E \ E''
+          -- Either x ∈ E' or not
+          by_cases hxE' : x ∈ E'
+          · -- x ∈ E' \ A_N = E' \ closedBall 0 N
+            dsimp [E'', A] at hx_not_E''
+            have : x ∉ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ) := by
+              intro hx_cb
+              apply hx_not_E''
+              exact ⟨hxE', hx_cb⟩
+            exact Set.mem_union_right _ ⟨hxE', this⟩
+          · -- x ∉ E', so x ∈ E \ E' ⊆ symmDiff(E',E)
+            have : x ∈ symmDiff E' E := by
+              rw [symmDiff_def]
+              exact Or.inr ⟨hxE, hxE'⟩
+            exact Set.mem_union_left _ this
+    
+      have h_outer_sub : Lebesgue_outer_measure (symmDiff E'' E)
+          ≤ Lebesgue_outer_measure (symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ))) :=
+        Lebesgue_outer_measure.mono h_symm_sub
+    
+      -- Finite subadditivity for two sets using Fin 2
+      let F : Fin 2 → Set (EuclideanSpace' d) := ![symmDiff E' E, E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)]
+      have h_union_sub : (symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ))) = ⋃ i : Fin 2, F i := by
+        ext x; simp [F, Set.mem_union, Set.mem_iUnion]
+      have h_finite_union_le : Lebesgue_outer_measure (symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)))
+          ≤ Lebesgue_outer_measure (symmDiff E' E) + Lebesgue_outer_measure (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)) := by
+        calc
+          Lebesgue_outer_measure (symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)))
+              = Lebesgue_outer_measure (⋃ i : Fin 2, F i) := by rw [h_union_sub]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (F i) := Lebesgue_outer_measure.finite_union_le F
+          _ = Lebesgue_outer_measure (F 0) + Lebesgue_outer_measure (F 1) := Fin.sum_univ_two _
+          _ = Lebesgue_outer_measure (symmDiff E' E) + Lebesgue_outer_measure (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)) := by simp [F]
+    
+      -- Bound the second term: m(E' \ closedBall 0 N) ≤ r/2
+      have h_diff_bound : Lebesgue_outer_measure (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)) ≤ ((r/2 : ℝ) : EReal) := by
+        let D := E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)
+        have hD_meas : LebesgueMeasurable D :=
+          LebesgueMeasurable.inter hE'_meas (LebesgueMeasurable.complement
+            (Metric.isClosed_closedBall (x := 0) (ε := ((N : ℕ) : ℝ))).measurable)
+        have h_union_eq : E' = (A N) ∪ D := by
+          ext x
+          constructor
+          · intro hx
+            by_cases hx_ball : x ∈ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)
+            · apply Or.inl; exact ⟨hx, hx_ball⟩
+            · apply Or.inr; exact ⟨hx, hx_ball⟩
+          · intro hx
+            rcases hx with (⟨hx, _⟩ | ⟨hx, _⟩)
+            · exact hx
+            · exact hx
+        have h_disjoint : (A N) ∩ D = ∅ := by
+          ext x
+          constructor
+          · intro hx
+            rcases hx with ⟨⟨hxE', hx_ball⟩, ⟨hxE'2, hx_not_ball⟩⟩
+            exact absurd hx_ball hx_not_ball
+          · intro hx
+            exfalso
+            exact hx
+        have h_measure_eq : Lebesgue_measure E' = Lebesgue_measure (A N) + Lebesgue_measure D := by
+          calc
+            Lebesgue_measure E' = Lebesgue_measure ((A N) ∪ D) := by rw [h_union_eq]
+            _ = Lebesgue_measure (A N) + Lebesgue_measure D :=
+              Lebesgue_measure.union (hA_meas N) hD_meas h_disjoint
+        
+        -- From h_measure_eq, m(D) = m(E') - m(A N)
+        -- Since m(E') and m(A N) are finite, (m(D)).toReal = (m(E')).toReal - (m(A N)).toReal
+        have h_D_fin : Lebesgue_measure D < ⊤ := by
+          calc
+            Lebesgue_measure D ≤ Lebesgue_measure E' := Lebesgue_outer_measure.mono Set.diff_subset
+            _ < ⊤ := hE'_fin
+        
+        have h_D_not_bot : Lebesgue_measure D ≠ ⊥ := by
+          intro hbot
+          have h_nonneg : 0 ≤ Lebesgue_measure D := Lebesgue_outer_measure.nonneg D
+          rw [hbot] at h_nonneg
+          have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+          have : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_nonneg
+          exact lt_irrefl (⊥ : EReal) this
+        
+        have h_A_N_fin : Lebesgue_measure (A N) < ⊤ := by
+          calc
+            Lebesgue_measure (A N) ≤ Lebesgue_measure E' := Lebesgue_outer_measure.mono (Set.inter_subset_left)
+            _ < ⊤ := hE'_fin
+        
+        have h_A_N_not_bot : Lebesgue_measure (A N) ≠ ⊥ := by
+          intro hbot
+          have h_nonneg : 0 ≤ Lebesgue_measure (A N) := Lebesgue_outer_measure.nonneg _
+          rw [hbot] at h_nonneg
+          have h_lt : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+          have : (⊥ : EReal) < (⊥ : EReal) := h_lt.trans_le h_nonneg
+          exact lt_irrefl _ this
+        
+        have h_D_toReal_eq : (Lebesgue_measure D).toReal = (Lebesgue_measure E').toReal - (Lebesgue_measure (A N)).toReal := by
+          -- From h_measure_eq: m(E') = m(A N) + m(D)
+          -- Using EReal.toReal_add (since all are finite non-bot)
+          have h_add_toReal : (Lebesgue_measure E').toReal = (Lebesgue_measure (A N)).toReal + (Lebesgue_measure D).toReal := by
+            calc
+              (Lebesgue_measure E').toReal = (Lebesgue_measure (A N) + Lebesgue_measure D).toReal := by rw [h_measure_eq]
+              _ = (Lebesgue_measure (A N)).toReal + (Lebesgue_measure D).toReal :=
+                EReal.toReal_add (h_A_N_fin.ne_top) (h_A_N_not_bot) (h_D_fin.ne_top) (h_D_not_bot)
+          linarith
+        
+        have h_toReal_bound : (Lebesgue_measure D).toReal < r/2 := by
+          calc
+            (Lebesgue_measure D).toReal = (Lebesgue_measure E').toReal - (Lebesgue_measure (A N)).toReal := h_D_toReal_eq
+            _ < r/4 := h_N_bound
+            _ < r/2 := by nlinarith
+        
+        have h_D_lt_top : Lebesgue_measure D ≠ ⊤ := h_D_fin.ne_top
+        
+        -- Now we can bound the EReal value
+        have h_D_ereal : Lebesgue_measure D ≤ ((r/2 : ℝ) : EReal) := by
+          -- By EReal.coe_toReal, since m(D) is finite non-bot: m(D) = ((m(D)).toReal : EReal)
+          -- And (m(D)).toReal < r/2 implies (m(D)).toReal ≤ r/2
+          have h_coe : Lebesgue_measure D = ((Lebesgue_measure D).toReal : EReal) :=
+            (EReal.coe_toReal h_D_lt_top h_D_not_bot).symm
+          rw [h_coe]
+          have : (Lebesgue_measure D).toReal ≤ r/2 := by linarith
+          exact_mod_cast this
+        
+        -- And since Lebesgue_outer_measure = Lebesgue_measure for measurable sets
+        simpa [D] using h_D_ereal
+      
+      -- Combine bounds
+      calc
+        Lebesgue_outer_measure (symmDiff E'' E) ≤ Lebesgue_outer_measure (symmDiff E' E ∪ (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ))) := h_outer_sub
+        _ ≤ Lebesgue_outer_measure (symmDiff E' E) + Lebesgue_outer_measure (E' \ Metric.closedBall (0 : EuclideanSpace' d) ((N : ℕ) : ℝ)) := h_finite_union_le
+        _ ≤ ((r/2 : ℝ) : EReal) + ((r/2 : ℝ) : EReal) := 
+          add_le_add h_symm h_diff_bound
+        _ = (r : EReal) := by
+          have : (r/2 : ℝ) + (r/2 : ℝ) = r := by ring
+          exact_mod_cast this
+    
+    exact ⟨E'', hE''_meas, hE''_bounded, h_main⟩
+-- ============ 6 → 7 ============
+lemma symmDiff_sub_symmDiff_union_symmDiff {α : Type*} {X Y Z : Set α} : symmDiff X Z ⊆ symmDiff X Y ∪ symmDiff Y Z := by
+  intro x hx
+  rw [Set.symmDiff_def] at hx
+  rcases hx with (⟨hxX, hx_not_Z⟩ | ⟨hxZ, hx_not_X⟩)
+  · by_cases hxY : x ∈ Y
+    · apply Set.mem_union_right; rw [Set.symmDiff_def]; exact Or.inl ⟨hxY, hx_not_Z⟩
+    · apply Set.mem_union_left; rw [Set.symmDiff_def]; exact Or.inl ⟨hxX, hxY⟩
+  · by_cases hxY : x ∈ Y
+    · apply Set.mem_union_left; rw [Set.symmDiff_def]; exact Or.inr ⟨hxY, hx_not_X⟩
+    · apply Set.mem_union_right; rw [Set.symmDiff_def]; exact Or.inr ⟨hxZ, hxY⟩
+
+/-- An Ioo box (product of open intervals) is open in EuclideanSpace' d (d > 0). -/
+lemma Ioo_box_isOpen {d : ℕ} (hd_pos : 0 < d) (a b : Fin d → ℝ) :
+    IsOpen {x : EuclideanSpace' d | ∀ i : Fin d, a i < x i ∧ x i < b i} := by
+  rw [Metric.isOpen_iff]
+  intro x hx
+  have h_dists_pos : ∀ i : Fin d, 0 < min (x i - a i) (b i - x i) := by
+    intro i
+    have hi : a i < x i ∧ x i < b i := hx i
+    exact lt_min_iff.mpr ⟨sub_pos.mpr hi.1, sub_pos.mpr hi.2⟩
+  haveI : Nonempty (Fin d) := by
+    -- Since d > 0, Fin d is nonempty
+    have h : 0 < d := hd_pos
+    exact ⟨⟨0, hd_pos⟩⟩
+  -- Use a simple radius: we take the minimum over all coordinates of the distance to boundary
+  -- Since Fin d is finite, we can compute this minimum
+  have hmin_exists : ∃ r : ℝ, 0 < r ∧ ∀ i : Fin d, min (x i - a i) (b i - x i) ≥ r := by
+    -- The set of all such minima is finite, so the minimum is positive
+    let S : Finset ℝ := Finset.image (fun (i : Fin d) => min (x i - a i) (b i - x i)) Finset.univ
+    have hS_nonempty : S.Nonempty := by
+      refine Finset.image_nonempty.mpr Finset.univ_nonempty
+    have hS_pos : ∀ r ∈ S, 0 < r := by
+      intro r hr
+      rcases Finset.mem_image.mp hr with ⟨i, hi, rfl⟩
+      exact h_dists_pos i
+    refine ⟨S.min' hS_nonempty, hS_pos (S.min' hS_nonempty) (Finset.min'_mem _ hS_nonempty), ?_⟩
+    intro i
+    have hmem : min (x i - a i) (b i - x i) ∈ S := by
+      apply Finset.mem_image.mpr; exact ⟨i, Finset.mem_univ i, rfl⟩
+    have hle : S.min' (⟨min (x i - a i) (b i - x i), hmem⟩ : S.Nonempty) ≤ min (x i - a i) (b i - x i) :=
+      Finset.min'_le (s := S) (x := min (x i - a i) (b i - x i)) hmem
+    have : S.min' hS_nonempty ≤ min (x i - a i) (b i - x i) := by
+      simpa using hle
+    exact this
+  rcases hmin_exists with ⟨r, hr_pos, hr_bound⟩
+  set ε := r / Real.sqrt (d : ℝ) with hε
+  have hε_pos : 0 < ε := div_pos hr_pos (Real.sqrt_pos.mpr (by exact_mod_cast hd_pos))
+  refine ⟨ε, hε_pos, ?_⟩
+  intro y hy
+  rw [Metric.mem_ball, dist_eq_norm] at hy
+  have h_coord_bound : ∀ i : Fin d, |y i - x i| < ε := by
+    intro i
+    have : |y i - x i| ≤ ‖y - x‖ := EuclideanSpace'.coord_le_norm (y - x) i
+    exact lt_of_le_of_lt this hy
+  intro i
+  have hx_diff_lo : x i - a i ≥ r :=
+    (hr_bound i).trans (by
+      have : min (x i - a i) (b i - x i) ≤ x i - a i := min_le_left _ _
+      exact this)
+  have hx_diff_hi : b i - x i ≥ r :=
+    (hr_bound i).trans (by
+      have : min (x i - a i) (b i - x i) ≤ b i - x i := min_le_right _ _
+      exact this)
+  have h_sqrt_ge1 : 1 ≤ Real.sqrt (d : ℝ) := by
+    have hd1 : (1 : ℝ) ≤ (d : ℝ) := by exact_mod_cast hd_pos
+    calc
+      (1 : ℝ) = Real.sqrt (1 : ℝ) := by norm_num
+      _ ≤ Real.sqrt (d : ℝ) := Real.sqrt_le_sqrt hd1
+  have h_sqrt_pos : 0 < Real.sqrt (d : ℝ) := Real.sqrt_pos.mpr (by exact_mod_cast hd_pos)
+  have h_div_le_r : r / Real.sqrt (d : ℝ) ≤ r := by
+    have h_one_div : 1 / Real.sqrt (d : ℝ) ≤ 1 := by
+      have h := (one_div_le_one_div h_sqrt_pos (by norm_num : (0 : ℝ) < 1)).mpr h_sqrt_ge1
+      simpa [div_one] using h
+    calc
+      r / Real.sqrt (d : ℝ) = r * (1 / Real.sqrt (d : ℝ)) := by ring
+      _ ≤ r * 1 := mul_le_mul_of_nonneg_left h_one_div (by positivity)
+      _ = r := by simp
+  have h_lo : a i < y i := by
+    have h_abs : |y i - x i| < ε := h_coord_bound i
+    have h_eps_le : ε ≤ x i - a i := by
+      calc
+        ε = r / Real.sqrt (d : ℝ) := rfl
+        _ ≤ r := h_div_le_r
+        _ ≤ x i - a i := hx_diff_lo
+    by_contra! hy
+    -- hy: y i ≤ a i, so x i - y i ≥ x i - a i ≥ ε
+    have h_nonneg : 0 ≤ x i - y i := sub_nonneg.mpr (by linarith)
+    have h_abs_ge : |y i - x i| ≥ x i - a i := by
+      have : |y i - x i| = |x i - y i| := abs_sub_comm _ _
+      rw [this, abs_of_nonneg h_nonneg]
+      nlinarith
+    nlinarith
+  have h_hi : y i < b i := by
+    have h_abs : |y i - x i| < ε := h_coord_bound i
+    have h_eps_le : ε ≤ b i - x i := by
+      calc
+        ε = r / Real.sqrt (d : ℝ) := rfl
+        _ ≤ r := h_div_le_r
+        _ ≤ b i - x i := hx_diff_hi
+    by_contra! hy
+    -- hy: y i ≥ b i, so y i - x i ≥ b i - x i ≥ ε
+    have h_nonneg : 0 ≤ y i - x i := sub_nonneg.mpr (by linarith)
+    have h_abs_ge : |y i - x i| ≥ b i - x i := by
+      rw [abs_of_nonneg h_nonneg]
+      nlinarith
+    nlinarith
+  exact ⟨h_lo, h_hi⟩
+
+lemma finite_TFAE_6_implies_7 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h6 : ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Bornology.IsBounded E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε) :
+    ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), IsElementary E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε := by
+  intro ε hε
+  by_cases hε_top : ε = ⊤
+  · subst hε_top; refine ⟨∅, IsElementary.empty d, le_top⟩
+  · -- ε is a positive real
+    have hε_pos_real : ∃ r : ℝ, 0 < r ∧ (r : EReal) = ε := by
+      have h_cases : ε = ⊥ ∨ (∃ r : ℝ, ε = (r : EReal)) ∨ ε = ⊤ := by
+        match ε with
+        | ⊥ => exact Or.inl rfl
+        | (r : ℝ) => exact Or.inr (Or.inl ⟨r, rfl⟩)
+        | ⊤ => exact Or.inr (Or.inr rfl)
+      rcases h_cases with (hbot | hreal | htop)
+      · rw [hbot] at hε; have hpos : (0 : EReal) < (⊥ : EReal) := hε
+        have hbot_lt_zero : (⊥ : EReal) < 0 := EReal.bot_lt_zero
+        exact (lt_irrefl (0 : EReal) (hpos.trans hbot_lt_zero)).elim
+      · rcases hreal with ⟨r, hr⟩
+        have hr_pos : 0 < r := by
+          have hpos_ereal : (0 : EReal) < (r : EReal) := by rw [← hr]; exact hε
+          exact_mod_cast hpos_ereal
+        exact ⟨r, hr_pos, hr.symm⟩
+      · exact (hε_top htop).elim
+    rcases hε_pos_real with ⟨r, hr_pos, hr_eq⟩; subst hr_eq
+
+    by_cases hd : d = 0
+    · subst hd
+      rcases h6 (r : EReal) (by exact_mod_cast hr_pos) with ⟨E', hE'_meas, hE'_bounded, h_symm⟩
+      refine ⟨E', ?_, h_symm⟩
+      by_cases hE'_empty : E' = ∅
+      · rw [hE'_empty]; exact IsElementary.empty 0
+      · have hE'_nonempty : E'.Nonempty := Set.nonempty_iff_ne_empty.mpr hE'_empty
+        have h_univ : E' = Set.univ := by
+          apply Set.Subset.antisymm
+          · exact Set.subset_univ _
+          · intro x hx
+            obtain ⟨y, hy⟩ := hE'_nonempty
+            have h_eq : x = y := by ext i; exact Fin.elim0 i
+            rw [h_eq]; exact hy
+        rw [h_univ]
+        let B : Box 0 := { side := fun i => BoundedInterval.Icc (0 : ℝ) (0 : ℝ) }
+        have hB_elem : IsElementary (B.toSet) := IsElementary.box B
+        have hB_univ : B.toSet = Set.univ := by ext x; simp
+        rw [← hB_univ]; exact hB_elem
+
+    have hd_pos : 0 < d := Nat.pos_of_ne_zero hd
+
+    -- Get bounded measurable E' with m*(symmDiff(E',E)) ≤ r/2
+    have hr2_pos : 0 < r/2 := by linarith
+    rcases h6 ((r/2 : ℝ) : EReal) (by exact_mod_cast hr2_pos) with ⟨E', hE'_meas, hE'_bounded, h_symm_EE'⟩
+
+    -- From measurability, get open U ⊇ E' and closed F ⊆ E' with small residuals
+    have h_open_approx : ∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E' ⊆ U ∧ Lebesgue_outer_measure (U \ E') ≤ ε :=
+      ((LebesgueMeasurable.TFAE E').out 0 1).mp hE'_meas
+    have h_closed_approx : ∀ ε > 0, ∃ F : Set (EuclideanSpace' d), IsClosed F ∧ F ⊆ E' ∧ Lebesgue_outer_measure (E' \ F) ≤ ε :=
+      ((LebesgueMeasurable.TFAE E').out 0 3).mp hE'_meas
+
+    have hr8_pos : 0 < r/8 := by linarith
+    have h_hr8_pos : (0 : EReal) < (r/8 : ℝ) := by exact_mod_cast hr8_pos
+    haveI : Nonempty (Fin d) := ⟨⟨0, hd_pos⟩⟩
+
+    rcases h_open_approx ((r/8 : ℝ) : EReal) h_hr8_pos with ⟨U, hU_open, hE'_sub_U, hU_diff⟩
+    rcases h_closed_approx ((r/8 : ℝ) : EReal) h_hr8_pos with ⟨F, hF_closed, hF_sub_E', hF_diff⟩
+
+    have hF_bounded : Bornology.IsBounded F := hE'_bounded.subset hF_sub_E'
+    have hF_compact : IsCompact F := Metric.isCompact_of_isClosed_isBounded hF_closed hF_bounded
+
+    -- For each point x ∈ F, find an Ioo box B_x with x ∈ B_x ⊆ U
+    have h_boxes_cover : ∀ x ∈ F, ∃ (B : Box d), x ∈ B.toSet ∧ B.toSet ⊆ U ∧ IsOpen (B.toSet) := by
+      intro x hxF
+      have hxU : x ∈ U := hE'_sub_U (hF_sub_E' hxF)
+      have hU_open' : ∀ x ∈ U, ∃ ε > 0, Metric.ball x ε ⊆ U := by
+        rw [Metric.isOpen_iff] at hU_open; exact hU_open
+      obtain ⟨δ, hδ_pos, hball⟩ := hU_open' x hxU
+      set sd := Real.sqrt (d : ℝ) with hsd
+      have hsd_pos : 0 < sd := Real.sqrt_pos.mpr (by exact_mod_cast hd_pos)
+      -- The open box (product of Ioo intervals) centered at x with side length 2*δ/sd
+      let B : Box d := {
+        side := fun i => BoundedInterval.Ioo (x i - δ / sd) (x i + δ / sd)
+      }
+      refine ⟨B, ?_, ?_, ?_⟩
+      · -- x ∈ B
+        intro i
+        simp [B, BoundedInterval.set_Ioo]
+        positivity
+      · -- B ⊆ U: any y in the box satisfies ‖y-x‖ < δ (since |y_i - x_i| < δ/sd for all i)
+        intro y hy
+        rw [Box.mem_toSet] at hy
+        apply hball
+        rw [Metric.mem_ball, dist_eq_norm]
+        have h_coord_bound : ∀ i : Fin d, |(y - x) i| < δ / sd := by
+          intro i
+          have hyi : x i - δ / sd < y i ∧ y i < x i + δ / sd := by
+            simpa [B, BoundedInterval.set_Ioo] using hy i
+          rcases hyi with ⟨h_lo, h_hi⟩
+          have diff_eq : (y - x) i = y i - x i := by simp
+          rw [diff_eq, abs_lt]; constructor <;> nlinarith
+        -- Show ‖y-x‖^2 < δ^2 using EuclideanSpace'.norm_eq
+        have h_norm_sq_lt : ‖y - x‖ ^ 2 < δ ^ 2 := by
+          have h_norm_sq_eq : ‖y - x‖ ^ 2 = ∑ i : Fin d, ((y - x) i) ^ 2 := by
+            calc
+              ‖y - x‖ ^ 2 = (Real.sqrt (∑ i : Fin d, ((y - x) i) ^ 2)) ^ 2 := by
+                rw [EuclideanSpace'.norm_eq (y - x)]
+              _ = ∑ i : Fin d, ((y - x) i) ^ 2 := by
+                have h_nonneg_sum : 0 ≤ ∑ i : Fin d, ((y - x) i) ^ 2 :=
+                  Finset.sum_nonneg (fun i _ => pow_two_nonneg _)
+                rw [Real.sq_sqrt h_nonneg_sum]
+          calc
+            ‖y - x‖ ^ 2 = ∑ i : Fin d, ((y - x) i) ^ 2 := h_norm_sq_eq
+            _ < ∑ i : Fin d, (δ / sd) ^ 2 := by
+              refine Finset.sum_lt_sum (fun i _ => ?_) ?_
+              · have hi_sq_le : ((y - x) i) ^ 2 ≤ (δ / sd) ^ 2 := by
+                  have hi_abs : |(y - x) i| < δ / sd := h_coord_bound i
+                  nlinarith [abs_lt.mp hi_abs]
+                exact hi_sq_le
+              · have huniv_nonempty : Finset.Nonempty (Finset.univ : Finset (Fin d)) :=
+                  Finset.univ_nonempty (α := Fin d)
+                obtain ⟨i⟩ := huniv_nonempty
+                refine ⟨i, Finset.mem_univ i, ?_⟩
+                have hi_sq_lt : ((y - x) i) ^ 2 < (δ / sd) ^ 2 := by
+                  have hi_abs : |(y - x) i| < δ / sd := h_coord_bound i
+                  nlinarith [abs_lt.mp hi_abs]
+                exact hi_sq_lt
+            _ = (d : ℝ) * ((δ / sd) ^ 2) := by simp
+            _ = δ ^ 2 := by
+              calc
+                (d : ℝ) * ((δ / sd) ^ 2) = (d : ℝ) * (δ ^ 2 / sd ^ 2) := by ring
+                _ = (d : ℝ) * (δ ^ 2 / ((Real.sqrt (d : ℝ)) ^ 2)) := rfl
+                _ = (d : ℝ) * (δ ^ 2 / (d : ℝ)) := by rw [Real.sq_sqrt (show 0 ≤ (d : ℝ) from by exact_mod_cast hd_pos.le)]
+                _ = δ ^ 2 := by
+                  field_simp [show (d : ℝ) ≠ 0 from by exact_mod_cast hd_pos.ne']
+        have h_norm_nonneg : 0 ≤ ‖y - x‖ := norm_nonneg _
+        nlinarith
+      · -- B.toSet is open (product of Ioo intervals)
+        have hB_eq : B.toSet = {y | ∀ i : Fin d, (x i - δ / sd) < y i ∧ y i < (x i + δ / sd)} := by
+          ext y; simp [Box.mem_toSet, B]
+        rw [hB_eq]
+        exact Ioo_box_isOpen hd_pos (fun i => x i - δ / sd) (fun i => x i + δ / sd)
+
+    -- The boxes from h_boxes_cover are open and cover F. By compactness, finitely many suffice.
+    have h_cover : F ⊆ ⋃ (B : Box d), B.toSet := by
+      intro x hxF
+      rcases h_boxes_cover x hxF with ⟨B, hxB, _, _⟩
+      exact Set.mem_iUnion.mpr ⟨B, hxB⟩
+    -- Since F is compact and each box is open, finitely many boxes cover F
+    -- Use the IsCompact.elim_finite_subcover with an appropriate indexing
+    -- The indexing type is (B : Box d) with the property that B.toSet is open
+    -- But not all boxes are open, only the ones we constructed.
+    -- So we create an indexed family using the boxes from h_boxes_cover.
+
+    -- Let's construct an index set from F itself
+    let V : F → Set (EuclideanSpace' d) := fun x => (h_boxes_cover x.1 x.2).choose.toSet
+    have hV_open : ∀ x : F, IsOpen (V x) := by
+      intro x
+      have h := (h_boxes_cover x.1 x.2).choose_spec
+      exact h.2.2
+    have hV_cover : F ⊆ ⋃ x : F, V x := by
+      intro x hxF
+      have h := (h_boxes_cover x hxF).choose_spec
+      refine Set.mem_iUnion.mpr ⟨⟨x, hxF⟩, h.1⟩
+    rcases hF_compact.elim_finite_subcover V hV_open hV_cover with ⟨t, ht⟩
+    -- t : Finset F, and F ⊆ ⋃ x ∈ t, V x
+
+    -- Build the elementary set A
+    have hA_elem : IsElementary (⋃ x ∈ t, (h_boxes_cover x.1 x.2).choose.toSet) := by
+      let S' : Finset (Set (EuclideanSpace' d)) :=
+        Finset.image (fun (x : F) => ((h_boxes_cover x.1 x.2).choose : Box d).toSet) t
+      have h_union : (⋃ x ∈ t, (h_boxes_cover x.1 x.2).choose.toSet) = ⋃ E ∈ S', E := by
+        ext y; simp [S']
+      rw [h_union]
+      apply IsElementary.union'
+      intro E hE
+      rcases Finset.mem_image.mp hE with ⟨x, hx, rfl⟩
+      exact IsElementary.box ((h_boxes_cover x.1 x.2).choose)
+    set A := ⋃ x ∈ t, (h_boxes_cover x.1 x.2).choose.toSet with hA_def
+    have hA_elem' : IsElementary A := hA_elem
+    have hF_sub_A : F ⊆ A := by
+      intro x hxF
+      have hxV : x ∈ ⋃ x' ∈ t, V x' := ht hxF
+      rw [Set.mem_iUnion₂] at hxV
+      rcases hxV with ⟨x', hx't, hxV'⟩
+      have hxV_box : x ∈ (h_boxes_cover x'.1 x'.2).choose.toSet := hxV'
+      rw [hA_def, Set.mem_iUnion₂]
+      exact ⟨x', hx't, hxV_box⟩
+    have hA_sub_U : A ⊆ U := by
+      intro x hx
+      rw [hA_def] at hx
+      rw [Set.mem_iUnion₂] at hx
+      rcases hx with ⟨x', hx't, hx⟩
+      have hxB := (h_boxes_cover x'.1 x'.2).choose_spec.2.1
+      exact hxB hx
+
+    -- Bound m*(symmDiff(A,E')) ≤ r/2
+    have h_symm_diff_bound : Lebesgue_outer_measure (symmDiff A E') ≤ (r/2 : ℝ) := by
+      have h_sub1 : A \ E' ⊆ U \ E' := Set.diff_subset_diff_left hA_sub_U
+      have h_sub2 : E' \ A ⊆ E' \ F := Set.diff_subset_diff_right hF_sub_A
+      have h_sub_union : (A \ E') ∪ (E' \ A) ⊆ (U \ E') ∪ (E' \ F) := by
+        intro x hx
+        rcases hx with (hx1 | hx2)
+        · -- x ∈ A \ E'
+          have hx_in_A : x ∈ A := hx1.1
+          have hxU : x ∈ U := hA_sub_U hx_in_A
+          have hx_not_E' : x ∉ E' := hx1.2
+          exact Or.inl ⟨hxU, hx_not_E'⟩
+        · -- x ∈ E' \ A
+          have hxE' : x ∈ E' := hx2.1
+          have hx_not_A : x ∉ A := hx2.2
+          have hx_not_F : x ∉ F := by
+            intro hxF'; apply hx_not_A; exact hF_sub_A hxF'
+          exact Or.inr ⟨hxE', hx_not_F⟩
+      have h_mu_sub : Lebesgue_outer_measure ((A \ E') ∪ (E' \ A)) ≤
+          Lebesgue_outer_measure ((U \ E') ∪ (E' \ F)) :=
+        Lebesgue_outer_measure.mono h_sub_union
+      let Svec : Fin 2 → Set (EuclideanSpace' d) := ![U \ E', E' \ F]
+      have h_union_eq : (U \ E') ∪ (E' \ F) = ⋃ i : Fin 2, Svec i := by
+        ext x; simp [Svec]
+      have h_fin_union_le : Lebesgue_outer_measure ((U \ E') ∪ (E' \ F)) ≤
+          Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ F) := by
+        calc
+          Lebesgue_outer_measure ((U \ E') ∪ (E' \ F)) = Lebesgue_outer_measure (⋃ i : Fin 2, Svec i) := by rw [h_union_eq]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (Svec i) := Lebesgue_outer_measure.finite_union_le Svec
+          _ = Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ F) := by simp [Svec, Fin.sum_univ_two]
+      calc
+        Lebesgue_outer_measure (symmDiff A E') = Lebesgue_outer_measure ((A \ E') ∪ (E' \ A)) := by rw [Set.symmDiff_def]
+        _ ≤ Lebesgue_outer_measure ((U \ E') ∪ (E' \ F)) := h_mu_sub
+        _ ≤ Lebesgue_outer_measure (U \ E') + Lebesgue_outer_measure (E' \ F) := h_fin_union_le
+        _ ≤ ((r/8 : ℝ) : EReal) + ((r/8 : ℝ) : EReal) := add_le_add hU_diff hF_diff
+        _ = ((r/4 : ℝ) : EReal) := by
+          have : (r/8 : ℝ) + (r/8 : ℝ) = r/4 := by ring
+          exact_mod_cast this
+        _ ≤ (r/2 : ℝ) := by exact_mod_cast (by nlinarith : (r/4 : ℝ) ≤ r/2)
+
+    -- Combine with h_symm_EE': m*(symmDiff(A,E)) ≤ m*(symmDiff(A,E')) + m*(symmDiff(E',E)) ≤ r/2 + r/2 = r
+    have h_symm_AE : Lebesgue_outer_measure (symmDiff A E) ≤ (r : EReal) := by
+      have h_sub : symmDiff A E ⊆ symmDiff A E' ∪ symmDiff E' E :=
+        symmDiff_sub_symmDiff_union_symmDiff
+      have h_mono : Lebesgue_outer_measure (symmDiff A E) ≤
+          Lebesgue_outer_measure (symmDiff A E' ∪ symmDiff E' E) :=
+        Lebesgue_outer_measure.mono h_sub
+      let Tvec : Fin 2 → Set (EuclideanSpace' d) := ![symmDiff A E', symmDiff E' E]
+      have h_union_eq' : symmDiff A E' ∪ symmDiff E' E = ⋃ i : Fin 2, Tvec i := by
+        ext x; simp [Tvec]
+      have h_fin_union_le' : Lebesgue_outer_measure (symmDiff A E' ∪ symmDiff E' E) ≤
+          Lebesgue_outer_measure (symmDiff A E') + Lebesgue_outer_measure (symmDiff E' E) := by
+        calc
+          Lebesgue_outer_measure (symmDiff A E' ∪ symmDiff E' E) = Lebesgue_outer_measure (⋃ i : Fin 2, Tvec i) := by rw [h_union_eq']
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (Tvec i) := Lebesgue_outer_measure.finite_union_le Tvec
+          _ = Lebesgue_outer_measure (symmDiff A E') + Lebesgue_outer_measure (symmDiff E' E) := by simp [Tvec, Fin.sum_univ_two]
+      calc
+        Lebesgue_outer_measure (symmDiff A E) ≤ Lebesgue_outer_measure (symmDiff A E' ∪ symmDiff E' E) := h_mono
+        _ ≤ Lebesgue_outer_measure (symmDiff A E') + Lebesgue_outer_measure (symmDiff E' E) := h_fin_union_le'
+        _ ≤ ((r/2 : ℝ) : EReal) + ((r/2 : ℝ) : EReal) := add_le_add h_symm_diff_bound h_symm_EE'
+        _ = (r : EReal) := by
+          have : (r/2 : ℝ) + (r/2 : ℝ) = r := by ring
+          exact_mod_cast this
+
+    refine ⟨A, hA_elem', h_symm_AE⟩
+-- ============ 8 → 0 ============
+lemma finite_TFAE_8_implies_0 {d : ℕ} (E : Set (EuclideanSpace' d))
+    (h8 : ∀ ε > 0, ∃ (n : ℤ) (F : Finset (Box d)), (∀ B ∈ F, B.IsDyadicAtScale n) ∧
+      Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) ≤ ε) :
+    LebesgueMeasurable E ∧ Lebesgue_measure E < ⊤ := by
+  have hE_meas : LebesgueMeasurable E := by
+    have h_approx : ∀ ε > 0, ∃ E' : Set (EuclideanSpace' d), LebesgueMeasurable E' ∧
+        Lebesgue_outer_measure (symmDiff E' E) ≤ ε := by
+      intro ε hε
+      rcases h8 ε hε with ⟨n, F, hF_dyadic, h_symm⟩
+      refine ⟨⋃ B ∈ F, B.toSet, ?_, h_symm⟩
+      apply LebesgueMeasurable.finset_union
+      intro B hB
+      rcases hF_dyadic B hB with ⟨a, hB_eq⟩
+      subst hB_eq
+      exact (IsElementary.box (DyadicCube n a)).measurable
+    exact ((LebesgueMeasurable.TFAE E).out 5 0).mp h_approx
+  have hE_fin : Lebesgue_measure E < ⊤ := by
+    rcases h8 1 (by norm_num : (0 : EReal) < 1) with ⟨n, F, hF_dyadic, h_symm⟩
+    have hU_fin : Lebesgue_measure (⋃ B ∈ F, B.toSet) < ⊤ := by
+      have h_subadd : Lebesgue_measure (⋃ B ∈ F, B.toSet) ≤ ∑ B ∈ F, Lebesgue_measure (B.toSet) := by
+        clear hF_dyadic h_symm
+        induction F using Finset.induction_on with
+        | empty => simp
+        | insert a s ha ih =>
+          have h_union : (⋃ B ∈ insert a s, B.toSet) = a.toSet ∪ (⋃ B ∈ s, B.toSet) := by ext x; simp
+          rw [h_union, Finset.sum_insert ha]
+          have h_pair : Lebesgue_outer_measure (a.toSet ∪ (⋃ B ∈ s, B.toSet)) ≤
+              Lebesgue_outer_measure (a.toSet) + Lebesgue_outer_measure (⋃ B ∈ s, B.toSet) := by
+            let T : Fin 2 → Set (EuclideanSpace' d) := ![a.toSet, ⋃ B ∈ s, B.toSet]
+            have h_union' : a.toSet ∪ (⋃ B ∈ s, B.toSet) = ⋃ i : Fin 2, T i := by ext x; simp [T]
+            calc
+              Lebesgue_outer_measure (a.toSet ∪ (⋃ B ∈ s, B.toSet)) = Lebesgue_outer_measure (⋃ i : Fin 2, T i) := by rw [h_union']
+              _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (T i) := Lebesgue_outer_measure.finite_union_le T
+              _ = Lebesgue_outer_measure (a.toSet) + Lebesgue_outer_measure (⋃ B ∈ s, B.toSet) := by simp [T, Fin.sum_univ_two]
+          calc
+            Lebesgue_measure (a.toSet ∪ (⋃ B ∈ s, B.toSet)) = Lebesgue_outer_measure (a.toSet ∪ (⋃ B ∈ s, B.toSet)) := rfl
+            _ ≤ Lebesgue_outer_measure (a.toSet) + Lebesgue_outer_measure (⋃ B ∈ s, B.toSet) := h_pair
+            _ = Lebesgue_measure (a.toSet) + Lebesgue_outer_measure (⋃ B ∈ s, B.toSet) := rfl
+            _ = Lebesgue_measure (a.toSet) + Lebesgue_measure (⋃ B ∈ s, B.toSet) := rfl
+            _ ≤ Lebesgue_measure (a.toSet) + (∑ B ∈ s, Lebesgue_measure (B.toSet)) := add_le_add_right ih (Lebesgue_measure (a.toSet))
+      have h_finset_sum : (∑ B ∈ F, Lebesgue_measure (B.toSet)) < ⊤ := by
+        clear hF_dyadic h_symm h_subadd
+        induction F using Finset.induction_on with
+        | empty => simp
+        | insert a s ha ih =>
+          rw [Finset.sum_insert ha]
+          have ha_fin : Lebesgue_measure (a.toSet) < ⊤ := by
+            have hj : JordanMeasurable (a.toSet) :=
+              IsElementary.jordanMeasurable (IsElementary.box a)
+            rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure hj]
+            simp
+          have hs_fin : (∑ B ∈ s, Lebesgue_measure (B.toSet)) < ⊤ := ih
+          exact EReal.add_lt_top (ne_of_lt ha_fin) (ne_of_lt hs_fin)
+      exact lt_of_le_of_lt h_subadd h_finset_sum
+    have h_E_le_U : Lebesgue_outer_measure E ≤ Lebesgue_measure (⋃ B ∈ F, B.toSet) + 1 := by
+      have h_sub : E ⊆ (⋃ B ∈ F, B.toSet) ∪ (symmDiff (⋃ B ∈ F, B.toSet) E) := by
+        intro x hx
+        by_cases hxU : x ∈ ⋃ B ∈ F, B.toSet
+        · exact Set.mem_union_left _ hxU
+        · have hx_symm : x ∈ symmDiff (⋃ B ∈ F, B.toSet) E := by
+            rw [symmDiff_def]; exact Or.inr ⟨hx, hxU⟩
+          exact Set.mem_union_right _ hx_symm
+      have h_subadd : Lebesgue_outer_measure ((⋃ B ∈ F, B.toSet) ∪ (symmDiff (⋃ B ∈ F, B.toSet) E)) ≤
+          Lebesgue_measure (⋃ B ∈ F, B.toSet) + Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) := by
+        let S' : Fin 2 → Set (EuclideanSpace' d) := ![⋃ B ∈ F, B.toSet, symmDiff (⋃ B ∈ F, B.toSet) E]
+        have h_union : (⋃ B ∈ F, B.toSet) ∪ (symmDiff (⋃ B ∈ F, B.toSet) E) = ⋃ i : Fin 2, S' i := by
+          ext x; simp [S']
+        calc
+          Lebesgue_outer_measure ((⋃ B ∈ F, B.toSet) ∪ (symmDiff (⋃ B ∈ F, B.toSet) E)) =
+            Lebesgue_outer_measure (⋃ i : Fin 2, S' i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S' i) := Lebesgue_outer_measure.finite_union_le S'
+          _ = Lebesgue_measure (⋃ B ∈ F, B.toSet) + Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) := by
+            simp [S', Fin.sum_univ_two, Lebesgue_measure]
+      calc
+        Lebesgue_outer_measure E ≤ Lebesgue_outer_measure ((⋃ B ∈ F, B.toSet) ∪ (symmDiff (⋃ B ∈ F, B.toSet) E)) :=
+          Lebesgue_outer_measure.mono h_sub
+        _ ≤ Lebesgue_measure (⋃ B ∈ F, B.toSet) + Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) := h_subadd
+        _ ≤ Lebesgue_measure (⋃ B ∈ F, B.toSet) + 1 := add_le_add_right h_symm _
+    have h_E_lt_top : Lebesgue_measure E < ⊤ := by
+      calc
+        Lebesgue_measure E = Lebesgue_outer_measure E := rfl
+        _ ≤ Lebesgue_measure (⋃ B ∈ F, B.toSet) + 1 := h_E_le_U
+        _ < ⊤ := by
+          refine EReal.add_lt_top (ne_of_lt hU_fin) ?_
+          exact EReal.coe_ne_top (1 : ℝ)
+    exact h_E_lt_top
+  exact ⟨hE_meas, hE_fin⟩
+
+
+end LebesgueMeasurableFiniteTFAE
+end FiniteTFAECycle
+
+/-- Exercise 1.2.16 (Criteria for finite measure)-/
+theorem LebesgueMeasurable.finite_TFAE {d:ℕ} (E: Set (EuclideanSpace' d)) :
+    [
+      LebesgueMeasurable E ∧ Lebesgue_measure E < ⊤,
+      (∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_measure U < ⊤ ∧ Lebesgue_outer_measure (U \ E) ≤ ε),
+      (∀ ε > 0, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ Bornology.IsBounded U ∧ Lebesgue_outer_measure (symmDiff U E) ≤ ε),
+      (∀ ε > 0, ∃ F: Set (EuclideanSpace' d), IsCompact F ∧ F ⊆ E ∧ Lebesgue_outer_measure (E \ F) ≤ ε),
+      (∀ ε > 0, ∃ F: Set (EuclideanSpace' d), IsCompact F ∧ Lebesgue_outer_measure (symmDiff F E) ≤ ε),
+      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Lebesgue_measure E' < ⊤ ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
+      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), LebesgueMeasurable E' ∧ Bornology.IsBounded E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
+      (∀ ε > 0, ∃ E': Set (EuclideanSpace' d), IsElementary E' ∧ Lebesgue_outer_measure (symmDiff E' E) ≤ ε),
+      (∀ ε > 0, ∃ (n:ℤ) (F: Finset (Box d)), (∀ B ∈ F, B.IsDyadicAtScale n) ∧ Lebesgue_outer_measure (symmDiff (⋃ B ∈ F, B.toSet) E) ≤ ε)
+    ].TFAE
+  := by
+  tfae_have 1 → 2 := LebesgueMeasurableFiniteTFAE.finite_TFAE_0_implies_1 E
+  tfae_have 2 → 3 := LebesgueMeasurableFiniteTFAE.finite_TFAE_1_implies_2 E
+  tfae_have 3 → 4 := LebesgueMeasurableFiniteTFAE.finite_TFAE_2_implies_3 E
+  tfae_have 4 → 5 := LebesgueMeasurableFiniteTFAE.finite_TFAE_3_implies_4 E
+  tfae_have 5 → 6 := LebesgueMeasurableFiniteTFAE.finite_TFAE_4_implies_5 E
+  tfae_have 6 → 7 := LebesgueMeasurableFiniteTFAE.finite_TFAE_5_implies_6 E
+  tfae_have 7 → 8 := LebesgueMeasurableFiniteTFAE.finite_TFAE_6_implies_7 E
+  tfae_have 8 → 9 := LebesgueMeasurableFiniteTFAE.finite_TFAE_7_implies_8 E
+  tfae_have 9 → 1 := LebesgueMeasurableFiniteTFAE.finite_TFAE_8_implies_0 E
+  tfae_finish
+
 
 /-- If {lean}`a` is a finite extended real (neither {lit}`⊤` nor {lit}`⊥`), then we can cancel it
     from an {lean}`EReal` inequality. -/
