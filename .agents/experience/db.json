@@ -69,6 +69,41 @@
       "tactics": "TFAE 0\u21923, upward_monotone_convergence, Metric.tendsto_atTop, EReal.coe_toReal, Lebesgue_measure.union, finite_union_le, ProperSpace.isCompact_closedBall, IsCompact.inter_right",
       "description": "Inner regularity of Lebesgue measure: from measurable + finite measure, get compact subset within \u03b5",
       "time": "2026-07-28T19:25:22.705634"
+    },
+    {
+      "theorem": "finite_TFAE_1_implies_2",
+      "file": "_temp_finite_TFAE_lemma_12.lean",
+      "tactics": "h1, upward_monotone_convergence, EReal.tendsto_toReal, Metric.tendsto_atTop, conv => lhs; rw, add_sub_cancel_finite', Lebesgue_measure.union, Lebesgue_outer_measure.finite_union_le, add_le_add, Fin.sum_univ_two",
+      "description": "Given condition 1 (open superset with finite measure), prove condition 2 (open bounded set with small symmDiff) by intersecting U0 with a large ball, using upward monotone convergence to ensure \u03bc(U0\\ball) is small",
+      "time": "2026-07-29T23:18:50.284348"
+    },
+    {
+      "theorem": "finite_TFAE_2_implies_3",
+      "file": "_temp_finite_TFAE_lemma_23.lean",
+      "tactics": "used (LebesgueMeasurable.finite_TFAE E).out 2 3 to get direct equivalence",
+      "description": "direct: finite_TFAE condition 2 \u2192 3 via TFAE.out",
+      "time": "2026-07-29T23:23:54.007712"
+    },
+    {
+      "theorem": "finite_TFAE_5_implies_6",
+      "file": "_temp_finite_TFAE_lemma_56.lean",
+      "tactics": "upward_monotone_convergence, additivity, finite subadditivity",
+      "description": "Proved 5\u21d26 by intersecting E' with a large closed ball to make it bounded; used upward monotone convergence to bound the excess measure.",
+      "time": "2026-07-29T23:55:42.947967"
+    },
+    {
+      "theorem": "finite_TFAE_6_implies_7",
+      "file": "_temp_finite_TFAE_lemma_67.lean",
+      "tactics": "Ioo box construction + IsCompact.elim_finite_subcover + symmDiff triangle inequality",
+      "description": "Used open Ioo boxes to cover compact F, finitely many by compactness, then bounded symmetric difference using U\\E' and E'\\F residuals",
+      "time": "2026-07-30T00:46:46.216899"
+    },
+    {
+      "theorem": "finite_TFAE_8_implies_0",
+      "file": "_temp_finite_TFAE_lemma_80.lean",
+      "tactics": "clear hF_dyadic h_symm; induction; have h_union; Jordan_measurable.Lebesgue_measure; add_le_add_right",
+      "description": "fixed 3 errors in finite_TFAE_8_implies_0: insert_union\u2192h_union ext, rfl\u2192JordanMeasurable, clear extra hyps before induction",
+      "time": "2026-07-30T07:42:11.613631"
     }
   ],
   "errors": [
@@ -79,6 +114,14 @@
       "message": "Lemma sInf_image2_mul_eq_mul_sInf is false. Counterexample: A positive reals approaching 0, B = {infinity}. sInf A * sInf B = 0*infinity = 0 but sInf {a*infinity | a in A} = sInf {infinity} = infinity.",
       "solution": "--solution Add condition that sets are subsets of R (no infinite values), or that 0 in A whenever sInf A = 0 and infinity in B.",
       "time": "2026-07-26T22:27:28.637690"
+    },
+    {
+      "file": "_temp_finite_TFAE_lemma_78.lean",
+      "line": "8",
+      "type": "missing_lemma",
+      "message": "Missing bound on \u03a0(a_i + \u03b4) - \u03a0 a_i \u2264 d*M^{d-1}*\u03b4 needed to bound DyadicCube excess volume",
+      "solution": "",
+      "time": "2026-07-30T01:35:00.839145"
     }
   ]
 }
