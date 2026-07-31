@@ -8112,10 +8112,538 @@ theorem LebesgueMeasurable.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁
   refine LebesgueMeasurable.countable_union (fun k => ?_)
   exact h_prod_nm_meas (Nat.pairEquiv.symm k).1 (Nat.pairEquiv.symm k).2
 
-/-- Exercise 1.2.22(ii') (Product measure formula) -/
+private lemma leb_ne_top_of_bounded {d:ℕ} {E: Set (EuclideanSpace' d)}
+    (hE: Bornology.IsBounded E) : Lebesgue_measure E ≠ ⊤ := by
+  have h_compact : IsCompact (closure E) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure hE.closure
+  have h_fin_closure : Lebesgue_outer_measure (closure E) ≠ ⊤ :=
+    Lebesgue_outer_measure.finite_of_compact h_compact
+  have h_mono : Lebesgue_outer_measure E ≤ Lebesgue_outer_measure (closure E) :=
+    Lebesgue_outer_measure.mono subset_closure
+  intro htop; apply h_fin_closure
+  exact le_antisymm le_top (htop.symm ▸ h_mono)
+
+private lemma leb_of_elementary {d:ℕ} {A: Set (EuclideanSpace' d)}
+    (hA: IsElementary A) : Lebesgue_measure A = (hA.measure : EReal) := by
+  rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure hA.jordanMeasurable,
+    JordanMeasurable.mes_of_elementary hA]
+
+private lemma prod_union_right {d₁ d₂:ℕ} (E: Set (EuclideanSpace' d₁)) (F G: Set (EuclideanSpace' d₂)) :
+    EuclideanSpace'.prod E (F ∪ G) = EuclideanSpace'.prod E F ∪ EuclideanSpace'.prod E G := by
+  simp only [EuclideanSpace'.prod, Set.prod_union, Set.image_union]
+
+private lemma prod_union_left {d₁ d₂:ℕ} (E F: Set (EuclideanSpace' d₁)) (G: Set (EuclideanSpace' d₂)) :
+    EuclideanSpace'.prod (E ∪ F) G = EuclideanSpace'.prod E G ∪ EuclideanSpace'.prod F G := by
+  simp only [EuclideanSpace'.prod, Set.union_prod, Set.image_union]
+
+private lemma prod_disjoint_right {d₁ d₂:ℕ} (E: Set (EuclideanSpace' d₁)) {F G: Set (EuclideanSpace' d₂)}
+    (h: F ∩ G = ∅) : EuclideanSpace'.prod E F ∩ EuclideanSpace'.prod E G = ∅ := by
+  simp only [EuclideanSpace'.prod]
+  rw [← Set.image_inter (EuclideanSpace'.prod_equiv d₁ d₂).symm.injective, Set.prod_inter_prod,
+    h, Set.prod_empty, Set.image_empty]
+
+private lemma prod_disjoint_left {d₁ d₂:ℕ} {E F: Set (EuclideanSpace' d₁)} (G: Set (EuclideanSpace' d₂))
+    (h: E ∩ F = ∅) : EuclideanSpace'.prod E G ∩ EuclideanSpace'.prod F G = ∅ := by
+  simp only [EuclideanSpace'.prod]
+  rw [← Set.image_inter (EuclideanSpace'.prod_equiv d₁ d₂).symm.injective, Set.prod_inter_prod,
+    h, Set.empty_prod, Set.image_empty]
+
+private lemma leb_real_of_bounded {d:ℕ} {E: Set (EuclideanSpace' d)}
+    (hE: Bornology.IsBounded E) : ∃ r : ℝ, Lebesgue_measure E = (r : EReal) ∧ 0 ≤ r := by
+  have h_fin : Lebesgue_measure E ≠ ⊤ := leb_ne_top_of_bounded hE
+  have h_nonneg : 0 ≤ Lebesgue_measure E := Lebesgue_outer_measure.nonneg E
+  have h_not_bot : Lebesgue_measure E ≠ ⊥ := by
+    intro hbot; rw [hbot] at h_nonneg
+    exact not_lt.mpr h_nonneg (by norm_num : (⊥ : EReal) < (0 : EReal))
+  refine ⟨(Lebesgue_measure E).toReal, (EReal.coe_toReal h_fin h_not_bot).symm, ?_⟩
+  have := EReal.coe_toReal h_fin h_not_bot
+  rw [← EReal.coe_nonneg, this]; exact h_nonneg
+
+private lemma prod_mono {d₁ d₂:ℕ} {E₁ F₁: Set (EuclideanSpace' d₁)} {E₂ F₂: Set (EuclideanSpace' d₂)}
+    (h₁: E₁ ⊆ F₁) (h₂: E₂ ⊆ F₂) : EuclideanSpace'.prod E₁ E₂ ⊆ EuclideanSpace'.prod F₁ F₂ := by
+  simp only [EuclideanSpace'.prod]
+  exact Set.image_mono (Set.prod_mono h₁ h₂)
+
+-- Helper: product formula for bounded measurable sets
+-- This is the key nontrivial case
+private lemma bounded_prod {d₁ d₂:ℕ} {F₁: Set (EuclideanSpace' d₁)} {F₂: Set (EuclideanSpace' d₂)}
+  (hF₁: LebesgueMeasurable F₁) (hF₂: LebesgueMeasurable F₂)
+  (hF₁_bdd: Bornology.IsBounded F₁) (hF₂_bdd: Bornology.IsBounded F₂)
+  : Lebesgue_measure (EuclideanSpace'.prod F₁ F₂) = Lebesgue_measure F₁ * Lebesgue_measure F₂ := by
+  -- Strategy: Use compact inner regularity + IsElementary.measure_of_prod
+  -- For compact K₁ ⊆ F₁, K₂ ⊆ F₂, we have m(K₁×K₂) ≥ m K₁ * m K₂ by monotonicity
+  -- Taking sup over compacts gives the reverse inequality
+  apply le_antisymm
+  · -- ≤ direction: Lebesgue_outer_measure.prod
+    unfold Lebesgue_measure
+    exact Lebesgue_outer_measure.prod
+  · -- ≥ direction: exact elementary decomposition (algebra cancels, no tightness needed)
+    obtain ⟨A₁, hA₁, hF₁_sub⟩ := hF₁_bdd.inElementary
+    obtain ⟨A₂, hA₂, hF₂_sub⟩ := hF₂_bdd.inElementary
+    have hA₁_bdd : Bornology.IsBounded A₁ := hA₁.isBounded
+    have hA₂_bdd : Bornology.IsBounded A₂ := hA₂.isBounded
+    have hA₁m : LebesgueMeasurable A₁ := hA₁.measurable
+    have hA₂m : LebesgueMeasurable A₂ := hA₂.measurable
+    have hD₁ : A₁ \ F₁ = A₁ ∩ F₁ᶜ := Set.diff_eq A₁ F₁
+    have hD₂ : A₂ \ F₂ = A₂ ∩ F₂ᶜ := Set.diff_eq A₂ F₂
+    have hD₁m : LebesgueMeasurable (A₁ \ F₁) := by
+      rw [hD₁]; exact LebesgueMeasurable.inter hA₁m hF₁.complement
+    have hD₂m : LebesgueMeasurable (A₂ \ F₂) := by
+      rw [hD₂]; exact LebesgueMeasurable.inter hA₂m hF₂.complement
+    have hD₁_bdd : Bornology.IsBounded (A₁ \ F₁) := hA₁_bdd.subset Set.diff_subset
+    have hD₂_bdd : Bornology.IsBounded (A₂ \ F₂) := hA₂_bdd.subset Set.diff_subset
+    -- Measure decomposition of A₁, A₂
+    have hunA₁ : F₁ ∪ (A₁ \ F₁) = A₁ := Set.union_diff_cancel hF₁_sub
+    have hunA₂ : F₂ ∪ (A₂ \ F₂) = A₂ := Set.union_diff_cancel hF₂_sub
+    have hmA₁ : Lebesgue_measure A₁ = Lebesgue_measure F₁ + Lebesgue_measure (A₁ \ F₁) := by
+      conv_lhs => rw [← hunA₁]
+      exact Lebesgue_measure.union hF₁ hD₁m (Set.inter_diff_self F₁ A₁)
+    have hmA₂ : Lebesgue_measure A₂ = Lebesgue_measure F₂ + Lebesgue_measure (A₂ \ F₂) := by
+      conv_lhs => rw [← hunA₂]
+      exact Lebesgue_measure.union hF₂ hD₂m (Set.inter_diff_self F₂ A₂)
+    -- Measurability of the product pieces
+    have hp_FF : LebesgueMeasurable (EuclideanSpace'.prod F₁ F₂) := LebesgueMeasurable.prod hF₁ hF₂
+    have hp_FD₂ : LebesgueMeasurable (EuclideanSpace'.prod F₁ (A₂ \ F₂)) :=
+      LebesgueMeasurable.prod hF₁ hD₂m
+    have hp_D₁A₂ : LebesgueMeasurable (EuclideanSpace'.prod (A₁ \ F₁) A₂) :=
+      LebesgueMeasurable.prod hD₁m hA₂m
+    have hp_FA₂ : LebesgueMeasurable (EuclideanSpace'.prod F₁ A₂) :=
+      LebesgueMeasurable.prod hF₁ hA₂m
+    -- Decompose F₁ × A₂ = (F₁ × F₂) ∪ (F₁ × (A₂ \ F₂))
+    have hsplit_FA₂ : EuclideanSpace'.prod F₁ A₂
+        = EuclideanSpace'.prod F₁ F₂ ∪ EuclideanSpace'.prod F₁ (A₂ \ F₂) := by
+      rw [← prod_union_right, hunA₂]
+    have hm_FA₂ : Lebesgue_measure (EuclideanSpace'.prod F₁ A₂)
+        = Lebesgue_measure (EuclideanSpace'.prod F₁ F₂)
+          + Lebesgue_measure (EuclideanSpace'.prod F₁ (A₂ \ F₂)) := by
+      rw [hsplit_FA₂]
+      exact Lebesgue_measure.union hp_FF hp_FD₂ (prod_disjoint_right F₁ (Set.inter_diff_self F₂ A₂))
+    -- Decompose A₁ × A₂ = (F₁ × A₂) ∪ ((A₁ \ F₁) × A₂)
+    have hsplit_AA : EuclideanSpace'.prod A₁ A₂
+        = EuclideanSpace'.prod F₁ A₂ ∪ EuclideanSpace'.prod (A₁ \ F₁) A₂ := by
+      rw [← prod_union_left, hunA₁]
+    have hm_AA : Lebesgue_measure (EuclideanSpace'.prod A₁ A₂)
+        = Lebesgue_measure (EuclideanSpace'.prod F₁ A₂)
+          + Lebesgue_measure (EuclideanSpace'.prod (A₁ \ F₁) A₂) := by
+      rw [hsplit_AA]
+      exact Lebesgue_measure.union hp_FA₂ hp_D₁A₂ (prod_disjoint_left A₂ (Set.inter_diff_self F₁ A₁))
+    -- Elementary product: m(A₁ × A₂) = m A₁ * m A₂
+    have hm_AA_prod : Lebesgue_measure (EuclideanSpace'.prod A₁ A₂)
+        = Lebesgue_measure A₁ * Lebesgue_measure A₂ := by
+      rw [leb_of_elementary (hA₁.prod hA₂), leb_of_elementary hA₁, leb_of_elementary hA₂,
+        IsElementary.measure_of_prod hA₁ hA₂, EReal.coe_mul]
+    -- Boundedness of product pieces (all subsets of the bounded elementary A₁ × A₂)
+    have hAA_bdd : Bornology.IsBounded (EuclideanSpace'.prod A₁ A₂) := (hA₁.prod hA₂).isBounded
+    have hFF_bdd : Bornology.IsBounded (EuclideanSpace'.prod F₁ F₂) :=
+      hAA_bdd.subset (prod_mono hF₁_sub hF₂_sub)
+    have hFD₂_bdd : Bornology.IsBounded (EuclideanSpace'.prod F₁ (A₂ \ F₂)) :=
+      hAA_bdd.subset (prod_mono hF₁_sub Set.diff_subset)
+    have hD₁A₂_bdd : Bornology.IsBounded (EuclideanSpace'.prod (A₁ \ F₁) A₂) :=
+      hAA_bdd.subset (prod_mono Set.diff_subset (subset_refl A₂))
+    -- Real representatives
+    obtain ⟨a₁, ha₁, ha₁_nn⟩ := leb_real_of_bounded hF₁_bdd
+    obtain ⟨a₂, ha₂, ha₂_nn⟩ := leb_real_of_bounded hF₂_bdd
+    obtain ⟨e₁, he₁, he₁_nn⟩ := leb_real_of_bounded hD₁_bdd
+    obtain ⟨e₂, he₂, he₂_nn⟩ := leb_real_of_bounded hD₂_bdd
+    obtain ⟨x, hx, hx_nn⟩ := leb_real_of_bounded hFF_bdd
+    obtain ⟨y, hy, hy_nn⟩ := leb_real_of_bounded hFD₂_bdd
+    obtain ⟨z, hz, hz_nn⟩ := leb_real_of_bounded hD₁A₂_bdd
+    -- Key exact identity: (a₁+e₁)(a₂+e₂) = x + y + z
+    have hkey : (a₁ + e₁) * (a₂ + e₂) = x + y + z := by
+      have h1 : Lebesgue_measure (EuclideanSpace'.prod A₁ A₂) = ((x + y + z : ℝ) : EReal) := by
+        rw [hm_AA, hm_FA₂, hx, hy, hz]; norm_cast
+      have h2 : Lebesgue_measure (EuclideanSpace'.prod A₁ A₂)
+          = (((a₁ + e₁) * (a₂ + e₂) : ℝ) : EReal) := by
+        rw [hm_AA_prod, hmA₁, hmA₂, ha₁, he₁, ha₂, he₂]; push_cast; ring_nf
+      rw [h1] at h2; exact_mod_cast h2.symm
+    -- Error bounds via outer measure product inequality
+    have hy_bound : y ≤ a₁ * e₂ := by
+      have hyb : Lebesgue_measure (EuclideanSpace'.prod F₁ (A₂ \ F₂))
+          ≤ Lebesgue_measure F₁ * Lebesgue_measure (A₂ \ F₂) := Lebesgue_outer_measure.prod
+      rw [hy, ha₁, he₂, ← EReal.coe_mul, EReal.coe_le_coe_iff] at hyb; exact hyb
+    have hz_bound : z ≤ e₁ * (a₂ + e₂) := by
+      have hzb : Lebesgue_measure (EuclideanSpace'.prod (A₁ \ F₁) A₂)
+          ≤ Lebesgue_measure (A₁ \ F₁) * Lebesgue_measure A₂ := Lebesgue_outer_measure.prod
+      rw [hz, he₁, hmA₂, ha₂, he₂, ← EReal.coe_add, ← EReal.coe_mul, EReal.coe_le_coe_iff] at hzb
+      exact hzb
+    -- Finish in ℝ
+    rw [ha₁, ha₂, hx, ← EReal.coe_mul, EReal.coe_le_coe_iff]
+    nlinarith [hkey, hy_bound, hz_bound, ha₁_nn, ha₂_nn, he₁_nn, he₂_nn]
+
+-- Product of increasing truncations equals the whole product
+private lemma prod_iUnion_trunc {d₁ d₂:ℕ} (E₁: Set (EuclideanSpace' d₁)) (E₂: Set (EuclideanSpace' d₂)) :
+    (⋃ n : ℕ, EuclideanSpace'.prod (E₁ ∩ Metric.closedBall 0 (n:ℝ)) (E₂ ∩ Metric.closedBall 0 (n:ℝ)))
+      = EuclideanSpace'.prod E₁ E₂ := by
+  apply Set.Subset.antisymm
+  · refine Set.iUnion_subset (fun n => ?_)
+    exact prod_mono Set.inter_subset_left Set.inter_subset_left
+  · intro x hx
+    obtain ⟨p, ⟨h1, h2⟩, rfl⟩ := hx
+    -- choose N large enough for both coordinates
+    obtain ⟨N, hN₁, hN₂⟩ : ∃ N : ℕ, p.1 ∈ Metric.closedBall 0 (N:ℝ) ∧ p.2 ∈ Metric.closedBall 0 (N:ℝ) := by
+      obtain ⟨k₁, hk₁⟩ := exists_nat_ge (dist p.1 0)
+      obtain ⟨k₂, hk₂⟩ := exists_nat_ge (dist p.2 0)
+      refine ⟨max k₁ k₂, ?_, ?_⟩
+      · simp only [Metric.mem_closedBall]; exact le_trans hk₁ (by exact_mod_cast le_max_left k₁ k₂)
+      · simp only [Metric.mem_closedBall]; exact le_trans hk₂ (by exact_mod_cast le_max_right k₁ k₂)
+    refine Set.mem_iUnion.mpr ⟨N, ?_⟩
+    exact ⟨p, ⟨⟨h1, hN₁⟩, ⟨h2, hN₂⟩⟩, rfl⟩
+
+-- Main theorem: general (possibly unbounded) measurable sets
+
+
+/-- Exercise 1.2.22 -/
 theorem Lebesgue_measure.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
   (hE₁: LebesgueMeasurable E₁) (hE₂: LebesgueMeasurable E₂)
-  : Lebesgue_measure (EuclideanSpace'.prod E₁ E₂) = Lebesgue_measure E₁ * Lebesgue_measure E₂ := by sorry
+  : Lebesgue_measure (EuclideanSpace'.prod E₁ E₂) = Lebesgue_measure E₁ * Lebesgue_measure E₂ := by
+  -- PROD_BODY_PLACEHOLDER
+  
+  set F : ℕ → Set (EuclideanSpace' d₁) := fun n => E₁ ∩ Metric.closedBall 0 (n:ℝ) with hF_def
+  set G : ℕ → Set (EuclideanSpace' d₂) := fun n => E₂ ∩ Metric.closedBall 0 (n:ℝ) with hG_def
+  have hFm : ∀ n, LebesgueMeasurable (F n) := fun n =>
+    LebesgueMeasurable.inter hE₁ Metric.isClosed_closedBall.measurable
+  have hGm : ∀ n, LebesgueMeasurable (G n) := fun n =>
+    LebesgueMeasurable.inter hE₂ Metric.isClosed_closedBall.measurable
+  have hFb : ∀ n, Bornology.IsBounded (F n) := fun n =>
+    Metric.isBounded_closedBall.subset Set.inter_subset_right
+  have hGb : ∀ n, Bornology.IsBounded (G n) := fun n =>
+    Metric.isBounded_closedBall.subset Set.inter_subset_right
+  have hball_mono : ∀ n : ℕ, Metric.closedBall (0 : EuclideanSpace' d₁) (n:ℝ) ⊆ Metric.closedBall 0 ((n+1:ℕ):ℝ) := by
+    intro n; apply Metric.closedBall_subset_closedBall; exact_mod_cast Nat.le_succ n
+  have hball_mono₂ : ∀ n : ℕ, Metric.closedBall (0 : EuclideanSpace' d₂) (n:ℝ) ⊆ Metric.closedBall 0 ((n+1:ℕ):ℝ) := by
+    intro n; apply Metric.closedBall_subset_closedBall; exact_mod_cast Nat.le_succ n
+  have hFmono : ∀ n, F n ⊆ F (n+1) := fun n x hx => ⟨hx.1, hball_mono n hx.2⟩
+  have hGmono : ∀ n, G n ⊆ G (n+1) := fun n x hx => ⟨hx.1, hball_mono₂ n hx.2⟩
+  -- The product truncations
+  set P : ℕ → Set (EuclideanSpace' (d₁+d₂)) := fun n => EuclideanSpace'.prod (F n) (G n) with hP_def
+  have hPm : ∀ n, LebesgueMeasurable (P n) := fun n => LebesgueMeasurable.prod (hFm n) (hGm n)
+  have hPmono : ∀ n, P n ⊆ P (n+1) := fun n => prod_mono (hFmono n) (hGmono n)
+  have hP_union : ⋃ n, P n = EuclideanSpace'.prod E₁ E₂ := prod_iUnion_trunc E₁ E₂
+  -- bounded product formula on each truncation
+  have hP_eq : ∀ n, Lebesgue_measure (P n) = Lebesgue_measure (F n) * Lebesgue_measure (G n) :=
+    fun n => bounded_prod (hFm n) (hGm n) (hFb n) (hGb n)
+  -- Monotone convergence: m(P n) → m(⋃ P n) = m(E₁×E₂)
+  have hconv_P : Filter.atTop.Tendsto (fun n => Lebesgue_measure (P n)) (nhds (Lebesgue_measure (EuclideanSpace'.prod E₁ E₂))) := by
+    have := Lebesgue_measure.upward_monotone_convergence hPm hPmono
+    rwa [hP_union] at this
+  -- m(F n) → m E₁, m(G n) → m E₂
+  have hconv_F : Filter.atTop.Tendsto (fun n => Lebesgue_measure (F n)) (nhds (Lebesgue_measure E₁)) := by
+    have := Lebesgue_measure.upward_monotone_convergence hFm hFmono
+    have hu : (⋃ n, F n) = E₁ := Metric.iUnion_inter_closedBall_nat E₁ 0
+    rwa [hu] at this
+  have hconv_G : Filter.atTop.Tendsto (fun n => Lebesgue_measure (G n)) (nhds (Lebesgue_measure E₂)) := by
+    have := Lebesgue_measure.upward_monotone_convergence hGm hGmono
+    have hu : (⋃ n, G n) = E₂ := Metric.iUnion_inter_closedBall_nat E₂ 0
+    rwa [hu] at this
+  -- m(F n)*m(G n) → m E₁ * m E₂  (mul continuous at the limit pair; degenerate 0-cases handled)
+  have hconv_mul : Filter.atTop.Tendsto (fun n => Lebesgue_measure (F n) * Lebesgue_measure (G n))
+      (nhds (Lebesgue_measure E₁ * Lebesgue_measure E₂)) := by
+    by_cases h1 : Lebesgue_measure E₁ = 0
+    · -- E₁ null ⇒ each F n null (F n ⊆ E₁), product measures are 0
+      have hFn_zero : ∀ n, Lebesgue_measure (F n) = 0 := by
+        intro n
+        have hle : Lebesgue_measure (F n) ≤ Lebesgue_measure E₁ :=
+          Lebesgue_outer_measure.mono Set.inter_subset_left
+        rw [h1] at hle
+        exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+      have : (fun n => Lebesgue_measure (F n) * Lebesgue_measure (G n)) = (fun _ => (0:EReal)) := by
+        funext n; rw [hFn_zero n, zero_mul]
+      rw [this, h1, zero_mul]; exact tendsto_const_nhds
+    · by_cases h2 : Lebesgue_measure E₂ = 0
+      · have hGn_zero : ∀ n, Lebesgue_measure (G n) = 0 := by
+          intro n
+          have hle : Lebesgue_measure (G n) ≤ Lebesgue_measure E₂ :=
+            Lebesgue_outer_measure.mono Set.inter_subset_left
+          rw [h2] at hle
+          exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+        have : (fun n => Lebesgue_measure (F n) * Lebesgue_measure (G n)) = (fun _ => (0:EReal)) := by
+          funext n; rw [hGn_zero n, mul_zero]
+        rw [this, h2, mul_zero]; exact tendsto_const_nhds
+      · -- both nonzero: mul continuous at (m E₁, m E₂)
+        have hcont : ContinuousAt (fun p : EReal × EReal => p.1 * p.2) (Lebesgue_measure E₁, Lebesgue_measure E₂) := by
+          apply EReal.continuousAt_mul
+          · exact Or.inl h1
+          · exact Or.inl h1
+          · exact Or.inr h2
+          · exact Or.inr h2
+        have htend : Filter.atTop.Tendsto (fun n => (Lebesgue_measure (F n), Lebesgue_measure (G n)))
+            (nhds (Lebesgue_measure E₁, Lebesgue_measure E₂)) := by
+          rw [nhds_prod_eq]; exact hconv_F.prodMk hconv_G
+        exact hcont.tendsto.comp htend
+  -- conclude by uniqueness of limits
+  have hconv_P' : Filter.atTop.Tendsto (fun n => Lebesgue_measure (F n) * Lebesgue_measure (G n))
+      (nhds (Lebesgue_measure (EuclideanSpace'.prod E₁ E₂))) := by
+    have : (fun n => Lebesgue_measure (F n) * Lebesgue_measure (G n)) = (fun n => Lebesgue_measure (P n)) := by
+      funext n; exact (hP_eq n).symm
+    rw [this]; exact hconv_P
+  exact tendsto_nhds_unique hconv_P' hconv_mul
+
+
+-- Binary additivity of m on disjoint measurable sets, derived from countable h_add.
+private lemma m_union {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    {E F: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F)
+    (hdisj: Disjoint E F) : m (E ∪ F) = m E + m F := by
+  classical
+  let G : ℕ → Set (EuclideanSpace' d) := fun n => if n = 0 then E else if n = 1 then F else ∅
+  have hG_meas : ∀ n, LebesgueMeasurable (G n) := by
+    intro n; dsimp only [G]
+    by_cases h0 : n = 0
+    · rw [if_pos h0]; exact hE
+    · rw [if_neg h0]
+      by_cases h1 : n = 1
+      · rw [if_pos h1]; exact hF
+      · rw [if_neg h1]; exact LebesgueMeasurable.empty
+  have hG_disj : Set.univ.PairwiseDisjoint G := by
+    intro i _ j _ hij
+    by_cases hi0 : i = 0
+    · subst hi0
+      by_cases hj1 : j = 1
+      · subst hj1; simpa [G] using hdisj
+      · have hj0 : j ≠ 0 := fun h => hij h.symm
+        show Disjoint (G 0) (G j); simp [G, hj0, hj1]
+    · by_cases hi1 : i = 1
+      · subst hi1
+        by_cases hj0 : j = 0
+        · subst hj0; simpa [G] using hdisj.symm
+        · have hj1 : j ≠ 1 := fun h => hij h.symm
+          show Disjoint (G 1) (G j); simp [G, hj0, hj1]
+      · show Disjoint (G i) (G j); simp [G, hi0, hi1]
+  have hunion : ⋃ n, G n = E ∪ F := by
+    ext x; simp only [Set.mem_iUnion, Set.mem_union]
+    constructor
+    · rintro ⟨n, hn⟩; dsimp only [G] at hn
+      by_cases h0 : n = 0
+      · rw [if_pos h0] at hn; exact Or.inl hn
+      · rw [if_neg h0] at hn
+        by_cases h1 : n = 1
+        · rw [if_pos h1] at hn; exact Or.inr hn
+        · rw [if_neg h1] at hn; exact absurd hn (by simp)
+    · rintro (hx | hx)
+      · exact ⟨0, by simp [G, hx]⟩
+      · exact ⟨1, by simp [G, hx]⟩
+  have hsum : ∑' n, m (G n) = m E + m F := by
+    have hsupp : ∀ n, n ∉ Finset.range 2 → m (G n) = 0 := by
+      intro n hn; rw [Finset.mem_range] at hn
+      have h0 : n ≠ 0 := by omega
+      have h1 : n ≠ 1 := by omega
+      simp only [G, if_neg h0, if_neg h1]; exact h_empty
+    rw [tsum_eq_sum hsupp, Finset.sum_range_succ, Finset.sum_range_one]
+    simp [G]
+  rw [← hunion, h_add G hG_disj hG_meas, hsum]
+
+-- m is monotone on measurable sets.
+private lemma m_mono {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    {E F: Set (EuclideanSpace' d)} (hsub: E ⊆ F) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) : m E ≤ m F := by
+  have hdiff_meas : LebesgueMeasurable (F \ E) := hF.inter hE.complement
+  have hdisj : Disjoint E (F \ E) := Set.disjoint_sdiff_right
+  have hmF : m F = m E + m (F \ E) := by
+    have h1 : m (E ∪ (F \ E)) = m E + m (F \ E) := m_union m h_empty h_add hE hdiff_meas hdisj
+    rwa [Set.union_diff_cancel hsub] at h1
+  rw [hmF]
+  exact le_add_of_nonneg_right (h_pos _)
+
+-- Binary subadditivity of m.
+private lemma m_union_le {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    {E F: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) :
+    m (E ∪ F) ≤ m E + m F := by
+  have hFdiff_meas : LebesgueMeasurable (F \ E) := hF.inter hE.complement
+  have hdisj : Disjoint E (F \ E) := Set.disjoint_sdiff_right
+  have heq : E ∪ F = E ∪ (F \ E) := by rw [Set.union_diff_self]
+  rw [heq, m_union m h_empty h_add hE hFdiff_meas hdisj]
+  have hle : m (F \ E) ≤ m F := m_mono m h_empty h_pos h_add Set.diff_subset hFdiff_meas hF
+  gcongr
+
+-- Finite subadditivity of m over a Finset.
+private lemma m_biUnion_le {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    {ι: Type*} (S: Finset ι) (f: ι → Set (EuclideanSpace' d)) (hf: ∀ i, LebesgueMeasurable (f i)) :
+    m (⋃ i ∈ S, f i) ≤ ∑ i ∈ S, m (f i) := by
+  classical
+  induction S using Finset.induction with
+  | empty => simp [h_empty]
+  | insert a S ha ih =>
+    rw [Finset.set_biUnion_insert, Finset.sum_insert ha]
+    have hunion_meas : LebesgueMeasurable (⋃ i ∈ S, f i) :=
+      LebesgueMeasurable.finset_union (fun i _ => hf i)
+    calc m (f a ∪ ⋃ i ∈ S, f i) ≤ m (f a) + m (⋃ i ∈ S, f i) :=
+          m_union_le m h_empty h_pos h_add (hf a) hunion_meas
+      _ ≤ m (f a) + ∑ i ∈ S, m (f i) := by gcongr
+
+-- m of a unit grid cell equals 1 (it's a translate of the unit cube).
+private lemma m_cell_eq_one {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
+    (hnorm: m (Box.unit_cube d) = 1) (k : Fin d → ℤ) :
+    m (Box.cell 1 k).toSet = 1 := by
+  have hcell : (Box.cell 1 k).toSet = (Box.unit_cube d).toSet + {Box.gridVec 1 k} := by
+    rw [Box.cell_eq_translate (by norm_num) k]
+    congr 1
+    norm_num [Box.cube, Box.unit_cube]
+  rw [hcell, h_transl, hnorm]
+
+-- m of a box is finite: a box sits inside an integer gridBox which tiles into finitely many unit cells.
+private lemma m_gridBox_fin {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
+    (hnorm: m (Box.unit_cube d) = 1) (p q : Fin d → ℤ) :
+    m (Box.gridBox 1 p q).toSet ≠ ⊤ := by
+  have hcells : (Box.gridBox 1 p q).toSet = ⋃ B ∈ Box.gridCells 1 p q, B.toSet :=
+    Box.gridBox_eq_cells_union (by norm_num) p q
+  have hle : m (Box.gridBox 1 p q).toSet ≤ ∑ B ∈ Box.gridCells 1 p q, m B.toSet := by
+    rw [hcells]
+    exact m_biUnion_le m h_empty h_pos h_add (Box.gridCells 1 p q) Box.toSet
+      (fun B => (IsElementary.box B).measurable)
+  have hcell_one : ∀ B ∈ Box.gridCells 1 p q, m B.toSet = 1 := by
+    intro B hB
+    simp only [Box.gridCells, Finset.mem_image] at hB
+    obtain ⟨k, _, hk⟩ := hB
+    rw [← hk, m_cell_eq_one m h_transl hnorm k]
+  have hbound : (∑ B ∈ Box.gridCells 1 p q, m B.toSet) = ((Box.gridCells 1 p q).card : EReal) := by
+    calc (∑ B ∈ Box.gridCells 1 p q, m B.toSet) = ∑ _B ∈ Box.gridCells 1 p q, (1:EReal) :=
+          Finset.sum_congr rfl hcell_one
+      _ = ((Box.gridCells 1 p q).card : EReal) := by simp
+  rw [hbound] at hle
+  exact ne_top_of_le_ne_top (EReal.natCast_ne_top _) hle
+
+-- m of a box is finite (a box sits inside an integer gridBox).
+private lemma m_box_fin {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
+    (hnorm: m (Box.unit_cube d) = 1) (B : Box d) :
+    m B.toSet ≠ ⊤ := by
+  set p : Fin d → ℤ := fun i => ⌊(B.side i).a⌋ - 1 with hp
+  set q : Fin d → ℤ := fun i => ⌈(B.side i).b⌉ with hq
+  have hsub : B.toSet ⊆ (Box.gridBox 1 p q).toSet := by
+    intro x hx
+    rw [Box.mem_toSet] at hx ⊢
+    intro i
+    have hxi : x i ∈ (B.side i : Set ℝ) := hx i
+    have hIcc : x i ∈ Set.Icc (B.side i).a (B.side i).b :=
+      Set.mem_of_subset_of_mem (BoundedInterval.subset_Icc (B.side i)) hxi
+    rw [Set.mem_Icc] at hIcc
+    simp only [Nat.cast_one, div_one]
+    constructor
+    · have : ((p i : ℝ)) = (⌊(B.side i).a⌋ : ℝ) - 1 := by rw [hp]; push_cast; ring
+      rw [this]
+      have h1 : (⌊(B.side i).a⌋ : ℝ) ≤ (B.side i).a := Int.floor_le _
+      linarith [hIcc.1]
+    · have : ((q i : ℝ)) = (⌈(B.side i).b⌉ : ℝ) := by rw [hq]
+      rw [this]
+      exact le_trans hIcc.2 (Int.le_ceil _)
+  have hle : m B.toSet ≤ m (Box.gridBox 1 p q).toSet :=
+    m_mono m h_empty h_pos h_add hsub (IsElementary.box B).measurable (IsElementary.box _).measurable
+  exact ne_top_of_le_ne_top (m_gridBox_fin m h_empty h_pos h_add h_transl hnorm p q) hle
+
+-- m of an elementary set is finite.
+private lemma m_elem_fin {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
+    (hnorm: m (Box.unit_cube d) = 1) {E: Set (EuclideanSpace' d)} (hE: IsElementary E) :
+    m E ≠ ⊤ := by
+  obtain ⟨T, hT_disj, hE_eq⟩ := hE.partition
+  set f : Box d → EReal := fun B => m B.toSet with hf_def
+  have hle : m E ≤ ∑ B ∈ T, f B := by
+    rw [hE_eq]
+    exact m_biUnion_le m h_empty h_pos h_add T Box.toSet (fun B => (IsElementary.box B).measurable)
+  have hsum_fin : (∑ B ∈ T, f B) ≠ ⊤ := by
+    apply Finset.sum_induction f (fun x => x ≠ ⊤)
+    · intro a b ha hb; exact EReal.add_ne_top ha hb
+    · simp
+    · intro B _; exact m_box_fin m h_empty h_pos h_add h_transl hnorm B
+  exact ne_top_of_le_ne_top hsum_fin hle
+
+-- m agrees with Lebesgue measure on elementary sets.
+private lemma m_eq_leb_elem {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
+    (hnorm: m (Box.unit_cube d) = 1) {E: Set (EuclideanSpace' d)} (hE: IsElementary E) :
+    m E = Lebesgue_measure E := by
+  -- define real-valued m' and apply IsElementary.measure_uniq'
+  set m' : (E : Set (EuclideanSpace' d)) → IsElementary E → ℝ := fun E _ => (m E).toReal with hm'_def
+  have hnonneg : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E), m' E hE ≥ 0 := by
+    intro E hE; simp only [hm'_def]; exact EReal.toReal_nonneg (h_pos E)
+  have hadd' : ∀ (E F : Set (EuclideanSpace' d)) (hE : IsElementary E) (hF : IsElementary F),
+      Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF := by
+    intro E F hE hF hdisj
+    simp only [hm'_def]
+    rw [m_union m h_empty h_add hE.measurable hF.measurable hdisj]
+    rw [EReal.toReal_add (m_elem_fin m h_empty h_pos h_add h_transl hnorm hE)
+      (by have := h_pos E; intro h; rw [h] at this; exact absurd this (by simp))
+      (m_elem_fin m h_empty h_pos h_add h_transl hnorm hF)
+      (by have := h_pos F; intro h; rw [h] at this; exact absurd this (by simp))]
+  have htrans' : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E) (x : EuclideanSpace' d),
+      m' (E + {x}) (hE.translate x) = m' E hE := by
+    intro E hE x; simp only [hm'_def]; rw [h_transl]
+  have hcube' : m' (Box.unit_cube d) (IsElementary.box _) = 1 := by
+    simp only [hm'_def]; rw [hnorm]; simp
+  have huniq := IsElementary.measure_uniq' hnonneg hadd' htrans' hcube' E hE
+  -- huniq : (m E).toReal = hE.measure
+  have hfin : m E ≠ ⊤ := m_elem_fin m h_empty h_pos h_add h_transl hnorm hE
+  have hnbot : m E ≠ ⊥ := by have := h_pos E; intro h; rw [h] at this; exact absurd this (by simp)
+  have hleb : Lebesgue_measure E = ((hE.measure : ℝ) : EReal) := by
+    rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure hE.jordanMeasurable,
+      JordanMeasurable.mes_of_elementary hE]
+  rw [hleb, ← EReal.coe_toReal hfin hnbot]
+  exact_mod_cast huniq
+
+-- Monotonicity of tsum for nonneg EReal families (via ENNReal bridge).
+private lemma ereal_tsum_le_tsum {f g : ℕ → EReal} (hf : ∀ n, 0 ≤ f n) (hg : ∀ n, 0 ≤ g n)
+    (h : ∀ n, f n ≤ g n) : ∑' n, f n ≤ ∑' n, g n := by
+  have hbridge : ∀ (p : ℕ → EReal), (∀ n, 0 ≤ p n) →
+      ∑' n, p n = ((∑' n, (p n).toENNReal : ENNReal) : EReal) := by
+    intro p hp
+    have h1 : ∑' n, p n = ∑' n, ((p n).toENNReal : EReal) :=
+      tsum_congr (fun n => (EReal.coe_toENNReal (hp n)).symm)
+    rw [h1]
+    let φ : ENNReal →+ EReal :=
+      { toFun := (↑·), map_zero' := by simp, map_add' := EReal.coe_ennreal_add }
+    exact (Summable.map_tsum (f := fun n => (p n).toENNReal) ENNReal.summable φ
+      continuous_coe_ennreal_ereal).symm
+  rw [hbridge f hf, hbridge g hg]
+  rw [EReal.coe_ennreal_le_coe_ennreal_iff]
+  apply ENNReal.tsum_le_tsum
+  intro n
+  exact EReal.toENNReal_le_toENNReal (h n)
+
+-- Countable subadditivity of m.
+private lemma m_iUnion_le {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
+    (h_empty: m ∅ = 0) (h_pos: ∀ E, 0 ≤ m E)
+    (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
+    (A: ℕ → Set (EuclideanSpace' d)) (hA: ∀ n, LebesgueMeasurable (A n)) :
+    m (⋃ n, A n) ≤ ∑' n, m (A n) := by
+  classical
+  set B := disjointed A with hB_def
+  have hB_meas : ∀ n, LebesgueMeasurable (B n) := by
+    intro n
+    rw [hB_def, disjointed_eq_inter_compl]
+    apply LebesgueMeasurable.inter (hA n)
+    have hbi : (⋂ j, ⋂ (_ : j < n), (A j)ᶜ) = ⋂ j ∈ Finset.range n, (A j)ᶜ := by
+      ext x; simp [Finset.mem_range]
+    rw [hbi]
+    exact LebesgueMeasurable.finset_inter (fun j _ => (hA j).complement)
+  have hB_disj : Set.univ.PairwiseDisjoint B := (disjoint_disjointed A).set_pairwise _
+  have hB_union : ⋃ n, B n = ⋃ n, A n := iUnion_disjointed
+  have hB_le : ∀ n, m (B n) ≤ m (A n) :=
+    fun n => m_mono m h_empty h_pos h_add (disjointed_le A n) (hB_meas n) (hA n)
+  calc m (⋃ n, A n) = m (⋃ n, B n) := by rw [hB_union]
+    _ = ∑' n, m (B n) := h_add B hB_disj hB_meas
+    _ ≤ ∑' n, m (A n) := ereal_tsum_le_tsum (fun n => h_pos _) (fun n => h_pos _) hB_le
+
+-- Lebesgue measure of a box equals its volume.
+private lemma leb_box {d:ℕ} (B : Box d) : Lebesgue_measure B.toSet = (B.volume : EReal) := by
+  rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure (IsElementary.box B).jordanMeasurable,
+    JordanMeasurable.mes_of_elementary (IsElementary.box B), IsElementary.measure_of_box]
+
 
 /-- Exercise 1.2.23 (Uniqueness of Lebesgue measure) -/
 theorem Lebesgue_measure.unique {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
@@ -8123,7 +8651,109 @@ theorem Lebesgue_measure.unique {d:ℕ} (m: Set (EuclideanSpace' d) → EReal)
   (h_add: ∀ E: ℕ → Set (EuclideanSpace' d), (Set.univ.PairwiseDisjoint E) → (∀ n, LebesgueMeasurable (E n)) → m (⋃ n, E n) = ∑' n, m (E n))
   (h_transl: ∀ (x : EuclideanSpace' d) (E : Set (EuclideanSpace' d)), m (E + {x}) = m E)
   (hnorm: m (Box.unit_cube d) = 1)
-  : ∀ E, LebesgueMeasurable E → m E = Lebesgue_measure E := by sorry
+  : ∀ E, LebesgueMeasurable E → m E = Lebesgue_measure E := by
+  by_cases hd : 0 < d
+  · -- d > 0
+    -- Step 1: m E ≤ Lebesgue_measure E for all measurable E.
+    have h_le : ∀ E, LebesgueMeasurable E → m E ≤ Lebesgue_measure E := by
+      intro E hE
+      rw [Lebesgue_measure, Lebesgue_outer_measure_eq_nat_indexed hd]
+      apply le_sInf
+      rintro V ⟨S, hcover, rfl⟩
+      have hbox_meas : ∀ n, LebesgueMeasurable (S n).toSet := fun n => (IsElementary.box (S n)).measurable
+      calc m E ≤ m (⋃ n, (S n).toSet) :=
+            m_mono m h_empty h_pos h_add hcover hE (LebesgueMeasurable.countable_union hbox_meas)
+        _ ≤ ∑' n, m ((S n).toSet) := m_iUnion_le m h_empty h_pos h_add _ hbox_meas
+        _ = ∑' n, ((S n).volume.toEReal) := by
+            apply tsum_congr; intro n
+            rw [m_eq_leb_elem m h_empty h_pos h_add h_transl hnorm (IsElementary.box (S n)), leb_box]
+    -- Step 2: bounded case, via elementary superset squeeze.
+    have h_bounded : ∀ E, LebesgueMeasurable E → Bornology.IsBounded E → m E = Lebesgue_measure E := by
+      intro E hE hEbdd
+      obtain ⟨A, hA, hEA⟩ := hEbdd.inElementary
+      have hAmeas : LebesgueMeasurable A := hA.measurable
+      have hdiff_meas : LebesgueMeasurable (A \ E) := hAmeas.inter hE.complement
+      have hdisj : Disjoint E (A \ E) := Set.disjoint_sdiff_right
+      have hAsplit : E ∪ (A \ E) = A := Set.union_diff_cancel hEA
+      -- m and Leb additive decompositions
+      have hmA : m A = m E + m (A \ E) := by
+        have h := m_union m h_empty h_add hE hdiff_meas hdisj
+        rwa [hAsplit] at h
+      have hLA : Lebesgue_measure A = Lebesgue_measure E + Lebesgue_measure (A \ E) := by
+        have h := Lebesgue_measure.union hE hdiff_meas (Set.disjoint_iff_inter_eq_empty.mp hdisj)
+        rwa [hAsplit] at h
+      have hmA_eq : m A = Lebesgue_measure A := m_eq_leb_elem m h_empty h_pos h_add h_transl hnorm hA
+      -- finiteness
+      have hLA_ne_top : Lebesgue_measure A ≠ ⊤ := by
+        rw [← hmA_eq]; exact m_elem_fin m h_empty h_pos h_add h_transl hnorm hA
+      have hLE_le : Lebesgue_measure E ≤ Lebesgue_measure A :=
+        Lebesgue_outer_measure.mono hEA
+      have hLD_le : Lebesgue_measure (A \ E) ≤ Lebesgue_measure A :=
+        Lebesgue_outer_measure.mono Set.diff_subset
+      -- inequalities from Step 1
+      have hmE_le : m E ≤ Lebesgue_measure E := h_le E hE
+      have hmD_le : m (A \ E) ≤ Lebesgue_measure (A \ E) := h_le _ hdiff_meas
+      -- convert to reals and squeeze
+      have hLE_fin : Lebesgue_measure E ≠ ⊤ := ne_top_of_le_ne_top hLA_ne_top hLE_le
+      have hLD_fin : Lebesgue_measure (A \ E) ≠ ⊤ := ne_top_of_le_ne_top hLA_ne_top hLD_le
+      have hmE_fin : m E ≠ ⊤ := ne_top_of_le_ne_top hLE_fin hmE_le
+      have hmD_fin : m (A \ E) ≠ ⊤ := ne_top_of_le_ne_top hLD_fin hmD_le
+      have hmE_bot : m E ≠ ⊥ := (lt_of_lt_of_le EReal.bot_lt_zero (h_pos E)).ne'
+      have hmD_bot : m (A \ E) ≠ ⊥ := (lt_of_lt_of_le EReal.bot_lt_zero (h_pos _)).ne'
+      have hLE_bot : Lebesgue_measure E ≠ ⊥ := (lt_of_lt_of_le EReal.bot_lt_zero (Lebesgue_outer_measure.nonneg E)).ne'
+      have hLD_bot : Lebesgue_measure (A \ E) ≠ ⊥ := (lt_of_lt_of_le EReal.bot_lt_zero (Lebesgue_outer_measure.nonneg _)).ne'
+      -- sum equality: m E + m(A\E) = Leb E + Leb(A\E)
+      have hsum_eq : m E + m (A \ E) = Lebesgue_measure E + Lebesgue_measure (A \ E) := by
+        rw [← hmA, ← hLA, hmA_eq]
+      -- to reals
+      have hmE_le' : (m E).toReal ≤ (Lebesgue_measure E).toReal := EReal.toReal_le_toReal hmE_le hmE_bot hLE_fin
+      have hmD_le' : (m (A \ E)).toReal ≤ (Lebesgue_measure (A \ E)).toReal := EReal.toReal_le_toReal hmD_le hmD_bot hLD_fin
+      have hsum_eq' : (m E).toReal + (m (A \ E)).toReal = (Lebesgue_measure E).toReal + (Lebesgue_measure (A \ E)).toReal := by
+        rw [← EReal.toReal_add hmE_fin hmE_bot hmD_fin hmD_bot,
+            ← EReal.toReal_add hLE_fin hLE_bot hLD_fin hLD_bot, hsum_eq]
+      have hmE_toReal_eq : (m E).toReal = (Lebesgue_measure E).toReal := by linarith
+      rw [← EReal.coe_toReal hmE_fin hmE_bot, ← EReal.coe_toReal hLE_fin hLE_bot, hmE_toReal_eq]
+    -- Step 3: general case via annular disjoint decomposition.
+    intro E hE
+    classical
+    set A : ℕ → Set (EuclideanSpace' d) := fun n => E ∩ Metric.closedBall 0 (n:ℝ) with hA_def
+    have hA_meas : ∀ n, LebesgueMeasurable (A n) := fun n =>
+      hE.inter Metric.isClosed_closedBall.measurable
+    have hA_bdd : ∀ n, Bornology.IsBounded (A n) := fun n =>
+      Metric.isBounded_closedBall.subset Set.inter_subset_right
+    have hA_union : ⋃ n, A n = E := Metric.iUnion_inter_closedBall_nat E 0
+    set D := disjointed A with hD_def
+    have hD_meas : ∀ n, LebesgueMeasurable (D n) := by
+      intro n
+      rw [hD_def, disjointed_eq_inter_compl]
+      apply LebesgueMeasurable.inter (hA_meas n)
+      have hbi : (⋂ j, ⋂ (_ : j < n), (A j)ᶜ) = ⋂ j ∈ Finset.range n, (A j)ᶜ := by
+        ext x; simp [Finset.mem_range]
+      rw [hbi]; exact LebesgueMeasurable.finset_inter (fun j _ => (hA_meas j).complement)
+    have hD_disj : Set.univ.PairwiseDisjoint D := (disjoint_disjointed A).set_pairwise _
+    have hD_bdd : ∀ n, Bornology.IsBounded (D n) := fun n =>
+      (hA_bdd n).subset (disjointed_le A n)
+    have hD_union : ⋃ n, D n = E := by rw [hD_def, iUnion_disjointed, hA_union]
+    have hmeq : ∀ n, m (D n) = Lebesgue_measure (D n) := fun n =>
+      h_bounded (D n) (hD_meas n) (hD_bdd n)
+    calc m E = m (⋃ n, D n) := by rw [hD_union]
+      _ = ∑' n, m (D n) := h_add D hD_disj hD_meas
+      _ = ∑' n, Lebesgue_measure (D n) := tsum_congr hmeq
+      _ = Lebesgue_measure (⋃ n, D n) := (Lebesgue_measure.countable_union hD_meas hD_disj).symm
+      _ = Lebesgue_measure E := by rw [hD_union]
+  · -- d = 0: subsingleton, E is ∅ or univ = (unit cube).toSet
+    have hd0 : d = 0 := by omega
+    subst hd0
+    intro E hE
+    rcases Set.eq_empty_or_nonempty E with rfl | ⟨x, hx⟩
+    · rw [h_empty, Lebesgue_measure.empty]
+    · have hEuniv : E = Set.univ :=
+        Set.eq_univ_of_forall (fun y => by rwa [Subsingleton.elim y x])
+      have hcube : (Set.univ : Set (EuclideanSpace' 0)) = (Box.unit_cube 0).toSet := by
+        ext y; simp [Box.mem_toSet]
+      rw [hEuniv, hcube]
+      exact m_eq_leb_elem m h_empty h_pos h_add h_transl hnorm (IsElementary.box _)
+
 
 /-- Exercise 1.2.24(i) (Lebesgue measure as the completion of elementary measure)-/
 instance IsElementary.ae_equiv {d:ℕ} {A: Set (EuclideanSpace' d)} (_hA: IsElementary A):
@@ -8779,18 +9409,90 @@ lemma closure_ae_elem_sub_ae_measurable {d : ℕ} {A : Set (EuclideanSpace' d)} 
     exact ⟨F, hF_meas, hF_quot⟩
   exact h_mem
 
+-- outer measure of a bounded elementary set is finite
+private lemma leb_outer_A_fin {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) :
+    Lebesgue_outer_measure A ≠ ⊤ := by
+  have hA_bdd : Bornology.IsBounded A := IsElementary.isBounded hA
+  have h_compact : IsCompact (closure A) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure hA_bdd.closure
+  have h_fin_closure : Lebesgue_outer_measure (closure A) ≠ ⊤ :=
+    Lebesgue_outer_measure.finite_of_compact h_compact
+  have h_mono_A : Lebesgue_outer_measure A ≤ Lebesgue_outer_measure (closure A) :=
+    Lebesgue_outer_measure.mono subset_closure
+  intro h_eq; apply h_fin_closure; exact le_antisymm le_top (h_eq ▸ h_mono_A)
+
+/-- Reverse direction of 1.2.24(iii): every ae-measurable class is a limit of elementary classes. -/
+lemma ae_measurable_sub_closure_ae_elem {d : ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A) :
+    hA.ae_measurable ⊆ closure hA.ae_elem := by
+  intro x hx
+  obtain ⟨F, hF_meas, hF_quot⟩ : ∃ (F : Set A), LebesgueMeasurable (Subtype.val '' F) ∧ hA.ae_quot F = x :=
+    Set.mem_setOf.mp hx
+  rw [Metric.mem_closure_iff]
+  intro ε hε
+  set SF := Subtype.val '' F with hSF_def
+  have hSF_sub_A : SF ⊆ A := by
+    intro z hz; rcases hz with ⟨w, hw, rfl⟩; exact w.property
+  have hSF_fin : Lebesgue_measure SF < ⊤ := by
+    have h_mono : Lebesgue_outer_measure SF ≤ Lebesgue_outer_measure A :=
+      Lebesgue_outer_measure.mono hSF_sub_A
+    have hA_fin := leb_outer_A_fin hA
+    rw [Lebesgue_measure]
+    exact lt_of_le_of_lt h_mono (lt_of_le_of_ne le_top hA_fin)
+  have hTFAE := LebesgueMeasurable.finite_TFAE SF
+  have h0 : LebesgueMeasurable SF ∧ Lebesgue_measure SF < ⊤ := ⟨hF_meas, hSF_fin⟩
+  have h7 := (List.TFAE.out hTFAE 0 7).mp h0
+  have hε2 : (0:EReal) < ((ε/2 : ℝ) : EReal) := by
+    rw [← EReal.coe_zero, EReal.coe_lt_coe_iff]; linarith
+  obtain ⟨E', hE'_elem, hE'_le⟩ := h7 ((ε/2 : ℝ) : EReal) hε2
+  set V := E' ∩ A with hV_def
+  have hV_elem : IsElementary V := IsElementary.inter hE'_elem hA
+  have hV_sub_A : V ⊆ A := Set.inter_subset_right
+  have h_symm_sub : _root_.symmDiff V SF ⊆ _root_.symmDiff E' SF := by
+    intro z hz
+    rcases hz with hz | hz
+    · exact Or.inl ⟨hz.1.1, hz.2⟩
+    · refine Or.inr ⟨hz.1, ?_⟩
+      intro hz_in_V
+      exact hz.2 ⟨hz_in_V, hSF_sub_A hz.1⟩
+  have hV_le : Lebesgue_outer_measure (_root_.symmDiff V SF) ≤ ((ε/2 : ℝ) : EReal) :=
+    le_trans (Lebesgue_outer_measure.mono h_symm_sub) hE'_le
+  set W : Set A := Subtype.val ⁻¹' V with hW_def
+  have hW_img : Subtype.val '' W = V := by
+    rw [hW_def, Subtype.image_preimage_coe]
+    exact Set.inter_eq_right.mpr hV_sub_A
+  have hb_mem : hA.ae_quot W ∈ hA.ae_elem := by
+    refine ⟨W, ?_, rfl⟩
+    rw [hW_img]; exact hV_elem
+  refine ⟨hA.ae_quot W, hb_mem, ?_⟩
+  have h_dist_eq : dist x (hA.ae_quot W)
+      = (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff F W))).toReal := by
+    have : dist x (hA.ae_quot W) = hA.dist (hA.ae_quot F) (hA.ae_quot W) := by
+      rw [← hF_quot]; rfl
+    rw [this]; rfl
+  have h_img_symm : Subtype.val '' (_root_.symmDiff F W) = _root_.symmDiff SF V := by
+    calc
+      Subtype.val '' (_root_.symmDiff F W)
+          = Subtype.val '' ((F \ W) ∪ (W \ F)) := by simp [symmDiff_def, Set.sup_eq_union]
+      _ = Subtype.val '' (F \ W) ∪ Subtype.val '' (W \ F) := by rw [Set.image_union]
+      _ = (Subtype.val '' F \ Subtype.val '' W) ∪ (Subtype.val '' W \ Subtype.val '' F) := by
+        rw [Set.image_diff Subtype.coe_injective, Set.image_diff Subtype.coe_injective]
+      _ = _root_.symmDiff SF V := by rw [hW_img, hSF_def]; simp [symmDiff_def, Set.sup_eq_union]
+  rw [h_dist_eq, h_img_symm]
+  rw [symmDiff_comm] at hV_le
+  have h_nonneg : 0 ≤ Lebesgue_outer_measure (_root_.symmDiff SF V) := Lebesgue_outer_measure.nonneg _
+  have h_not_bot : Lebesgue_outer_measure (_root_.symmDiff SF V) ≠ ⊥ := by
+    intro hbot; rw [hbot] at h_nonneg
+    exact absurd h_nonneg (by simp)
+  have h_toReal_le : (Lebesgue_outer_measure (_root_.symmDiff SF V)).toReal ≤ ε/2 := by
+    have := EReal.toReal_le_toReal hV_le h_not_bot (EReal.coe_ne_top _)
+    simpa using this
+  linarith
+
 /-- Exercise 1.2.24(iii) (Lebesgue measure as the completion of elementary measure)-/
 theorem IsElementary.measurable_eq_closure_elem {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : closure hA.ae_elem = hA.ae_measurable := by
   apply Set.Subset.antisymm
   · exact closure_ae_elem_sub_ae_measurable hA
-  · -- hA.ae_measurable ⊆ closure hA.ae_elem
-    -- This direction requires the Carathéodory approximation theorem:
-    -- every Lebesgue measurable set can be approximated by elementary sets
-    -- in the measure distance. Known as the completion theorem.
-    -- Strategy: Use TFAE (open approximation) + dyadic cube decomposition.
-    -- TODO: fill this direction.
-    -- See `_temp_direction2_final.lean` and `_temp_tail_bound.lean` for a partial proof.
-    sorry
+  · exact ae_measurable_sub_closure_ae_elem hA
 
 /-- Exercise 1.2.24(c) (Lebesgue measure as the completion of elementary measure)-/
 theorem IsElementary.measurable_complete {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) : closure hA.ae_elem = hA.ae_measurable :=
@@ -8800,10 +9502,285 @@ noncomputable def IsElementary.ae_measure {d:ℕ} {A: Set (EuclideanSpace' d)} (
 
 noncomputable def IsElementary.ae_elem_measure {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) (E: hA.ae_elem) : ℝ := E.property.choose_spec.1.measure
 
-/-- Exercise 1.2.24(iv) (Lebesgue measure as the completion of elementary measure). -/
+/-- Binary subadditivity of Lebesgue outer measure. -/
+lemma Leb_union_le {d:ℕ} (S T : Set (EuclideanSpace' d)) :
+    Lebesgue_outer_measure (S ∪ T) ≤ Lebesgue_outer_measure S + Lebesgue_outer_measure T := by
+  let F : Fin 2 → Set (EuclideanSpace' d) := fun | 0 => S | 1 => T
+  have hU : (⋃ i, F i) = S ∪ T := by ext w; simp [F]
+  have hsum : ∑ i : Fin 2, Lebesgue_outer_measure (F i) =
+      Lebesgue_outer_measure S + Lebesgue_outer_measure T := by simp [F]
+  calc Lebesgue_outer_measure (S ∪ T) = Lebesgue_outer_measure (⋃ i, F i) := by rw [hU]
+    _ ≤ ∑ i, Lebesgue_outer_measure (F i) := Lebesgue_outer_measure.finite_union_le F
+    _ = _ := hsum
+
+/-- Outer measure of a subset of an elementary set is finite. -/
+lemma Leb_fin_of_sub {d:ℕ} {A : Set (EuclideanSpace' d)} (hA : IsElementary A)
+    {S : Set (EuclideanSpace' d)} (hS : S ⊆ A) : Lebesgue_outer_measure S ≠ ⊤ := by
+  have hbdd : Bornology.IsBounded A := IsElementary.isBounded hA
+  have hcpt : IsCompact (closure A) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure hbdd.closure
+  have hfin : Lebesgue_outer_measure (closure A) ≠ ⊤ :=
+    Lebesgue_outer_measure.finite_of_compact hcpt
+  have hmono : Lebesgue_outer_measure S ≤ Lebesgue_outer_measure (closure A) :=
+    Lebesgue_outer_measure.mono (Set.Subset.trans hS subset_closure)
+  intro htop; apply hfin; exact le_antisymm le_top (htop ▸ hmono)
+
+/-- Outer measure is never ⊥. -/
+lemma Leb_ne_bot {d:ℕ} (S : Set (EuclideanSpace' d)) : Lebesgue_outer_measure S ≠ ⊥ := by
+  intro hbot
+  have h := Lebesgue_outer_measure.nonneg S
+  rw [hbot] at h
+  exact absurd h (by simp)
+
+/-- If symmDiff X Y is null, then their Lebesgue measures are equal. -/
+private lemma measure_eq_of_null_symmDiff {d:ℕ} {X Y: Set (EuclideanSpace' d)}
+    (h_null: IsNull (_root_.symmDiff X Y)) :
+    Lebesgue_measure X = Lebesgue_measure Y := by
+  -- X ⊆ Y ∪ (X\Y) ⊆ Y ∪ symmDiff, so outer X ≤ outer Y + 0. Symmetric.
+  have hX_sub : X ⊆ Y ∪ _root_.symmDiff X Y := by
+    intro z hz
+    by_cases hz_in_Y : z ∈ Y
+    · exact Or.inl hz_in_Y
+    · exact Or.inr (Or.inl ⟨hz, hz_in_Y⟩)
+  have hY_sub : Y ⊆ X ∪ _root_.symmDiff X Y := by
+    intro z hz
+    by_cases hz_in_X : z ∈ X
+    · exact Or.inl hz_in_X
+    · exact Or.inr (Or.inr ⟨hz, hz_in_X⟩)
+  have hX_le : Lebesgue_measure X ≤ Lebesgue_measure Y := by
+    unfold Lebesgue_measure
+    have := Lebesgue_outer_measure.mono hX_sub
+    have h0 : Lebesgue_outer_measure (_root_.symmDiff X Y) = 0 := h_null
+    calc Lebesgue_outer_measure X
+        ≤ Lebesgue_outer_measure (Y ∪ _root_.symmDiff X Y) := this
+      _ ≤ Lebesgue_outer_measure Y + Lebesgue_outer_measure (_root_.symmDiff X Y) := Leb_union_le Y _
+      _ = Lebesgue_outer_measure Y := by rw [h0]; simp
+  have hY_le : Lebesgue_measure Y ≤ Lebesgue_measure X := by
+    unfold Lebesgue_measure
+    have := Lebesgue_outer_measure.mono hY_sub
+    have h0 : Lebesgue_outer_measure (_root_.symmDiff X Y) = 0 := h_null
+    calc Lebesgue_outer_measure Y
+        ≤ Lebesgue_outer_measure (X ∪ _root_.symmDiff X Y) := this
+      _ ≤ Lebesgue_outer_measure X + Lebesgue_outer_measure (_root_.symmDiff X Y) := Leb_union_le X _
+      _ = Lebesgue_outer_measure X := by rw [h0]; simp
+  exact le_antisymm hX_le hY_le
+
+/-- Image of symmDiff under injective coe equals symmDiff of images. -/
+private lemma image_symmDiff_coe {d:ℕ} {A: Set (EuclideanSpace' d)} (E F: Set A) :
+    Subtype.val '' (_root_.symmDiff E F) = _root_.symmDiff (Subtype.val '' E) (Subtype.val '' F) := by
+  calc
+    Subtype.val '' (_root_.symmDiff E F)
+        = Subtype.val '' ((E \ F) ∪ (F \ E)) := by simp [symmDiff_def, Set.sup_eq_union]
+    _ = Subtype.val '' (E \ F) ∪ Subtype.val '' (F \ E) := by rw [Set.image_union]
+    _ = (Subtype.val '' E \ Subtype.val '' F) ∪ (Subtype.val '' F \ Subtype.val '' E) := by
+      rw [Set.image_diff Subtype.coe_injective, Set.image_diff Subtype.coe_injective]
+    _ = _root_.symmDiff (Subtype.val '' E) (Subtype.val '' F) := by simp [symmDiff_def, Set.sup_eq_union]
+
+-- ae_measure computed from ANY measurable representative.
+private lemma ae_measure_eq_of_rep {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (E: hA.ae_measurable) (F: Set A)
+    (hF_quot: hA.ae_quot F = E.val) :
+    hA.ae_measure E = (Lebesgue_measure (Subtype.val '' F)).toReal := by
+  -- E.property.choose is some measurable rep; show measures agree with F
+  set C := E.property.choose with hC_def
+  have hC_spec := E.property.choose_spec
+  have hC_quot : hA.ae_quot C = E.val := hC_spec.2
+  -- F and C both map to E.val, so they are equivalent
+  have h_null : IsNull (Subtype.val '' (_root_.symmDiff F C)) := by
+    have heq : hA.ae_quot F = hA.ae_quot C := by rw [hF_quot, hC_quot]
+    exact Quotient.exact heq
+  rw [image_symmDiff_coe] at h_null
+  have h_meas_eq : Lebesgue_measure (Subtype.val '' F) = Lebesgue_measure (Subtype.val '' C) :=
+    measure_eq_of_null_symmDiff h_null
+  rw [IsElementary.ae_measure, ← hC_def, h_meas_eq]
+
+-- The chosen measurable representative of an ae_measurable class has measure ≤ that of A, hence finite.
+private lemma ae_measure_rep_fin {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (F: Set A) : Lebesgue_measure (Subtype.val '' F) ≠ ⊤ := by
+  have hsub : Subtype.val '' F ⊆ A := by
+    intro z hz; rcases hz with ⟨w, hw, rfl⟩; exact w.property
+  rw [Lebesgue_measure]; exact Leb_fin_of_sub hA hsub
+
+-- Lipschitz bound: |ae_measure E - ae_measure F| ≤ dist E F on ae_measurable.
+private lemma ae_measure_dist_le {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (E F: hA.ae_measurable) :
+    |hA.ae_measure E - hA.ae_measure F| ≤ dist E.val F.val := by
+  -- get representatives
+  obtain ⟨X, hX_meas, hX_quot⟩ := E.property
+  obtain ⟨Y, hY_meas, hY_quot⟩ := F.property
+  have hmE : hA.ae_measure E = (Lebesgue_measure (Subtype.val '' X)).toReal :=
+    ae_measure_eq_of_rep hA E X hX_quot
+  have hmF : hA.ae_measure F = (Lebesgue_measure (Subtype.val '' Y)).toReal :=
+    ae_measure_eq_of_rep hA F Y hY_quot
+  -- dist E.val F.val = (outer (Subtype.val '' symmDiff X Y)).toReal
+  have h_dist : dist E.val F.val = (Lebesgue_outer_measure (Subtype.val '' (_root_.symmDiff X Y))).toReal := by
+    rw [← hX_quot, ← hY_quot]; rfl
+  set SX := Subtype.val '' X with hSX
+  set SY := Subtype.val '' Y with hSY
+  set SD := Subtype.val '' (_root_.symmDiff X Y) with hSD
+  have hSD_eq : SD = _root_.symmDiff SX SY := by rw [hSD, image_symmDiff_coe]
+  -- finiteness
+  have hSX_fin : Lebesgue_measure SX ≠ ⊤ := ae_measure_rep_fin hA X
+  have hSY_fin : Lebesgue_measure SY ≠ ⊤ := ae_measure_rep_fin hA Y
+  have hSD_fin : Lebesgue_outer_measure SD ≠ ⊤ := by
+    have hsub : SD ⊆ A := by
+      rw [hSD]; intro z hz; rcases hz with ⟨w, hw, rfl⟩; exact w.property
+    exact Leb_fin_of_sub hA hsub
+  -- real values
+  set x := (Lebesgue_measure SX).toReal with hx
+  set y := (Lebesgue_measure SY).toReal with hy
+  set s := (Lebesgue_outer_measure SD).toReal with hs
+  have hx_nn : 0 ≤ x := by rw [hx, Lebesgue_measure]; exact EReal.toReal_nonneg (Lebesgue_outer_measure.nonneg _)
+  have hy_nn : 0 ≤ y := by rw [hy, Lebesgue_measure]; exact EReal.toReal_nonneg (Lebesgue_outer_measure.nonneg _)
+  -- key inequalities: x ≤ y + s and y ≤ x + s
+  have hx_le : x ≤ y + s := by
+    have hsub : SX ⊆ SY ∪ SD := by
+      rw [hSD_eq]; intro z hz
+      by_cases hzY : z ∈ SY
+      · exact Or.inl hzY
+      · exact Or.inr (Or.inl ⟨hz, hzY⟩)
+    have hmono : Lebesgue_outer_measure SX ≤ Lebesgue_outer_measure SY + Lebesgue_outer_measure SD :=
+      le_trans (Lebesgue_outer_measure.mono hsub) (Leb_union_le SY SD)
+    have : Lebesgue_measure SX ≤ Lebesgue_measure SY + Lebesgue_outer_measure SD := by
+      rw [Lebesgue_measure, Lebesgue_measure]; exact hmono
+    -- convert to reals
+    have hcoe : (Lebesgue_measure SX).toReal ≤ (Lebesgue_measure SY).toReal + (Lebesgue_outer_measure SD).toReal := by
+      have hYD_fin : Lebesgue_measure SY + Lebesgue_outer_measure SD ≠ ⊤ := by
+        rw [Lebesgue_measure] at hSY_fin ⊢
+        exact EReal.add_ne_top hSY_fin hSD_fin
+      have h1 := EReal.toReal_le_toReal this (by rw [Lebesgue_measure]; exact Leb_ne_bot _) hYD_fin
+      rw [EReal.toReal_add (by rw [Lebesgue_measure]; exact hSY_fin) (by rw [Lebesgue_measure]; exact Leb_ne_bot _) hSD_fin (Leb_ne_bot _)] at h1
+      rw [Lebesgue_measure] at h1 ⊢
+      exact h1
+    rw [hx, hy, hs]; rw [Lebesgue_measure]; rw [Lebesgue_measure] at hcoe; exact hcoe
+  have hy_le : y ≤ x + s := by
+    have hsub : SY ⊆ SX ∪ SD := by
+      rw [hSD_eq]; intro z hz
+      by_cases hzX : z ∈ SX
+      · exact Or.inl hzX
+      · exact Or.inr (Or.inr ⟨hz, hzX⟩)
+    have hmono : Lebesgue_outer_measure SY ≤ Lebesgue_outer_measure SX + Lebesgue_outer_measure SD :=
+      le_trans (Lebesgue_outer_measure.mono hsub) (Leb_union_le SX SD)
+    have hcoe : (Lebesgue_measure SY).toReal ≤ (Lebesgue_measure SX).toReal + (Lebesgue_outer_measure SD).toReal := by
+      have hle2 : Lebesgue_measure SY ≤ Lebesgue_measure SX + Lebesgue_outer_measure SD := by
+        rw [Lebesgue_measure, Lebesgue_measure]; exact hmono
+      have hXD_fin : Lebesgue_measure SX + Lebesgue_outer_measure SD ≠ ⊤ := by
+        rw [Lebesgue_measure] at hSX_fin ⊢
+        exact EReal.add_ne_top hSX_fin hSD_fin
+      have h1 := EReal.toReal_le_toReal hle2 (by rw [Lebesgue_measure]; exact Leb_ne_bot _) hXD_fin
+      rw [EReal.toReal_add (by rw [Lebesgue_measure]; exact hSX_fin) (by rw [Lebesgue_measure]; exact Leb_ne_bot _) hSD_fin (Leb_ne_bot _)] at h1
+      rw [Lebesgue_measure] at h1 ⊢
+      exact h1
+    rw [hx, hy, hs]; rw [Lebesgue_measure]; rw [Lebesgue_measure] at hcoe; exact hcoe
+  rw [hmE, hmF, h_dist]
+  rw [abs_le]
+  exact ⟨by linarith, by linarith⟩
+
+/-- Every ae_elem class is an ae_measurable class. -/
+private lemma ae_elem_mem_measurable {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    {z : hA.ae_subsets} (hz : z ∈ hA.ae_elem) : z ∈ hA.ae_measurable := by
+  obtain ⟨F, hF_elem, hF_quot⟩ := hz
+  exact ⟨F, hF_elem.measurable, hF_quot⟩
+
+-- On elementary classes, ae_measure agrees with ae_elem_measure.
+private lemma ae_measure_eq_elem_measure {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (p : hA.ae_elem) :
+    hA.ae_measure ⟨p.val, ae_elem_mem_measurable hA p.property⟩ = hA.ae_elem_measure p := by
+  obtain ⟨F, hF_elem, hF_quot⟩ := p.property
+  -- ae_measure computed from rep F
+  have h1 : hA.ae_measure ⟨p.val, ae_elem_mem_measurable hA p.property⟩
+      = (Lebesgue_measure (Subtype.val '' F)).toReal :=
+    ae_measure_eq_of_rep hA ⟨p.val, ae_elem_mem_measurable hA p.property⟩ F hF_quot
+  -- ae_elem_measure computed from its own chosen elementary rep
+  set G := p.property.choose with hG_def
+  have hG_spec := p.property.choose_spec
+  have hG_elem : IsElementary (Subtype.val '' G) := hG_spec.1
+  have hG_quot : hA.ae_quot G = p.val := hG_spec.2
+  -- F and G both represent p.val, so their images have equal Lebesgue measure
+  have h_null : IsNull (Subtype.val '' (_root_.symmDiff F G)) := by
+    have heq : hA.ae_quot F = hA.ae_quot G := by rw [hF_quot, hG_quot]
+    exact Quotient.exact heq
+  rw [image_symmDiff_coe] at h_null
+  have h_meas_eq : Lebesgue_measure (Subtype.val '' F) = Lebesgue_measure (Subtype.val '' G) :=
+    measure_eq_of_null_symmDiff h_null
+  -- ae_elem_measure p = (elementary measure of G) and Lebesgue_measure (image G) = that
+  have h_leb_G : Lebesgue_measure (Subtype.val '' G) = ((hG_elem.measure : ℝ) : EReal) := by
+    rw [Lebesgue_measure, Jordan_measurable.Lebesgue_measure hG_elem.jordanMeasurable,
+      JordanMeasurable.mes_of_elementary hG_elem]
+  rw [h1, h_meas_eq, h_leb_G]
+  simp only [EReal.toReal_coe]
+  rfl
+
+open Classical in
+-- ae_measure lifted to a total function on ae_subsets (0 off ae_measurable).
+private noncomputable def am {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (z : hA.ae_subsets) : ℝ :=
+  if h : z ∈ hA.ae_measurable then hA.ae_measure ⟨z, h⟩ else 0
+
+private lemma am_eq {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A)
+    (E : hA.ae_measurable) : am hA E.val = hA.ae_measure E := by
+  classical
+  rw [am, dif_pos E.property]
+
+-- am is continuous on ae_measurable (Lipschitz-1 bound).
+private lemma continuousOn_am {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) :
+    ContinuousOn (am hA) hA.ae_measurable := by
+  rw [Metric.continuousOn_iff]
+  intro z hz ε hε
+  refine ⟨ε, hε, ?_⟩
+  intro w hw hwz
+  rw [Real.dist_eq]
+  have hE : z ∈ hA.ae_measurable := hz
+  have hF : w ∈ hA.ae_measurable := hw
+  have hbound : |am hA w - am hA z| ≤ dist w z := by
+    rw [am_eq hA ⟨w, hF⟩, am_eq hA ⟨z, hE⟩]
+    have := ae_measure_dist_le hA ⟨w, hF⟩ ⟨z, hE⟩
+    simpa using this
+  calc |am hA w - am hA z| ≤ dist w z := hbound
+    _ < ε := hwz
+
+
+/-- Exercise 1.2.24(iv) (Lebesgue measure as the completion of elementary measure)-/
 theorem IsElementary.ae_measure_eq_completion {d:ℕ} {A: Set (EuclideanSpace' d)} (hA: IsElementary A) (m: hA.ae_subsets → ℝ) :
 ContinuousOn m hA.ae_measurable ∧ (∀ (E:hA.ae_elem), m E.val = hA.ae_elem_measure E)
-↔ (∀ (E:hA.ae_measurable), m E.val = hA.ae_measure E) := by sorry
+↔ (∀ (E:hA.ae_measurable), m E.val = hA.ae_measure E) := by
+  constructor
+  · -- ⟹ : continuity + agreement on ae_elem ⇒ agreement everywhere
+    rintro ⟨hm_cont, hm_elem⟩
+    intro E
+    -- m and am agree on ae_elem, both continuous on ae_measurable, ae_measurable ⊆ closure ae_elem
+    have h_eqOn_elem : Set.EqOn m (am hA) hA.ae_elem := by
+      intro z hz
+      have hz_meas : z ∈ hA.ae_measurable := ae_elem_mem_measurable hA hz
+      -- m z = ae_elem_measure ⟨z,hz⟩ = ae_measure ⟨z,hz_meas⟩ = am z
+      have h1 : m z = hA.ae_elem_measure ⟨z, hz⟩ := hm_elem ⟨z, hz⟩
+      have h2 : hA.ae_measure ⟨z, ae_elem_mem_measurable hA (⟨z, hz⟩ : hA.ae_elem).property⟩
+          = hA.ae_elem_measure ⟨z, hz⟩ := ae_measure_eq_elem_measure hA ⟨z, hz⟩
+      have h3 : am hA z = hA.ae_measure ⟨z, hz_meas⟩ := am_eq hA ⟨z, hz_meas⟩
+      rw [h1, ← h2, h3]
+    have h_eqOn : Set.EqOn m (am hA) hA.ae_measurable :=
+      Set.EqOn.of_subset_closure h_eqOn_elem hm_cont (continuousOn_am hA)
+        (fun z hz => ae_elem_mem_measurable hA hz)
+        (by rw [← IsElementary.measurable_eq_closure_elem hA])
+    have := h_eqOn E.property
+    rw [this, am_eq hA E]
+  · -- ⟸ : m = ae_measure everywhere ⇒ continuity + agreement on ae_elem
+    intro hm
+    constructor
+    · -- ContinuousOn m ae_measurable: m = am on ae_measurable, am continuous
+      have h_eqOn : Set.EqOn m (am hA) hA.ae_measurable := by
+        intro z hz
+        have := hm ⟨z, hz⟩
+        rw [this, am_eq hA ⟨z, hz⟩]
+      exact (continuousOn_am hA).congr h_eqOn
+    · -- agreement on ae_elem
+      intro E
+      have hz_meas : E.val ∈ hA.ae_measurable := ae_elem_mem_measurable hA E.property
+      have h1 : m E.val = hA.ae_measure ⟨E.val, hz_meas⟩ := hm ⟨E.val, hz_meas⟩
+      have h2 : hA.ae_measure ⟨E.val, ae_elem_mem_measurable hA E.property⟩
+          = hA.ae_elem_measure E := ae_measure_eq_elem_measure hA E
+      rw [h1, h2]
+
 
 lemma Lebesgue_outer_measure.le_of_cover {d:ℕ} (E : Set (EuclideanSpace' d)) (X : Set ℕ) (S : X → Box d) (h : E ⊆ ⋃ i, (S i).toSet) :
     Lebesgue_outer_measure E ≤ ∑' i : X, ((S i).volume : EReal) := by
