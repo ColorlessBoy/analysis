@@ -258,6 +258,119 @@
       "start": "2026-07-30T17:42:55.932129",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 21,
+      "theorem": "_temp_vitali_enum_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_vitali_enum.lean",
+      "goal": "prove exists_injective_rat_enum_Icc via Denumerable of countable infinite rationals in Icc (-1) 1",
+      "start": "2026-07-31T21:26:32.488712",
+      "attempts": [
+        {
+          "edit": "full proof body (denumerable construction)",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiles clean",
+          "time": "2026-07-31T21:29:24.774510"
+        }
+      ],
+      "status": "success",
+      "notes": "Denumerable of Countable+Infinite rationals in Icc(-1,1); refine with eqvQ.symm; injective via Subtype.val_injective.comp; mem via subtype property",
+      "end": "2026-07-31T21:29:28.692859"
+    },
+    {
+      "id": 22,
+      "theorem": "_temp_vitali_disjoint_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_vitali_disjoint_line6.lean",
+      "goal": "prove VitaliSet.translates_pairwise_disjoint by copying hdisj block from Section_1_2_3.lean",
+      "start": "2026-07-31T21:31:50.711797",
+      "attempts": [
+        {
+          "edit": "full proof body copied from hdisj block",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors on first try",
+          "time": "2026-07-31T21:34:08.155660"
+        }
+      ],
+      "status": "success",
+      "notes": "copied hdisj block from VitaliSet.nonmeasurable, replaced translateE/qSeq with the lambda and f",
+      "end": "2026-07-31T21:34:08.185845"
+    },
+    {
+      "id": 23,
+      "theorem": "_temp_vitali_bounded_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_vitali_bounded.lean",
+      "goal": "prove bounded+positive+finite outer measure of lifted Vitali set",
+      "start": "2026-07-31T21:35:09.404615",
+      "attempts": [],
+      "status": "success",
+      "notes": "proved all three conjuncts: bounded via closedBall 0 3 with norm_eq |x|, positive via null->measurable contradiction, finite via mono + Icc_eq",
+      "end": "2026-07-31T21:38:33.520238"
+    },
+    {
+      "id": 24,
+      "theorem": "_temp_ex_126_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_ex_126.lean",
+      "goal": "vitali translates: finite additivity contradiction",
+      "start": "2026-07-31T21:40:14.188168",
+      "attempts": [
+        {
+          "edit": "full proof body (by_contra contradiction)",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiles 0 errors",
+          "time": "2026-07-31T21:58:12.124450"
+        }
+      ],
+      "status": "success",
+      "notes": "vitali translates finite-additivity contradiction",
+      "end": "2026-07-31T21:58:12.153952"
+    },
+    {
+      "id": 25,
+      "theorem": "_temp_vitali_line_null_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_vitali_line_null.lean",
+      "goal": "Lebesgue_outer_measure {z | z 0 \u2208 VitaliSet \u2227 z 1 = 0} = 0 via box containment",
+      "start": "2026-07-31T22:02:04.992467",
+      "attempts": [
+        {
+          "edit": "full proof: box containment + volume 0 + IsNull.subset",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "clean compile",
+          "time": "2026-07-31T22:04:17.275573"
+        }
+      ],
+      "status": "success",
+      "notes": "box B with side 1 degenerate Icc 0 0, volume 0, Lebesgue_outer_measure.elementary + IsElementary.measure_of_box + IsNull.subset",
+      "end": "2026-07-31T22:04:17.304486"
+    },
+    {
+      "id": 26,
+      "theorem": "_temp_ex_127_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_ex_127.lean",
+      "goal": "\u2203 E : Set (EuclideanSpace' 2), LebesgueMeasurable E \u2227 \u00ac LebesgueMeasurable (proj '' E); E = VitaliSet line, proj = coordinate 0",
+      "start": "2026-07-31T22:07:21.668581",
+      "attempts": [
+        {
+          "edit": "conjunct 1: box containment + volume 0 + IsNull.subset + IsNull.measurable",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiled clean",
+          "time": "2026-07-31T22:12:41.905695"
+        },
+        {
+          "edit": "conjunct 2: hproj ext proof; simp [E, x] reduces membership to t \u2208 VitaliSet so exact ht; congr 1 closes equality",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiled clean",
+          "time": "2026-07-31T22:12:41.933533"
+        }
+      ],
+      "status": "success",
+      "notes": "E = VitaliSet line; measurable via null set (box B vol 0); projection image = equiv '' VitaliSet via ext + toLp witness; nonmeasurable via VitaliSet.nonmeasurable",
+      "end": "2026-07-31T22:12:41.961875"
     }
   ]
 }

@@ -7,18 +7,18 @@ def extract_theorem(filepath, line_num, context=30):
     with open(filepath) as f:
         lines = f.readlines()
     # Search backwards for theorem declaration
-    start = max(0, line_num - context)
-    decl_start = line_num - 1
+    start = max(0, line_num - 1 - context)
+    decl_start = 0
     for i in range(line_num - 1, start - 1, -1):
         if re.match(r'^\s*(theorem|lemma|example|private\s+lemma|private\s+theorem)', lines[i]):
             decl_start = i
             break
-    # Find the end of the theorem (the sorry)
+    # Extract the declaration from decl_start until the ':= by' line (or the sorry line)
     decl_lines = []
-    for i in range(decl_start, line_num):
+    for i in range(decl_start, len(lines)):
         decl_lines.append(lines[i])
-    # Add the sorry line
-    decl_lines.append(lines[line_num - 1] if line_num <= len(lines) else "  sorry\n")
+        if re.search(r':=\s*by\s*$', lines[i]) or re.search(r'\bsorry\b', lines[i]):
+            break
     return ''.join(decl_lines), decl_start
 
 def extract_imports(filepath):

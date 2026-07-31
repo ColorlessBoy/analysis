@@ -104,6 +104,55 @@
       "tactics": "clear hF_dyadic h_symm; induction; have h_union; Jordan_measurable.Lebesgue_measure; add_le_add_right",
       "description": "fixed 3 errors in finite_TFAE_8_implies_0: insert_union\u2192h_union ext, rfl\u2192JordanMeasurable, clear extra hyps before induction",
       "time": "2026-07-30T07:42:11.613631"
+    },
+    {
+      "theorem": "exists_injective_rat_enum_Icc",
+      "file": "_temp_vitali_enum_line6.lean",
+      "tactics": "haveI Infinite/Countable; haveI denumQ; let eqvQ; refine \u27e8fun n => (eqvQ.symm n : \u211a), ?_, ?_\u27e9; exact Subtype.val_injective.comp eqvQ.symm.injective; exact (eqvQ.symm n).2",
+      "description": "enumeration of rationals in [-1,1] via Denumerable.eqv",
+      "time": "2026-07-31T21:29:28.724784"
+    },
+    {
+      "theorem": "VitaliSet.translates_pairwise_disjoint",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_vitali_disjoint_line6.lean",
+      "tactics": "intro, simp only, rw mem_add, obtain, rw mem_singleton_iff, subst, rfl, linarith, QuotientAddGroup.eq, Rat.cast_sub, coset_intersects_unit_interval, Rat.cast_injective, exact hij (hf_inj hqi_eq)",
+      "description": "pairwise disjointness of VitaliSet translates via one-per-coset property",
+      "time": "2026-07-31T21:34:08.216371"
+    },
+    {
+      "theorem": "vitali_bounded_pos_finite",
+      "file": "_temp_vitali_bounded_line7.lean",
+      "tactics": "constructor; rw [Metric.isBounded_iff_subset_closedBall]; use 3; simpa [Lebesgue_measure]",
+      "description": "bounded+positive+finite outer measure of lifted Vitali set",
+      "time": "2026-07-31T21:38:33.550330"
+    },
+    {
+      "theorem": "_temp_ex_126_line6",
+      "file": "_temp_ex_126_line6.lean",
+      "tactics": "by_contra; push_neg; set V big; EReal case analysis; Finset.range induction; calc mono; exists_nat_gt; field_simp; linarith",
+      "description": "vitali translates: finite additivity contradiction via n*r \u2264 3",
+      "time": "2026-07-31T21:58:23.972767"
+    },
+    {
+      "theorem": "vitali_line_isNull",
+      "file": "_temp_vitali_line_null_line7.lean",
+      "tactics": "let B; have hsub (simp [B]); have hvol (Finset.prod_eq_zero); have hB_null (change + rw elementary + measure_of_box + simp [hvol]); exact IsNull.subset",
+      "description": "2D degenerate box containment proof",
+      "time": "2026-07-31T22:04:17.332836"
+    },
+    {
+      "theorem": "_temp_ex_127_line6",
+      "file": "_temp_ex_127_line6.lean",
+      "tactics": "refine, simp, exact, congr, rw, ext, rintro",
+      "description": "E = {z | z 0 \u2208 VitaliSet \u2227 z 1 = 0}; measurable via null box; projection image equals equiv_EuclideanSpace' '' VitaliSet; nonmeasurable via VitaliSet.nonmeasurable",
+      "time": "2026-07-31T22:12:44.967092"
+    },
+    {
+      "theorem": "ex_1_2_26_ex_1_2_27",
+      "file": "analysis/MeasureTheory/Section_1_2_3.lean",
+      "tactics": "by_contra + push_neg; vitali translates family; finite additivity of disjoint bounded sets; archimedean contradiction via exists_nat_gt + field_simp; null-set via degenerate 2D box + IsNull.subset + IsNull.measurable; projection identity via toLp witness",
+      "description": "Ex 1.2.26: assume finite additivity, Vitali translates T_n = V + {q_n} pairwise disjoint bounded with m T_n = m V, m(\u22c3_{k<n} T k) = n\u00b7r by induction using h, \u2264 3 = m[-1,2], contradiction with exists_nat_gt. Ex 1.2.27: E = {z | z0 \u2208 VitaliSet \u2227 z1 = 0} is null (box [0,1]\u00d7[0,0], volume 0 via prod_eq_zero at Fin 2 index 1, Lebesgue_outer_measure.elementary + IsElementary.measure_of_box), projection = lift '' VitaliSet nonmeasurable. Gotchas: docstring Verso syntax rejects [-1,1] and {z | ...} \u2014 use plain words; rw can't unfold IsNull abbrev \u2014 change first; EReal: rw [\u2190 EReal.coe_mul, \u2190 EReal.coe_add] then congr 1 + push_cast + ring; subagent_prompt.py had bug (duplicate statement line) \u2014 fixed extract_theorem",
+      "time": "2026-07-31T22:16:18.549722"
     }
   ],
   "errors": [
