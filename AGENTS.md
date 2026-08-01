@@ -46,8 +46,24 @@ ANYTHING ELSE                                → dispatch lean-prover subagent.
 | Type of symbol | `lean_hover_info(file, line, col)` | guess |
 | Test tactics | `lean_multi_attempt(file, line, snippets)` | blind edits |
 | Read files | Read tool | `cat`/`head`/`tail` |
+| Simple probes (`#check`/`#find`/`#eval`) | Write into temp file + read diagnostics (LSP cache is fast) | MCP round-trips |
 
 `lake build` only at: cold start, after new `import`, final quality gate.
+
+### Warning hygiene (ALL warnings/errors must be fixed)
+
+Before a subagent returns a PROOF_BLOCK and before the main thread commits, the file
+must have **0 errors and 0 warnings** (except the `declaration uses sorry` warnings
+on still-open sorries). Every warning class gets fixed, none is exempt:
+
+| Warning | Fix |
+|---------|-----|
+| Docstring/comment warnings or errors (verso parser choking on `{...}` braces, `_`-heavy identifiers, backticked code) | Rephrase, use `{lit}` roles, or drop the comment |
+| `linter.unusedVariables` on an unused binder | Rename the binder to `_`-prefixed (`_hf`) — type-preserving, does not change the statement's meaning |
+| `linter.unusedSimpArgs` / `linter.unnecessarySimpa` | Drop the unused simp argument / use plain `simp` |
+
+The subagent MUST check `lean_diagnostic_messages` (including warnings) at the end and
+fix all of them before returning. The main thread does the same after integration.
 
 ### Timeout / polling rule
 
@@ -69,6 +85,8 @@ finished processing yet. Do NOT proceed to editing based on partial results.
 | Subagent edits real file | PROOF_BLOCK → main thread integrates |
 | Multiple errors fixed at once | First error only, repeat |
 | Ask subagent to decompose a big proof | Main thread decomposes BEFORE dispatch |
+| Any warning/error returned in PROOF_BLOCK | 0 errors AND 0 warnings (fix unused binders via `_hf` renames, simp-arg warnings, docstrings) |
+| MCP round-trips for `#check`/`#find`/`#eval` | Write probes in the temp file, read its LSP cache |
 
 ## Experience DB & Failure Tracking
 

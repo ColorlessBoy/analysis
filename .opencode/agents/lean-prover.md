@@ -28,6 +28,12 @@ Before writing ANY Lean code, you MUST:
    lean_local_search("lemma_name")
    ```
    Do NOT guess lemma names. This project is NOT Mathlib4 — names differ.
+   - **For simple probes (`#check`, `#find`, `#eval`, type of a single symbol), do NOT
+     call MCP tools — write the probe directly into the temp file** (e.g. at the end,
+     or as the first line of the proof) and read it back with
+     `lean_diagnostic_messages(temp_file)`. The temp file is tiny, its LSP cache is
+     warm, and the result comes back in one round trip instead of two. Delete the
+     probe line once answered.
 
 4. **Start session tracking.**
    ```bash
@@ -103,9 +109,20 @@ If stuck (10 consecutive failures on the SAME error):
 
 ## PHASE 4: Completion
 
-1. Run final check: `lean_diagnostic_messages(temp_file, timeout_s=30)` must show 0 errors.
-2. Log success: `python3 .agents/scripts/experience.py session end <id> success`
-3. Log the approach: `python3 .agents/scripts/experience.py success add <theorem> <file> "<tactics>" "<one-line description>"`
+1. Run final check: `lean_diagnostic_messages(temp_file, timeout_s=30)` must show
+   **0 errors AND 0 warnings** (only `declaration uses sorry` warnings on still-open
+   sorries are exempt — and there should be none at the end since you fill them all).
+2. **Fix EVERY warning, none is exempt:**
+   - Docstring/comment warnings or errors (verso parser choking on `{...}` braces,
+     `_`-heavy identifiers, backticked code): rephrase, use `{lit}` roles, or drop
+     the comment.
+   - `linter.unusedVariables` on an unused binder: rename the binder to
+     `_`-prefixed (e.g. `hf` → `_hf`) — this is type-preserving and does NOT change
+     the statement's meaning.
+   - `linter.unusedSimpArgs` / `linter.unnecessarySimpa`: drop the unused simp
+     argument / use plain `simp`.
+3. Log success: `python3 .agents/scripts/experience.py session end <id> success`
+4. Log the approach: `python3 .agents/scripts/experience.py success add <theorem> <file> "<tactics>" "<one-line description>"`
 
 ## Rules
 

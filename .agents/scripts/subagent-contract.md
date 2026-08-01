@@ -34,8 +34,15 @@ Report back: STATUS / THEOREM / TEMP_FILE / PROOF_BLOCK / NOTES.
 2. LSP loop: `lean_goal` → edit → `lean_diagnostic_messages` → fix FIRST
    error only → repeat until 0 errors.
 3. No signature changes. Only the proof body after `:= by`.
-4. `lean_local_search` before using any lemma name.
-5. Give-up condition: 10 failed attempts on the SAME error → STATUS=fail
+4. `lean_local_search` before using any lemma name. For simple probes
+   (`#check`/`#find`/`#eval`) write them in the temp file and read its LSP cache —
+   faster than MCP round-trips.
+5. **Warning hygiene:** final diagnostics must be 0 errors AND 0 warnings. Fix every
+   warning class: docstring/comment issues (verso parser choking on `{...}`/`_`-heavy
+   code — rephrase or use `{lit}` roles), `linter.unusedVariables` on unused binders
+   (rename to `_`-prefixed, e.g. `_hf` — type-preserving), `linter.unusedSimpArgs` /
+   `linter.unnecessarySimpa` (drop the offending arg).
+6. Give-up condition: 10 failed attempts on the SAME error → STATUS=fail
    with the exact error and attempts listed. Never loop silently.
 
 ## Main-thread recovery
