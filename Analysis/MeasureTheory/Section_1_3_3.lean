@@ -1,5 +1,8 @@
 import Analysis.MeasureTheory.Section_1_3_2
 
+open UnsignedSimpleFunction.IntegralWellDef
+open Filter
+open scoped Topology
 open scoped Pointwise
 
 /-!
@@ -799,8 +802,227 @@ theorem LowerUnsignedLebesgueIntegral.eq_add {d:ℕ} {f: EuclideanSpace' d → E
     le_trans (sSup_add_le_sSup_sum hSE_nonneg hSE_ne hSEc_nonneg hSEc_ne) (sSup_le_sSup hsubset2)
   exact le_antisymm hle hge
 
-/-- Exercise 1.3.10(viii) (Vertical truncation). -/
-theorem LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) : Filter.atTop.Tendsto (fun n:ℕ ↦ LowerUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (LowerUnsignedLebesgueIntegral f)) := by sorry
+/-- min with the constant n (as EReal) converges to the value itself. -/
+lemma tendsto_min_nat {c : EReal} : Tendsto (fun n : ℕ => min c (n : ℝ)) atTop (𝓝 c) := by
+  have hseq : Tendsto (fun n : ℕ => ((n : ℝ) : EReal)) atTop (𝓝 (⊤ : EReal)) := by
+    exact (EReal.tendsto_coe_nhds_top_iff).2 tendsto_natCast_atTop_atTop
+  have hcst : Continuous (fun x : EReal => min c x) := by
+    simpa using (Continuous.min continuous_const continuous_id : Continuous (fun x : EReal => min c x))
+  have hmain : Tendsto (fun n : ℕ => min c ((n : ℝ) : EReal)) atTop (𝓝 (min c (⊤ : EReal))) :=
+    hcst.continuousAt.tendsto.comp hseq
+  convert hmain using 1
+  exact congrArg nhds (min_eq_left le_top).symm
+
+/-- min with n times m converges to c times m for nonnegative c and m. -/
+lemma tendsto_min_mul {c m : EReal} (hc : 0 ≤ c) (hm : 0 ≤ m) :
+    Tendsto (fun n : ℕ => min c (n : ℝ) * m) atTop (𝓝 (c * m)) := by
+  by_cases h₁ : c = 0 ∧ m = ⊤
+  · rcases h₁ with ⟨hc0, hmt⟩
+    subst c
+    subst m
+    apply tendsto_nhds_of_eventually_eq
+    filter_upwards [] with n
+    simp
+  · by_cases h₂ : c = ⊤ ∧ m = 0
+    · rcases h₂ with ⟨hct, hm0⟩
+      subst c
+      subst m
+      apply tendsto_nhds_of_eventually_eq
+      filter_upwards [] with n
+      simp
+    · apply EReal.Tendsto.mul_const
+      · exact tendsto_min_nat (c := c)
+      · exact Or.inr ((lt_of_lt_of_le EReal.bot_lt_zero hm).ne')
+      · by_cases hmt : m = ⊤
+        · left
+          intro hc0
+          exact h₁ ⟨hc0, hmt⟩
+        · exact Or.inr hmt
+
+/-- Pointwise identity: the vertical truncation of a simple function equals the atom sum
+    with min-truncated coefficients (atoms refine the representation of g). -/
+lemma min_eq_sum_atomValueEReal {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (n : ℕ) :
+    (fun x => min (g x) n) = ∑ n' : Fin (2^(hg.choose + hg.choose)),
+      min (atomValueEReal hg.choose_spec.choose n'.val) (n : ℝ) •
+        EReal.indicator (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose n') := by
+  let k := hg.choose
+  let c := hg.choose_spec.choose
+  let E := hg.choose_spec.choose_spec.choose
+  have hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0 := hg.choose_spec.choose_spec.choose_spec.1
+  have heq : g = ∑ i, (c i) • (EReal.indicator (E i)) := hg.choose_spec.choose_spec.choose_spec.2
+  let A : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  funext x
+  let n0 : Fin (2^(k+k)) := ⟨atomIndexOf E E x, atomIndexOf_lt E E x⟩
+  have hx_mem : x ∈ A n0 := by
+    simp only [A, atom, Set.mem_setOf_eq, n0]
+    refine ⟨fun j => ?_, fun j => ?_⟩
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E E E x j]
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E' E E x j]
+  have hunique : ∀ m : Fin (2^(k+k)), x ∈ A m → m = n0 := by
+    intro m hm
+    by_contra hne
+    have hdisj : Disjoint (A m) (A n0) := by
+      simpa [A] using atom_pairwiseDisjoint E E (by simp) (by simp) hne
+    exact (Set.disjoint_left.mp hdisj) hm hx_mem
+  have hgx : g x = atomValueEReal c n0.val := by
+    exact (congrFun heq x).trans (by
+      simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using
+        (sum_indicator_eq_atomValueEReal c E E n0 x hx_mem))
+  have hrhs : (∑ n' : Fin (2^(k+k)), min (atomValueEReal c n'.val) ((n : ℝ) : EReal) * EReal.indicator (A n') x) =
+      min (atomValueEReal c n0.val) ((n : ℝ) : EReal) := by
+    rw [Finset.sum_eq_single n0]
+    · simp only [EReal.indicator_of_mem hx_mem, mul_one]
+    · intro m _ hm_ne
+      have hx_notin : x ∉ A m := fun h => hm_ne (hunique m h)
+      simp only [EReal.indicator_of_notMem hx_notin, mul_zero]
+    · intro h; exact absurd (Finset.mem_univ n0) h
+  rw [hgx]
+  simpa [A, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using hrhs.symm
+
+/-- Helper 1: vertical truncation of a simple function is simple (min with a constant). -/
+lemma simple_min_const {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) (n : ℕ) :
+    UnsignedSimpleFunction (fun x => min (g x) n) := by
+  use 2^(hg.choose + hg.choose),
+    (fun n' : Fin (2^(hg.choose + hg.choose)) => min (atomValueEReal hg.choose_spec.choose n'.val) (n : ℝ)),
+    (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose)
+  constructor
+  · intro i
+    constructor
+    · exact atom_measurable (fun i => (hg.choose_spec.choose_spec.choose_spec.1 i).1)
+        (fun j => (hg.choose_spec.choose_spec.choose_spec.1 j).1) i
+    · exact le_min (atomValueEReal_nonneg (fun i => (hg.choose_spec.choose_spec.choose_spec.1 i).2) i.val)
+        (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+  · exact min_eq_sum_atomValueEReal hg n
+
+/-- Helper 2: the integral of the truncated simple function, computed on the atoms. -/
+lemma integral_min_const {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) (n : ℕ) :
+    (simple_min_const hg n).integ = ∑ n' : Fin (2^(hg.choose + hg.choose)),
+      min (atomValueEReal hg.choose_spec.choose n'.val) (n : ℝ) *
+        Lebesgue_measure (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose n') := by
+  rw [UnsignedSimpleFunction.integral_eq (simple_min_const hg n) (k := 2^(hg.choose + hg.choose))
+    (c := fun n' : Fin (2^(hg.choose + hg.choose)) => min (atomValueEReal hg.choose_spec.choose n'.val) (n : ℝ))
+    (E := atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose)
+    (hmes := fun i => atom_measurable (fun i => (hg.choose_spec.choose_spec.choose_spec.1 i).1)
+        (fun j => (hg.choose_spec.choose_spec.choose_spec.1 j).1) i)
+    (hnonneg := fun i => le_min (atomValueEReal_nonneg (fun j => (hg.choose_spec.choose_spec.choose_spec.1 j).2) i.val)
+        (EReal.coe_nonneg.mpr (Nat.cast_nonneg n)))
+    (heq := min_eq_sum_atomValueEReal hg n)]
+
+/-- Finite sum of pointwise converging nonnegative sequences converges to the sum of limits.
+    EReal addition is only continuous away from (bottom, top) and (top, bottom), which never
+    occur here because every limit is nonnegative. -/
+lemma tendsto_sum_of_nonneg {α : Type*} (s : Finset α) {f : α → ℕ → EReal} {a : α → EReal}
+    (hf : ∀ i ∈ s, Tendsto (f i) atTop (𝓝 (a i))) (ha : ∀ i ∈ s, 0 ≤ a i) :
+    Tendsto (fun n => ∑ i ∈ s, f i n) atTop (𝓝 (∑ i ∈ s, a i)) := by
+  classical
+  have hmain : ∀ t : Finset α, t ⊆ s →
+      Tendsto (fun n => ∑ i ∈ t, f i n) atTop (𝓝 (∑ i ∈ t, a i)) := by
+    intro t
+    refine Finset.induction_on t ?_ ?_
+    · intro _
+      simp
+    · intro i t' hit' ih hts
+      have hfi : Tendsto (f i) atTop (𝓝 (a i)) := hf i (hts (Finset.mem_insert_self i t'))
+      have hsum0 : 0 ≤ ∑ j ∈ t', a j := Finset.sum_nonneg (fun j hj => ha j (hts (Finset.mem_insert_of_mem hj)))
+      have hcont : ContinuousAt (fun p : EReal × EReal => p.1 + p.2) (a i, ∑ j ∈ t', a j) := by
+        apply EReal.continuousAt_add
+        · exact Or.inr ((lt_of_lt_of_le EReal.bot_lt_zero hsum0).ne')
+        · exact Or.inl ((lt_of_lt_of_le EReal.bot_lt_zero (ha i (hts (Finset.mem_insert_self i t')))).ne')
+      have h : Tendsto (fun n => f i n + ∑ j ∈ t', f j n) atTop (𝓝 (a i + ∑ j ∈ t', a j)) :=
+        hcont.tendsto.comp (hfi.prodMk_nhds (ih ((Finset.subset_insert i t').trans hts)))
+      simpa [Finset.sum_insert hit'] using h
+  exact hmain s (Finset.Subset.refl s)
+
+/-- Helper 3: the integral of the truncation converges to the integral (simple MCT). -/
+lemma integral_limit {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) :
+    Tendsto (fun n : ℕ => (simple_min_const hg n).integ) atTop (𝓝 (hg.integ)) := by
+  let k := hg.choose
+  let c := hg.choose_spec.choose
+  let E := hg.choose_spec.choose_spec.choose
+  have hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0 := hg.choose_spec.choose_spec.choose_spec.1
+  have heq : g = ∑ i, (c i) • (EReal.indicator (E i)) := hg.choose_spec.choose_spec.choose_spec.2
+  let A : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  have hA_mes : ∀ n, LebesgueMeasurable (A n) := by
+    intro n
+    simpa [A] using atom_measurable (fun i => (hmes i).1) (fun j => (hmes j).1) n
+  have hsum_conv : Tendsto (fun n : ℕ =>
+      ∑ n' : Fin (2^(k+k)), min (atomValueEReal c n'.val) ((n : ℝ) : EReal) * Lebesgue_measure (A n'))
+      atTop (𝓝 (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n'))) := by
+    simpa using tendsto_sum_of_nonneg (s := (Finset.univ : Finset (Fin (2^(k+k)))))
+      (f := fun (n' : Fin (2^(k+k))) (n : ℕ) => min (atomValueEReal c n'.val) ((n : ℝ) : EReal) * Lebesgue_measure (A n'))
+      (a := fun n' : Fin (2^(k+k)) => atomValueEReal c n'.val * Lebesgue_measure (A n'))
+      (hf := fun n' _ => tendsto_min_mul (atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+        (Lebesgue_outer_measure.nonneg (A n')))
+      (ha := fun n' _ => mul_nonneg (atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+        (Lebesgue_outer_measure.nonneg (A n')))
+  have hg_integ : hg.integ = ∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n') := by
+    rw [UnsignedSimpleFunction.integral_eq hg (k := 2^(k+k))
+      (c := fun n' : Fin (2^(k+k)) => atomValueEReal c n'.val) (E := A)
+      (hmes := hA_mes) (hnonneg := fun n' => atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+      (heq := heq.trans (by simpa [A] using eq_sum_atomValueEReal_indicator c E E))]
+  have h_n_integ : ∀ n : ℕ, (simple_min_const hg n).integ =
+      ∑ n' : Fin (2^(k+k)), min (atomValueEReal c n'.val) ((n : ℝ) : EReal) * Lebesgue_measure (A n') := by
+    intro n
+    simpa [k, c, E, A] using integral_min_const hg n
+  have hmain : Tendsto (fun n : ℕ => (simple_min_const hg n).integ) atTop
+      (𝓝 (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n'))) :=
+    hsum_conv.congr (fun n => (h_n_integ n).symm)
+  rw [hg_integ]
+  exact hmain
+
+/-- Exercise 1.3.10(viii) (Vertical truncation)-/
+theorem LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) : Filter.atTop.Tendsto (fun n:ℕ ↦ LowerUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (LowerUnsignedLebesgueIntegral f)) := by
+  let fn : ℕ → EuclideanSpace' d → EReal := fun n x => min (f x) n
+  have hfn_meas : ∀ n, UnsignedMeasurable (fn n) := by
+    intro n
+    have hφ : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)) := by
+      simpa using (Continuous.min continuous_id continuous_const : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)))
+    have hφnn : ∀ x ≥ (0 : EReal), min x ((n : ℝ) : EReal) ≥ 0 := by
+      intro x hx
+      exact le_min hx (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+    simpa [fn] using UnsignedMeasurable.comp_cts hf hφ hφnn
+  have hmono : Monotone (fun n : ℕ => LowerUnsignedLebesgueIntegral (fn n)) := by
+    intro n m hnm
+    apply LowerUnsignedLebesgueIntegral.mono (hfn_meas n) (hfn_meas m)
+    apply AlmostAlways.ofAlways
+    intro x
+    exact min_le_min le_rfl (EReal.coe_le_coe_iff.mpr (by exact_mod_cast hnm))
+  have hconv : Tendsto (fun n : ℕ => LowerUnsignedLebesgueIntegral (fn n)) atTop
+      (𝓝 (⨆ n : ℕ, LowerUnsignedLebesgueIntegral (fn n))) :=
+    tendsto_atTop_iSup hmono
+  have hsup : (⨆ n : ℕ, LowerUnsignedLebesgueIntegral (fn n)) = LowerUnsignedLebesgueIntegral f := by
+    apply le_antisymm
+    · apply iSup_le
+      intro n
+      apply LowerUnsignedLebesgueIntegral.mono (hfn_meas n) hf
+      apply AlmostAlways.ofAlways
+      intro x
+      exact min_le_left (f x) n
+    · unfold LowerUnsignedLebesgueIntegral
+      apply sSup_le
+      intro R hR
+      rcases hR with ⟨g, hg, hg_cond⟩
+      have hg_le : ∀ x, g x ≤ f x := fun x => (hg_cond x).1
+      have hR_eq : R = hg.integ := (hg_cond (Classical.arbitrary _)).2
+      rw [hR_eq]
+      have hmono_g : Monotone (fun n : ℕ => (simple_min_const hg n).integ) := by
+        intro n m hnm
+        apply UnsignedSimpleFunction.integral_le_integral_of_aeLe (simple_min_const hg n) (simple_min_const hg m)
+        apply AlmostAlways.ofAlways
+        intro x
+        exact min_le_min le_rfl (EReal.coe_le_coe_iff.mpr (by exact_mod_cast hnm))
+      have hconv_g : Tendsto (fun n : ℕ => (simple_min_const hg n).integ) atTop
+          (𝓝 (⨆ n : ℕ, (simple_min_const hg n).integ)) :=
+        tendsto_atTop_iSup hmono_g
+      have hlim : hg.integ = ⨆ n : ℕ, (simple_min_const hg n).integ :=
+        tendsto_nhds_unique (integral_limit hg) hconv_g
+      rw [hlim]
+      apply iSup_mono
+      intro n
+      exact le_sSup ⟨fun x => min (g x) n, simple_min_const hg n, fun x => ⟨min_le_min (hg_le x) le_rfl, rfl⟩⟩
+  rw [← hsup]
+  simpa [fn] using hconv
 
 def UpperUnsignedLebesgueIntegral.eq_lim_vert_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (UpperUnsignedLebesgueIntegral f))) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
