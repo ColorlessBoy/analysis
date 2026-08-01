@@ -1000,6 +1000,46 @@
       "status": "success",
       "notes": "translation invariance via simple_translate (E i + {-a} atoms) + integral_translate (integral_eq calc) + trans_proof (sSup_le/le_sSup on LowerUnsignedLebesgueIntegral raw defs)",
       "end": "2026-08-01T22:40:30.058007"
+    },
+    {
+      "id": 63,
+      "theorem": "eq_lim_vert_trunc_upper_isFalse",
+      "file": "_temp_133_upper_vert.lean",
+      "goal": "prove 5 sorries: f_inv_sqrt_nonneg, f_inv_sqrt_measurable, f_inv_sqrt_upper, f_inv_sqrt_trunc_upper_bounded, eq_lim_vert_trunc_upper_isFalse",
+      "start": "2026-08-01T22:47:08.665249",
+      "attempts": [
+        {
+          "edit": "helpers: interval measures, sqrt_inv_gt_iff, f_inv_sqrt_nonneg",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all compile",
+          "time": "2026-08-01T23:02:54.832779"
+        },
+        {
+          "edit": "f_inv_sqrt_upper done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all compile",
+          "time": "2026-08-01T23:07:43.864290"
+        },
+        {
+          "edit": "f_inv_sqrt_trunc_upper_bounded done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all compile",
+          "time": "2026-08-01T23:22:22.922456"
+        },
+        {
+          "edit": "final: all 5 proofs done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors 0 warnings",
+          "time": "2026-08-01T23:26:52.487001"
+        }
+      ],
+      "status": "success",
+      "notes": "proved all 5 sorries: f_inv_sqrt_nonneg, f_inv_sqrt_measurable, f_inv_sqrt_upper, f_inv_sqrt_trunc_upper_bounded, eq_lim_vert_trunc_upper_isFalse",
+      "end": "2026-08-01T23:26:52.516764"
     }
   ]
 }

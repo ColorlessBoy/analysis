@@ -426,6 +426,13 @@
       "tactics": "sSup_le + le_sSup on raw LowerUnsignedLebesgueIntegral; simple_translate uses E i + {-a} atoms; integral_translate via integral_eq calc + Lebesgue_measure.translate",
       "description": "translation invariance of unsigned integral (Ex 1.3.15)",
       "time": "2026-08-01T22:40:34.255888"
+    },
+    {
+      "theorem": "eq_lim_vert_trunc_upper_isFalse",
+      "file": "_temp_133_upper_vert.lean",
+      "tactics": "le_sInf+le_antisymm; Finset.single_le_sum; Finset.sum_range_sub'; Fin.sum_univ_succ; measure_Ioc_ab; EReal.tendsto_nhds_top_iff_real",
+      "description": "Upper integral vertical truncation is FALSE: counterexample f=1/sqrt x on (0,1): U f = top via top-atom covering argument; U(min f n) bounded by 8 via dyadic simple functions with Ioc pieces; contradiction via eventually above any real vs uniform bound",
+      "time": "2026-08-01T23:26:57.821103"
     }
   ],
   "errors": [

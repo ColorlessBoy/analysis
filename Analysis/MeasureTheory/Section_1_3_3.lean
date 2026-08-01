@@ -1024,9 +1024,6 @@ theorem LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc {d:ℕ} {f: EuclideanSpa
   rw [← hsup]
   simpa [fn] using hconv
 
-def UpperUnsignedLebesgueIntegral.eq_lim_vert_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (UpperUnsignedLebesgueIntegral f))) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
 
 /-- The open ball centered at the origin is Lebesgue measurable. -/
 def ball_measurable {d : ℕ} (n : ℕ) :
@@ -1444,6 +1441,623 @@ lemma upperIntegral_mono {d : ℕ} {f g : EuclideanSpace' d → EReal} (hfg : �
   rcases hR with ⟨h, hh, hh_cond⟩
   apply sInf_le
   exact ⟨h, hh, fun x => ⟨le_trans (hfg x) (hh_cond x).1, (hh_cond x).2⟩⟩
+
+/-- Telescoping: sum over i of 1/(i+1) - 1/(i+2) equals 1 - 1/(n+1). -/
+lemma sum_inv_sub {n : ℕ} :
+    (∑ i : Fin n, ((1 : ℝ) / ((i.val + 1 : ℕ) : ℝ) - (1 : ℝ) / ((i.val + 2 : ℕ) : ℝ))) =
+      1 - 1 / ((n + 1 : ℕ) : ℝ) := by
+  rw [Fin.sum_univ_eq_sum_range
+    (fun k : ℕ => (1 : ℝ) / ((k + 1 : ℕ) : ℝ) - (1 : ℝ) / ((k + 2 : ℕ) : ℝ)) n]
+  have h := Finset.sum_range_sub' (fun k : ℕ => (1 : ℝ) / ((k + 1 : ℕ) : ℝ)) n
+  rw [h]
+  norm_num
+
+/-- The preimage of the open interval (a,b) under the coordinate projection is the
+    box with side (a,b). -/
+lemma Ioo_preimage_eq_box' (a b : ℝ) :
+    EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo a b = (BoundedInterval.Ioo a b : Box 1).toSet := by
+  rw [BoundedInterval.coe_of_box]
+  ext x
+  simp only [Set.mem_preimage, Set.mem_image]
+  constructor
+  · intro hx
+    exact ⟨EuclideanSpace'.equiv_Real x, hx, EuclideanSpace'.equiv_Real.symm_apply_apply x⟩
+  · rintro ⟨y, hy, hxy⟩
+    have hyx : EuclideanSpace'.equiv_Real x = y := by
+      rw [← hxy]
+      exact EuclideanSpace'.equiv_Real.apply_symm_apply y
+    rw [hyx]
+    simpa using hy
+
+/-- The preimage of the half-open interval from a to b under the coordinate
+    projection is the box with that side. -/
+lemma Ioc_preimage_eq_box' (a b : ℝ) :
+    EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc a b = (BoundedInterval.Ioc a b : Box 1).toSet := by
+  rw [BoundedInterval.coe_of_box]
+  ext x
+  simp only [Set.mem_preimage, Set.mem_image]
+  constructor
+  · intro hx
+    exact ⟨EuclideanSpace'.equiv_Real x, hx, EuclideanSpace'.equiv_Real.symm_apply_apply x⟩
+  · rintro ⟨y, hy, hxy⟩
+    have hyx : EuclideanSpace'.equiv_Real x = y := by
+      rw [← hxy]
+      exact EuclideanSpace'.equiv_Real.apply_symm_apply y
+    rw [hyx]
+    simpa using hy
+
+/-- The preimage of an open interval under the coordinate projection is Lebesgue measurable. -/
+lemma measurable_Ioo_preimage' (a b : ℝ) :
+    LebesgueMeasurable (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo a b) := by
+  rw [Ioo_preimage_eq_box' a b]
+  exact Jordan_measurable.lebesgue (IsElementary.jordanMeasurable (IsElementary.box _))
+
+/-- The preimage of a half-open interval under the coordinate projection is
+    Lebesgue measurable. -/
+lemma measurable_Ioc_preimage' (a b : ℝ) :
+    LebesgueMeasurable (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc a b) := by
+  rw [Ioc_preimage_eq_box' a b]
+  exact Jordan_measurable.lebesgue (IsElementary.jordanMeasurable (IsElementary.box _))
+
+/-- Lebesgue measure of the preimage of the open interval (a,b) is b - a. -/
+lemma measure_Ioo_ab {a b : ℝ} (hab : a ≤ b) :
+    Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo a b) = ((b - a : ℝ) : EReal) := by
+  let B : Box 1 := (BoundedInterval.Ioo a b : Box 1)
+  have hset : EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo a b = B.toSet := by
+    simpa [B] using Ioo_preimage_eq_box' a b
+  have hvol : |B|ᵥ = b - a := by
+    rw [Box.volume_of_interval]
+    simp [BoundedInterval.length, sub_nonneg.mpr hab]
+  have h_elem : IsElementary B.toSet := IsElementary.box B
+  rw [Lebesgue_measure, hset]
+  calc
+    Lebesgue_outer_measure B.toSet = ↑h_elem.measure :=
+      Lebesgue_outer_measure.elementary B.toSet h_elem
+    _ = (b - a : EReal) := by
+      have hmeas : h_elem.measure = b - a := by
+        calc
+          h_elem.measure = ∑ B' ∈ ({B} : Finset (Box 1)), |B'|ᵥ :=
+            h_elem.measure_eq (by simp) (by simp)
+          _ = |B|ᵥ := by simp
+          _ = b - a := hvol
+      exact_mod_cast hmeas
+
+/-- Lebesgue measure of the preimage of the half-open interval from a to b is
+    b minus a. -/
+lemma measure_Ioc_ab {a b : ℝ} (hab : a ≤ b) :
+    Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc a b) = ((b - a : ℝ) : EReal) := by
+  let B : Box 1 := (BoundedInterval.Ioc a b : Box 1)
+  have hset : EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc a b = B.toSet := by
+    simpa [B] using Ioc_preimage_eq_box' a b
+  have hvol : |B|ᵥ = b - a := by
+    rw [Box.volume_of_interval]
+    simp [BoundedInterval.length, sub_nonneg.mpr hab]
+  have h_elem : IsElementary B.toSet := IsElementary.box B
+  rw [Lebesgue_measure, hset]
+  calc
+    Lebesgue_outer_measure B.toSet = ↑h_elem.measure :=
+      Lebesgue_outer_measure.elementary B.toSet h_elem
+    _ = (b - a : EReal) := by
+      have hmeas : h_elem.measure = b - a := by
+        calc
+          h_elem.measure = ∑ B' ∈ ({B} : Finset (Box 1)), |B'|ᵥ :=
+            h_elem.measure_eq (by simp) (by simp)
+          _ = |B|ᵥ := by simp
+          _ = b - a := hvol
+      exact_mod_cast hmeas
+
+/-- For u > 0 and r > 0: 1/sqrt(u) > r iff u < 1/r^2. -/
+lemma sqrt_inv_gt_iff {r : ℝ} (hr : 0 < r) {u : ℝ} (hu : 0 < u) :
+    (r : EReal) < ((1 / Real.sqrt u : ℝ) : EReal) ↔ u < 1 / r ^ 2 := by
+  rw [EReal.coe_lt_coe_iff]
+  rw [lt_div_iff₀ (Real.sqrt_pos.2 hu)]
+  rw [mul_comm]
+  rw [← lt_div_iff₀ hr]
+  have hsq : (1 / r) ^ 2 = 1 / r ^ 2 := by ring
+  rw [← hsq]
+  exact Real.sqrt_lt (le_of_lt hu) (div_nonneg zero_le_one hr.le)
+
+/-- f(x) = 1/sqrt(x) on (0,1), 0 elsewhere. -/
+noncomputable def f_inv_sqrt : EuclideanSpace' 1 → EReal :=
+  fun x => if (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1 then
+    ((1 : ℝ) / Real.sqrt (EuclideanSpace'.equiv_Real x) : ℝ) else 0
+
+/-- f is nonnegative. -/
+lemma f_inv_sqrt_nonneg : Unsigned f_inv_sqrt := by
+  intro x
+  unfold f_inv_sqrt
+  by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+  · rw [if_pos hx]
+    exact EReal.coe_nonneg.mpr (div_nonneg zero_le_one (Real.sqrt_nonneg _))
+  · rw [if_neg hx]
+
+/-- f is unsigned measurable, via TFAE level sets (open intervals). -/
+lemma f_inv_sqrt_measurable : UnsignedMeasurable f_inv_sqrt := by
+  have h5 : ∀ t : EReal, LebesgueMeasurable {x | f_inv_sqrt x > t} := by
+    intro t
+    by_cases ht : t = ⊤
+    · have hset : {x | f_inv_sqrt x > t} = (∅ : Set (EuclideanSpace' 1)) := by
+        ext x
+        rw [ht]
+        constructor
+        · intro h
+          change f_inv_sqrt x > ⊤ at h
+          exact (not_lt_of_ge le_top) (gt_iff_lt.mp h)
+        · intro h
+          simp at h
+      rw [hset]
+      exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' 1)))
+    · cases t with
+      | bot =>
+          have hset : {x | f_inv_sqrt x > (⊥ : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+            ext x
+            simp only [gt_iff_lt, Set.mem_univ, iff_true]
+            exact lt_of_lt_of_le (EReal.bot_lt_coe (0 : ℝ)) (f_inv_sqrt_nonneg x)
+          rw [hset]
+          exact isOpen_univ.measurable
+      | coe r =>
+          by_cases hr : r < 0
+          · have hset : {x | f_inv_sqrt x > (r : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+              ext x
+              simp only [gt_iff_lt, Set.mem_univ, iff_true]
+              exact lt_of_lt_of_le (EReal.coe_lt_coe_iff.mpr hr) (f_inv_sqrt_nonneg x)
+            rw [hset]
+            exact isOpen_univ.measurable
+          · have hr0 : 0 ≤ r := le_of_not_gt hr
+            by_cases hrz : r = 0
+            · have hset : {x | f_inv_sqrt x > (r : EReal)} = EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) 1 := by
+                ext x
+                rw [hrz]
+                simp only [gt_iff_lt, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_Ioo]
+                unfold f_inv_sqrt
+                by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+                · rw [if_pos hx]
+                  constructor
+                  · intro _
+                    exact hx
+                  · intro _
+                    exact EReal.coe_lt_coe_iff.mpr (div_pos zero_lt_one (Real.sqrt_pos.2 hx.1))
+                · rw [if_neg hx]
+                  constructor
+                  · intro h
+                    exact False.elim (lt_irrefl (0 : EReal) h)
+                  · intro h
+                    exact False.elim (hx h)
+              rw [hset]
+              exact measurable_Ioo_preimage' 0 1
+            · have hrpos : 0 < r := lt_of_le_of_ne hr0 (Ne.symm hrz)
+              let c : ℝ := min 1 (1 / r ^ 2)
+              have hset : {x | f_inv_sqrt x > (r : EReal)} = EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) c := by
+                ext x
+                simp only [gt_iff_lt, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_Ioo]
+                unfold f_inv_sqrt
+                by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+                · rw [if_pos hx]
+                  rw [sqrt_inv_gt_iff hrpos hx.1]
+                  constructor
+                  · intro h
+                    exact ⟨hx.1, lt_min hx.2 h⟩
+                  · intro h
+                    exact lt_of_lt_of_le h.2 (min_le_right 1 (1 / r ^ 2))
+                · rw [if_neg hx]
+                  constructor
+                  · intro h
+                    exact False.elim (not_lt_of_ge (EReal.coe_le_coe_iff.mpr hrpos.le) h)
+                  · intro h
+                    exact False.elim (hx ⟨h.1, lt_of_lt_of_le h.2 (min_le_left 1 (1 / r ^ 2))⟩)
+              rw [hset]
+              exact measurable_Ioo_preimage' 0 c
+      | top =>
+          exact False.elim (ht rfl)
+  exact ((UnsignedMeasurable.TFAE f_inv_sqrt_nonneg).out 4 0
+    (a := ∀ t : EReal, LebesgueMeasurable {x | f_inv_sqrt x > t})
+    (b := UnsignedMeasurable f_inv_sqrt)).mp h5
+
+/-- The upper integral of f is top: any simple g ≥ f pointwise has a top-valued
+    atom on a positive-measure set. -/
+lemma f_inv_sqrt_upper : UpperUnsignedLebesgueIntegral f_inv_sqrt = ⊤ := by
+  apply le_antisymm le_top
+  unfold UpperUnsignedLebesgueIntegral
+  apply le_sInf
+  intro R hR
+  rcases hR with ⟨g, hg, hcond⟩
+  let hg' : UnsignedSimpleFunction g := hg
+  rcases hg with ⟨k, c, E, hmes, heq⟩
+  have hge : ∀ x, f_inv_sqrt x ≤ g x := fun x => (hcond x).1
+  have hReq : R = hg'.integ := (hcond (Classical.arbitrary _)).2
+  rw [hReq]
+  have hE_meas : ∀ i, LebesgueMeasurable (E i) := fun i => (hmes i).1
+  have hc_nonneg : ∀ i, c i ≥ 0 := fun i => (hmes i).2
+  have hinteg : hg'.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+    UnsignedSimpleFunction.integral_eq hg' hE_meas hc_nonneg heq
+  rw [hinteg]
+  let cf : Fin k → EReal := fun i => (EReal.toReal (c i) : EReal)
+  let S : EReal := ∑ i, cf i
+  have hS_lt_top : S < ⊤ := by
+    dsimp [S, cf]
+    exact EReal_sum_lt_top_of_all (fun i => (EReal.toReal (c i) : EReal))
+      (fun i => EReal.coe_lt_top (EReal.toReal (c i)))
+  have hS_nonneg : 0 ≤ S := by
+    dsimp [S, cf]
+    exact Finset.sum_nonneg
+      (fun i hi => EReal.coe_nonneg.mpr (EReal.toReal_nonneg (hc_nonneg i)))
+  let M : ℝ := S.toReal + 1
+  have hM_pos : 0 < M := by
+    dsimp [M]
+    have htr : 0 ≤ S.toReal := EReal.toReal_nonneg hS_nonneg
+    linarith
+  have hS_lt_M : S < (M : EReal) := by
+    dsimp [M]
+    calc
+      S ≤ (S.toReal : EReal) := EReal.le_coe_toReal (ne_of_lt hS_lt_top)
+      _ < ((S.toReal + 1 : ℝ) : EReal) := EReal.coe_lt_coe_iff.mpr (by linarith)
+  let a : ℝ := min 1 (1 / M ^ 2)
+  have ha_pos : 0 < a := by
+    dsimp [a]
+    exact lt_min zero_lt_one (div_pos zero_lt_one (sq_pos_of_pos hM_pos))
+  have hcover : ∀ x, EuclideanSpace'.equiv_Real x ∈ Set.Ioo (0 : ℝ) a →
+      ∃ i, x ∈ E i ∧ c i = ⊤ := by
+    intro x hx
+    let u : ℝ := EuclideanSpace'.equiv_Real x
+    have hu0 : 0 < u := (Set.mem_Ioo.mp hx).1
+    have hu1 : u < 1 := lt_of_lt_of_le (Set.mem_Ioo.mp hx).2 (min_le_left 1 (1 / M ^ 2))
+    have hf_x : f_inv_sqrt x = ((1 / Real.sqrt u : ℝ) : EReal) := by
+      unfold f_inv_sqrt
+      rw [if_pos ⟨hu0, hu1⟩]
+    have hf_gt_M : ((M : ℝ) : EReal) < f_inv_sqrt x := by
+      rw [hf_x]
+      rw [sqrt_inv_gt_iff hM_pos hu0]
+      exact lt_of_lt_of_le (Set.mem_Ioo.mp hx).2 (min_le_right 1 (1 / M ^ 2))
+    by_contra hnot
+    push_neg at hnot
+    have hg_le_S : g x ≤ S := by
+      rw [heq]
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      calc
+        (∑ i, c i * EReal.indicator (E i) x) ≤ ∑ i, cf i := by
+          apply Finset.sum_le_sum
+          intro i hi
+          dsimp [cf]
+          by_cases hci : c i = ⊤
+          · have hxnot : x ∉ E i := fun hxi => (hnot i hxi) hci
+            rw [indicator_mul_not_mem (E i) (c i) x hxnot]
+            simp [hci]
+          · have hci_lt : c i < ⊤ := lt_top_iff_ne_top.mpr hci
+            have hci_notbot : c i ≠ ⊥ := by
+              intro hb
+              have hci0 : (0 : EReal) ≤ ⊥ := by simpa [hb] using hc_nonneg i
+              exact (not_le_of_gt EReal.bot_lt_zero) hci0
+            by_cases hxi : x ∈ E i
+            · rw [indicator_mul_mem (E i) (c i) x hxi]
+              rw [EReal.coe_toReal hci hci_notbot]
+            · rw [indicator_mul_not_mem (E i) (c i) x hxi]
+              exact EReal.coe_nonneg.mpr (EReal.toReal_nonneg (hc_nonneg i))
+        _ = S := by rfl
+    have hgt : (M : EReal) < g x := lt_of_lt_of_le hf_gt_M (hge x)
+    have h1 : g x < g x := by
+      calc
+        g x ≤ S := hg_le_S
+        _ < (M : EReal) := hS_lt_M
+        _ < g x := hgt
+    exact (lt_irrefl (g x)) h1
+  have htop_atom : ∃ i₀ : Fin k, c i₀ = ⊤ ∧ 0 < Lebesgue_measure (E i₀) := by
+    by_contra hnot
+    push_neg at hnot
+    let E' : Fin k → Set (EuclideanSpace' 1) := fun i => if c i = ⊤ then E i else ∅
+    have hsub : EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a ⊆ ⋃ i : Fin k, E' i := by
+      intro x hx
+      rcases hcover x hx with ⟨i, hxEi, hci⟩
+      rw [Set.mem_iUnion]
+      exact ⟨i, by
+        dsimp [E']
+        rw [if_pos hci]
+        exact hxEi⟩
+    have hmeas0 : ∀ i, Lebesgue_measure (E' i) = 0 := by
+      intro i
+      by_cases hci : c i = ⊤
+      · have hle : Lebesgue_measure (E i) ≤ 0 := hnot i hci
+        have hz : Lebesgue_measure (E i) = 0 :=
+          le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+        simp [E', hci, hz]
+      · simp [E', hci]
+    have hunion : Lebesgue_measure (⋃ i, E' i) ≤ 0 := by
+      calc
+        Lebesgue_measure (⋃ i, E' i) ≤ ∑ i, Lebesgue_measure (E' i) :=
+          Lebesgue_outer_measure.finite_union_le E'
+        _ = 0 := by simp [hmeas0]
+    have hmu_a : Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a) = ((a - 0 : ℝ) : EReal) :=
+      measure_Ioo_ab (show (0 : ℝ) ≤ a from le_of_lt ha_pos)
+    have hpos : (0 : EReal) < Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a) := by
+      rw [hmu_a]
+      exact EReal.coe_pos.mpr (by simpa using ha_pos)
+    exact (not_lt_of_ge (le_trans (Lebesgue_outer_measure.mono hsub) hunion)) hpos
+  rcases htop_atom with ⟨i₀, hci₀, hmu₀⟩
+  have hterm : c i₀ * Lebesgue_measure (E i₀) = ⊤ := by
+    rw [hci₀, EReal.top_mul_of_pos hmu₀]
+  have hprod_nonneg : ∀ i, 0 ≤ c i * Lebesgue_measure (E i) :=
+    fun i => EReal.mul_nonneg (hc_nonneg i) (Lebesgue_outer_measure.nonneg _)
+  have hge_top : ⊤ ≤ ∑ i, c i * Lebesgue_measure (E i) := by
+    have hle := Finset.single_le_sum (fun i hi => hprod_nonneg i) (Finset.mem_univ i₀)
+    rw [hterm] at hle
+    exact hle
+  exact hge_top
+
+/-- The dyadic-grid upper bound for min(f, n): U(min(f, n)) ≤ c uniformly. -/
+lemma f_inv_sqrt_trunc_upper_bounded : ∃ c : EReal, c < ⊤ ∧ ∀ n : ℕ, 1 ≤ n →
+    UpperUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n) ≤ c := by
+  refine ⟨((8 : ℝ) : EReal), EReal.coe_lt_top 8, ?_⟩
+  intro n hn
+  let fn : EuclideanSpace' 1 → EReal := fun x => min (f_inv_sqrt x) n
+  let c : Fin (n + 1) → EReal := fun i => if i.val = 0 then ((n : ℝ) : EReal) else
+    (((i.val + 1 : ℕ) : ℝ) : EReal)
+  let E : Fin (n + 1) → Set (EuclideanSpace' 1) := fun i => if i.val = 0 then
+      EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc (0 : ℝ) (1 / (n : ℝ) ^ 2) else
+      EuclideanSpace'.equiv_Real ⁻¹' Set.Ioc (1 / ((i.val + 1 : ℕ) : ℝ) ^ 2) (1 / (i.val : ℝ) ^ 2)
+  let h : EuclideanSpace' 1 → EReal := fun x => ∑ i, c i • EReal.indicator (E i) x
+  have hc_nonneg : ∀ i, c i ≥ 0 := by
+    intro i
+    by_cases hz : i.val = 0
+    · dsimp [c]
+      rw [if_pos hz]
+      exact EReal.coe_nonneg.mpr (Nat.cast_nonneg n)
+    · dsimp [c]
+      rw [if_neg hz]
+      exact EReal.coe_nonneg.mpr (Nat.cast_nonneg (i.val + 1))
+  have hE_meas : ∀ i, LebesgueMeasurable (E i) := by
+    intro i
+    by_cases hz : i.val = 0
+    · dsimp [E]
+      rw [if_pos hz]
+      exact measurable_Ioc_preimage' 0 (1 / (n : ℝ) ^ 2)
+    · dsimp [E]
+      rw [if_neg hz]
+      exact measurable_Ioc_preimage' (1 / ((i.val + 1 : ℕ) : ℝ) ^ 2) (1 / (i.val : ℝ) ^ 2)
+  have hsimple : UnsignedSimpleFunction h := by
+    refine ⟨n + 1, c, E, ?_, ?_⟩
+    · intro i
+      exact ⟨hE_meas i, hc_nonneg i⟩
+    · ext x
+      simp [h]
+  have hterm_nonneg : ∀ x, ∀ j : Fin (n + 1), 0 ≤ c j • EReal.indicator (E j) x := by
+    intro x j
+    rw [smul_eq_mul]
+    exact EReal.mul_nonneg (hc_nonneg j) (EReal.indicator_nonneg (E j) x)
+  have hh_nonneg : ∀ x, 0 ≤ h x := by
+    intro x
+    dsimp [h]
+    exact Finset.sum_nonneg (fun j hj => hterm_nonneg x j)
+  have hh_ge : ∀ x, fn x ≤ h x := by
+    intro x
+    let u : ℝ := EuclideanSpace'.equiv_Real x
+    by_cases hx : (0 : ℝ) < u ∧ u < 1
+    · by_cases hun : u ≤ 1 / (n : ℝ) ^ 2
+      · have hxE0 : x ∈ E ⟨0, by omega⟩ := by
+          dsimp [E]
+          have huI : u ∈ Set.Ioc (0 : ℝ) (1 / (n : ℝ) ^ 2) := ⟨hx.1, hun⟩
+          simpa [u] using huI
+        have hx_ge_n : (n : EReal) ≤ h x := by
+          dsimp [h]
+          have hterm0 : c ⟨0, by omega⟩ • EReal.indicator (E ⟨0, by omega⟩) x = (n : EReal) := by
+            rw [smul_eq_mul]
+            rw [indicator_mul_mem (E ⟨0, by omega⟩) (c ⟨0, by omega⟩) x hxE0]
+            dsimp [c]
+          have hle := Finset.single_le_sum (fun j hj => hterm_nonneg x j) (Finset.mem_univ ⟨0, by omega⟩)
+          rw [hterm0] at hle
+          exact hle
+        exact le_trans (min_le_right (f_inv_sqrt x) (n : EReal)) hx_ge_n
+      · have hu_gt0 : 1 / (n : ℝ) ^ 2 < u := lt_of_not_ge hun
+        have hn2 : 2 ≤ n := by
+          by_contra hnot2
+          have hn_le1 : n ≤ 1 := by omega
+          have hn_eq1 : n = 1 := le_antisymm hn_le1 hn
+          have : (1 : ℝ) < u := by simpa [hn_eq1] using hu_gt0
+          exact (lt_irrefl (1 : ℝ)) (lt_trans this hx.2)
+        let s : Finset ℕ := (Finset.range n).filter (fun j => u ≤ 1 / (j : ℝ) ^ 2)
+        have hs_ne : s.Nonempty := by
+          refine ⟨1, ?_⟩
+          rw [Finset.mem_filter]
+          constructor
+          · exact Finset.mem_range.mpr (by omega)
+          · simpa using hx.2.le
+        let m : ℕ := s.max' hs_ne
+        have hm_mem : m ∈ s := Finset.max'_mem s hs_ne
+        have hm_range : m < n := (Finset.mem_range.mp (Finset.mem_filter.mp hm_mem).1)
+        have hm_le : u ≤ 1 / (m : ℝ) ^ 2 := (Finset.mem_filter.mp hm_mem).2
+        have hm_ge1 : 1 ≤ m := by
+          by_contra hm0
+          have hm_eq : m = 0 := by omega
+          have : u ≤ (0 : ℝ) := by simpa [hm_eq] using hm_le
+          exact (not_le_of_gt hx.1) this
+        have hu_gt_next : 1 / ((m + 1 : ℕ) : ℝ) ^ 2 < u := by
+          by_contra hnot
+          have hu_le' : u ≤ 1 / ((m + 1 : ℕ) : ℝ) ^ 2 := le_of_not_gt hnot
+          have hm1_lt : m + 1 < n := by
+            by_contra hge
+            have hn_le : n ≤ m + 1 := le_of_not_gt hge
+            have hm1_eq_n : m + 1 = n := le_antisymm (Nat.succ_le_of_lt hm_range) hn_le
+            have hu_le_n : u ≤ 1 / (n : ℝ) ^ 2 := by
+              simpa [← hm1_eq_n] using hu_le'
+            exact (not_le_of_gt hu_gt0) hu_le_n
+          have hm1_in : m + 1 ∈ s := by
+            rw [Finset.mem_filter]
+            exact ⟨Finset.mem_range.mpr hm1_lt, hu_le'⟩
+          have hm1_le_m : m + 1 ≤ m := Finset.le_max' s (m + 1) hm1_in
+          exact (not_lt_of_ge hm1_le_m) (Nat.lt_succ_self m)
+        let i : Fin (n + 1) := ⟨m, by omega⟩
+        have hi_val : i.val = m := rfl
+        have hxEi : x ∈ E i := by
+          have hm_ne0 : m ≠ 0 := ne_of_gt (lt_of_lt_of_le zero_lt_one hm_ge1)
+          dsimp [E]
+          rw [if_neg (by
+            intro hz
+            have : 1 ≤ i.val := by simpa [hi_val] using hm_ge1
+            exact (ne_of_gt this) hz)]
+          · have huI : u ∈ Set.Ioc (1 / ((m + 1 : ℕ) : ℝ) ^ 2) (1 / (m : ℝ) ^ 2) :=
+              ⟨hu_gt_next, hm_le⟩
+            have huI' : u ∈ Set.Ioc (1 / ((i.val + 1 : ℕ) : ℝ) ^ 2) (1 / (i.val : ℝ) ^ 2) := by
+              simpa [i] using huI
+            simpa [u] using huI'
+        have hf_x : f_inv_sqrt x = ((1 / Real.sqrt u : ℝ) : EReal) := by
+          unfold f_inv_sqrt
+          rw [if_pos ⟨hx.1, hx.2⟩]
+        have hc_eq : c i = (((m + 1 : ℕ) : ℝ) : EReal) := by
+          have hm_ne0 : m ≠ 0 := ne_of_gt (lt_of_lt_of_le zero_lt_one hm_ge1)
+          dsimp [c]
+          simp [hi_val, hm_ne0]
+        have hf_le_c : f_inv_sqrt x ≤ c i := by
+          rw [hc_eq]
+          rw [hf_x]
+          rw [EReal.coe_le_coe_iff]
+          apply le_of_not_gt
+          intro h
+          have hu_lt : u < 1 / ((m + 1 : ℕ) : ℝ) ^ 2 :=
+            (sqrt_inv_gt_iff (by exact_mod_cast (Nat.succ_pos m)) hx.1).mp
+              (EReal.coe_lt_coe_iff.mpr h)
+          exact (lt_irrefl u) (lt_trans hu_lt hu_gt_next)
+        have hc_le_n : c i ≤ (n : EReal) := by
+          rw [hc_eq]
+          exact EReal.coe_le_coe_iff.mpr (by exact_mod_cast (Nat.succ_le_of_lt hm_range))
+        have hfn : fn x = f_inv_sqrt x := by
+          dsimp [fn]
+          exact min_eq_left (le_trans hf_le_c hc_le_n)
+        have hx_ge_c : c i ≤ h x := by
+          dsimp [h]
+          have htermi : c i • EReal.indicator (E i) x = c i := by
+            rw [smul_eq_mul]
+            rw [indicator_mul_mem (E i) (c i) x hxEi]
+          have hle := Finset.single_le_sum (fun j hj => hterm_nonneg x j) (Finset.mem_univ i)
+          rw [htermi] at hle
+          exact hle
+        exact le_trans (le_trans (le_of_eq hfn) hf_le_c) hx_ge_c
+    · have hf0 : f_inv_sqrt x = 0 := by
+        unfold f_inv_sqrt
+        rw [if_neg (by simpa [u] using hx)]
+      have hfn0 : fn x = 0 := by
+        dsimp [fn]
+        rw [hf0]
+        exact min_eq_left (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+      exact le_trans (le_of_eq hfn0) (hh_nonneg x)
+  have hU_le : UpperUnsignedLebesgueIntegral fn ≤ hsimple.integ := by
+    rw [← upperIntegral_simple hsimple]
+    exact upperIntegral_mono hh_ge
+  have hsimple_eq : h = ∑ i, (c i) • (EReal.indicator (E i)) := by
+    ext x
+    simp [h]
+  have hinteg : hsimple.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+    UnsignedSimpleFunction.integral_eq hsimple hE_meas hc_nonneg hsimple_eq
+  have hterm0 : c ⟨0, by omega⟩ * Lebesgue_measure (E ⟨0, by omega⟩) ≤ ((1 / (n : ℝ) : ℝ) : EReal) := by
+    have hc0 : c ⟨0, by omega⟩ = ((n : ℝ) : EReal) := by
+      dsimp [c]
+    have hE0 : Lebesgue_measure (E ⟨0, by omega⟩) = ((1 / (n : ℝ) ^ 2 : ℝ) : EReal) := by
+      dsimp [E]
+      simpa using (measure_Ioc_ab (show (0 : ℝ) ≤ 1 / (n : ℝ) ^ 2 from
+        div_nonneg zero_le_one (sq_nonneg _)))
+    rw [hc0, hE0, ← EReal.coe_mul]
+    rw [EReal.coe_le_coe_iff]
+    have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (ne_of_gt (lt_of_lt_of_le zero_lt_one hn))
+    field_simp [pow_two, hn0]
+    norm_num
+  have hterm_succ (i : Fin n) : c i.succ * Lebesgue_measure (E i.succ) =
+      ((((i.val + 2 : ℕ) : ℝ) * (1 / ((i.val + 1 : ℕ) : ℝ) ^ 2 - 1 / ((i.val + 2 : ℕ) : ℝ) ^ 2) : ℝ) : EReal) := by
+    have hc : c i.succ = (((i.val + 2 : ℕ) : ℝ) : EReal) := by
+      dsimp [c]
+    have hE : Lebesgue_measure (E i.succ) =
+        ((1 / ((i.val + 1 : ℕ) : ℝ) ^ 2 - 1 / ((i.val + 2 : ℕ) : ℝ) ^ 2 : ℝ) : EReal) := by
+      dsimp [E]
+      have hpos : 0 < ((i.val + 1 : ℕ) : ℝ) := by exact_mod_cast (Nat.succ_pos i.val)
+      have hden : ((i.val + 1 : ℕ) : ℝ) ^ 2 ≤ ((i.val + 2 : ℕ) : ℝ) ^ 2 := by
+        have hi0 : 0 ≤ (i.val : ℝ) := by exact_mod_cast Nat.zero_le i.val
+        push_cast
+        nlinarith
+      exact measure_Ioc_ab (one_div_le_one_div_of_le (sq_pos_of_pos hpos) hden)
+    rw [hc, hE, ← EReal.coe_mul]
+  have hterm_bound (i : Fin n) :
+      (((i.val + 2 : ℕ) : ℝ) * (1 / ((i.val + 1 : ℕ) : ℝ) ^ 2 - 1 / ((i.val + 2 : ℕ) : ℝ) ^ 2) : ℝ)
+        ≤ 3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ)) := by
+    push_cast
+    have hpos1 : 0 < ((i.val + 1 : ℕ) : ℝ) := by exact_mod_cast (Nat.succ_pos i.val)
+    have hpos2 : 0 < ((i.val + 2 : ℕ) : ℝ) := by exact_mod_cast (Nat.succ_pos (i.val + 1))
+    field_simp [hpos1.ne', hpos2.ne', pow_two]
+    nlinarith
+  have hbsum : (∑ i : Fin n, c i.succ * Lebesgue_measure (E i.succ)) ≤
+      ((3 * (1 - 1 / ((n + 1 : ℕ) : ℝ)) : ℝ) : EReal) := by
+    calc
+      (∑ i : Fin n, c i.succ * Lebesgue_measure (E i.succ))
+          ≤ ∑ i : Fin n, ((3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ)) : ℝ) : EReal) := by
+            apply Finset.sum_le_sum
+            intro i hi
+            rw [hterm_succ i]
+            rw [EReal.coe_le_coe_iff]
+            exact hterm_bound i
+      _ = (∑ i : Fin n, (3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ)) : ℝ) : EReal) := by
+            rfl
+      _ = ((3 * (∑ i : Fin n, (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ))) : ℝ) : EReal) := by
+            have hmap : (∑ i : Fin n, ((3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ)) : ℝ) : EReal)) =
+                ((∑ i : Fin n, 3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ)) : ℝ) : EReal) :=
+              (map_sum (⟨⟨Real.toEReal, EReal.coe_zero⟩, EReal.coe_add⟩ : ℝ →+ EReal)
+                (fun i : Fin n => 3 * (1 / ((i.val + 1 : ℕ) : ℝ) - 1 / ((i.val + 2 : ℕ) : ℝ))) Finset.univ).symm
+            exact hmap.trans (congrArg (fun z : ℝ => (z : EReal)) (by rw [Finset.mul_sum]))
+      _ = ((3 * (1 - 1 / ((n + 1 : ℕ) : ℝ)) : ℝ) : EReal) := by
+            exact congrArg (fun z : ℝ => (z : EReal)) (by rw [sum_inv_sub])
+  have htotal : hsimple.integ ≤ (8 : EReal) := by
+    rw [hinteg]
+    rw [Fin.sum_univ_succ]
+    calc
+      (c ⟨0, by omega⟩ * Lebesgue_measure (E ⟨0, by omega⟩) +
+          ∑ i : Fin n, c i.succ * Lebesgue_measure (E i.succ))
+          ≤ ((1 / (n : ℝ) : ℝ) : EReal) + ((3 * (1 - 1 / ((n + 1 : ℕ) : ℝ)) : ℝ) : EReal) := by
+            exact add_le_add hterm0 hbsum
+      _ ≤ ((8 : ℝ) : EReal) := by
+            have h1 : ((1 / (n : ℝ) : ℝ) : EReal) ≤ ((1 : ℝ) : EReal) := by
+              rw [EReal.coe_le_coe_iff]
+              exact div_le_one_of_le₀ (by exact_mod_cast hn) (by exact_mod_cast (Nat.zero_le n))
+            have h2 : ((3 * (1 - 1 / ((n + 1 : ℕ) : ℝ)) : ℝ) : EReal) ≤ ((3 : ℝ) : EReal) := by
+              rw [EReal.coe_le_coe_iff]
+              have hle : 1 - 1 / ((n + 1 : ℕ) : ℝ) ≤ 1 :=
+                sub_le_self (1 : ℝ) (by positivity)
+              exact mul_le_of_le_one_right (by norm_num) hle
+            have h34 : ((1 : ℝ) : EReal) + ((3 : ℝ) : EReal) ≤ ((8 : ℝ) : EReal) := by
+              rw [← EReal.coe_add]
+              rw [EReal.coe_le_coe_iff]
+              norm_num
+            exact le_trans (add_le_add h1 h2) h34
+  exact le_trans hU_le htotal
+
+/-- The target Decidable is FALSE: apply isFalse. -/
+theorem eq_lim_vert_trunc_upper_isFalse : ¬ (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f),
+    Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (UpperUnsignedLebesgueIntegral f))) := by
+  intro h
+  have hinst : Filter.atTop.Tendsto (fun n : ℕ =>
+      UpperUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n)) (nhds ⊤) := by
+    simpa [f_inv_sqrt_upper] using h 1 f_inv_sqrt f_inv_sqrt_measurable
+  have htop_seq : ∀ z : ℝ, ∀ᶠ n : ℕ in atTop, (z : EReal) <
+      UpperUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n) := by
+    intro z
+    have hmem : Set.Ioi (z : EReal) ∈ 𝓝 (⊤ : EReal) := by
+      exact (EReal.mem_nhds_top_iff).mpr ⟨z, fun y hy => hy⟩
+    simpa using (hinst.eventually hmem)
+  rcases f_inv_sqrt_trunc_upper_bounded with ⟨c, hc_lt_top, hbounded⟩
+  obtain ⟨z, hc_lt_z⟩ : ∃ z : ℝ, c < (z : EReal) := by
+    cases c with
+    | bot => exact ⟨0, EReal.bot_lt_coe 0⟩
+    | coe r => exact ⟨r + 1, by rw [EReal.coe_lt_coe_iff]; linarith⟩
+    | top => exact False.elim (not_lt_of_ge le_top hc_lt_top)
+  have hev := htop_seq z
+  rw [eventually_atTop] at hev
+  rcases hev with ⟨N, hN⟩
+  let n0 : ℕ := max N 1
+  have hn0_N : N ≤ n0 := le_max_left N 1
+  have hn0_ge1 : 1 ≤ n0 := le_max_right N 1
+  have hs_gt : (z : EReal) < UpperUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n0) :=
+    hN n0 hn0_N
+  have hs_le : UpperUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n0) ≤ c :=
+    hbounded n0 hn0_ge1
+  exact (lt_irrefl (z : EReal)) (lt_trans hs_gt (lt_of_le_of_lt hs_le hc_lt_z))
+
+
+def UpperUnsignedLebesgueIntegral.eq_lim_vert_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (UpperUnsignedLebesgueIntegral f))) := by
+  apply isFalse
+  exact eq_lim_vert_trunc_upper_isFalse
 
 /-- If an EReal value is bounded above by r over n+1 for every n, then it is nonpositive. -/
 private lemma le_of_forall_nat_div_ereal {a : EReal} {r : ℝ} (hr : 0 ≤ r)
