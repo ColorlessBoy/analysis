@@ -2045,9 +2045,92 @@ theorem UnsignedLebesgueIntegral.unique {d:ℕ} (integ: (EuclideanSpace' d → E
   (hhoriz: ∀ f (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (integ f)))
   : ∀ f, UnsignedMeasurable f → integ f = UnsignedLebesgueIntegral f := by sorry
 
-/-- Exercise 1.3.15 (Translation invariance). -/
+/-- Translating a simple function by a is still simple: translate the atoms. -/
+lemma simple_translate {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (a : EuclideanSpace' d) :
+    UnsignedSimpleFunction (fun x => g (x + a)) := by
+  obtain ⟨k, c, E, ⟨hmes, heq⟩⟩ := hg
+  use k, c, (fun i => E i + {-a})
+  constructor
+  · intro i
+    exact ⟨(LebesgueMeasurable.translate (E i) (-a)).mp (hmes i).1, (hmes i).2⟩
+  · funext x
+    rw [heq]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    have hmem : x + a ∈ E i ↔ x ∈ E i + {-a} := by simp
+    have hind : EReal.indicator (E i) (x + a) = EReal.indicator (E i + {-a}) x := by
+      by_cases h : x + a ∈ E i
+      · rw [EReal.indicator_of_mem h, EReal.indicator_of_mem (hmem.mp h)]
+      · rw [EReal.indicator_of_notMem h, EReal.indicator_of_notMem (mt hmem.mpr h)]
+    rw [hind]
+
+/-- Translating a simple function preserves its integral. -/
+lemma integral_translate {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (a : EuclideanSpace' d) : (simple_translate hg a).integ = hg.integ := by
+  obtain ⟨k, c, E, ⟨hmes, heq⟩⟩ := hg
+  have hg' : UnsignedSimpleFunction g := ⟨k, c, E, ⟨hmes, heq⟩⟩
+  have hsimple : (fun x => g (x + a)) = ∑ i, (c i) • (EReal.indicator (E i + {-a})) := by
+    funext x
+    rw [heq]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    have hmem : x + a ∈ E i ↔ x ∈ E i + {-a} := by simp
+    have hind : EReal.indicator (E i) (x + a) = EReal.indicator (E i + {-a}) x := by
+      by_cases h : x + a ∈ E i
+      · rw [EReal.indicator_of_mem h, EReal.indicator_of_mem (hmem.mp h)]
+      · rw [EReal.indicator_of_notMem h, EReal.indicator_of_notMem (mt hmem.mpr h)]
+    rw [hind]
+  have h1 : (simple_translate hg' a).integ = ∑ i, c i * Lebesgue_measure (E i + {-a}) :=
+    UnsignedSimpleFunction.integral_eq (simple_translate hg' a) (k := k) (c := c)
+      (E := fun i => E i + {-a})
+      (hmes := fun i => (LebesgueMeasurable.translate (E i) (-a)).mp (hmes i).1)
+      (hnonneg := fun i => (hmes i).2) (heq := hsimple)
+  have h2 : hg'.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+    UnsignedSimpleFunction.integral_eq hg' (k := k) (c := c) (E := E)
+      (hmes := fun i => (hmes i).1) (hnonneg := fun i => (hmes i).2) (heq := heq)
+  calc
+    (simple_translate hg' a).integ = ∑ i, c i * Lebesgue_measure (E i + {-a}) := h1
+    _ = ∑ i, c i * Lebesgue_measure (E i) := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [Lebesgue_measure.translate (-a) (hmes i).1]
+    _ = hg'.integ := h2.symm
+
+/-- Exercise 1.3.15 (Translation invariance)-/
 theorem UnsignedLebesgueIntegral.trans {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (a: EuclideanSpace' d) :
-    UnsignedLebesgueIntegral (fun x ↦ f (x + a)) = hf.integ := by sorry
+    UnsignedLebesgueIntegral (fun x ↦ f (x + a)) = hf.integ := by
+  change LowerUnsignedLebesgueIntegral (fun x => f (x + a)) = LowerUnsignedLebesgueIntegral f
+  unfold LowerUnsignedLebesgueIntegral
+  apply le_antisymm
+  · apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hle : ∀ x, g x ≤ f (x + a) := fun x => (hcond x).1
+    have hReq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    refine le_sSup ?_
+    refine ⟨fun x => g (x + (-a)), simple_translate hg (-a), ?_⟩
+    intro x
+    constructor
+    · calc
+        g (x + (-a)) ≤ f ((x + (-a)) + a) := hle (x + (-a))
+        _ = f x := by simp
+    · exact (integral_translate hg (-a)).symm
+  · apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hle : ∀ x, g x ≤ f x := fun x => (hcond x).1
+    have hReq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    refine le_sSup ?_
+    refine ⟨fun x => g (x + a), simple_translate hg a, ?_⟩
+    intro x
+    constructor
+    · exact hle (x + a)
+    · exact (integral_translate hg a).symm
 
 /-- Exercise 1.3.16 (Linear change of variables). -/
 theorem UnsignedLebesgueIntegral.comp_linear {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) (hA: A.det ≠ 0) :

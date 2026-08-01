@@ -981,6 +981,25 @@
       "status": "success",
       "notes": "all 5 sorries: measure_Ioo_zero via Box Ioo + elementary measure; f_inv_sq_measurable via TFAE level sets (intervals); f_inv_sq_integral via M^2*1_(0,1/M) simple functions, L f >= M for all M, then EReal cases",
       "end": "2026-08-01T22:24:49.728915"
+    },
+    {
+      "id": 62,
+      "theorem": "trans_proof",
+      "file": "_temp_133_trans.lean",
+      "goal": "fill 3 sorries: simple_translate, integral_translate, trans_proof (translation invariance of unsigned integral)",
+      "start": "2026-08-01T22:32:26.057912",
+      "attempts": [
+        {
+          "edit": "final: all 3 proofs done, 0 errors 0 warnings",
+          "errors_before": 4,
+          "errors_after": 0,
+          "excerpt": "diagnostics clean",
+          "time": "2026-08-01T22:40:30.019807"
+        }
+      ],
+      "status": "success",
+      "notes": "translation invariance via simple_translate (E i + {-a} atoms) + integral_translate (integral_eq calc) + trans_proof (sSup_le/le_sSup on LowerUnsignedLebesgueIntegral raw defs)",
+      "end": "2026-08-01T22:40:30.058007"
     }
   ]
 }
