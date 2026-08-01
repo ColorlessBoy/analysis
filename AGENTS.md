@@ -48,7 +48,22 @@ ANYTHING ELSE                                → dispatch lean-prover subagent.
 | Read files | Read tool | `cat`/`head`/`tail` |
 | Simple probes (`#check`/`#find`/`#eval`) | Write into temp file + read diagnostics (LSP cache is fast) | MCP round-trips |
 
-`lake build` only at: cold start, after new `import`, final quality gate.
+`lake build` only at: cold start, after new `import`.
+
+### Rebuild gate (mandatory, MCP-only)
+
+After the main thread pastes a PROOF_BLOCK into the real file and diagnostics are clean
+(0 errors, 0 warnings), run the **lean-lsp MCP rebuild** once as the final quality gate
+before committing:
+
+- `lean_build` (lean-lsp MCP, the `lsp_buildArguments` tool) — NOT `lake build` in a
+  terminal. MCP rebuild restarts the LSP on the freshly built olean files, so the
+  subsequent diagnostics reflect the real build.
+- After the rebuild, re-run `lean_diagnostic_messages(real file)` once to confirm 0
+  errors / 0 warnings, then commit.
+- **Subagents NEVER rebuild.** Their whole loop is LSP diagnostics on the temp file;
+  a rebuild adds nothing there. Rebuilding is exclusively the main thread's job, once,
+  after integration. This keeps subagent cycles fast (no repeated 60s builds).
 
 ### Warning hygiene (ALL warnings/errors must be fixed)
 
@@ -87,6 +102,7 @@ finished processing yet. Do NOT proceed to editing based on partial results.
 | Ask subagent to decompose a big proof | Main thread decomposes BEFORE dispatch |
 | Any warning/error returned in PROOF_BLOCK | 0 errors AND 0 warnings (fix unused binders via `_hf` renames, simp-arg warnings, docstrings) |
 | MCP round-trips for `#check`/`#find`/`#eval` | Write probes in the temp file, read its LSP cache |
+| Subagent runs `lean_build`/`lake build` | LSP diagnostics loop only; rebuild is main-thread-only, once, post-integration |
 
 ## Experience DB & Failure Tracking
 

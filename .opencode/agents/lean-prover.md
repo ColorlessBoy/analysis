@@ -69,7 +69,10 @@ If errors stay the same or decrease, continue.
 - `lean_diagnostic_messages(temp_file, timeout_s=30)` — ALWAYS with timeout
 - If `partial: true` appears, poll again with `timeout_s=30`. Do NOT proceed.
 - `lean_goal(temp_file, line, timeout_s=30)` — same timeout rule.
-- Do NOT use `lake build`. LSP only.
+- **NEVER run `lean_build` or `lake build`.** Your verification loop IS the LSP
+  diagnostics on the small temp file. The main thread rebuilds the real file (via the
+  lean-lsp MCP rebuild) exactly once after integrating your PROOF_BLOCK — a rebuild
+  during your trial-and-error loop adds nothing but 60s of waiting per cycle.
 
 ## PHASE 2: Decomposition for proofs > 30 lines
 

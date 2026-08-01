@@ -32,7 +32,9 @@ Report back: STATUS / THEOREM / TEMP_FILE / PROOF_BLOCK / NOTES.
 1. Temp file only; never edit the real file. Temp file stays MINIMAL
    (imports + one theorem) so diagnostics stay small.
 2. LSP loop: `lean_goal` → edit → `lean_diagnostic_messages` → fix FIRST
-   error only → repeat until 0 errors.
+   error only → repeat until 0 errors. NEVER run `lean_build`/`lake build` — the
+   LSP diagnostics loop is your verification; the main thread runs the MCP rebuild
+   once after integration.
 3. No signature changes. Only the proof body after `:= by`.
 4. `lean_local_search` before using any lemma name. For simple probes
    (`#check`/`#find`/`#eval`) write them in the temp file and read its LSP cache —
