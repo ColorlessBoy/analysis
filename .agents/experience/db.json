@@ -384,6 +384,34 @@
       "tactics": "measure_ball_limit+tendsto_ball_mul+tendsto_sum_of_nonneg; tendsto_atTop_iSup; sSup_le/iSup_mono/le_sSup; ball_subset_ball+ind_nonneg+by_cases indicators",
       "description": "horizontal truncation MCT mirrors vertical; key gotcha: iUnion binder defaults to \u211d, annotate (\u22c3 n : \u2115, ...)",
       "time": "2026-08-01T19:24:23.565936"
+    },
+    {
+      "theorem": "markov_inequality_proof+ae_finite_proof+eq_zero_aeZero_proof",
+      "file": "_temp_133_markov.lean",
+      "tactics": "rw[le_div_iff\u2080-style via inv]; le_of_forall_nat_div_ereal helper; AlmostAlways.countable; integral_eq_integral_of_aeEqual",
+      "description": "Markov via simple t*1_E + EReal coe_inv arithmetic; ae_finite via r/(n+1) bound; eq_zero via 1/(n+1) null sets",
+      "time": "2026-08-01T19:56:48.035088"
+    },
+    {
+      "theorem": "eq_upperIntegral_proof",
+      "file": "_temp_133_eq_upper.lean",
+      "tactics": "le_antisymm; le_sInf+sSup_le; uniform approx sandwich g1=max(g-eps,0), g2=(g+eps)*1_supp; hcalc via simp[\u2190coe_mul]+change+ring_nf; le_of_forall_nat_div_ereal; EReal.sub_nonpos.mp",
+      "description": "Eq 1.3.11: lower=upper integral via uniform-approximation sandwich with eps=1/(m+1) limit",
+      "time": "2026-08-01T20:44:29.130477"
+    },
+    {
+      "theorem": "add_of_finiteSupport_proof",
+      "file": "_temp_133_finsupp.lean",
+      "tactics": "le_antisymm; eq_lim_vert_trunc; eq_upperIntegral sandwich; upperIntegral_mono+subadditive; le_of_tendsto+Eventually.of_forall; min_add_le 4-case by_cases; bounded_min_const via abs_def+ofReal_natCast; supp via mono+finite_union_le+add_lt_top",
+      "description": "L additivity for finite-support: vertical truncation sandwich; avoided EReal.continuousAt_add by bounding L(min f n)\u2264L f pointwise and using add_le_add",
+      "time": "2026-08-01T21:05:58.832374"
+    },
+    {
+      "theorem": "reflect_sorries",
+      "file": "_temp_133_reflect.lean",
+      "tactics": "eq_bot_or_bot_lt,eq_top_or_lt_top,EReal.coe_toReal,EReal.bot_lt_zero,ENNReal.ofReal_le_ofReal,le_antisymm+calc,sInf_le,le_sInf",
+      "description": "Reflection + outer-measure-integral proofs; EReal abs monotonicity via finite-case reduction",
+      "time": "2026-08-01T21:21:45.598219"
     }
   ],
   "errors": [

@@ -855,6 +855,99 @@
       "status": "success",
       "notes": "all 5 sorries proved; helpers ball_measurable, ball_measure_lt_top, tendsto_ball_mul, mul_indicator_eq_sum_atomValueEReal; final 0 errors 0 warnings",
       "end": "2026-08-01T19:24:23.528032"
+    },
+    {
+      "id": 54,
+      "theorem": "markov_inequality_proof",
+      "file": "_temp_133_markov.lean",
+      "goal": "6 sorries: lowerIntegral_const_indicator, upperIntegral_simple, upperIntegral_mono, level_ge_measurable, markov_inequality_proof, ae_finite_proof, eq_zero_aeZero_proof",
+      "start": "2026-08-01T19:34:43.570256",
+      "attempts": [
+        {
+          "edit": "markov proof done",
+          "errors_before": 7,
+          "errors_after": 2,
+          "excerpt": "first 4 + markov compile; only ae_finite + eq_zero left",
+          "time": "2026-08-01T19:50:08.004771"
+        }
+      ],
+      "status": "success",
+      "notes": "all 6 sorries proved; final file 0 errors 0 warnings",
+      "end": "2026-08-01T19:56:48.004892"
+    },
+    {
+      "id": 55,
+      "theorem": "eq_upperIntegral_proof",
+      "file": "_temp_133_eq_upper.lean",
+      "goal": "simple_max_sub_const + supp_measurable + eq_upperIntegral_proof",
+      "start": "2026-08-01T20:09:13.420731",
+      "attempts": [],
+      "status": "success",
+      "notes": "All 3 sorries: simple_max_sub_const (atom-refinement copy of min_eq_sum_atomValueEReal), supp_measurable (TFAE .out 0 4), eq_upperIntegral_proof (PART1 le_sInf/sSup_le + PART2 eps-sandwich with UniformConvergesTo + EReal.sub_le_of_le_add' + local le_of_forall_nat_div_ereal limit)",
+      "end": "2026-08-01T20:44:29.096703"
+    },
+    {
+      "id": 56,
+      "theorem": "add_of_finiteSupport_proof",
+      "file": "_temp_133_finsupp.lean",
+      "goal": "prove min_add_le, supp_min_subset, supp_add_subset, add_of_finiteSupport_proof (L additivity for finite-support unsigned measurable)",
+      "start": "2026-08-01T20:50:04.633679",
+      "attempts": [],
+      "status": "fail",
+      "notes": "session died, no edits made",
+      "end": "2026-08-01T20:52:45.340037"
+    },
+    {
+      "id": 57,
+      "theorem": "add_of_finiteSupport_proof",
+      "file": "_temp_133_finsupp.lean",
+      "goal": "4 sorries: min_add_le, supp_min_subset, supp_add_subset, add_of_finiteSupport_proof",
+      "start": "2026-08-01T20:55:55.249995",
+      "attempts": [],
+      "status": "success",
+      "notes": "min_add_le via 4-case by_cases on (n:EReal)\u2264f x/g x with min_eq_left/right + le_add_of_nonneg; supp lemmas via simp/by_cases; main proof: eq_lim_vert_trunc + eq_upperIntegral sandwich, le_of_tendsto with hle_n' (no continuousAt_add needed \u2014 used mono L(min f n)\u2264L f + add_le_add instead); bounded_min_const via EReal.abs_def+ENNReal.ofReal_natCast; supp_fg_fin via finite_union_le+add_lt_top",
+      "end": "2026-08-01T21:05:58.798696"
+    },
+    {
+      "id": 58,
+      "theorem": "reflect_sorries",
+      "file": "_temp_133_reflect.lean",
+      "goal": "prove bounded_of_nonneg_le, supp_subset_of_le, sum_of_reflect_eq_proof, eq_outer_measure_integral_proof",
+      "start": "2026-08-01T21:11:02.023586",
+      "attempts": [],
+      "status": "success",
+      "notes": "all 4 sorries proven: bounded_of_nonneg_le (EReal case split via eq_bot_or_bot_lt/eq_top_or_lt_top + coe_toReal), supp_subset_of_le (+hf0), sum_of_reflect_eq (calc sandwich), eq_outer_measure_integral (sInf_le/le_sInf + integral_indicator)",
+      "end": "2026-08-01T21:21:45.567713"
+    },
+    {
+      "id": 59,
+      "theorem": "integ_eq_L_bounded",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_133_unique.lean",
+      "goal": "prove integ_mono, integ_eq_L_bounded, unique_proof",
+      "start": "2026-08-01T21:27:28.480421",
+      "attempts": [],
+      "status": "fail",
+      "notes": "session died before edits; integ_mono crux unresolved",
+      "end": "2026-08-01T21:34:15.274071"
+    },
+    {
+      "id": 60,
+      "theorem": "ae_finite_no_converse_proof",
+      "file": "_temp_133_no_converse.lean",
+      "goal": "5 sorries: measure_Ioo_zero, f_inv_sq_measurable, f_inv_sq_finite, f_inv_sq_integral, ae_finite_no_converse_proof",
+      "start": "2026-08-01T21:35:08.894570",
+      "attempts": [
+        {
+          "edit": "initial read of temp file",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "read file, started exploration",
+          "time": "2026-08-01T21:35:53.414130"
+        }
+      ],
+      "status": "fail",
+      "notes": "session died after reading temp file",
+      "end": "2026-08-01T21:46:25.944426"
     }
   ]
 }
