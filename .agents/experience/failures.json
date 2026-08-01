@@ -948,6 +948,39 @@
       "status": "fail",
       "notes": "session died after reading temp file",
       "end": "2026-08-01T21:46:25.944426"
+    },
+    {
+      "id": 61,
+      "theorem": "ae_finite_no_converse_proof",
+      "file": "_temp_133_no_converse.lean",
+      "goal": "5 sorries: measure_Ioo_zero, f_inv_sq, f_inv_sq_measurable, f_inv_sq_finite, f_inv_sq_integral, ae_finite_no_converse_proof",
+      "start": "2026-08-01T22:03:19.914886",
+      "attempts": [
+        {
+          "edit": "measure_Ioo_zero, f_inv_sq_finite, ae_finite_no_converse_proof done; 2 sorries left",
+          "errors_before": 5,
+          "errors_after": 2,
+          "excerpt": "only f_inv_sq_measurable + f_inv_sq_integral remain",
+          "time": "2026-08-01T22:11:44.678503"
+        },
+        {
+          "edit": "f_inv_sq_measurable done; adding f_inv_sq_integral",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "only f_inv_sq_integral left",
+          "time": "2026-08-01T22:21:04.812126"
+        },
+        {
+          "edit": "all 5 sorries proved; final diagnostics 0 errors 0 warnings",
+          "errors_before": 2,
+          "errors_after": 0,
+          "excerpt": "final file compiles clean",
+          "time": "2026-08-01T22:24:49.696937"
+        }
+      ],
+      "status": "success",
+      "notes": "all 5 sorries: measure_Ioo_zero via Box Ioo + elementary measure; f_inv_sq_measurable via TFAE level sets (intervals); f_inv_sq_integral via M^2*1_(0,1/M) simple functions, L f >= M for all M, then EReal cases",
+      "end": "2026-08-01T22:24:49.728915"
     }
   ]
 }

@@ -412,6 +412,13 @@
       "tactics": "eq_bot_or_bot_lt,eq_top_or_lt_top,EReal.coe_toReal,EReal.bot_lt_zero,ENNReal.ofReal_le_ofReal,le_antisymm+calc,sInf_le,le_sInf",
       "description": "Reflection + outer-measure-integral proofs; EReal abs monotonicity via finite-case reduction",
       "time": "2026-08-01T21:21:45.598219"
+    },
+    {
+      "theorem": "ae_finite_no_converse_proof",
+      "file": "_temp_133_no_converse.lean",
+      "tactics": "box machinery (Box with Ioo side, IsElementary.measure_of_box, elementary) for measure of (0,a); TFAE .out 4 0 level sets = preimages of open intervals; simple functions M^2*1_(0,1/M) with le_sSup, lowerIntegral_const_indicator, EReal cases for = top",
+      "description": "counterexample f=1/x^2 on (0,1): finite everywhere but lower integral = top, via M^2-indicators on (0,1/M) with integral M",
+      "time": "2026-08-01T22:26:13.863093"
     }
   ],
   "errors": [

@@ -2229,7 +2229,289 @@ theorem UnsignedLebesgueIntegral.ae_finite {d:ℕ} {f: EuclideanSpace' d → ERe
   change Lebesgue_outer_measure {x | f x = ⊤} = 0
   exact hμ0'
 
-theorem UnsignedLebesgueIntegral.ae_finite_no_converse : ∃ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f) (hfin: AlmostAlways (fun x ↦ f x < ⊤)), UnsignedLebesgueIntegral f = ⊤ := by sorry
+/-- The measure of the preimage of (0,a) under the coordinate projection is a. -/
+lemma measure_Ioo_zero {a : ℝ} (ha : 0 ≤ a) :
+    Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a) = (a : EReal) := by
+  let B : Box 1 := (BoundedInterval.Ioo (0 : ℝ) a : Box 1)
+  have hset : EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a = B.toSet := by
+    rw [BoundedInterval.coe_of_box]
+    ext x
+    simp only [Set.mem_preimage, Set.mem_image]
+    constructor
+    · intro hx
+      exact ⟨EuclideanSpace'.equiv_Real x, hx, EuclideanSpace'.equiv_Real.symm_apply_apply x⟩
+    · rintro ⟨y, hy, hxy⟩
+      have hyx : EuclideanSpace'.equiv_Real x = y := by
+        rw [← hxy]
+        exact EuclideanSpace'.equiv_Real.apply_symm_apply y
+      rw [hyx]
+      simpa using hy
+  have hvol : |B|ᵥ = a := by
+    rw [Box.volume_of_interval]
+    simp [BoundedInterval.length, ha]
+  have h_elem : IsElementary B.toSet := IsElementary.box B
+  rw [Lebesgue_measure, hset]
+  calc
+    Lebesgue_outer_measure B.toSet = ↑h_elem.measure :=
+      Lebesgue_outer_measure.elementary B.toSet h_elem
+    _ = (a : EReal) := by
+      have hmeas : h_elem.measure = a := by
+        calc
+          h_elem.measure = ∑ B' ∈ ({B} : Finset (Box 1)), |B'|ᵥ :=
+            h_elem.measure_eq (by simp) (by simp)
+          _ = |B|ᵥ := by simp
+          _ = a := hvol
+      exact_mod_cast hmeas
+
+/-- f(x) = 1/x^2 on (0,1), 0 elsewhere: finite everywhere with infinite lower integral. -/
+noncomputable def f_inv_sq : EuclideanSpace' 1 → EReal :=
+  fun x => if (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1 then
+    ((1 : ℝ) / (EuclideanSpace'.equiv_Real x) ^ 2 : ℝ) else 0
+
+/-- f is nonnegative. -/
+lemma f_inv_sq_nonneg : Unsigned f_inv_sq := by
+  intro x
+  unfold f_inv_sq
+  by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+  · rw [if_pos hx]
+    exact EReal.coe_nonneg.mpr (div_nonneg zero_le_one (sq_nonneg _))
+  · rw [if_neg hx]
+
+/-- f is finite everywhere. -/
+lemma f_inv_sq_finite : ∀ x : EuclideanSpace' 1, f_inv_sq x < ⊤ := by
+  intro x
+  unfold f_inv_sq
+  by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+  · rw [if_pos hx]
+    exact EReal.coe_lt_top _
+  · rw [if_neg hx]
+    exact EReal.coe_lt_top (0 : ℝ)
+
+/-- The preimage of (0,b) under the coordinate projection is the box with side (0,b). -/
+lemma Ioo_preimage_eq_box (b : ℝ) :
+    EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) b = (BoundedInterval.Ioo (0 : ℝ) b : Box 1).toSet := by
+  rw [BoundedInterval.coe_of_box]
+  ext x
+  simp only [Set.mem_preimage, Set.mem_image]
+  constructor
+  · intro hx
+    exact ⟨EuclideanSpace'.equiv_Real x, hx, EuclideanSpace'.equiv_Real.symm_apply_apply x⟩
+  · rintro ⟨y, hy, hxy⟩
+    have hyx : EuclideanSpace'.equiv_Real x = y := by
+      rw [← hxy]
+      exact EuclideanSpace'.equiv_Real.apply_symm_apply y
+    rw [hyx]
+    simpa using hy
+
+/-- The preimage of (0,b) under the coordinate projection is Lebesgue measurable. -/
+lemma measurable_Ioo_preimage (b : ℝ) :
+    LebesgueMeasurable (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) b) := by
+  rw [Ioo_preimage_eq_box]
+  exact Jordan_measurable.lebesgue (IsElementary.jordanMeasurable (IsElementary.box _))
+
+/-- For u > 0 and r > 0: 1/u^2 > r iff u < sqrt(1/r). -/
+lemma sq_inv_gt_iff {r : ℝ} (hr : 0 < r) {u : ℝ} (hu : 0 < u) :
+    (r : EReal) < ((1 / u ^ 2 : ℝ) : EReal) ↔ u < Real.sqrt (1 / r) := by
+  rw [EReal.coe_lt_coe_iff]
+  rw [lt_div_iff₀ (sq_pos_of_pos hu)]
+  rw [mul_comm]
+  rw [← lt_div_iff₀ hr]
+  exact (Real.lt_sqrt (le_of_lt hu)).symm
+
+/-- f is unsigned measurable, via TFAE level sets. -/
+lemma f_inv_sq_measurable : UnsignedMeasurable f_inv_sq := by
+  have h5 : ∀ t : EReal, LebesgueMeasurable {x | f_inv_sq x > t} := by
+    intro t
+    by_cases ht : t = ⊤
+    · have hset : {x | f_inv_sq x > t} = (∅ : Set (EuclideanSpace' 1)) := by
+        ext x
+        rw [ht]
+        constructor
+        · intro h
+          change f_inv_sq x > ⊤ at h
+          exact (not_lt_of_ge le_top) (gt_iff_lt.mp h)
+        · intro h
+          simp at h
+      rw [hset]
+      exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' 1)))
+    · cases t with
+      | bot =>
+          have hset : {x | f_inv_sq x > (⊥ : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+            ext x
+            simp only [gt_iff_lt, Set.mem_univ, iff_true]
+            exact lt_of_lt_of_le (EReal.bot_lt_coe (0 : ℝ)) (f_inv_sq_nonneg x)
+          rw [hset]
+          exact isOpen_univ.measurable
+      | coe r =>
+          by_cases hr : r < 0
+          · have hset : {x | f_inv_sq x > (r : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+              ext x
+              simp only [gt_iff_lt, Set.mem_univ, iff_true]
+              exact lt_of_lt_of_le (EReal.coe_lt_coe_iff.mpr hr) (f_inv_sq_nonneg x)
+            rw [hset]
+            exact isOpen_univ.measurable
+          · have hr0 : 0 ≤ r := le_of_not_gt hr
+            by_cases hrz : r = 0
+            · have hset : {x | f_inv_sq x > (r : EReal)} = EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) 1 := by
+                ext x
+                rw [hrz]
+                simp only [gt_iff_lt, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_Ioo]
+                unfold f_inv_sq
+                by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+                · rw [if_pos hx]
+                  constructor
+                  · intro _
+                    exact hx
+                  · intro _
+                    exact EReal.coe_lt_coe_iff.mpr (div_pos zero_lt_one (sq_pos_of_pos hx.1))
+                · rw [if_neg hx]
+                  constructor
+                  · intro h
+                    exact False.elim (lt_irrefl (0 : EReal) h)
+                  · intro h
+                    exact False.elim (hx h)
+              rw [hset]
+              exact measurable_Ioo_preimage 1
+            · have hrpos : 0 < r := lt_of_le_of_ne hr0 (Ne.symm hrz)
+              let c : ℝ := min 1 (Real.sqrt (1 / r))
+              have hset : {x | f_inv_sq x > (r : EReal)} = EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) c := by
+                ext x
+                simp only [gt_iff_lt, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_Ioo]
+                unfold f_inv_sq
+                by_cases hx : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+                · rw [if_pos hx]
+                  rw [sq_inv_gt_iff hrpos hx.1]
+                  constructor
+                  · intro h
+                    exact ⟨hx.1, lt_min hx.2 h⟩
+                  · intro h
+                    exact lt_of_lt_of_le h.2 (min_le_right 1 (Real.sqrt (1 / r)))
+                · rw [if_neg hx]
+                  constructor
+                  · intro h
+                    exact False.elim (not_lt_of_ge (EReal.coe_le_coe_iff.mpr hrpos.le) h)
+                  · intro h
+                    exact False.elim (hx ⟨h.1, lt_of_lt_of_le h.2 (min_le_left 1 (Real.sqrt (1 / r)))⟩)
+              rw [hset]
+              exact measurable_Ioo_preimage c
+      | top =>
+          exact False.elim (ht rfl)
+  exact ((UnsignedMeasurable.TFAE f_inv_sq_nonneg).out 4 0
+    (a := ∀ t : EReal, LebesgueMeasurable {x | f_inv_sq x > t})
+    (b := UnsignedMeasurable f_inv_sq)).mp h5
+
+/-- The lower integral of f is top: for each M the simple function M^2 times the
+    indicator of (0,1/M) lies below f and has integral M. -/
+lemma f_inv_sq_integral : LowerUnsignedLebesgueIntegral f_inv_sq = ⊤ := by
+  have hL_ge : ∀ M : ℕ, 1 ≤ M → ((M : ℝ) : EReal) ≤ LowerUnsignedLebesgueIntegral f_inv_sq := by
+    intro M hM
+    let a_M : ℝ := (M : ℝ)⁻¹
+    let E : Set (EuclideanSpace' 1) := EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a_M
+    let g : EuclideanSpace' 1 → EReal :=
+      fun x => (((M : ℝ) ^ 2 : ℝ) : EReal) * (Real.toEReal ∘ E.indicator') x
+    have haM : 0 ≤ a_M := inv_nonneg.mpr (by exact_mod_cast (Nat.zero_le M))
+    have hE_meas : LebesgueMeasurable E := by
+      dsimp [E]
+      exact measurable_Ioo_preimage a_M
+    have hg_simple : UnsignedSimpleFunction g := by
+      refine ⟨1, fun _ : Fin 1 => (((M : ℝ) ^ 2 : ℝ) : EReal), fun _ : Fin 1 => E, ?_, ?_⟩
+      · intro i
+        constructor
+        · simpa using hE_meas
+        · exact EReal.coe_nonneg.mpr (sq_nonneg _)
+      · ext x
+        simp [g, smul_eq_mul, EReal.indicator, Real.EReal_fun]
+    have hg_le : ∀ x, g x ≤ f_inv_sq x := by
+      intro x
+      by_cases hx : EuclideanSpace'.equiv_Real x ∈ Set.Ioo (0 : ℝ) a_M
+      · have hx1 : 0 < EuclideanSpace'.equiv_Real x := (Set.mem_Ioo.mp hx).1
+        have hx2 : EuclideanSpace'.equiv_Real x < a_M := (Set.mem_Ioo.mp hx).2
+        have hM1 : (1 : ℝ) ≤ (M : ℝ) := by exact_mod_cast hM
+        have hMpos : 0 < (M : ℝ) := lt_of_lt_of_le zero_lt_one hM1
+        have haM_le_one : a_M ≤ 1 := by
+          dsimp [a_M]
+          exact inv_le_one_of_one_le₀ hM1
+        have hx3 : EuclideanSpace'.equiv_Real x < 1 := lt_of_lt_of_le hx2 haM_le_one
+        have hf_x : f_inv_sq x = (((1 : ℝ) / (EuclideanSpace'.equiv_Real x) ^ 2 : ℝ) : EReal) := by
+          unfold f_inv_sq
+          rw [if_pos ⟨hx1, hx3⟩]
+        have hg_x : g x = (((M : ℝ) ^ 2 : ℝ) : EReal) := by
+          have hgx : g x = (((M : ℝ) ^ 2 : ℝ) : EReal) * EReal.indicator E x := by
+            dsimp [g]
+            simp [EReal.indicator, Real.EReal_fun]
+          rw [hgx]
+          change (((M : ℝ) ^ 2 : ℝ) : EReal) *
+            EReal.indicator (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a_M) x = (((M : ℝ) ^ 2 : ℝ) : EReal)
+          have hx' : x ∈ EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a_M := hx
+          rw [EReal.indicator_of_mem hx', mul_one]
+        have hMx : (M : ℝ) * EuclideanSpace'.equiv_Real x < 1 := by
+          have h' : (M : ℝ) * EuclideanSpace'.equiv_Real x < (M : ℝ) * ((M : ℝ)⁻¹) :=
+            mul_lt_mul_of_pos_left hx2 hMpos
+          rwa [mul_inv_cancel₀ (ne_of_gt hMpos)] at h'
+        have hsq : (M : ℝ) ^ 2 * (EuclideanSpace'.equiv_Real x) ^ 2 < 1 := by
+          nlinarith [hMx, mul_pos hMpos hx1]
+        have hM2_lt : (M : ℝ) ^ 2 < (1 : ℝ) / (EuclideanSpace'.equiv_Real x) ^ 2 :=
+          (lt_div_iff₀ (sq_pos_of_pos hx1)).mpr hsq
+        rw [hg_x, hf_x]
+        exact EReal.coe_le_coe_iff.mpr (le_of_lt hM2_lt)
+      · have hg_x : g x = 0 := by
+          have hgx : g x = (((M : ℝ) ^ 2 : ℝ) : EReal) * EReal.indicator E x := by
+            dsimp [g]
+            simp [EReal.indicator, Real.EReal_fun]
+          rw [hgx]
+          change (((M : ℝ) ^ 2 : ℝ) : EReal) *
+            EReal.indicator (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a_M) x = (0 : EReal)
+          have hx' : x ∉ EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) a_M := hx
+          rw [EReal.indicator_of_notMem hx', mul_zero]
+        rw [hg_x]
+        exact f_inv_sq_nonneg x
+    have hL_eq : LowerUnsignedLebesgueIntegral g = (((M : ℝ) ^ 2 : ℝ) : EReal) * Lebesgue_measure E :=
+      lowerIntegral_const_indicator (d := 1) (c := (M : ℝ) ^ 2) (sq_nonneg _) hE_meas
+    have hinteg_le : LowerUnsignedLebesgueIntegral g ≤ LowerUnsignedLebesgueIntegral f_inv_sq := by
+      rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral hg_simple]
+      unfold LowerUnsignedLebesgueIntegral
+      exact le_sSup ⟨g, hg_simple, fun x => ⟨hg_le x, rfl⟩⟩
+    have hE_measure : Lebesgue_measure E = (a_M : EReal) := by
+      dsimp [E]
+      exact measure_Ioo_zero haM
+    have hMne : (M : ℝ) ≠ 0 := by exact_mod_cast (ne_of_gt (lt_of_lt_of_le zero_lt_one hM))
+    calc
+      ((M : ℝ) : EReal) = (((M : ℝ) ^ 2 : ℝ) : EReal) * (a_M : EReal) := by
+        rw [← EReal.coe_mul]
+        congr 1
+        dsimp [a_M]
+        rw [pow_two, mul_assoc, mul_inv_cancel₀ hMne, mul_one]
+      _ = (((M : ℝ) ^ 2 : ℝ) : EReal) * Lebesgue_measure E := by rw [hE_measure]
+      _ = LowerUnsignedLebesgueIntegral g := hL_eq.symm
+      _ ≤ LowerUnsignedLebesgueIntegral f_inv_sq := hinteg_le
+  have hL_all : ∀ r : ℝ, (r : EReal) < LowerUnsignedLebesgueIntegral f_inv_sq := by
+    intro r
+    by_cases hr : r < 0
+    · have h0 : (0 : EReal) ≤ LowerUnsignedLebesgueIntegral f_inv_sq :=
+        le_trans (by norm_num : (0 : EReal) ≤ ((1 : ℕ) : EReal)) (hL_ge 1 (by norm_num))
+      exact lt_of_lt_of_le (EReal.coe_lt_coe_iff.mpr hr) h0
+    · rcases exists_nat_gt r with ⟨M, hM⟩
+      have hM1 : 1 ≤ M := by
+        have hMpos : 0 < (M : ℝ) := lt_of_le_of_lt (le_of_not_gt hr) hM
+        exact_mod_cast hMpos
+      exact lt_of_lt_of_le (EReal.coe_lt_coe_iff.mpr hM) (hL_ge M hM1)
+  apply le_antisymm le_top
+  cases hc : LowerUnsignedLebesgueIntegral f_inv_sq with
+  | bot =>
+      have hbad : (0 : EReal) < (⊥ : EReal) := by simpa [hc] using hL_all 0
+      exact False.elim ((not_lt_of_ge bot_le) hbad)
+  | coe r =>
+      have hbad : ((r + 1 : ℝ) : EReal) < (r : EReal) := by simpa [hc] using hL_all (r + 1)
+      have hge : (r : EReal) ≤ ((r + 1 : ℝ) : EReal) := by
+        rw [EReal.coe_le_coe_iff]
+        linarith
+      exact False.elim ((not_lt_of_ge hge) hbad)
+  | top => rfl
+
+theorem UnsignedLebesgueIntegral.ae_finite_no_converse : ∃ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f) (_hfin: AlmostAlways (fun x ↦ f x < ⊤)), UnsignedLebesgueIntegral f = ⊤ := by
+  refine ⟨1, f_inv_sq, f_inv_sq_measurable, AlmostAlways.ofAlways f_inv_sq_finite, ?_⟩
+  change LowerUnsignedLebesgueIntegral f_inv_sq = ⊤
+  exact f_inv_sq_integral
 
 /-- Exercise 1.3.18 (iii) -/
 theorem UnsignedLebesgueIntegral.eq_zero_aeZero {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) :
