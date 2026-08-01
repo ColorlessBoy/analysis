@@ -349,6 +349,41 @@
       "tactics": "TFAE shortcuts (.out i j with named a/b); UnsignedMeasurable.TFAE index 0-10; pos/neg+aeLimit; rational interval decomposition; finProdFinEquiv for product sums; LebesgueMeasurable.prod for cylinders; Riemann-Darboux bridging + step function a.e. convergence",
       "description": "All 31 sorries: 13 group A (cts/simple/sup/inf/limsup/liminf via TFAE; aeEqual/comp_cts/add via level sets/sequences; aeLimit via limsupSet; bounded_iff via dyadic floor; iff via Finset.toFinset; measurable_graph via {0\u2264t}\u2229\u22c2_q(H_q\u222aK_q) with LebesgueMeasurable.prod) + 18 group B (Real/ComplexMeasurable.TFAE via 6-edge graphs; Continuous\u00d72/aeEqual\u00d72/comp_cts\u00d72/add\u00d72/sub\u00d72 via TFAE 3; aeLimit\u00d72 via dyadic J_m slabs + IsClosed.mem_of_tendsto; mul\u00d72 via finProdFinEquiv reindexed product sums; riemann via Darboux bridging + upper/lower step seqs + step_diff_ae_null + pcf_lift_RealSimpleFunction). Key gotchas: docstring after open Classical in swallows commands; namespace-shadowing needs _root_; private helpers must be in-file; noncomputable instance needed for Decidable in theorem statement; EReal has no ContinuousAdd (use level sets not Tendsto.add for EReal)",
       "time": "2026-08-01T15:23:42.831343"
+    },
+    {
+      "theorem": "superadditive_proof",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "sSup_add_le_sSup_sum + integral_add + null-set union",
+      "description": "EReal sup-add for nonneg sets via Monotone.map_sSup_of_continuousAt + continuousAt_add; zero fn for nonempty",
+      "time": "2026-08-01T19:06:50.851999"
+    },
+    {
+      "theorem": "subadditive_proof",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "sInf_sum_le_sInf_add + integral_add",
+      "description": "Dual: Monotone.map_sInf_of_continuousAt; const top fn for nonempty",
+      "time": "2026-08-01T19:06:50.882410"
+    },
+    {
+      "theorem": "eq_add_proof",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "simple_mul_indicator + integral_split + sSup_sum_le_sSup_add",
+      "description": "Divisibility via S_f \u2286 S_E + S_Ec containment both ways",
+      "time": "2026-08-01T19:06:50.911852"
+    },
+    {
+      "theorem": "eq_lim_vert_trunc_proof",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "tendsto_atTop_iSup + simple_min_const atoms + tendsto_min_mul",
+      "description": "Vertical trunc = MCT: min(g,n) simple via atom refinement; EReal mul continuity special cases (0,top),(top,0)",
+      "time": "2026-08-01T19:06:50.941899"
+    },
+    {
+      "theorem": "eq_lim_horiz_trunc_proof",
+      "file": "_temp_133_horiz_trunc.lean",
+      "tactics": "measure_ball_limit+tendsto_ball_mul+tendsto_sum_of_nonneg; tendsto_atTop_iSup; sSup_le/iSup_mono/le_sSup; ball_subset_ball+ind_nonneg+by_cases indicators",
+      "description": "horizontal truncation MCT mirrors vertical; key gotcha: iUnion binder defaults to \u211d, annotate (\u22c3 n : \u2115, ...)",
+      "time": "2026-08-01T19:24:23.565936"
     }
   ],
   "errors": [

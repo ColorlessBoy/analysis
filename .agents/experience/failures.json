@@ -829,6 +829,32 @@
       "status": "success",
       "notes": "Full proof: aeLimit via step functions",
       "end": "2026-08-01T15:14:57.015268"
+    },
+    {
+      "id": 53,
+      "theorem": "eq_lim_horiz_trunc_proof",
+      "file": "_temp_133_horiz_trunc.lean",
+      "goal": "5 sorries: ball-indicator measurability/finite-support, measure_ball_limit, ball_integral_limit, eq_lim_horiz_trunc_proof",
+      "start": "2026-08-01T19:07:07.353540",
+      "attempts": [
+        {
+          "edit": "helpers + sorries 1-3",
+          "errors_before": 5,
+          "errors_after": 2,
+          "excerpt": "ball_measurable, ball_measure_lt_top, mul_indicator_ball_proof, finite support, measure_ball_limit compile",
+          "time": "2026-08-01T19:19:17.779159"
+        },
+        {
+          "edit": "tendsto_ball_mul + mul_indicator_eq_sum_atomValueEReal + ball_integral_limit",
+          "errors_before": 2,
+          "errors_after": 1,
+          "excerpt": "all helpers compile",
+          "time": "2026-08-01T19:20:54.277625"
+        }
+      ],
+      "status": "success",
+      "notes": "all 5 sorries proved; helpers ball_measurable, ball_measure_lt_top, tendsto_ball_mul, mul_indicator_eq_sum_atomValueEReal; final 0 errors 0 warnings",
+      "end": "2026-08-01T19:24:23.528032"
     }
   ]
 }

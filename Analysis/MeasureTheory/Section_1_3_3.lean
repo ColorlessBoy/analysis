@@ -1028,8 +1028,311 @@ def UpperUnsignedLebesgueIntegral.eq_lim_vert_trunc : Decidable (∀ (d:ℕ) (f:
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
   sorry
 
-/-- Exercise 1.3.10(ix) (Horizontal truncation). -/
-theorem LowerUnsignedLebesgueIntegral.eq_lim_horiz_trunc {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) : Filter.atTop.Tendsto (fun n:ℕ ↦ LowerUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (LowerUnsignedLebesgueIntegral f)) := by sorry
+/-- The open ball centered at the origin is Lebesgue measurable. -/
+def ball_measurable {d : ℕ} (n : ℕ) :
+    LebesgueMeasurable (Metric.ball (0 : EuclideanSpace' d) n) :=
+  IsOpen.measurable (Metric.isOpen_ball : IsOpen (Metric.ball (0 : EuclideanSpace' d) n))
+
+/-- The measure of the open ball centered at the origin is finite. -/
+lemma ball_measure_lt_top {d : ℕ} (n : ℕ) :
+    Lebesgue_measure (Metric.ball (0 : EuclideanSpace' d) n) < ⊤ := by
+  have hclosure_compact : IsCompact (closure (Metric.ball (0 : EuclideanSpace' d) n)) :=
+    Metric.isCompact_of_isClosed_isBounded isClosed_closure Metric.isBounded_ball.closure
+  have hclosure_fin : Lebesgue_measure (closure (Metric.ball (0 : EuclideanSpace' d) n)) ≠ ⊤ :=
+    Lebesgue_outer_measure.finite_of_compact hclosure_compact
+  have hle_cl : Lebesgue_measure (Metric.ball (0 : EuclideanSpace' d) n) ≤
+      Lebesgue_measure (closure (Metric.ball (0 : EuclideanSpace' d) n)) :=
+    Lebesgue_outer_measure.mono subset_closure
+  have hball_ne : Lebesgue_measure (Metric.ball (0 : EuclideanSpace' d) n) ≠ ⊤ := by
+    intro h_eq_top
+    rw [h_eq_top] at hle_cl
+    exact hclosure_fin (eq_top_iff.mpr hle_cl)
+  exact lt_top_iff_ne_top.mpr hball_ne
+
+/-- Multiplying an unsigned measurable function by a ball indicator preserves measurability.
+    This is a key helper for the horizontal truncation argument in Corollary 1.3.14. -/
+lemma UnsignedMeasurable.mul_indicator_ball {d : ℕ} {f : EuclideanSpace' d → EReal}
+    (hf : UnsignedMeasurable f) (n : ℕ) :
+    UnsignedMeasurable (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') := by
+  constructor
+  · intro x
+    simp [Pi.mul_apply, Function.comp_apply]
+    exact mul_nonneg (hf.1 x) (ind_nonneg (Metric.ball (0 : EuclideanSpace' d) n) x)
+  · rcases hf.2 with ⟨g, hg⟩
+    refine ⟨fun k => g k * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator', ?_, ?_⟩
+    · intro k
+      exact simple_mul_indicator (hg.1 k) (ball_measurable n)
+    · intro x
+      have hmul := EReal.Tendsto.mul_const (m := fun k : ℕ => g k x) (a := f x)
+        (b := Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x))
+        (hg.2 x) (Or.inr (EReal.coe_ne_bot _)) (Or.inr (EReal.coe_ne_top _))
+      simpa [Pi.mul_apply, Function.comp_apply] using hmul
+
+/-- Helper: horizontal truncation produces functions with finite measure support. -/
+lemma FiniteMeasureSupport.mul_indicator_ball {d : ℕ} {f : EuclideanSpace' d → EReal}
+    (n : ℕ) : FiniteMeasureSupport (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') := by
+  unfold FiniteMeasureSupport
+  have hsub : Support (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') ⊆
+      Metric.ball (0 : EuclideanSpace' d) n := by
+    intro x hx
+    by_contra hxball
+    have hx0 : (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') x = 0 := by
+      simp [Pi.mul_apply, Function.comp_apply, Set.indicator'_of_notMem hxball, EReal.coe_zero, mul_zero]
+    exact hx hx0
+  have hle : Lebesgue_measure (Support (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator')) ≤
+      Lebesgue_measure (Metric.ball (0 : EuclideanSpace' d) n) :=
+    Lebesgue_outer_measure.mono hsub
+  exact lt_of_le_of_lt hle (ball_measure_lt_top n)
+
+/-- Helper: the measure of A ∩ ball n converges to the measure of A (balls cover space). -/
+lemma measure_ball_limit {d : ℕ} {A : Set (EuclideanSpace' d)} (hA : LebesgueMeasurable A) :
+    Filter.atTop.Tendsto (fun n : ℕ => Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n)) (nhds (Lebesgue_measure A)) := by
+  have hconv := Lebesgue_measure.upward_monotone_convergence
+    (E := fun n => A ∩ Metric.ball (0 : EuclideanSpace' d) n)
+    (hE := fun n => LebesgueMeasurable.inter hA (ball_measurable n))
+    (hmono := fun n => Set.inter_subset_inter_right A
+      (Metric.ball_subset_ball (by exact_mod_cast (Nat.le_succ n))))
+  have hunion : (⋃ n : ℕ, A ∩ Metric.ball (0 : EuclideanSpace' d) n) = A := by
+    ext x
+    constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hxn⟩
+      exact hxn.1
+    · intro hx
+      rcases exists_nat_gt (‖x‖) with ⟨n, hn⟩
+      rw [Set.mem_iUnion]
+      refine ⟨n, ⟨hx, ?_⟩⟩
+      rw [Metric.mem_ball]
+      simpa [dist_zero_right] using hn
+  simpa [hunion] using hconv
+
+/-- The measure of the intersection with a growing ball, multiplied by a nonnegative
+    constant, converges to the constant times the full measure. -/
+lemma tendsto_ball_mul {d : ℕ} {A : Set (EuclideanSpace' d)} {c : EReal} (hc : 0 ≤ c)
+    (hA : LebesgueMeasurable A) :
+    Tendsto (fun n : ℕ => c * Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n))
+      atTop (𝓝 (c * Lebesgue_measure A)) := by
+  by_cases h₁ : c = 0 ∧ Lebesgue_measure A = ⊤
+  · rcases h₁ with ⟨hc0, hmt⟩
+    apply tendsto_nhds_of_eventually_eq
+    filter_upwards [] with n
+    simp [hc0, hmt]
+  · by_cases h₂ : c = ⊤ ∧ Lebesgue_measure A = 0
+    · rcases h₂ with ⟨hct, hm0⟩
+      have hmₙ0 : ∀ n : ℕ, Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n) = 0 := by
+        intro n
+        apply le_antisymm
+        · have hle : Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n) ≤ Lebesgue_measure A :=
+            Lebesgue_outer_measure.mono (Set.inter_subset_left)
+          simpa [hm0] using hle
+        · exact Lebesgue_outer_measure.nonneg _
+      apply tendsto_nhds_of_eventually_eq
+      filter_upwards [] with n
+      simp [hct, hmₙ0 n, hm0]
+    · have hmn : Tendsto (fun n : ℕ =>
+          Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n)) atTop
+          (𝓝 (Lebesgue_measure A)) := measure_ball_limit hA
+      have h₁' : Lebesgue_measure A ≠ 0 ∨ c ≠ ⊥ :=
+        Or.inr (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hc))
+      have h₂' : Lebesgue_measure A ≠ 0 ∨ c ≠ ⊤ := by
+        by_cases hct : c = ⊤
+        · left
+          intro hm0
+          exact h₂ ⟨hct, hm0⟩
+        · exact Or.inr hct
+      have hmul := EReal.Tendsto.mul_const (m := fun n : ℕ =>
+          Lebesgue_measure (A ∩ Metric.ball (0 : EuclideanSpace' d) n)) (a := Lebesgue_measure A)
+        (b := c) hmn h₁' h₂'
+      simpa [mul_comm] using hmul
+
+/-- The product of a simple function with a set indicator, expressed on the atoms
+    intersected with the set. -/
+lemma mul_indicator_eq_sum_atomValueEReal {d : ℕ} {g : EuclideanSpace' d → EReal}
+    (hg : UnsignedSimpleFunction g) (E₀ : Set (EuclideanSpace' d)) :
+    g * Real.toEReal ∘ E₀.indicator' = ∑ n' : Fin (2^(hg.choose + hg.choose)),
+      atomValueEReal hg.choose_spec.choose n'.val •
+        EReal.indicator (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose n' ∩ E₀) := by
+  let k := hg.choose
+  let c := hg.choose_spec.choose
+  let E := hg.choose_spec.choose_spec.choose
+  have hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0 := hg.choose_spec.choose_spec.choose_spec.1
+  have heq : g = ∑ i, (c i) • (EReal.indicator (E i)) := hg.choose_spec.choose_spec.choose_spec.2
+  let A : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  funext x
+  let n0 : Fin (2^(k+k)) := ⟨atomIndexOf E E x, atomIndexOf_lt E E x⟩
+  have hx_mem : x ∈ A n0 := by
+    simp only [A, atom, Set.mem_setOf_eq, n0]
+    refine ⟨fun j => ?_, fun j => ?_⟩
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E E E x j]
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E' E E x j]
+  have hunique : ∀ m : Fin (2^(k+k)), x ∈ A m → m = n0 := by
+    intro m hm
+    by_contra hne
+    have hdisj : Disjoint (A m) (A n0) := by
+      simpa [A] using atom_pairwiseDisjoint E E (by simp) (by simp) hne
+    exact (Set.disjoint_left.mp hdisj) hm hx_mem
+  have hgx : g x = atomValueEReal c n0.val := by
+    exact (congrFun heq x).trans (by
+      simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using
+        (sum_indicator_eq_atomValueEReal c E E n0 x hx_mem))
+  by_cases hx₀ : x ∈ E₀
+  · have hrhs : (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * EReal.indicator (A n' ∩ E₀) x) =
+        atomValueEReal c n0.val := by
+      rw [Finset.sum_eq_single n0]
+      · simp only [EReal.indicator_of_mem (Set.mem_inter hx_mem hx₀), mul_one]
+      · intro m _ hm_ne
+        have hx_notin : x ∉ A m ∩ E₀ := fun h => hm_ne (hunique m h.1)
+        simp only [EReal.indicator_of_notMem hx_notin, mul_zero]
+      · intro h; exact absurd (Finset.mem_univ n0) h
+    simp only [Pi.mul_apply, Function.comp_apply, Set.indicator'_of_mem hx₀, EReal.coe_one]
+    rw [hgx]
+    simpa [A, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, mul_one] using hrhs.symm
+  · have hrhs : (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * EReal.indicator (A n' ∩ E₀) x) = 0 := by
+      apply Finset.sum_eq_zero
+      intro n' _
+      have hx_notin : x ∉ A n' ∩ E₀ := fun h => hx₀ h.2
+      simp only [EReal.indicator_of_notMem hx_notin, mul_zero]
+    simp only [Pi.mul_apply, Function.comp_apply, Set.indicator'_of_notMem hx₀, EReal.coe_zero]
+    rw [hgx]
+    simpa [A, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using hrhs.symm
+
+/-- Helper: the integral of g times the ball indicator converges to the integral of g.
+    This is the simple horizontal monotone convergence result, mirroring the vertical
+    one with min replaced by the ball indicator. -/
+lemma ball_integral_limit {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) :
+    Tendsto (fun n : ℕ =>
+      (simple_mul_indicator hg (IsOpen.measurable (Metric.isOpen_ball : IsOpen (Metric.ball (0 : EuclideanSpace' d) n)))).integ)
+      atTop (𝓝 (hg.integ)) := by
+  let k := hg.choose
+  let c := hg.choose_spec.choose
+  let E := hg.choose_spec.choose_spec.choose
+  have hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0 := hg.choose_spec.choose_spec.choose_spec.1
+  have heq : g = ∑ i, (c i) • (EReal.indicator (E i)) := hg.choose_spec.choose_spec.choose_spec.2
+  let A : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  let B : ℕ → Set (EuclideanSpace' d) := fun n => Metric.ball (0 : EuclideanSpace' d) n
+  have hA_mes : ∀ n, LebesgueMeasurable (A n) := by
+    intro n
+    simpa [A] using atom_measurable (fun i => (hmes i).1) (fun j => (hmes j).1) n
+  have hB_mes : ∀ n, LebesgueMeasurable (B n) := by
+    intro n
+    exact ball_measurable n
+  have hsum_conv : Tendsto (fun n : ℕ =>
+      ∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n' ∩ B n))
+      atTop (𝓝 (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n'))) := by
+    simpa using tendsto_sum_of_nonneg (s := (Finset.univ : Finset (Fin (2^(k+k)))))
+      (f := fun (n' : Fin (2^(k+k))) (n : ℕ) => atomValueEReal c n'.val * Lebesgue_measure (A n' ∩ B n))
+      (a := fun n' : Fin (2^(k+k)) => atomValueEReal c n'.val * Lebesgue_measure (A n'))
+      (hf := fun n' _ => tendsto_ball_mul (A := A n') (c := atomValueEReal c n'.val)
+        (hc := atomValueEReal_nonneg (fun i => (hmes i).2) n'.val) (hA := hA_mes n'))
+      (ha := fun n' _ => mul_nonneg (atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+        (Lebesgue_outer_measure.nonneg (A n')))
+  have hg_integ : hg.integ = ∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n') := by
+    rw [UnsignedSimpleFunction.integral_eq hg (k := 2^(k+k))
+      (c := fun n' : Fin (2^(k+k)) => atomValueEReal c n'.val) (E := A)
+      (hmes := hA_mes) (hnonneg := fun n' => atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+      (heq := heq.trans (by simpa [A] using eq_sum_atomValueEReal_indicator c E E))]
+  have h_n_integ : ∀ n : ℕ, (simple_mul_indicator hg (hB_mes n)).integ =
+      ∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n' ∩ B n) := by
+    intro n
+    rw [UnsignedSimpleFunction.integral_eq (simple_mul_indicator hg (hB_mes n)) (k := 2^(k+k))
+      (c := fun n' : Fin (2^(k+k)) => atomValueEReal c n'.val)
+      (E := fun n' : Fin (2^(k+k)) => A n' ∩ B n)
+      (hmes := fun n' => LebesgueMeasurable.inter (hA_mes n') (hB_mes n))
+      (hnonneg := fun n' => atomValueEReal_nonneg (fun i => (hmes i).2) n'.val)
+      (heq := by simpa [A, B, k, c, E] using mul_indicator_eq_sum_atomValueEReal hg (B n))]
+  have hmain : Tendsto (fun n : ℕ => (simple_mul_indicator hg (hB_mes n)).integ) atTop
+      (𝓝 (∑ n' : Fin (2^(k+k)), atomValueEReal c n'.val * Lebesgue_measure (A n'))) :=
+    hsum_conv.congr (fun n => (h_n_integ n).symm)
+  rw [hg_integ]
+  exact hmain
+
+/-- Exercise 1.3.10(ix) (Horizontal truncation)-/
+theorem LowerUnsignedLebesgueIntegral.eq_lim_horiz_trunc {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) : Filter.atTop.Tendsto (fun n:ℕ ↦ LowerUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (LowerUnsignedLebesgueIntegral f)) := by
+  let fn : ℕ → EuclideanSpace' d → EReal := fun n => f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator'
+  have hfn_meas : ∀ n, UnsignedMeasurable (fn n) := by
+    intro n
+    simpa [fn] using UnsignedMeasurable.mul_indicator_ball hf n
+  have hmono : Monotone (fun n : ℕ => LowerUnsignedLebesgueIntegral (fn n)) := by
+    intro n m hnm
+    apply LowerUnsignedLebesgueIntegral.mono (hfn_meas n) (hfn_meas m)
+    apply AlmostAlways.ofAlways
+    intro x
+    have hsub : Metric.ball (0 : EuclideanSpace' d) n ⊆ Metric.ball (0 : EuclideanSpace' d) m :=
+      Metric.ball_subset_ball (by exact_mod_cast hnm)
+    have h_ind : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) ≤
+        Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) m).indicator' x) := by
+      by_cases hx : x ∈ Metric.ball (0 : EuclideanSpace' d) n
+      · have hx' : x ∈ Metric.ball (0 : EuclideanSpace' d) m := hsub hx
+        simp [Set.indicator'_of_mem hx, Set.indicator'_of_mem hx', EReal.coe_one]
+      · simp only [Set.indicator'_of_notMem hx, EReal.coe_zero]
+        exact ind_nonneg (Metric.ball (0 : EuclideanSpace' d) m) x
+    simp [fn, Pi.mul_apply, Function.comp_apply]
+    have hmain : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) * f x ≤
+        Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) m).indicator' x) * f x :=
+      mul_le_mul_of_nonneg_right h_ind (hf.1 x)
+    simpa [mul_comm] using hmain
+  have hconv : Tendsto (fun n : ℕ => LowerUnsignedLebesgueIntegral (fn n)) atTop
+      (𝓝 (⨆ n : ℕ, LowerUnsignedLebesgueIntegral (fn n))) :=
+    tendsto_atTop_iSup hmono
+  have hsup : (⨆ n : ℕ, LowerUnsignedLebesgueIntegral (fn n)) = LowerUnsignedLebesgueIntegral f := by
+    apply le_antisymm
+    · apply iSup_le
+      intro n
+      apply LowerUnsignedLebesgueIntegral.mono (hfn_meas n) hf
+      apply AlmostAlways.ofAlways
+      intro x
+      have h_one : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) ≤ (1 : EReal) := by
+        by_cases hx : x ∈ Metric.ball (0 : EuclideanSpace' d) n
+        · simp [Set.indicator'_of_mem hx, EReal.coe_one]
+        · simp [Set.indicator'_of_notMem hx, EReal.coe_zero]
+      simp [fn, Pi.mul_apply, Function.comp_apply]
+      have hmain : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) * f x ≤
+          (1 : EReal) * f x :=
+        mul_le_mul_of_nonneg_right h_one (hf.1 x)
+      simpa [mul_comm, one_mul] using hmain
+    · unfold LowerUnsignedLebesgueIntegral
+      apply sSup_le
+      intro R hR
+      rcases hR with ⟨g, hg, hg_cond⟩
+      have hg_le : ∀ x, g x ≤ f x := fun x => (hg_cond x).1
+      have hR_eq : R = hg.integ := (hg_cond (Classical.arbitrary _)).2
+      rw [hR_eq]
+      have hmono_g : Monotone (fun n : ℕ => (simple_mul_indicator hg (ball_measurable n)).integ) := by
+        intro n m hnm
+        apply UnsignedSimpleFunction.integral_le_integral_of_aeLe
+          (simple_mul_indicator hg (ball_measurable n)) (simple_mul_indicator hg (ball_measurable m))
+        apply AlmostAlways.ofAlways
+        intro x
+        have hsub : Metric.ball (0 : EuclideanSpace' d) n ⊆ Metric.ball (0 : EuclideanSpace' d) m :=
+          Metric.ball_subset_ball (by exact_mod_cast hnm)
+        have h_ind : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) ≤
+            Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) m).indicator' x) := by
+          by_cases hx : x ∈ Metric.ball (0 : EuclideanSpace' d) n
+          · have hx' : x ∈ Metric.ball (0 : EuclideanSpace' d) m := hsub hx
+            simp [Set.indicator'_of_mem hx, Set.indicator'_of_mem hx', EReal.coe_one]
+          · simp only [Set.indicator'_of_notMem hx, EReal.coe_zero]
+            exact ind_nonneg (Metric.ball (0 : EuclideanSpace' d) m) x
+        simp [Pi.mul_apply, Function.comp_apply]
+        have hmain : Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) n).indicator' x) * g x ≤
+            Real.toEReal ((Metric.ball (0 : EuclideanSpace' d) m).indicator' x) * g x :=
+          mul_le_mul_of_nonneg_right h_ind ((UnsignedSimpleFunction.unsignedMeasurable hg).1 x)
+        simpa [mul_comm] using hmain
+      have hconv_g : Tendsto (fun n : ℕ => (simple_mul_indicator hg (ball_measurable n)).integ) atTop
+          (𝓝 (⨆ n : ℕ, (simple_mul_indicator hg (ball_measurable n)).integ)) :=
+        tendsto_atTop_iSup hmono_g
+      have hlim : hg.integ = ⨆ n : ℕ, (simple_mul_indicator hg (ball_measurable n)).integ :=
+        tendsto_nhds_unique (ball_integral_limit hg) hconv_g
+      rw [hlim]
+      apply iSup_mono
+      intro n
+      exact le_sSup ⟨g * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator',
+        simple_mul_indicator hg (ball_measurable n),
+        fun x => ⟨by
+          simp [fn, Pi.mul_apply, Function.comp_apply]
+          exact mul_le_mul_of_nonneg_right (hg_le x) (ind_nonneg (Metric.ball (0 : EuclideanSpace' d) n) x), rfl⟩⟩
+  rw [← hsup]
+  simpa [fn] using hconv
 
 def UpperUnsignedLebesgueIntegral.eq_lim_horiz_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (UpperUnsignedLebesgueIntegral f))) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
@@ -1055,36 +1358,6 @@ def LowerUnsignedLebesgueIntegral.eq_upperIntegral_unbounded : Decidable (∀ (d
 
 def LowerUnsignedLebesgueIntegral.eq_upperIntegral_infinite_supp : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f) (hbound: EReal.BoundedFunction f), LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
-
-/-- Multiplying an unsigned measurable function by a ball indicator preserves measurability.
-    This is a key helper for the horizontal truncation argument in Corollary 1.3.14. -/
-lemma UnsignedMeasurable.mul_indicator_ball {d : ℕ} {f : EuclideanSpace' d → EReal}
-    (hf : UnsignedMeasurable f) (n : ℕ) :
-    UnsignedMeasurable (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') := by
-  -- The indicator of a ball is measurable (balls are open, hence measurable)
-  -- Multiplication of measurable functions is measurable
-  -- The product of nonnegative functions is nonnegative
-  constructor
-  · -- Unsigned: f x * ind x ≥ 0 since f x ≥ 0 and ind x ∈ {0, 1}
-    intro x
-    simp only [Pi.mul_apply, Function.comp_apply]
-    apply mul_nonneg (hf.1 x)
-    by_cases hx : x ∈ Metric.ball (0 : EuclideanSpace' d) n
-    · simp [Set.indicator'_of_mem hx]
-    · simp [Set.indicator'_of_notMem hx]
-  · -- Measurable: follows from closure of measurable functions under multiplication
-    -- and measurability of indicator functions
-    sorry
-
-/-- Helper: horizontal truncation produces functions with finite measure support. -/
-lemma FiniteMeasureSupport.mul_indicator_ball {d : ℕ} {f : EuclideanSpace' d → EReal}
-    (n : ℕ) : FiniteMeasureSupport (f * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) n).indicator') := by
-  -- Support of f * ind is contained in ball 0 n, which has finite Lebesgue measure
-  -- The key facts are:
-  -- 1. If x ∉ ball 0 n, then ind x = 0, so f x * ind x = 0
-  -- 2. So support ⊆ ball 0 n
-  -- 3. Balls have finite Lebesgue measure
   sorry
 
 /-- Additivity of lower integral for finite-support functions.
