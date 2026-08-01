@@ -1,5 +1,7 @@
 import Analysis.MeasureTheory.Section_1_3_2
 
+open scoped Pointwise
+
 /-!
 # Introduction to Measure Theory, Section 1.3.3: Unsigned Lebesgue integrals
 
@@ -315,9 +317,146 @@ theorem LowerUnsignedLebesgueIntegral.integral_eq_integral_of_aeEqual {d:ℕ} {f
   · apply LowerUnsignedLebesgueIntegral.mono hg hf
     exact IsNull.subset heq (by intro x hx h; exact hx (le_of_eq h.symm))
 
+/-- Notation bridge: element + set addition, i.e. the pointwise translation of a constant
+    added to a set (this mathlib version only provides set+set addition). -/
+private instance : HAdd EReal (Set EReal) (Set EReal) := ⟨fun a B => Set.image (fun b => a + b) B⟩
+
+/-- Helper for superadditivity: adding a nonneg constant preserves the sSup of a nonneg set,
+    using the monotone-continuous sSup preservation lemma plus continuity of EReal addition. -/
+lemma add_sSup_nonneg {a : EReal} (ha : 0 ≤ a) {B : Set EReal} (hBne : B.Nonempty)
+    (hB : B ⊆ {x | 0 ≤ x}) : a + sSup B = sSup (a + B) := by
+  let f : EReal → EReal := fun x => a + x
+  have hmono : Monotone f := by
+    intro x y hxy
+    exact add_le_add le_rfl hxy
+  have hsB : 0 ≤ sSup B := by
+    rcases hBne with ⟨b₀, hb₀⟩
+    exact le_trans (hB hb₀) (le_sSup hb₀)
+  have hcont : ContinuousAt f (sSup B) := by
+    have h1 : a ≠ ⊤ ∨ sSup B ≠ ⊥ :=
+      Or.inr (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hsB))
+    have h2 : a ≠ ⊥ ∨ sSup B ≠ ⊤ :=
+      Or.inl (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero ha))
+    simpa [f] using (EReal.continuousAt_add (p := (a, sSup B)) h1 h2).comp
+      ((continuousAt_const (x := sSup B) (y := a)).prodMk continuousAt_id)
+  have hbot : f ⊥ = ⊥ := by
+    simp [f, EReal.add_bot]
+  have himg : f '' B = a + B := rfl
+  calc a + sSup B = f (sSup B) := rfl
+    _ = sSup (f '' B) := Monotone.map_sSup_of_continuousAt hcont hmono hbot
+    _ = sSup (a + B) := by rw [himg]
+
+/-- EReal sup-additivity for nonneg nonempty sets: sSup A + sSup B ≤ sSup (A + B).
+    The nonneg hypotheses are necessary — without them the claim is FALSE in EReal. -/
+lemma sSup_add_le_sSup_sum {A B : Set EReal} (hA : A ⊆ {x | 0 ≤ x}) (hAne : A.Nonempty)
+    (hB : B ⊆ {x | 0 ≤ x}) (hBne : B.Nonempty) :
+    sSup A + sSup B ≤ sSup (A + B) := by
+  have hsA : 0 ≤ sSup A := by
+    rcases hAne with ⟨a₀, ha₀⟩
+    exact le_trans (hA ha₀) (le_sSup ha₀)
+  have hstep1 : sSup A + sSup B = sSup (sSup A + B) :=
+    add_sSup_nonneg (a := sSup A) hsA hBne hB
+  have hle : ∀ x ∈ sSup A + B, x ≤ sSup (A + B) := by
+    intro x hx
+    rcases hx with ⟨b, hb, hx_eq⟩
+    have hb0 : 0 ≤ b := hB hb
+    have hsing : sSup A + b ≤ sSup (b + A) := by
+      rw [add_comm]
+      exact le_of_eq (add_sSup_nonneg (a := b) hb0 hAne hA)
+    have hsub' : b + A ⊆ A + B := by
+      intro y hy
+      rcases hy with ⟨a, ha, hsum⟩
+      refine ⟨a, ha, b, hb, ?_⟩
+      rw [← hsum]
+      exact add_comm a b
+    rw [← hx_eq]
+    change sSup A + b ≤ sSup (A + B)
+    exact le_trans hsing (sSup_le_sSup hsub')
+  rw [hstep1]
+  exact sSup_le hle
+
 /-- Exercise 1.3.10(v) (Superadditivity) -/
 theorem LowerUnsignedLebesgueIntegral.superadditive {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g) :
-    LowerUnsignedLebesgueIntegral (f + g) ≥ LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by sorry
+    LowerUnsignedLebesgueIntegral (f + g) ≥ LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by
+  rw [LowerUnsignedLebesgueIntegral.eq hf.1, LowerUnsignedLebesgueIntegral.eq hg.1,
+      LowerUnsignedLebesgueIntegral.eq (UnsignedMeasurable.add hf hg).1]
+  let Sf : Set EReal := {R | ∃ g₁ : EuclideanSpace' d → EReal, ∃ hg₁ : UnsignedSimpleFunction g₁, AlmostAlways (fun x ↦ g₁ x ≤ f x) ∧ R = hg₁.integ}
+  let Sg : Set EReal := {R | ∃ g₂ : EuclideanSpace' d → EReal, ∃ hg₂ : UnsignedSimpleFunction g₂, AlmostAlways (fun x ↦ g₂ x ≤ g x) ∧ R = hg₂.integ}
+  let Sfg : Set EReal := {R | ∃ h : EuclideanSpace' d → EReal, ∃ hh : UnsignedSimpleFunction h, AlmostAlways (fun x ↦ h x ≤ (f + g) x) ∧ R = hh.integ}
+  change sSup Sf + sSup Sg ≤ sSup Sfg
+  let z : EuclideanSpace' d → EReal := fun _ => 0
+  have hz : UnsignedSimpleFunction z := by
+    use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' d)))
+    constructor
+    · intro i; fin_cases i
+    · ext x; simp [z]
+  have hz_integ : hz.integ = 0 := zero_unsigned_integral hz
+  have hSf_nonneg : Sf ⊆ {x | 0 ≤ x} := by
+    intro R hR
+    rcases hR with ⟨g₁, hg₁, _hg₁ae, rfl⟩
+    have hle : hz.integ ≤ hg₁.integ :=
+      UnsignedSimpleFunction.integral_le_integral_of_aeLe hz hg₁
+        (AlmostAlways.ofAlways (fun x => (UnsignedSimpleFunction.unsignedMeasurable hg₁).1 x))
+    simpa [hz_integ] using hle
+  have hSg_nonneg : Sg ⊆ {x | 0 ≤ x} := by
+    intro R hR
+    rcases hR with ⟨g₂, hg₂, _hg₂ae, rfl⟩
+    have hle : hz.integ ≤ hg₂.integ :=
+      UnsignedSimpleFunction.integral_le_integral_of_aeLe hz hg₂
+        (AlmostAlways.ofAlways (fun x => (UnsignedSimpleFunction.unsignedMeasurable hg₂).1 x))
+    simpa [hz_integ] using hle
+  have hSf_ne : Sf.Nonempty := ⟨0, ⟨z, hz, AlmostAlways.ofAlways (fun x => hf.1 x), hz_integ.symm⟩⟩
+  have hSg_ne : Sg.Nonempty := ⟨0, ⟨z, hz, AlmostAlways.ofAlways (fun x => hg.1 x), hz_integ.symm⟩⟩
+  have hsum_step : sSup Sf + sSup Sg ≤ sSup (Sf + Sg) :=
+    sSup_add_le_sSup_sum hSf_nonneg hSf_ne hSg_nonneg hSg_ne
+  have hsubset : Sf + Sg ⊆ Sfg := by
+    intro x hx
+    rcases hx with ⟨u, hu, v, hv, hsum⟩
+    rcases hu with ⟨g₁, hg₁, hg₁ae, rfl⟩
+    rcases hv with ⟨g₂, hg₂, hg₂ae, rfl⟩
+    refine ⟨g₁ + g₂, UnsignedSimpleFunction.add hg₁ hg₂, ?_, ?_⟩
+    · have hsum_ae : AlmostAlways (fun x => (g₁ + g₂) x ≤ (f + g) x) := by
+        unfold AlmostAlways at *
+        have hsub : {x | ¬ (g₁ + g₂) x ≤ (f + g) x} ⊆
+            {x | ¬ g₁ x ≤ f x} ∪ {x | ¬ g₂ x ≤ g x} := by
+          intro x hx
+          by_contra h
+          have h1 : g₁ x ≤ f x := by
+            by_contra h1
+            exact h (Or.inl h1)
+          have h2 : g₂ x ≤ g x := by
+            by_contra h2
+            exact h (Or.inr h2)
+          exact hx (add_le_add h1 h2)
+        have hle : Lebesgue_outer_measure {x | ¬ (g₁ + g₂) x ≤ (f + g) x} ≤ 0 := by
+          have hle1 : Lebesgue_outer_measure {x | ¬ (g₁ + g₂) x ≤ (f + g) x} ≤
+              Lebesgue_outer_measure ({x | ¬ g₁ x ≤ f x} ∪ {x | ¬ g₂ x ≤ g x}) :=
+            Lebesgue_outer_measure.mono hsub
+          have hb : Lebesgue_outer_measure ({x | ¬ g₁ x ≤ f x} ∪ {x | ¬ g₂ x ≤ g x}) ≤
+              Lebesgue_outer_measure {x | ¬ g₁ x ≤ f x} +
+                Lebesgue_outer_measure {x | ¬ g₂ x ≤ g x} := by
+            let E : Fin 2 → Set (EuclideanSpace' d) :=
+              ![{x | ¬ g₁ x ≤ f x}, {x | ¬ g₂ x ≤ g x}]
+            have h_union : {x | ¬ g₁ x ≤ f x} ∪ {x | ¬ g₂ x ≤ g x} = ⋃ i, E i := by
+              ext y
+              simp [E]
+            have h_sum : (∑ i : Fin 2, Lebesgue_outer_measure (E i)) =
+                Lebesgue_outer_measure {x | ¬ g₁ x ≤ f x} +
+                  Lebesgue_outer_measure {x | ¬ g₂ x ≤ g x} := by
+              simp [E, Fin.sum_univ_two]
+            rw [h_union, ← h_sum]
+            exact Lebesgue_outer_measure.finite_union_le E
+          calc Lebesgue_outer_measure {x | ¬ (g₁ + g₂) x ≤ (f + g) x}
+              ≤ Lebesgue_outer_measure ({x | ¬ g₁ x ≤ f x} ∪ {x | ¬ g₂ x ≤ g x}) := hle1
+            _ ≤ Lebesgue_outer_measure {x | ¬ g₁ x ≤ f x} +
+                Lebesgue_outer_measure {x | ¬ g₂ x ≤ g x} := hb
+            _ = 0 := by rw [hg₁ae, hg₂ae, add_zero]
+        exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+      exact hsum_ae
+    · have hadd : (UnsignedSimpleFunction.add hg₁ hg₂).integ = hg₁.integ + hg₂.integ :=
+        UnsignedSimpleFunction.integral_add hg₁ hg₂
+      exact hsum.symm.trans hadd.symm
+  exact le_trans hsum_step (sSup_le_sSup hsubset)
 
 /-- Exercise 1.3.10(vi) (Subadditivity of upper integral). -/
 theorem UpperUnsignedLebesgueIntegral.subadditive {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g) :
