@@ -580,10 +580,224 @@ theorem UpperUnsignedLebesgueIntegral.subadditive {d:ℕ} {f g: EuclideanSpace' 
     · exact hsum.symm.trans (UnsignedSimpleFunction.integral_add hg₁ hg₂).symm
   exact le_trans (sInf_le_sInf hsubset) hsum_step
 
+/-- Indicator values are nonnegative reals lifted to EReal. -/
+private lemma ind_nonneg {d : ℕ} (E₀ : Set (EuclideanSpace' d)) (x : EuclideanSpace' d) :
+    0 ≤ Real.toEReal (E₀.indicator' x) := by
+  by_cases hx : x ∈ E₀
+  · rw [Set.indicator'_of_mem hx, EReal.coe_one]
+    exact zero_le_one
+  · rw [Set.indicator'_of_notMem hx, EReal.coe_zero]
+
+/-- The indicators of a set and its complement sum to one pointwise. -/
+private lemma ind_sum_eq_one {d : ℕ} (f : EuclideanSpace' d → EReal) {E₀ : Set (EuclideanSpace' d)}
+    (x : EuclideanSpace' d) :
+    (f * Real.toEReal ∘ E₀.indicator') x + (f * Real.toEReal ∘ E₀ᶜ.indicator') x = f x := by
+  simp only [Pi.mul_apply, Function.comp_apply]
+  by_cases hx : x ∈ E₀
+  · rw [Set.indicator'_of_mem hx, Set.indicator'_of_notMem (by simpa using hx),
+      EReal.coe_one, EReal.coe_zero, mul_one, mul_zero, add_zero]
+  · rw [Set.indicator'_of_notMem hx, Set.indicator'_of_mem ((Set.mem_compl_iff E₀ x).mpr hx),
+      EReal.coe_zero, EReal.coe_one, mul_zero, mul_one, zero_add]
+
+/-- Sup of a sumset is at most the sum of the suprema. -/
+private lemma sSup_sum_le_sSup_add {A B : Set EReal} :
+    sSup (A + B) ≤ sSup A + sSup B := by
+  apply sSup_le
+  intro x hx
+  rcases hx with ⟨a, ha, b, hb, rfl⟩
+  exact add_le_add (le_sSup ha) (le_sSup hb)
+
+/-- Helper 1: multiplying a simple function by the indicator of a measurable set stays simple.
+    Copy the proof pattern from the eq theorem in the real file. -/
+lemma simple_mul_indicator {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    {E₀ : Set (EuclideanSpace' d)} (hE₀ : LebesgueMeasurable E₀) :
+    UnsignedSimpleFunction (g * Real.toEReal ∘ E₀.indicator') := by
+  obtain ⟨k, c, E, ⟨hcE, hg_eq⟩⟩ := hg
+  use k, c, (fun i => E i ∩ E₀)
+  constructor
+  · intro i
+    constructor
+    · exact LebesgueMeasurable.inter (hcE i).1 hE₀
+    · exact (hcE i).2
+  · funext x
+    simp only [hg_eq, EReal.indicator, Function.comp_apply, Pi.mul_apply]
+    conv_lhs => rw [Finset.sum_fn]; simp only [Pi.smul_apply]
+    conv_rhs => rw [Finset.sum_fn]; simp only [Pi.smul_apply]
+    by_cases hx : x ∈ E₀
+    · rw [Set.indicator'_of_mem hx, EReal.coe_one, mul_one]
+      apply Finset.sum_congr rfl
+      intro i _
+      simp only [Real.EReal_fun]
+      by_cases hEi : x ∈ E i
+      · rw [Set.indicator'_of_mem hEi, Set.indicator'_of_mem (Set.mem_inter hEi hx)]
+      · have hnotinter : x ∉ E i ∩ E₀ := fun h => hEi (Set.mem_of_mem_inter_left h)
+        rw [Set.indicator'_of_notMem hEi, Set.indicator'_of_notMem hnotinter]
+    · rw [Set.indicator'_of_notMem hx, EReal.coe_zero, mul_zero]
+      symm
+      apply Finset.sum_eq_zero
+      intro i _
+      have hnotinter : x ∉ E i ∩ E₀ := fun h => hx (Set.mem_of_mem_inter_right h)
+      simp only [Real.EReal_fun, Set.indicator'_of_notMem hnotinter, EReal.coe_zero, smul_zero]
+
+/-- Helper 2: for g simple and E measurable, the integral splits across E and its complement.
+    Route: pointwise g times one-E plus g times one-complement equals g, then
+    integral additivity plus invariance under almost-equal functions. -/
+lemma integral_split {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    {E₀ : Set (EuclideanSpace' d)} (hE₀ : LebesgueMeasurable E₀) :
+    hg.integ =
+      (simple_mul_indicator hg hE₀).integ + (simple_mul_indicator hg (LebesgueMeasurable.complement hE₀)).integ := by
+  have hsum_simple : UnsignedSimpleFunction
+      (g * Real.toEReal ∘ E₀.indicator' + g * Real.toEReal ∘ E₀ᶜ.indicator') :=
+    UnsignedSimpleFunction.add (simple_mul_indicator hg hE₀)
+      (simple_mul_indicator hg (LebesgueMeasurable.complement hE₀))
+  have hpt : ∀ x, (g * Real.toEReal ∘ E₀.indicator' + g * Real.toEReal ∘ E₀ᶜ.indicator') x = g x := by
+    intro x
+    simpa [Pi.add_apply] using ind_sum_eq_one g x
+  have hsame : hsum_simple.integ = hg.integ :=
+    UnsignedSimpleFunction.integral_eq_integral_of_aeEqual hsum_simple hg (AlmostAlways.ofAlways hpt)
+  have hadd : hsum_simple.integ =
+      (simple_mul_indicator hg hE₀).integ + (simple_mul_indicator hg (LebesgueMeasurable.complement hE₀)).integ :=
+    UnsignedSimpleFunction.integral_add (simple_mul_indicator hg hE₀)
+      (simple_mul_indicator hg (LebesgueMeasurable.complement hE₀))
+  rw [← hsame, hadd]
+
+/-- Helper 3a: if g is at most f almost everywhere, then g times the indicator is at most
+    f times the indicator almost everywhere.  Null-set argument with the nonnegative indicator. -/
+lemma ae_mul_indicator_le {d : ℕ} {g f : EuclideanSpace' d → EReal}
+    {E₀ : Set (EuclideanSpace' d)} (hae : AlmostAlways (fun x => g x ≤ f x)) :
+    AlmostAlways (fun x => (g * Real.toEReal ∘ E₀.indicator') x ≤ (f * Real.toEReal ∘ E₀.indicator') x) := by
+  unfold AlmostAlways at *
+  have hsub : {x | ¬ (g * Real.toEReal ∘ E₀.indicator') x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ⊆
+      {x | ¬ g x ≤ f x} := by
+    intro x hx
+    by_contra h
+    have hgx : g x ≤ f x := by simpa using h
+    have hle : (g * Real.toEReal ∘ E₀.indicator') x ≤ (f * Real.toEReal ∘ E₀.indicator') x := by
+      simpa [Pi.mul_apply, Function.comp_apply] using
+        (mul_le_mul_of_nonneg_right hgx (ind_nonneg E₀ x))
+    exact hx hle
+  have hle : Lebesgue_outer_measure
+      {x | ¬ (g * Real.toEReal ∘ E₀.indicator') x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ≤ 0 := by
+    calc Lebesgue_outer_measure
+          {x | ¬ (g * Real.toEReal ∘ E₀.indicator') x ≤ (f * Real.toEReal ∘ E₀.indicator') x}
+        ≤ Lebesgue_outer_measure {x | ¬ g x ≤ f x} := Lebesgue_outer_measure.mono hsub
+      _ = 0 := hae
+  exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+
+/-- Helper 3b: g₁ ≤ f·1_E a.e. and g₂ ≤ f·1_Eᶜ a.e. imply g₁ + g₂ ≤ f a.e.
+    Pointwise: g₁ x + g₂ x ≤ f x·1_E(x) + f x·1_Eᶜ(x) = f x.
+    Null-set union argument like in the mono proof of the real file. -/
+lemma ae_add_le_of_split {d : ℕ} {g₁ g₂ f : EuclideanSpace' d → EReal}
+    {E₀ : Set (EuclideanSpace' d)} (h₁ : AlmostAlways (fun x => g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x))
+    (h₂ : AlmostAlways (fun x => g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x)) :
+    AlmostAlways (fun x => g₁ x + g₂ x ≤ f x) := by
+  unfold AlmostAlways at *
+  have hsub : {x | ¬ g₁ x + g₂ x ≤ f x} ⊆
+      {x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ∪
+        {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x} := by
+    intro x hx
+    by_contra h
+    have h1 : g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x := by
+      by_contra h1
+      exact h (Or.inl h1)
+    have h2 : g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x := by
+      by_contra h2
+      exact h (Or.inr h2)
+    exact hx ((add_le_add h1 h2).trans_eq (ind_sum_eq_one f x))
+  have hle : Lebesgue_outer_measure {x | ¬ g₁ x + g₂ x ≤ f x} ≤ 0 := by
+    have hle1 : Lebesgue_outer_measure {x | ¬ g₁ x + g₂ x ≤ f x} ≤
+        Lebesgue_outer_measure ({x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ∪
+          {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x}) :=
+      Lebesgue_outer_measure.mono hsub
+    have hb : Lebesgue_outer_measure ({x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ∪
+          {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x}) ≤
+        Lebesgue_outer_measure {x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} +
+          Lebesgue_outer_measure {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x} := by
+      let E : Fin 2 → Set (EuclideanSpace' d) :=
+        ![{x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x},
+          {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x}]
+      have h_union : {x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ∪
+            {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x} = ⋃ i, E i := by
+        ext y
+        simp [E]
+      have h_sum : (∑ i : Fin 2, Lebesgue_outer_measure (E i)) =
+          Lebesgue_outer_measure {x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} +
+            Lebesgue_outer_measure {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x} := by
+        simp [E, Fin.sum_univ_two]
+      rw [h_union, ← h_sum]
+      exact Lebesgue_outer_measure.finite_union_le E
+    calc Lebesgue_outer_measure {x | ¬ g₁ x + g₂ x ≤ f x}
+        ≤ Lebesgue_outer_measure ({x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} ∪
+            {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x}) := hle1
+      _ ≤ Lebesgue_outer_measure {x | ¬ g₁ x ≤ (f * Real.toEReal ∘ E₀.indicator') x} +
+          Lebesgue_outer_measure {x | ¬ g₂ x ≤ (f * Real.toEReal ∘ E₀ᶜ.indicator') x} := hb
+      _ = 0 := by rw [h₁, h₂, add_zero]
+  exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+
 /-- Exercise 1.3.10(vii) (Divisibility) -/
 theorem LowerUnsignedLebesgueIntegral.eq_add {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) :
     LowerUnsignedLebesgueIntegral f = LowerUnsignedLebesgueIntegral (f * Real.toEReal ∘ E.indicator') +
-      LowerUnsignedLebesgueIntegral (f * Real.toEReal ∘ Eᶜ.indicator') := by sorry
+      LowerUnsignedLebesgueIntegral (f * Real.toEReal ∘ Eᶜ.indicator') := by
+  have hfE : ∀ x, 0 ≤ (f * Real.toEReal ∘ E.indicator') x := by
+    intro x
+    simpa [Pi.mul_apply, Function.comp_apply] using mul_nonneg (hf.1 x) (ind_nonneg E x)
+  have hfEc : ∀ x, 0 ≤ (f * Real.toEReal ∘ Eᶜ.indicator') x := by
+    intro x
+    simpa [Pi.mul_apply, Function.comp_apply] using mul_nonneg (hf.1 x) (ind_nonneg Eᶜ x)
+  rw [LowerUnsignedLebesgueIntegral.eq hf.1, LowerUnsignedLebesgueIntegral.eq hfE,
+      LowerUnsignedLebesgueIntegral.eq hfEc]
+  let Sf : Set EReal := {R | ∃ g, ∃ hg : UnsignedSimpleFunction g,
+    AlmostAlways (fun x => g x ≤ f x) ∧ R = hg.integ}
+  let SE : Set EReal := {R | ∃ g, ∃ hg : UnsignedSimpleFunction g,
+    AlmostAlways (fun x => g x ≤ (f * Real.toEReal ∘ E.indicator') x) ∧ R = hg.integ}
+  let SEc : Set EReal := {R | ∃ g, ∃ hg : UnsignedSimpleFunction g,
+    AlmostAlways (fun x => g x ≤ (f * Real.toEReal ∘ Eᶜ.indicator') x) ∧ R = hg.integ}
+  change sSup Sf = sSup SE + sSup SEc
+  let z : EuclideanSpace' d → EReal := fun _ => 0
+  have hz : UnsignedSimpleFunction z := by
+    use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' d)))
+    constructor
+    · intro i; fin_cases i
+    · ext x; simp [z]
+  have hz_integ : hz.integ = 0 := zero_unsigned_integral hz
+  have hSE_nonneg : SE ⊆ {x | 0 ≤ x} := by
+    intro R hR
+    rcases hR with ⟨g, hg, _hae, rfl⟩
+    have hle : hz.integ ≤ hg.integ :=
+      UnsignedSimpleFunction.integral_le_integral_of_aeLe hz hg
+        (AlmostAlways.ofAlways (fun x => (UnsignedSimpleFunction.unsignedMeasurable hg).1 x))
+    simpa [hz_integ] using hle
+  have hSEc_nonneg : SEc ⊆ {x | 0 ≤ x} := by
+    intro R hR
+    rcases hR with ⟨g, hg, _hae, rfl⟩
+    have hle : hz.integ ≤ hg.integ :=
+      UnsignedSimpleFunction.integral_le_integral_of_aeLe hz hg
+        (AlmostAlways.ofAlways (fun x => (UnsignedSimpleFunction.unsignedMeasurable hg).1 x))
+    simpa [hz_integ] using hle
+  have hSE_ne : SE.Nonempty := ⟨0, ⟨z, hz, AlmostAlways.ofAlways hfE, hz_integ.symm⟩⟩
+  have hSEc_ne : SEc.Nonempty := ⟨0, ⟨z, hz, AlmostAlways.ofAlways hfEc, hz_integ.symm⟩⟩
+  have hsubset1 : Sf ⊆ SE + SEc := by
+    intro R hR
+    rcases hR with ⟨g, hg, hgae, rfl⟩
+    refine ⟨(simple_mul_indicator hg hE).integ, ?_, (simple_mul_indicator hg (LebesgueMeasurable.complement hE)).integ, ?_, ?_⟩
+    · exact ⟨g * Real.toEReal ∘ E.indicator', simple_mul_indicator hg hE,
+        ae_mul_indicator_le (E₀ := E) hgae, rfl⟩
+    · exact ⟨g * Real.toEReal ∘ Eᶜ.indicator', simple_mul_indicator hg (LebesgueMeasurable.complement hE),
+        ae_mul_indicator_le (E₀ := Eᶜ) hgae, rfl⟩
+    · exact (integral_split hg hE).symm
+  have hle : sSup Sf ≤ sSup SE + sSup SEc :=
+    le_trans (sSup_le_sSup hsubset1) (sSup_sum_le_sSup_add (A := SE) (B := SEc))
+  have hsubset2 : SE + SEc ⊆ Sf := by
+    intro x hx
+    rcases hx with ⟨u, hu, v, hv, hsum⟩
+    rcases hu with ⟨g₁, hg₁, hg₁ae, rfl⟩
+    rcases hv with ⟨g₂, hg₂, hg₂ae, rfl⟩
+    refine ⟨g₁ + g₂, UnsignedSimpleFunction.add hg₁ hg₂, ?_, ?_⟩
+    · exact ae_add_le_of_split (E₀ := E) hg₁ae hg₂ae
+    · exact hsum.symm.trans (UnsignedSimpleFunction.integral_add hg₁ hg₂).symm
+  have hge : sSup SE + sSup SEc ≤ sSup Sf :=
+    le_trans (sSup_add_le_sSup_sum hSE_nonneg hSE_ne hSEc_nonneg hSEc_ne) (sSup_le_sSup hsubset2)
+  exact le_antisymm hle hge
 
 /-- Exercise 1.3.10(viii) (Vertical truncation). -/
 theorem LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) : Filter.atTop.Tendsto (fun n:ℕ ↦ LowerUnsignedLebesgueIntegral (fun x ↦ min (f x) n)) (nhds (LowerUnsignedLebesgueIntegral f)) := by sorry
