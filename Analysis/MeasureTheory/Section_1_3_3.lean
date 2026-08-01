@@ -124,16 +124,186 @@ theorem LowerUnsignedLebesgueIntegral.eq {d:ℕ} {f: EuclideanSpace' d → EReal
 
 /-- Exercise 1.3.10(i) (Compatibility with the simple integral) -/
 theorem LowerUnsignedLebesgueIntegral.eq_simpleIntegral {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedSimpleFunction f) :
-    LowerUnsignedLebesgueIntegral f = hf.integ := by sorry
+    LowerUnsignedLebesgueIntegral f = hf.integ := by
+  unfold LowerUnsignedLebesgueIntegral
+  apply le_antisymm
+  · apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hg_cond⟩
+    have hg_le : ∀ x, g x ≤ f x := fun x => (hg_cond x).1
+    have hR_eq : R = hg.integ := (hg_cond (Classical.arbitrary _)).2
+    rw [hR_eq]
+    exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hf (AlmostAlways.ofAlways hg_le)
+  · exact le_sSup ⟨f, hf, fun x => ⟨le_rfl, rfl⟩⟩
 
 /-- Exercise 1.3.10(ii) (Monotonicity) -/
 theorem LowerUnsignedLebesgueIntegral.mono {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g)
     (hfg: AlmostAlways (fun x ↦ f x ≤ g x)) :
-    LowerUnsignedLebesgueIntegral f ≤ LowerUnsignedLebesgueIntegral g := by sorry
+    LowerUnsignedLebesgueIntegral f ≤ LowerUnsignedLebesgueIntegral g := by
+  rw [LowerUnsignedLebesgueIntegral.eq hf.1, LowerUnsignedLebesgueIntegral.eq hg.1]
+  apply sSup_le_sSup
+  intro R hR
+  rcases hR with ⟨g1, hg1, hg1ae, rfl⟩
+  -- g1 ≤ f a.e. and f ≤ g a.e. ⟹ g1 ≤ g a.e.
+  have htrans : AlmostAlways (fun x => g1 x ≤ g x) := by
+    unfold AlmostAlways at *
+    have hsub : {x | ¬ g1 x ≤ g x} ⊆ {x | ¬ g1 x ≤ f x} ∪ {x | ¬ f x ≤ g x} := by
+      intro x hx
+      by_contra h
+      have h1 : g1 x ≤ f x := by
+        by_contra h1
+        exact h (Or.inl h1)
+      have h2 : f x ≤ g x := by
+        by_contra h2
+        exact h (Or.inr h2)
+      exact hx (le_trans h1 h2)
+    have hle : Lebesgue_outer_measure {x | ¬ g1 x ≤ g x} ≤ 0 := by
+      have hle1 : Lebesgue_outer_measure {x | ¬ g1 x ≤ g x} ≤
+          Lebesgue_outer_measure ({x | ¬ g1 x ≤ f x} ∪ {x | ¬ f x ≤ g x}) :=
+        Lebesgue_outer_measure.mono hsub
+      have hb : Lebesgue_outer_measure ({x | ¬ g1 x ≤ f x} ∪ {x | ¬ f x ≤ g x}) ≤
+          Lebesgue_outer_measure {x | ¬ g1 x ≤ f x} + Lebesgue_outer_measure {x | ¬ f x ≤ g x} := by
+        let E : Fin 2 → Set (EuclideanSpace' d) := ![{x | ¬ g1 x ≤ f x}, {x | ¬ f x ≤ g x}]
+        have h_union : {x | ¬ g1 x ≤ f x} ∪ {x | ¬ f x ≤ g x} = ⋃ i, E i := by
+          ext y
+          simp [E]
+        have h_sum : (∑ i : Fin 2, Lebesgue_outer_measure (E i)) =
+            Lebesgue_outer_measure {x | ¬ g1 x ≤ f x} + Lebesgue_outer_measure {x | ¬ f x ≤ g x} := by
+          simp [E, Fin.sum_univ_two]
+        rw [h_union, ← h_sum]
+        exact Lebesgue_outer_measure.finite_union_le E
+      calc Lebesgue_outer_measure {x | ¬ g1 x ≤ g x}
+          ≤ Lebesgue_outer_measure ({x | ¬ g1 x ≤ f x} ∪ {x | ¬ f x ≤ g x}) := hle1
+        _ ≤ Lebesgue_outer_measure {x | ¬ g1 x ≤ f x} + Lebesgue_outer_measure {x | ¬ f x ≤ g x} := hb
+        _ = 0 := by rw [hg1ae, hfg, add_zero]
+    exact le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+  exact ⟨g1, hg1, htrans, rfl⟩
 
 /-- Exercise 1.3.10(iii) (Homogeneity) -/
 theorem LowerUnsignedLebesgueIntegral.hom {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) {c: ℝ} (hc: 0 ≤ c) :
-    LowerUnsignedLebesgueIntegral ((c:EReal) • f) = c * LowerUnsignedLebesgueIntegral f := by sorry
+    LowerUnsignedLebesgueIntegral ((c:EReal) • f) = c * LowerUnsignedLebesgueIntegral f := by
+  unfold LowerUnsignedLebesgueIntegral
+  have hzero_simple : UnsignedSimpleFunction (fun _ : EuclideanSpace' d => (0 : EReal)) := by
+    use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' d)))
+    constructor
+    · intro i; fin_cases i
+    · ext x; simp
+  have hzero_integ : hzero_simple.integ = 0 := zero_unsigned_integral hzero_simple
+  apply le_antisymm
+  · -- (≤): sSup(cS) ≤ c·sSup(S)
+    apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hg_cond⟩
+    have hg_le : ∀ x, g x ≤ (c : EReal) • f x := fun x => (hg_cond x).1
+    have hR_eq : R = hg.integ := (hg_cond (Classical.arbitrary _)).2
+    rw [hR_eq]
+    by_cases hc0 : c = 0
+    · -- c = 0：g ≤ 0，g.integ ≤ 0 = c·sSup
+      have hg0 : ∀ x, g x ≤ 0 := by
+        intro x
+        simpa [hc0, Pi.smul_apply, smul_eq_mul] using hg_le x
+      have hg_integ_le : hg.integ ≤ 0 := by
+        have hle := UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hzero_simple (AlmostAlways.ofAlways hg0)
+        simpa [hzero_integ] using hle
+      simpa [hc0] using hg_integ_le
+    · -- c > 0：g ≤ c•f ⟹ (1/c)•g ≤ f，则 g.integ ≤ c · sSup(S_f)
+      have hcpos : 0 < c := lt_of_le_of_ne hc (Ne.symm hc0)
+      have hcne : c ≠ 0 := hc0
+      -- g' := (1/c) • g 简单函数
+      let g' := ((1 / c : ℝ) : EReal) • g
+      have hg'_simple : UnsignedSimpleFunction g' := by
+        apply UnsignedSimpleFunction.smul (hg)
+        exact EReal.coe_nonneg.mpr (one_div_nonneg.mpr (le_of_lt hcpos))
+      have hg'_le_f : ∀ x, g' x ≤ f x := by
+        intro x
+        have hle := hg_le x
+        -- 两边乘 1/c（正）
+        have h1 : ((1 / c : ℝ) : EReal) * g x ≤ ((1 / c : ℝ) : EReal) * ((c : EReal) • f x) := by
+          exact mul_le_mul_of_nonneg_left hle (EReal.coe_nonneg.mpr (one_div_nonneg.mpr (le_of_lt hcpos)))
+        -- (1/c) * (c • f x) = f x（c > 0，EReal 中 1/c * c = 1）
+        have h2 : ((1 / c : ℝ) : EReal) * ((c : EReal) • f x) = f x := by
+          simp only [smul_eq_mul]
+          rw [← mul_assoc]
+          have h3 : ((1 / c : ℝ) : EReal) * (c : EReal) = 1 := by
+            rw [← EReal.coe_mul]
+            have h31 : (1 / c) * c = 1 := by rw [one_div, inv_mul_cancel₀ hcne]
+            rw [h31, EReal.coe_one]
+          rw [h3, one_mul]
+        have hg'x : g' x = ((1 / c : ℝ) : EReal) * g x := rfl
+        calc g' x = ((1 / c : ℝ) : EReal) * g x := hg'x
+          _ ≤ ((1 / c : ℝ) : EReal) * ((c : EReal) • f x) := h1
+          _ = f x := h2
+      -- g.integ = c * g'.integ
+      have hscale : hg.integ = (c : EReal) * hg'_simple.integ := by
+        have hrev := UnsignedSimpleFunction.integral_smul hg'_simple (c := (c : EReal))
+          (EReal.coe_nonneg.mpr hc)
+        have hfun : (fun x => (c : EReal) • g' x) = g := by
+          funext x
+          simp [g', Pi.smul_apply, smul_eq_mul]
+          rw [← mul_assoc]
+          have h3 : (c : ℝ) * (c : ℝ)⁻¹ = 1 := mul_inv_cancel₀ hcne
+          rw [← EReal.coe_mul, h3, EReal.coe_one, one_mul]
+        have hsame : (hg'_simple.smul (EReal.coe_nonneg.mpr hc)).integ = hg.integ := by
+          apply UnsignedSimpleFunction.integral_eq_integral_of_aeEqual
+            (hg'_simple.smul (EReal.coe_nonneg.mpr hc)) hg
+          exact AlmostAlways.ofAlways (fun x => congrFun hfun x)
+        exact hsame.symm.trans hrev
+      -- c * g'.integ ≤ c * sSup(S_f)
+      have hg'_in_set : hg'_simple.integ ∈ {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ f x ∧ R = hg''.integ} := by
+        exact ⟨g', hg'_simple, fun x => ⟨hg'_le_f x, rfl⟩⟩
+      have hle_sup : hg'_simple.integ ≤ sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ f x ∧ R = hg''.integ} :=
+        le_sSup hg'_in_set
+      have hfinal : hg.integ ≤ (c : EReal) * sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ f x ∧ R = hg''.integ} := by
+        rw [hscale]
+        exact mul_le_mul_of_nonneg_left hle_sup (EReal.coe_nonneg.mpr hc)
+      exact hfinal
+  · -- (≥)：c·sSup(S) ≤ sSup(cS)
+    by_cases hc0 : c = 0
+    · -- c = 0：0 ∈ S'（零函数），故 0 ≤ sSup S'
+      have hmem : (0 : EReal) ∈ {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ (c : EReal) • f x ∧ R = hg.integ} := by
+        refine ⟨(fun _ : EuclideanSpace' d => (0 : EReal)), hzero_simple, ?_⟩
+        intro x
+        constructor
+        · simp [hc0, smul_eq_mul]
+        · exact hzero_integ.symm
+      simpa [hc0] using (le_sSup hmem)
+    · have hcpos : 0 < c := lt_of_le_of_ne hc (Ne.symm hc0)
+      have hcne : c ≠ 0 := hc0
+      have hc' : 0 ≤ ((1 / c : ℝ) : EReal) := EReal.coe_nonneg.mpr (one_div_nonneg.mpr (le_of_lt hcpos))
+      -- 对 a ∈ S：c·a ≤ sSup(cS)（构造 c•g 简单函数）
+      have hT : ∀ a ∈ {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f x ∧ R = hg.integ},
+          (c : EReal) * a ≤ sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ} := by
+        intro a ha
+        rcases ha with ⟨g, hg, hg_cond⟩
+        have hg_le : ∀ x, g x ≤ f x := fun x => (hg_cond x).1
+        have ha_eq : a = hg.integ := (hg_cond (Classical.arbitrary _)).2
+        rw [ha_eq]
+        have hcg_in : (c : EReal) * hg.integ ∈ {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ} := by
+          refine ⟨(c : EReal) • g, hg.smul (EReal.coe_nonneg.mpr hc), ?_⟩
+          intro x
+          constructor
+          · exact mul_le_mul_of_nonneg_left (hg_le x) (EReal.coe_nonneg.mpr hc)
+          · exact (UnsignedSimpleFunction.integral_smul hg (c := (c : EReal)) (EReal.coe_nonneg.mpr hc)).symm
+        exact le_sSup hcg_in
+      -- 反射：sSup S ≤ (1/c) · sSup S'
+      have hS_le : sSup {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f x ∧ R = hg.integ} ≤
+          ((1 / c : ℝ) : EReal) * sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ} := by
+        apply sSup_le
+        intro a ha
+        have hca := hT a ha
+        calc a = ((1 / c : ℝ) : EReal) * ((c : EReal) * a) := by
+              rw [← mul_assoc]
+              have h31 : (1 / c) * c = 1 := by rw [one_div, inv_mul_cancel₀ hcne]
+              rw [← EReal.coe_mul, h31, EReal.coe_one, one_mul]
+          _ ≤ ((1 / c : ℝ) : EReal) * sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ} :=
+              mul_le_mul_of_nonneg_left hca hc'
+      calc (c : EReal) * sSup {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f x ∧ R = hg.integ}
+          ≤ (c : EReal) * (((1 / c : ℝ) : EReal) * sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ}) :=
+              mul_le_mul_of_nonneg_left hS_le (EReal.coe_nonneg.mpr hc)
+        _ = sSup {R | ∃ g'' : EuclideanSpace' d → EReal, ∃ hg'' : UnsignedSimpleFunction g'', ∀ x, g'' x ≤ (c : EReal) • f x ∧ R = hg''.integ} := by
+          rw [← mul_assoc]
+          have h32 : (c * (1 / c) : ℝ) = 1 := by rw [mul_one_div, div_self hcne]
+          rw [← EReal.coe_mul, h32, EReal.coe_one, one_mul]
 
 /-- Exercise 1.3.10(iv) (Equivalence) -/
 theorem LowerUnsignedLebesgueIntegral.integral_eq_integral_of_aeEqual {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g)
