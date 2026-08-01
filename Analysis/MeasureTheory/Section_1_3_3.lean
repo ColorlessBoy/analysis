@@ -180,7 +180,7 @@ theorem LowerUnsignedLebesgueIntegral.mono {d:ℕ} {f g: EuclideanSpace' d → E
   exact ⟨g1, hg1, htrans, rfl⟩
 
 /-- Exercise 1.3.10(iii) (Homogeneity) -/
-theorem LowerUnsignedLebesgueIntegral.hom {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) {c: ℝ} (hc: 0 ≤ c) :
+theorem LowerUnsignedLebesgueIntegral.hom {d:ℕ} {f: EuclideanSpace' d → EReal} (_hf: UnsignedMeasurable f) {c: ℝ} (hc: 0 ≤ c) :
     LowerUnsignedLebesgueIntegral ((c:EReal) • f) = c * LowerUnsignedLebesgueIntegral f := by
   unfold LowerUnsignedLebesgueIntegral
   have hzero_simple : UnsignedSimpleFunction (fun _ : EuclideanSpace' d => (0 : EReal)) := by
@@ -308,7 +308,12 @@ theorem LowerUnsignedLebesgueIntegral.hom {d:ℕ} {f: EuclideanSpace' d → ERea
 /-- Exercise 1.3.10(iv) (Equivalence) -/
 theorem LowerUnsignedLebesgueIntegral.integral_eq_integral_of_aeEqual {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g)
     (heq: AlmostEverywhereEqual f g) :
-    LowerUnsignedLebesgueIntegral f = LowerUnsignedLebesgueIntegral g := by sorry
+    LowerUnsignedLebesgueIntegral f = LowerUnsignedLebesgueIntegral g := by
+  apply le_antisymm
+  · apply LowerUnsignedLebesgueIntegral.mono hf hg
+    exact IsNull.subset heq (by intro x hx h; exact hx (le_of_eq h))
+  · apply LowerUnsignedLebesgueIntegral.mono hg hf
+    exact IsNull.subset heq (by intro x hx h; exact hx (le_of_eq h.symm))
 
 /-- Exercise 1.3.10(v) (Superadditivity) -/
 theorem LowerUnsignedLebesgueIntegral.superadditive {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g) :
