@@ -1697,6 +1697,84 @@ def LowerUnsignedLebesgueIntegral.eq_upperIntegral_infinite_supp : Decidable (�
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
   sorry
 
+/-- min(f x + g x, n) ≤ min(f x, n) + min(g x, n) pointwise for nonnegative f, g. -/
+lemma min_add_le {d : ℕ} {f g : EuclideanSpace' d → EReal} (hf0 : ∀ x, 0 ≤ f x) (hg0 : ∀ x, 0 ≤ g x)
+    (n : ℕ) : ∀ x, min (f x + g x) n ≤ min (f x) n + min (g x) n := by
+  intro x
+  by_cases h1 : (n : EReal) ≤ f x
+  · by_cases h2 : (n : EReal) ≤ g x
+    · rw [min_eq_right h1, min_eq_right h2]
+      exact le_trans (min_le_right (f x + g x) (n : EReal))
+        (le_add_of_nonneg_right (by exact_mod_cast (Nat.zero_le n)))
+    · rw [min_eq_right h1, min_eq_left (le_of_not_ge h2)]
+      exact le_trans (min_le_right (f x + g x) (n : EReal)) (le_add_of_nonneg_right (hg0 x))
+  · by_cases h2 : (n : EReal) ≤ g x
+    · rw [min_eq_left (le_of_not_ge h1), min_eq_right h2]
+      exact le_trans (min_le_right (f x + g x) (n : EReal)) (le_add_of_nonneg_left (hf0 x))
+    · rw [min_eq_left (le_of_not_ge h1), min_eq_left (le_of_not_ge h2)]
+      exact min_le_left (f x + g x) (n : EReal)
+
+/-- The support of min(f, n) is contained in the support of f. -/
+lemma supp_min_subset {d : ℕ} {f : EuclideanSpace' d → EReal} (n : ℕ) :
+    Support (fun x => min (f x) n) ⊆ Support f := by
+  intro x hx
+  by_cases h : f x = 0
+  · exfalso
+    exact hx (by
+      change min (f x) (n : EReal) = 0
+      rw [h]
+      exact min_eq_left (by exact_mod_cast (Nat.zero_le n)))
+  · exact h
+
+/-- The support of f + g is contained in the union of the supports. -/
+lemma supp_add_subset {d : ℕ} {f g : EuclideanSpace' d → EReal} :
+    Support (f + g) ⊆ Support f ∪ Support g := by
+  intro x hx
+  simp [Support] at hx ⊢
+  by_contra h
+  push_neg at h
+  exact hx (by simp [h.1, h.2])
+
+/-- For 0 ≤ a ≤ n, the extended absolute value of a is bounded by n. -/
+lemma abs_le_of_nonneg_le {a : EReal} {n : ℕ} (h0 : 0 ≤ a) (hle : a ≤ (n : EReal)) :
+    a.abs ≤ (n : NNReal) := by
+  cases ha : a with
+  | bot => rw [ha] at h0; simp at h0
+  | top => rw [ha] at hle; exact (not_le_of_gt (EReal.coe_lt_top (n : ℝ)) hle).elim
+  | coe r =>
+      have hr0 : 0 ≤ r := (EReal.coe_nonneg).mp (by simpa [ha] using h0)
+      have hrn : r ≤ (n : ℝ) := (EReal.coe_le_coe_iff).mp (by simpa [ha] using hle)
+      rw [EReal.abs_def, abs_of_nonneg hr0]
+      calc
+        ENNReal.ofReal r ≤ ENNReal.ofReal (n : ℝ) := ENNReal.ofReal_le_ofReal hrn
+        _ = (n : NNReal) := ENNReal.ofReal_natCast n
+
+/-- Vertical truncation min(f, n) of a nonnegative f is bounded. -/
+lemma bounded_min_const {d : ℕ} {f : EuclideanSpace' d → EReal} (hf0 : ∀ x, 0 ≤ f x) (n : ℕ) :
+    EReal.BoundedFunction (fun x => min (f x) n) := by
+  refine ⟨n, ?_⟩
+  intro x
+  apply abs_le_of_nonneg_le
+  · exact le_min (hf0 x) (by exact_mod_cast (Nat.zero_le n))
+  · exact min_le_right (f x) (n : EReal)
+
+/-- The union of two finite-measure supports has finite measure. -/
+lemma supp_fg_fin {d : ℕ} {f g : EuclideanSpace' d → EReal} (hf_supp : FiniteMeasureSupport f)
+    (hg_supp : FiniteMeasureSupport g) : Lebesgue_measure (Support f ∪ Support g) < ⊤ := by
+  have hle : Lebesgue_measure (Support f ∪ Support g) ≤
+      Lebesgue_measure (Support f) + Lebesgue_measure (Support g) := by
+    let E' : Fin 2 → Set (EuclideanSpace' d) := ![Support f, Support g]
+    have h_union : Support f ∪ Support g = ⋃ i, E' i := by
+      simp only [E']
+      ext x
+      simp
+    have h_sum : ∑ i : Fin 2, Lebesgue_outer_measure (E' i) =
+        Lebesgue_measure (Support f) + Lebesgue_measure (Support g) := by
+      simp [Fin.sum_univ_two, E', Lebesgue_measure]
+    rw [h_union, ← h_sum]
+    exact Lebesgue_outer_measure.finite_union_le E'
+  exact lt_of_le_of_lt hle (EReal.add_lt_top (ne_of_lt hf_supp) (ne_of_lt hg_supp))
+
 /-- Additivity of lower integral for finite-support functions.
     This is the key step where we can apply {name}`eq_upperIntegral` and use the sandwich argument. -/
 lemma LowerUnsignedLebesgueIntegral.add_of_finiteSupport {d : ℕ}
@@ -1706,16 +1784,84 @@ lemma LowerUnsignedLebesgueIntegral.add_of_finiteSupport {d : ℕ}
     (hf_supp : FiniteMeasureSupport f) (hg_supp : FiniteMeasureSupport g) :
     LowerUnsignedLebesgueIntegral (f + g) =
       LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by
-  -- For finite-support functions, use vertical truncation to reduce to bounded case,
-  -- then apply eq_upperIntegral to show Lower = Upper, then sandwich:
-  --   Lower(f+g) ≥ Lower(f) + Lower(g)  [superadditive]
-  --   Lower(f+g) = Upper(f+g) ≤ Upper(f) + Upper(g) = Lower(f) + Lower(g)  [eq_upperIntegral + subadditive]
   apply le_antisymm
-  · -- ≤ direction: use vertical truncation + eq_upperIntegral + subadditive
-    -- For bounded finite-support: Lower = Upper by eq_upperIntegral
-    -- Then Upper(f+g) ≤ Upper(f) + Upper(g) by subadditive
-    -- Take vertical truncation limit to handle unbounded case
-    sorry
+  · have hmono_fg := LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc hfg
+    have hfn_meas : ∀ n : ℕ, UnsignedMeasurable (fun x => min (f x) n) := by
+      intro n
+      have hφ : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)) := by
+        simpa using (Continuous.min continuous_id continuous_const :
+          Continuous (fun y : EReal => min y ((n : ℝ) : EReal)))
+      have hφnn : ∀ x ≥ (0 : EReal), min x ((n : ℝ) : EReal) ≥ 0 := by
+        intro x hx
+        exact le_min hx (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+      simpa using UnsignedMeasurable.comp_cts hf hφ hφnn
+    have hgn_meas : ∀ n : ℕ, UnsignedMeasurable (fun x => min (g x) n) := by
+      intro n
+      have hφ : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)) := by
+        simpa using (Continuous.min continuous_id continuous_const :
+          Continuous (fun y : EReal => min y ((n : ℝ) : EReal)))
+      have hφnn : ∀ x ≥ (0 : EReal), min x ((n : ℝ) : EReal) ≥ 0 := by
+        intro x hx
+        exact le_min hx (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+      simpa using UnsignedMeasurable.comp_cts hg hφ hφnn
+    have hfgn_meas : ∀ n : ℕ, UnsignedMeasurable (fun x => min ((f + g) x) n) := by
+      intro n
+      have hφ : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)) := by
+        simpa using (Continuous.min continuous_id continuous_const :
+          Continuous (fun y : EReal => min y ((n : ℝ) : EReal)))
+      have hφnn : ∀ x ≥ (0 : EReal), min x ((n : ℝ) : EReal) ≥ 0 := by
+        intro x hx
+        exact le_min hx (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+      simpa using UnsignedMeasurable.comp_cts hfg hφ hφnn
+    have hbound_f : ∀ n : ℕ, EReal.BoundedFunction (fun x => min (f x) n) :=
+      fun n => bounded_min_const hf.1 n
+    have hbound_g : ∀ n : ℕ, EReal.BoundedFunction (fun x => min (g x) n) :=
+      fun n => bounded_min_const hg.1 n
+    have hbound_fg : ∀ n : ℕ, EReal.BoundedFunction (fun x => min ((f + g) x) n) :=
+      fun n => bounded_min_const hfg.1 n
+    have hsupp_f : ∀ n : ℕ, FiniteMeasureSupport (fun x => min (f x) n) := by
+      intro n
+      exact lt_of_le_of_lt (Lebesgue_outer_measure.mono (supp_min_subset (f := f) n)) hf_supp
+    have hsupp_g : ∀ n : ℕ, FiniteMeasureSupport (fun x => min (g x) n) := by
+      intro n
+      exact lt_of_le_of_lt (Lebesgue_outer_measure.mono (supp_min_subset (f := g) n)) hg_supp
+    have hsupp_fg : ∀ n : ℕ, FiniteMeasureSupport (fun x => min ((f + g) x) n) := by
+      intro n
+      exact lt_of_le_of_lt (Lebesgue_outer_measure.mono
+        (le_trans (supp_min_subset (f := f + g) n) (supp_add_subset (f := f) (g := g))))
+        (supp_fg_fin hf_supp hg_supp)
+    have hle_n : ∀ n : ℕ, LowerUnsignedLebesgueIntegral (fun x => min ((f + g) x) n) ≤
+        LowerUnsignedLebesgueIntegral (fun x => min (f x) n) +
+          LowerUnsignedLebesgueIntegral (fun x => min (g x) n) := by
+      intro n
+      calc
+        LowerUnsignedLebesgueIntegral (fun x => min ((f + g) x) n)
+            = UpperUnsignedLebesgueIntegral (fun x => min ((f + g) x) n) :=
+              LowerUnsignedLebesgueIntegral.eq_upperIntegral (hfgn_meas n) (hbound_fg n) (hsupp_fg n)
+        _ ≤ UpperUnsignedLebesgueIntegral (fun x => min (f x) n + min (g x) n) :=
+              upperIntegral_mono (min_add_le hf.1 hg.1 n)
+        _ ≤ UpperUnsignedLebesgueIntegral (fun x => min (f x) n) +
+              UpperUnsignedLebesgueIntegral (fun x => min (g x) n) :=
+              UpperUnsignedLebesgueIntegral.subadditive (hfn_meas n) (hgn_meas n)
+        _ = LowerUnsignedLebesgueIntegral (fun x => min (f x) n) +
+              LowerUnsignedLebesgueIntegral (fun x => min (g x) n) := by
+              rw [← LowerUnsignedLebesgueIntegral.eq_upperIntegral (hfn_meas n) (hbound_f n) (hsupp_f n),
+                  ← LowerUnsignedLebesgueIntegral.eq_upperIntegral (hgn_meas n) (hbound_g n) (hsupp_g n)]
+    have hmono_le_f : ∀ n : ℕ, LowerUnsignedLebesgueIntegral (fun x => min (f x) n) ≤
+        LowerUnsignedLebesgueIntegral f := by
+      intro n
+      exact LowerUnsignedLebesgueIntegral.mono (hfn_meas n) hf
+        (AlmostAlways.ofAlways (fun x => min_le_left (f x) (n : EReal)))
+    have hmono_le_g : ∀ n : ℕ, LowerUnsignedLebesgueIntegral (fun x => min (g x) n) ≤
+        LowerUnsignedLebesgueIntegral g := by
+      intro n
+      exact LowerUnsignedLebesgueIntegral.mono (hgn_meas n) hg
+        (AlmostAlways.ofAlways (fun x => min_le_left (g x) (n : EReal)))
+    have hle_n' : ∀ n : ℕ, LowerUnsignedLebesgueIntegral (fun x => min ((f + g) x) n) ≤
+        LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by
+      intro n
+      exact le_trans (hle_n n) (add_le_add (hmono_le_f n) (hmono_le_g n))
+    exact le_of_tendsto hmono_fg (Filter.Eventually.of_forall hle_n')
   · -- ≥ direction: direct from superadditivity
     exact LowerUnsignedLebesgueIntegral.superadditive hf hg
 
