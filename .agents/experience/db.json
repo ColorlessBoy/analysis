@@ -258,6 +258,97 @@
       "tactics": "canonical-rep integral_eq rewrite; atom partition for aeLe; integ_finite/eq_zero_iff via EReal finset-sum<top lemmas; pos/neg decomposition for Real/Complex integ; re/im for Complex; Support-subset for AbsInt",
       "description": "All 28 sorries in Section_1_3_1.lean: group A (UnsignedSimpleFunction: add/smul/finite_iff/eq_zero_iff/aeEqual/aeLe/indicator\u00d72/abs\u00d72) then group B (absolutelyIntegrable_iff\u00d72 via integral_finite_iff shortcut, AbsInt add/smul/conj via Support subset + finite_union_le, integ_add/smul/conj via pos/neg + re/im decomposition + EReal.toReal_mul, aeEqual, integral_indicator via zero-function lemmas). Key idioms: hf.choose projections NOT obtain (obtain consumes); EReal sum<top iff all terms; toReal_add/toReal_mul need finiteness or are unconditional (EReal.toReal_mul); Subsingleton.elim for Prop equalities; Complex.ext for \u2102 equalities; private helper name collisions when splicing from multiple temp files \u2014 dedupe",
       "time": "2026-08-01T01:44:28.235180"
+    },
+    {
+      "theorem": "limsup_measurable_proof",
+      "file": "_temp_132_lim.lean",
+      "tactics": "simpa [add_comm] using Filter.limsup_eq_iInf_iSup_of_nat'; UnsignedMeasurable.sup/.inf nesting",
+      "description": "limsup/liminf of unsigned measurable sequence is unsigned measurable via limsup_eq_iInf_iSup_of_nat'",
+      "time": "2026-08-01T09:44:52.727667"
+    },
+    {
+      "theorem": "add_measurable_proof",
+      "file": "_temp_132_add.lean",
+      "tactics": "TFAE + rational-split union + exists_surjective_nat reindex",
+      "description": "add of unsigned measurable EReal functions via {f+g>t} level sets: bot=univ, top=empty, finite via countable union over rational q split f>q & g>t-q",
+      "time": "2026-08-01T10:03:39.414133"
+    },
+    {
+      "theorem": "aeLimit_measurable_proof",
+      "file": "_temp_132_aelimit.lean",
+      "tactics": "TFAE.out 0 4 + of_ae_eq + limsup copy",
+      "description": "Generalized iii_imp_v: UnsignedMeasurable g n via TFAE gives levelset measurability; Unsigned gives nonnegativity",
+      "time": "2026-08-01T10:12:36.918662"
+    },
+    {
+      "theorem": "bounded_iff_proof",
+      "file": "_temp_132_bounded.lean",
+      "tactics": "constructor; bounded_measurable_uniform / uniform_measurable_bounded; floor div level sets; tendsto_order; EReal.coe_sub/add with change; abs via change+abs_def",
+      "description": "bounded_iff: g n x = floor(r*2^n)/2^n simple+bounded+uniform; \u21d0 via tendsto_order + aeLimit",
+      "time": "2026-08-01T10:50:31.198409"
+    },
+    {
+      "theorem": "iff_simple_proof",
+      "file": "_temp_132_iff_line5.lean",
+      "tactics": "constructor; unsignedMeasurable; Set.Finite.subset finite_range; filter-sum helper; Finset.toFinset; TFAE .out 0 5/0 7; sum_eq_single; Equiv.sum_comp; sum_attach; attach_eq_univ",
+      "description": "simple-iff: finite range \u27f9 finite-indexed level-set representation via toFinset and equivFinOfCardEq",
+      "time": "2026-08-01T11:15:22.866657"
+    },
+    {
+      "theorem": "RealMeasurable_TFAE_proof",
+      "file": "_temp_132_tfaer.lean",
+      "tactics": "tfae_have/tfae_finish + aeLimit + toReal_simple_of_unsigned_simple + tendsto_toReal_of_monotone + real_lt_iff_pos_neg",
+      "description": "Full RealMeasurable TFAE via 6 edges; toReal route for 3\u21921 avoids dyadic construction",
+      "time": "2026-08-01T11:52:57.780329"
+    },
+    {
+      "theorem": "ComplexMeasurable_TFAE_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_tfaec_line5.lean",
+      "tactics": "tfae_have 1->2,2->4,4->3,3->1,1->5,5->1,5->6,6->5; tfae_finish",
+      "description": "Complex TFAE: a.e.-simple->4 unsigned via aeLimit on re/im; open-preimages<->ComplexMeasurable via re/im open-preimages + rational box decomposition",
+      "time": "2026-08-01T12:10:10.167248"
+    },
+    {
+      "theorem": "aeLimit_RealMeasurable_proof",
+      "file": "_temp_132_aelimit_r",
+      "tactics": "TFAE out 0 3/3 0, of_ae_eq, exists_nat_one_div_lt, IsClosed.mem_of_tendsto",
+      "description": "a.e. limit of RealMeasurable bounded is RealMeasurable via open preimages + dyadic limsup",
+      "time": "2026-08-01T12:55:56.576839"
+    },
+    {
+      "theorem": "aeLimit_ComplexMeasurable_proof",
+      "file": "_temp_132_aelimit_r",
+      "tactics": "ComplexMeasurable.iff, re_fun/im_fun, abs_re/im_le_norm, continuous_re/im",
+      "description": "Complex case reduces to Real case on re/im components",
+      "time": "2026-08-01T12:55:56.605199"
+    },
+    {
+      "theorem": "mul_RealMeasurable_proof",
+      "file": "_temp_132_mul.lean",
+      "tactics": "rw [Finset.sum_mul_sum]; rw [\u2190 Fintype.sum_prod_type]; rw [\u2190 Equiv.sum_comp finProdFinEquiv.symm]; sum_congr; hterm by_cases simp",
+      "description": "product of measurables via product of simple functions, reindexed by finProdFinEquiv",
+      "time": "2026-08-01T13:11:21.268525"
+    },
+    {
+      "theorem": "measurable_graph_proof",
+      "file": "_temp_132_graph_line5.lean",
+      "tactics": "graph_eq_aux, graph_mem_iff, cylinder_eq_prod, graph_inter_reindex, rw, LebesgueMeasurable.inter/countable_inter, IsClosed.preimage, TFAE .out 0 4, LebesgueMeasurable.prod",
+      "description": "graph set = halfspace \u2229 \u22c2_q (t\u2264q \u222a q<f x); cylinders via LebesgueMeasurable.prod, half-spaces closed via continuous coord, \u211a reindexed via Encodable",
+      "time": "2026-08-01T13:37:51.830166"
+    },
+    {
+      "theorem": "riemann_proof",
+      "file": "_temp_132_riemann.lean",
+      "tactics": "aeLimit+pcf-lift+step-diff-null",
+      "description": "Riemann integrable => RealMeasurable via upper/lower step function approximations with geometric integral decay",
+      "time": "2026-08-01T15:14:57.047007"
+    },
+    {
+      "theorem": "Section_1_3_2_all_31",
+      "file": "Analysis/MeasureTheory/Section_1_3_2.lean",
+      "tactics": "TFAE shortcuts (.out i j with named a/b); UnsignedMeasurable.TFAE index 0-10; pos/neg+aeLimit; rational interval decomposition; finProdFinEquiv for product sums; LebesgueMeasurable.prod for cylinders; Riemann-Darboux bridging + step function a.e. convergence",
+      "description": "All 31 sorries: 13 group A (cts/simple/sup/inf/limsup/liminf via TFAE; aeEqual/comp_cts/add via level sets/sequences; aeLimit via limsupSet; bounded_iff via dyadic floor; iff via Finset.toFinset; measurable_graph via {0\u2264t}\u2229\u22c2_q(H_q\u222aK_q) with LebesgueMeasurable.prod) + 18 group B (Real/ComplexMeasurable.TFAE via 6-edge graphs; Continuous\u00d72/aeEqual\u00d72/comp_cts\u00d72/add\u00d72/sub\u00d72 via TFAE 3; aeLimit\u00d72 via dyadic J_m slabs + IsClosed.mem_of_tendsto; mul\u00d72 via finProdFinEquiv reindexed product sums; riemann via Darboux bridging + upper/lower step seqs + step_diff_ae_null + pcf_lift_RealSimpleFunction). Key gotchas: docstring after open Classical in swallows commands; namespace-shadowing needs _root_; private helpers must be in-file; noncomputable instance needed for Decidable in theorem statement; EReal has no ContinuousAdd (use level sets not Tendsto.add for EReal)",
+      "time": "2026-08-01T15:23:42.831343"
     }
   ],
   "errors": [

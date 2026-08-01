@@ -628,6 +628,207 @@
       "status": "success",
       "notes": "integ_eq_of_fun_eq helper + conj_re/conj_im pointwise + RealSimpleFunction.integ_smul (-1) + rw [map_add, map_mul] + simp [conj_ofReal, conj_I]",
       "end": "2026-08-01T01:31:07.422738"
+    },
+    {
+      "id": 41,
+      "theorem": "_temp_132_lim",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_lim.lean",
+      "goal": "limsup/liminf measurable",
+      "start": "2026-08-01T09:40:41.701622",
+      "attempts": [
+        {
+          "edit": "limsup proof complete: simpa [h_eq] using h_meas",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "ok",
+          "time": "2026-08-01T09:44:42.390190"
+        },
+        {
+          "edit": "liminf proof complete: dual structure",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "ok",
+          "time": "2026-08-01T09:44:52.667495"
+        }
+      ],
+      "status": "success",
+      "notes": "both proofs done",
+      "end": "2026-08-01T09:44:52.697872"
+    },
+    {
+      "id": 42,
+      "theorem": "_temp_132_add",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_add.lean",
+      "goal": "add measurable via level sets",
+      "start": "2026-08-01T09:53:37.564027",
+      "attempts": [
+        {
+          "edit": "full proof complete",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors, theorem done",
+          "time": "2026-08-01T10:03:34.304719"
+        }
+      ],
+      "status": "success",
+      "notes": "TFAE 4->0 via level sets; rational splitting with exists_rat_gt/lt/btwn; EReal.add_lt_add for >= direction",
+      "end": "2026-08-01T10:03:39.379358"
+    },
+    {
+      "id": 43,
+      "theorem": "aeLimit_measurable_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_aelimit.lean",
+      "goal": "Generalize iii_imp_v: replace UnsignedSimpleFunction with UnsignedMeasurable via TFAE",
+      "start": "2026-08-01T10:08:31.607047",
+      "attempts": [],
+      "status": "success",
+      "notes": "Copied iii_imp_v structure; replaced simple-function nonnegativity with (hf n).1 x and limsupSet measurability via UnsignedMeasurable.TFAE .out 0 4",
+      "end": "2026-08-01T10:12:36.886825"
+    },
+    {
+      "id": 44,
+      "theorem": "_temp_132_bounded",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_bounded.lean",
+      "goal": "bounded_iff",
+      "start": "2026-08-01T10:16:21.125786",
+      "attempts": [],
+      "status": "success",
+      "notes": "bounded_iff proved: floor-based g construction + tendsto_order for \u21d0",
+      "end": "2026-08-01T10:50:31.168144"
+    },
+    {
+      "id": 45,
+      "theorem": "_temp_132_iff",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_iff.lean",
+      "goal": "simple iff: UnsignedSimpleFunction f \u2194 UnsignedMeasurable f \u2227 Finite (f '' univ)",
+      "start": "2026-08-01T10:56:44.584023",
+      "attempts": [],
+      "status": "success",
+      "notes": "iff proof complete: (\u21d2) range via filter-sum subset of finite range; (\u21d0) Finset.toFinset + equivFinOfCardEq + sum_eq_single + Equiv.sum_comp + sum_attach",
+      "end": "2026-08-01T11:15:22.838086"
+    },
+    {
+      "id": 46,
+      "theorem": "RealMeasurable_TFAE_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_tfaer.lean",
+      "goal": "RealMeasurable.TFAE for real functions: 0\u21941 a.e. simple, 1\u21922 pos/neg, 2\u21923 open preimages, 2\u21920 via toReal, 3\u21944 complements",
+      "start": "2026-08-01T11:29:51.663363",
+      "attempts": [
+        {
+          "edit": "level-set helpers preimage_Iio/Ioi via pos/neg identity",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all helpers compile; TFAE sorry remains",
+          "time": "2026-08-01T11:40:01.351124"
+        }
+      ],
+      "status": "success",
+      "notes": "RealMeasurable.TFAE proven: edges 1\u21942(ae simple), 2\u21923(pos/neg via aeLimit+max-continuity), 3\u21924(open preimages via rational intervals+pos/neg identity), 4\u21945(complements), 4\u21923(level sets from open preimages), 3\u21921(toReal of monotone EReal simple sequences)",
+      "end": "2026-08-01T11:52:57.750547"
+    },
+    {
+      "id": 47,
+      "theorem": "ComplexMeasurable_TFAE_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_tfaec_line5.lean",
+      "goal": "ComplexMeasurable.TFAE with 6 statements",
+      "start": "2026-08-01T11:58:07.510456",
+      "attempts": [
+        {
+          "edit": "final",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors, proof complete",
+          "time": "2026-08-01T12:10:14.182584"
+        }
+      ],
+      "status": "success",
+      "notes": "ComplexMeasurable TFAE proven with 8 edges + tfae_finish",
+      "end": "2026-08-01T12:10:14.217655"
+    },
+    {
+      "id": 48,
+      "theorem": "_temp_132_aelimit_r",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_aelimit_r.lean",
+      "goal": "Real/Complex aeLimit",
+      "start": "2026-08-01T12:40:00.872434",
+      "attempts": [
+        {
+          "edit": "Real proof via open preimages + limsup",
+          "errors_before": 2,
+          "errors_after": 1,
+          "excerpt": "helpers compile, real theorem done",
+          "time": "2026-08-01T12:53:23.790776"
+        }
+      ],
+      "status": "success",
+      "notes": "Both proofs done: Real via open-preimage TFAE (idx 3) + dyadic limsup set with of_ae_eq; Complex via re/im reduction to Real theorem",
+      "end": "2026-08-01T12:55:56.547474"
+    },
+    {
+      "id": 49,
+      "theorem": "mul_RealMeasurable_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_mul.lean",
+      "goal": "RealMeasurable/ComplexMeasurable of pointwise product via RealSimpleFunction.mul helper",
+      "start": "2026-08-01T13:03:26.463629",
+      "attempts": [],
+      "status": "success",
+      "notes": "RealSimpleFunction.mul + ComplexSimpleFunction.mul via finProdFinEquiv reindex, then Tendsto.mul",
+      "end": "2026-08-01T13:11:21.237153"
+    },
+    {
+      "id": 50,
+      "theorem": "measurable_graph_proof",
+      "file": "_temp_132_graph_line5.lean",
+      "goal": "measurable graph retry",
+      "start": "2026-08-01T13:25:05.848946",
+      "attempts": [
+        {
+          "edit": "graph_mem_iff compiles",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "membership iff lemma OK",
+          "time": "2026-08-01T13:34:48.804623"
+        }
+      ],
+      "status": "success",
+      "notes": "rational decomposition + Encodable reindex + prod cylinder + closed half-spaces",
+      "end": "2026-08-01T13:37:51.800751"
+    },
+    {
+      "id": 51,
+      "theorem": "riemann_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_riemann_line5.lean",
+      "goal": "RiemannIntegrableOn implies RealMeasurable of zero-extension",
+      "start": "2026-08-01T13:43:08.076775",
+      "attempts": [
+        {
+          "edit": "starting exploration",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "read imports",
+          "time": "2026-08-01T13:43:12.282140"
+        }
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": 52,
+      "theorem": "riemann_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_132_riemann.lean",
+      "goal": "riemann measurable",
+      "start": "2026-08-01T14:01:54.694293",
+      "attempts": [
+        {
+          "edit": "Parts A+B: interval measurability + levelset bound",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiles",
+          "time": "2026-08-01T14:45:19.809546"
+        }
+      ],
+      "status": "success",
+      "notes": "Full proof: aeLimit via step functions",
+      "end": "2026-08-01T15:14:57.015268"
     }
   ]
 }
