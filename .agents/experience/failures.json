@@ -1040,6 +1040,17 @@
       "status": "success",
       "notes": "proved all 5 sorries: f_inv_sqrt_nonneg, f_inv_sqrt_measurable, f_inv_sqrt_upper, f_inv_sqrt_trunc_upper_bounded, eq_lim_vert_trunc_upper_isFalse",
       "end": "2026-08-01T23:26:52.516764"
+    },
+    {
+      "id": 64,
+      "theorem": "f_horiz_upper",
+      "file": "_temp_133_upper_horiz.lean",
+      "goal": "prove 6 sorries: f_piece_nonneg, f_horiz_nonneg, f_horiz_measurable, f_horiz_upper, f_horiz_trunc_upper_bounded, eq_lim_horiz_trunc_upper_isFalse",
+      "start": "2026-08-01T23:35:48.696961",
+      "attempts": [],
+      "status": "fail",
+      "notes": "reviewing",
+      "end": "2026-08-01T23:49:44.979129"
     }
   ]
 }
