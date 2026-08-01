@@ -1338,10 +1338,6 @@ def UpperUnsignedLebesgueIntegral.eq_lim_horiz_trunc : Decidable (∀ (d:ℕ) (f
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
   sorry
 
-/-- Exercise 1.3.10(x) (Reflection) -/
-theorem LowerUnsignedLebesgueIntegral.sum_of_reflect_eq {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g)
-    (hfg: UnsignedSimpleFunction (f+g)) (hbound: EReal.BoundedFunction (f + g)) (hsupport: FiniteMeasureSupport (f + g)) :
-    hfg.integ = LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by sorry
 
 /-- Definition 1.3.13 (Unsigned Lebesgue integral).  For Lean purposes it is convenient to assign a "junk" value to this integral when f is not unsigned measurable. -/
 noncomputable def UnsignedLebesgueIntegral {d:ℕ} (f: EuclideanSpace' d → EReal): EReal := LowerUnsignedLebesgueIntegral f
@@ -1775,6 +1771,87 @@ lemma supp_fg_fin {d : ℕ} {f g : EuclideanSpace' d → EReal} (hf_supp : Finit
     exact Lebesgue_outer_measure.finite_union_le E'
   exact lt_of_le_of_lt hle (EReal.add_lt_top (ne_of_lt hf_supp) (ne_of_lt hg_supp))
 
+/-- A nonnegative function pointwise below a bounded function is bounded. -/
+lemma bounded_of_nonneg_le {d : ℕ} {f h : EuclideanSpace' d → EReal} (hf0 : ∀ x, 0 ≤ f x)
+    (hle : ∀ x, f x ≤ h x) (hbound : EReal.BoundedFunction h) : EReal.BoundedFunction f := by
+  rcases hbound with ⟨M, hM⟩
+  refine ⟨M, ?_⟩
+  intro x
+  have habs : (f x).abs ≤ (h x).abs := by
+    rcases eq_bot_or_bot_lt (f x) with hfx_bot_eq | hfx_bot
+    · exfalso
+      exact (not_le_of_gt EReal.bot_lt_zero) (hfx_bot_eq ▸ hf0 x)
+    rcases eq_top_or_lt_top (f x) with hfx_top_eq | hfx_lt
+    · have htop : h x = ⊤ := top_le_iff.mp (hfx_top_eq ▸ hle x)
+      rw [hfx_top_eq, htop]
+      exact le_rfl
+    · rcases eq_bot_or_bot_lt (h x) with hhx_bot_eq | hhx_bot
+      · exfalso
+        exact (not_le_of_gt EReal.bot_lt_zero) (le_trans (hf0 x) (hhx_bot_eq ▸ hle x))
+      · rcases eq_top_or_lt_top (h x) with hhx_top_eq | hhx_lt
+        · rw [hhx_top_eq]
+          exact le_top
+        · have hfx_eq : f x = (((f x).toReal : ℝ) : EReal) :=
+            (EReal.coe_toReal hfx_lt.ne hfx_bot.ne').symm
+          have hhx_eq : h x = (((h x).toReal : ℝ) : EReal) :=
+            (EReal.coe_toReal hhx_lt.ne hhx_bot.ne').symm
+          rw [hfx_eq, hhx_eq, EReal.abs_def, EReal.abs_def]
+          have hfxr_nonneg : 0 ≤ (f x).toReal := by
+            have hf0x : (0 : EReal) ≤ (((f x).toReal : ℝ) : EReal) := by
+              rw [← hfx_eq]
+              exact hf0 x
+            exact EReal.coe_nonneg.mp hf0x
+          have hfxr_le : (f x).toReal ≤ (h x).toReal := by
+            have hle' : (((f x).toReal : ℝ) : EReal) ≤ (((h x).toReal : ℝ) : EReal) := by
+              rw [← hfx_eq, ← hhx_eq]
+              exact hle x
+            exact EReal.coe_le_coe_iff.mp hle'
+          have hhxr_nonneg : 0 ≤ (h x).toReal := le_trans hfxr_nonneg hfxr_le
+          rw [abs_of_nonneg hfxr_nonneg, abs_of_nonneg hhxr_nonneg]
+          exact ENNReal.ofReal_le_ofReal hfxr_le
+  exact le_trans habs (hM x)
+
+/-- The support of a function pointwise below another is contained in the other's support
+    (for unsigned f: f x > 0 → h x ≥ f x > 0). -/
+lemma supp_subset_of_le {d : ℕ} {f h : EuclideanSpace' d → EReal} (hf0 : ∀ x, 0 ≤ f x)
+    (hle : ∀ x, f x ≤ h x) : Support f ⊆ Support h := by
+  intro x hx
+  have hfpos : 0 < f x := lt_of_le_of_ne (hf0 x) hx.symm
+  have hhpos : 0 < h x := lt_of_lt_of_le hfpos (hle x)
+  exact ne_of_gt hhpos
+
+/-- Exercise 1.3.10(x) (Reflection) -/
+theorem LowerUnsignedLebesgueIntegral.sum_of_reflect_eq {d:ℕ} {f g: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g)
+    (hfg: UnsignedSimpleFunction (f+g)) (hbound: EReal.BoundedFunction (f + g)) (hsupport: FiniteMeasureSupport (f + g)) :
+    hfg.integ = LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by
+  have hf_le : ∀ x, f x ≤ (f + g) x := fun x => le_add_of_nonneg_right (hg.1 x)
+  have hg_le : ∀ x, g x ≤ (f + g) x := fun x => le_add_of_nonneg_left (hf.1 x)
+  have hbound_f : EReal.BoundedFunction f := bounded_of_nonneg_le hf.1 hf_le hbound
+  have hbound_g : EReal.BoundedFunction g := bounded_of_nonneg_le hg.1 hg_le hbound
+  have hsupp_f : FiniteMeasureSupport f := by
+    unfold FiniteMeasureSupport
+    apply lt_of_le_of_lt _ hsupport
+    exact Lebesgue_outer_measure.mono (supp_subset_of_le hf.1 hf_le)
+  have hsupp_g : FiniteMeasureSupport g := by
+    unfold FiniteMeasureSupport
+    apply lt_of_le_of_lt _ hsupport
+    exact Lebesgue_outer_measure.mono (supp_subset_of_le hg.1 hg_le)
+  apply le_antisymm
+  · calc
+      hfg.integ = LowerUnsignedLebesgueIntegral (f + g) :=
+        (LowerUnsignedLebesgueIntegral.eq_simpleIntegral hfg).symm
+      _ = UpperUnsignedLebesgueIntegral (f + g) :=
+        LowerUnsignedLebesgueIntegral.eq_upperIntegral (UnsignedSimpleFunction.unsignedMeasurable hfg) hbound hsupport
+      _ ≤ UpperUnsignedLebesgueIntegral f + UpperUnsignedLebesgueIntegral g :=
+        UpperUnsignedLebesgueIntegral.subadditive hf hg
+      _ = LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g := by
+        rw [LowerUnsignedLebesgueIntegral.eq_upperIntegral hf hbound_f hsupp_f,
+            LowerUnsignedLebesgueIntegral.eq_upperIntegral hg hbound_g hsupp_g]
+  · calc
+      LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g ≤
+          LowerUnsignedLebesgueIntegral (f + g) := LowerUnsignedLebesgueIntegral.superadditive hf hg
+      _ = hfg.integ := LowerUnsignedLebesgueIntegral.eq_simpleIntegral hfg
+
 /-- Additivity of lower integral for finite-support functions.
     This is the key step where we can apply {name}`eq_upperIntegral` and use the sandwich argument. -/
 lemma LowerUnsignedLebesgueIntegral.add_of_finiteSupport {d : ℕ}
@@ -1921,7 +1998,34 @@ theorem LowerUnsignedLebesgueIntegral.add {d:ℕ} {f g: EuclideanSpace' d → ER
 
 /-- Exercise 1.3.12 (Upper Lebesgue integral and outer measure). -/
 theorem UpperUnsignedLebesgueIntegral.eq_outer_measure_integral {d:ℕ} {E: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) :
-    UpperUnsignedLebesgueIntegral (Real.toEReal ∘ E.indicator') = Lebesgue_outer_measure E := by sorry
+    UpperUnsignedLebesgueIntegral (Real.toEReal ∘ E.indicator') = Lebesgue_outer_measure E := by
+  apply le_antisymm
+  · unfold UpperUnsignedLebesgueIntegral
+    calc
+      sInf {R | ∃ (g : EuclideanSpace' d → EReal), ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≥ (Real.toEReal ∘ E.indicator') x ∧ R = hg.integ} ≤
+          (UnsignedSimpleFunction.indicator hE).integ := by
+        apply sInf_le
+        refine ⟨Real.toEReal ∘ E.indicator', UnsignedSimpleFunction.indicator hE, ?_⟩
+        intro x
+        exact ⟨le_rfl, rfl⟩
+      _ = Lebesgue_outer_measure E := by
+        rw [UnsignedSimpleFunction.integral_indicator hE]
+        rfl
+  · unfold UpperUnsignedLebesgueIntegral
+    apply le_sInf
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hReq : R = hg.integ := by
+      haveI : Nonempty (EuclideanSpace' d) := inferInstance
+      exact (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    calc
+      Lebesgue_outer_measure E = (UnsignedSimpleFunction.indicator hE).integ := by
+        rw [UnsignedSimpleFunction.integral_indicator hE]
+        rfl
+      _ ≤ hg.integ :=
+        UnsignedSimpleFunction.integral_le_integral_of_aeLe (UnsignedSimpleFunction.indicator hE) hg
+          (AlmostAlways.ofAlways (fun x => (hcond x).1))
 
 theorem LowerUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: EuclideanSpace' d → EReal) (hf: Unsigned f) (hg: Unsigned g), (LowerUnsignedLebesgueIntegral (f + g) ≠ LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g) := by
     sorry
