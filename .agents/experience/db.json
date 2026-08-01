@@ -153,6 +153,111 @@
       "tactics": "by_contra + push_neg; vitali translates family; finite additivity of disjoint bounded sets; archimedean contradiction via exists_nat_gt + field_simp; null-set via degenerate 2D box + IsNull.subset + IsNull.measurable; projection identity via toLp witness",
       "description": "Ex 1.2.26: assume finite additivity, Vitali translates T_n = V + {q_n} pairwise disjoint bounded with m T_n = m V, m(\u22c3_{k<n} T k) = n\u00b7r by induction using h, \u2264 3 = m[-1,2], contradiction with exists_nat_gt. Ex 1.2.27: E = {z | z0 \u2208 VitaliSet \u2227 z1 = 0} is null (box [0,1]\u00d7[0,0], volume 0 via prod_eq_zero at Fin 2 index 1, Lebesgue_outer_measure.elementary + IsElementary.measure_of_box), projection = lift '' VitaliSet nonmeasurable. Gotchas: docstring Verso syntax rejects [-1,1] and {z | ...} \u2014 use plain words; rw can't unfold IsNull abbrev \u2014 change first; EReal: rw [\u2190 EReal.coe_mul, \u2190 EReal.coe_add] then congr 1 + push_cast + ring; subagent_prompt.py had bug (duplicate statement line) \u2014 fixed extract_theorem",
       "time": "2026-07-31T22:16:18.549722"
+    },
+    {
+      "theorem": "UnsignedSimpleFunction.integral_add",
+      "file": "Section_1_3_1.lean",
+      "tactics": "let k1:=hf.choose ...; integral_eq hf/hg/(hf.add hg); rw [Fin.sum_univ_add]; simp [cadd,Eadd]",
+      "description": "proved via integral_eq on combined split representation + Fin.sum_univ_add; note obtain kills hf/hg, must use hf.choose projections",
+      "time": "2026-07-31T22:55:20.155333"
+    },
+    {
+      "theorem": "integral_smul_proof",
+      "file": "_temp_131_smul_line7.lean",
+      "tactics": "let-extract rep; simp only [heq1]; ext; simp [Pi.smul_apply, Finset.sum_apply, smul_eq_mul]; rw [EReal.mul_finset_sum_of_nonneg]; congr; ext; rw [mul_assoc]; rw [integral_eq] twice; forward rw mul_finset_sum_of_nonneg with measure nonneg",
+      "description": "smul integral: c pulls out of integral via EReal.mul_finset_sum_of_nonneg (forward rw on RHS, NOT \u2190: associativity mismatch)",
+      "time": "2026-07-31T23:02:57.986754"
+    },
+    {
+      "theorem": "finite_iff_proof",
+      "file": "_temp_131_finite_line7.lean",
+      "tactics": "rw [hinteg]; constructor; EReal_sum_lt_top_iff_all \u2192 hterm_lt; IsNull.finite_iUnion + IsNull.subset for AlmostAlways; finite_union_le + EReal_sum_lt_top_of_all for support measure; \u21d0: E i \u2286 {x|\u00acf x<\u22a4} + \u2286 Support f via support_eq_iUnion_pos",
+      "description": "hf.integ < \u22a4 iff a.e. finite + finite support: 8 helper lemmas (sum_lt_top, mul_lt_top via lift, indicator-sum=\u22a4 iff, finite null union, support=union of c>0 sets)",
+      "time": "2026-07-31T23:18:47.351424"
+    },
+    {
+      "theorem": "_temp_131_zero_line7",
+      "file": "_temp_131_zero_line7.lean",
+      "tactics": "rw [integral_eq]; change IsNull (Support f); rw [support_eq_iUnion_pos]; constructor; ...",
+      "description": "integral=0 iff almost-always-zero: helpers sum_eq_zero_of_nonneg (Finset.single_le_sum) and mul_eq_zero_of_pos_left (EReal.mul_pos) + IsNull.finite_iUnion / IsNull.subset",
+      "time": "2026-07-31T23:32:49.149024"
+    },
+    {
+      "theorem": "aeLe_proof",
+      "file": "_temp_131_aele_line7.lean",
+      "tactics": "atomValueEReal/atomValueERealShift, eq_sum_atomValueEReal_indicator, integral_eq, hcmp, sum_le_sum",
+      "description": "a.e. le = per-atom le or null atom; termwise mul_le_mul_of_nonneg_right",
+      "time": "2026-07-31T23:44:42.636626"
+    },
+    {
+      "theorem": "aeEqual_proof",
+      "file": "_temp_131_aeeq_line7.lean",
+      "tactics": "have h1/h2 via integral_le_integral_of_aeLe + AlmostAlways.mp, exact le_antisymm",
+      "description": "aeEqual via monotonicity in both directions",
+      "time": "2026-07-31T23:50:43.832856"
+    },
+    {
+      "theorem": "abs_real_proof",
+      "file": "_temp_131_absreal_line6.lean",
+      "tactics": "obtain disjoint_representation; use n, (\u2016v i\u2016).toEReal, A; by_cases x in atom; Finset.sum_eq_single + EReal.indicator_of_mem/notMem",
+      "description": "abs of real simple function via disjoint representation, mirroring pos proof",
+      "time": "2026-07-31T23:58:14.726722"
+    },
+    {
+      "theorem": "abs_complex_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_abscomplex_line6.lean",
+      "tactics": "obtain disjoint_representation; use \u2016v i\u2016.toEReal; sum_eq_single + indicator cases",
+      "description": "Complex abs via atomValueComplex disjoint rep, mirror of RealSimpleFunction.abs; also fixed forward-ref order bug in Section_1_3_1.lean",
+      "time": "2026-08-01T00:09:51.693119"
+    },
+    {
+      "theorem": "absint_iff_real_proof",
+      "file": "_temp_131_absint_real_line6.lean",
+      "tactics": "rw [AbsolutelyIntegrable]; rw [integral_finite_iff (hf.abs)]; hsup via simp; haa via IsNull.subset of_empty; constructor+simpa",
+      "description": "absint iff finite support via integral_finite_iff",
+      "time": "2026-08-01T00:18:33.507693"
+    },
+    {
+      "theorem": "integ_add_real_proof",
+      "file": "_temp_131_integadd_line6.lean",
+      "tactics": "max_sub_neg + pos_neg_add_id + unsigned_integral_nonneg + pos_fun_le_abs/neg_fun_le_abs + toReal_add_fin; main: h_point, aeEqual, integral_add rw, finiteness, toReal, change+linarith",
+      "description": "additivity of real simple function integral via pos/neg parts",
+      "time": "2026-08-01T00:43:46.501199"
+    },
+    {
+      "theorem": "integ_smul_real_proof",
+      "file": "_temp_131_integsmul_line6.lean",
+      "tactics": "by_cases ha; pos_fun_smul_neg etc; aeEqual+integral_smul; simp only [EReal.toReal_mul, EReal.toReal_coe, EReal.toReal_neg_eq]; ring",
+      "description": "RealSimpleFunction.integ_smul: 2-branch proof; EReal.toReal_mul is unconditional so no finiteness needed",
+      "time": "2026-08-01T00:53:47.262501"
+    },
+    {
+      "theorem": "integ_add_complex_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_integaddc.lean",
+      "tactics": "Subsingleton.elim; congrArg; rw [absolutelyIntegrable_iff]; Lebesgue_outer_measure.mono; RealSimpleFunction.integ_add; simp [Complex.ofReal_add]; ring",
+      "description": "complex integ additivity via re/im decomposition; avoid rw on Prop-proof equality (introduces cast) - use congrArg",
+      "time": "2026-08-01T01:06:08.827365"
+    },
+    {
+      "theorem": "integ_smul_complex_proof",
+      "file": "_temp_131_integsmullc_line6.lean",
+      "tactics": "integ_eq_of_fun_eq helper; pointwise re via rw [Complex.mul_re]+change+ring, im via rw [Complex.mul_im]; h_re_int/h_im_int via apply helper; rw [h_re_int,h_im_int,h1..h6]; apply Complex.ext; simp; ring; simp",
+      "description": "complex smul integral via re/im: helper lemma transports function equality through RealSimpleFunction.integ using proven UnsignedSimpleFunction aeEqual; ring per Complex.ext component avoids I^2 issue",
+      "time": "2026-08-01T01:22:45.155929"
+    },
+    {
+      "theorem": "integral_conj_proof",
+      "file": "_temp_131_conj_line6.lean",
+      "tactics": "unfold ComplexSimpleFunction.integ; rw [h_re_int, h_im_int, RealSimpleFunction.integ_smul hf_im_ai (-1 : \u211d)]; rw [map_add, map_mul]; simp [Complex.conj_ofReal, Complex.conj_I]",
+      "description": "conj integral via pointwise re/im transport + smul (-1) + star ring hom simp",
+      "time": "2026-08-01T01:31:07.452537"
+    },
+    {
+      "theorem": "Section_1_3_1_all_28",
+      "file": "analysis/MeasureTheory/Section_1_3_1.lean",
+      "tactics": "canonical-rep integral_eq rewrite; atom partition for aeLe; integ_finite/eq_zero_iff via EReal finset-sum<top lemmas; pos/neg decomposition for Real/Complex integ; re/im for Complex; Support-subset for AbsInt",
+      "description": "All 28 sorries in Section_1_3_1.lean: group A (UnsignedSimpleFunction: add/smul/finite_iff/eq_zero_iff/aeEqual/aeLe/indicator\u00d72/abs\u00d72) then group B (absolutelyIntegrable_iff\u00d72 via integral_finite_iff shortcut, AbsInt add/smul/conj via Support subset + finite_union_le, integ_add/smul/conj via pos/neg + re/im decomposition + EReal.toReal_mul, aeEqual, integral_indicator via zero-function lemmas). Key idioms: hf.choose projections NOT obtain (obtain consumes); EReal sum<top iff all terms; toReal_add/toReal_mul need finiteness or are unconditional (EReal.toReal_mul); Subsingleton.elim for Prop equalities; Complex.ext for \u2102 equalities; private helper name collisions when splicing from multiple temp files \u2014 dedupe",
+      "time": "2026-08-01T01:44:28.235180"
     }
   ],
   "errors": [

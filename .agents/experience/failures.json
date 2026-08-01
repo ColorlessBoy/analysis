@@ -371,6 +371,263 @@
       "status": "success",
       "notes": "E = VitaliSet line; measurable via null set (box B vol 0); projection image = equiv '' VitaliSet via ext + toLp witness; nonmeasurable via VitaliSet.nonmeasurable",
       "end": "2026-07-31T22:12:41.961875"
+    },
+    {
+      "id": 27,
+      "theorem": "_temp_131_add_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_add.lean",
+      "goal": "goal",
+      "start": "2026-07-31T22:43:08.938943",
+      "attempts": [
+        {
+          "edit": "full proof: integral_eq on 3 reps + Fin.sum_univ_add split",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "success",
+          "time": "2026-07-31T22:55:20.094856"
+        }
+      ],
+      "status": "success",
+      "notes": "Used integral_eq with the canonical split representation (cadd/Eadd, copied from UnsignedSimpleFunction.add), then Fin.sum_univ_add to split the Fin(k1+k2) sum; obtain consumes hyps so used choose projections",
+      "end": "2026-07-31T22:55:20.124661"
+    },
+    {
+      "id": 28,
+      "theorem": "integral_smul_proof",
+      "file": "_temp_131_smul_line7.lean",
+      "goal": "prove (hf.smul hc).integ = c * hf.integ via integral_eq on 3 reps",
+      "start": "2026-07-31T22:58:26.297864",
+      "attempts": [
+        {
+          "edit": "full proof body: simp[heq1] + integral_eq 3 reps + forward mul_finset_sum_of_nonneg",
+          "errors_before": 2,
+          "errors_after": 0,
+          "excerpt": "two rw errors fixed: motive issue (simp only [heq\u2081]) + \u2190 assoc mismatch (forward rw)",
+          "time": "2026-07-31T23:02:35.370453"
+        }
+      ],
+      "status": "success",
+      "notes": "integral_eq on 2 reps + EReal.mul_finset_sum_of_nonneg for scalar pull-out; rw[heq1] failed on c\u2022f motive -> simp only [heq1]",
+      "end": "2026-07-31T23:02:57.957538"
+    },
+    {
+      "id": 29,
+      "theorem": "_temp_131_finite_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_finite.lean",
+      "goal": "finite_iff_proof: hf.integ < top iff AlmostAlways (f x < top) and measure of Support f < top",
+      "start": "2026-07-31T23:05:46.599440",
+      "attempts": [
+        {
+          "edit": "full proof with 8 helpers",
+          "errors_before": 2,
+          "errors_after": 0,
+          "excerpt": "0 errors after fixing Ne.symm elaboration and obtain-clears-hf issue",
+          "time": "2026-07-31T23:18:40.964211"
+        }
+      ],
+      "status": "success",
+      "notes": "helpers: EReal_finset_sum_lt_top, EReal.mul_lt_top_of_nonneg (lift), EReal_sum_indicator_eq_top_iff, IsNull.finite_iUnion, support_eq_iUnion_pos; obtain clears hf -> save copy first",
+      "end": "2026-07-31T23:18:40.992868"
+    },
+    {
+      "id": 30,
+      "theorem": "_temp_131_zero_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_zero.lean",
+      "goal": "hf.integ = 0 \u2194 AlmostAlways (fun x \u21a6 f x = 0)",
+      "start": "2026-07-31T23:24:51.648669",
+      "attempts": [
+        {
+          "edit": "full proof with 2 helpers",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "0 errors after build; only linter simpa->simp fixed",
+          "time": "2026-07-31T23:32:47.811301"
+        }
+      ],
+      "status": "success",
+      "notes": "rw integral_eq + support_eq_iUnion_pos; (=>) sum_eq_zero_of_nonneg + mul_eq_zero_of_pos_left (EReal.mul_pos) + IsNull.finite_iUnion; (<=) IsNull.subset per-atom + zero_mul/mul_zero + simp [hterm0]",
+      "end": "2026-07-31T23:32:47.842695"
+    },
+    {
+      "id": 31,
+      "theorem": "aeLe_proof",
+      "file": "_temp_131_aele_line7.lean",
+      "goal": "hf.integ <= hg.integ from a.e. pointwise le, via joint atoms",
+      "start": "2026-07-31T23:38:05.315857",
+      "attempts": [],
+      "status": "success",
+      "notes": "joint-atom proof: atomValueEReal/Shift helpers + per-atom a<=b or null via IsNull.subset + Finset.sum_le_sum",
+      "end": "2026-07-31T23:44:42.607194"
+    },
+    {
+      "id": 32,
+      "theorem": "_temp_131_aeeq_line7",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_aeeq.lean",
+      "goal": "hf.integ = hg.integ from ae equal",
+      "start": "2026-07-31T23:48:43.176758",
+      "attempts": [
+        {
+          "edit": "full proof: 2x integral_le_integral_of_aeLe + le_antisymm",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "0 errors after rebuild",
+          "time": "2026-07-31T23:50:43.771722"
+        }
+      ],
+      "status": "success",
+      "notes": "le_antisymm of two monotonicity applications via AlmostAlways.mp",
+      "end": "2026-07-31T23:50:43.803053"
+    },
+    {
+      "id": 33,
+      "theorem": "_temp_131_absreal_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_absreal.lean",
+      "goal": "goal",
+      "start": "2026-07-31T23:51:51.464160",
+      "attempts": [
+        {
+          "edit": "full proof",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "copy of pos structure with \u2016v i\u2016 coefficients",
+          "time": "2026-07-31T23:58:11.428297"
+        }
+      ],
+      "status": "success",
+      "notes": "disjoint_representation + Finset.sum_eq_single; also fixed broken forward-ref in main file (moved integral_eq_integral_of_aeEqual after integral_le_integral_of_aeLe)",
+      "end": "2026-07-31T23:58:11.460800"
+    },
+    {
+      "id": 34,
+      "theorem": "abs_complex_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_abscomplex_line6.lean",
+      "goal": "UnsignedSimpleFunction (EReal.abs_fun f) for complex simple f via disjoint representation",
+      "start": "2026-08-01T00:03:02.431889",
+      "attempts": [
+        {
+          "edit": "full proof: 3 complex helpers + abs proof",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors after adding Complex.ofReal_one/ofReal_zero to simp lists",
+          "time": "2026-08-01T00:09:22.811348"
+        }
+      ],
+      "status": "success",
+      "notes": "Complex disjoint representation via atomValueComplex; abs proof mirrors RealSimpleFunction.abs",
+      "end": "2026-08-01T00:09:22.847135"
+    },
+    {
+      "id": 35,
+      "theorem": "absint_iff_real_proof",
+      "file": "_temp_131_absint_real_line6.lean",
+      "goal": "goal: hf.AbsolutelyIntegrable \u2194 Lebesgue_measure (Support f) < \u22a4",
+      "start": "2026-08-01T00:14:02.966911",
+      "attempts": [
+        {
+          "edit": "setup temp file",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "created temp file",
+          "time": "2026-08-01T00:14:14.420328"
+        },
+        {
+          "edit": "full proof via integral_finite_iff",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors, 0 warnings",
+          "time": "2026-08-01T00:18:33.445668"
+        }
+      ],
+      "status": "success",
+      "notes": "Used UnsignedSimpleFunction.integral_finite_iff on hf.abs; AlmostAlways trivial (EReal.coe_lt_top); Support abs_fun = Support f",
+      "end": "2026-08-01T00:18:33.476041"
+    },
+    {
+      "id": 36,
+      "theorem": "_temp_131_integadd_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_integadd.lean",
+      "goal": "goal: (hf.add hg).integ = hf.integ + hg.integ",
+      "start": "2026-08-01T00:28:38.795782",
+      "attempts": [
+        {
+          "edit": "full proof: pointwise pos/neg id + aeEqual + finite toReal",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "success",
+          "time": "2026-08-01T00:43:46.438054"
+        }
+      ],
+      "status": "success",
+      "notes": "proved via max_sub_neg identity, aeEqual on pos/neg parts, finiteness via aeLe with abs, EReal.toReal_add",
+      "end": "2026-08-01T00:43:46.470037"
+    },
+    {
+      "id": 37,
+      "theorem": "_temp_131_integsmul_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_integsmul.lean",
+      "goal": "prove integ_smul_real_proof: (hf.smul a).integ = a * hf.integ",
+      "start": "2026-08-01T00:47:39.473278",
+      "attempts": [],
+      "status": "success",
+      "notes": "case split a>=0/a<0; pointwise pos/neg_fun smul identities via mul_max_of_nonneg; aeEqual + UnsignedSimpleFunction.integral_smul; EReal.toReal_mul unconditional + toReal_neg_eq + toReal_coe; ring",
+      "end": "2026-08-01T00:53:47.233185"
+    },
+    {
+      "id": 38,
+      "theorem": "_temp_131_integaddc_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_integaddc.lean",
+      "goal": "integ_add_complex_proof: (hf.add hg).integ = hf.integ + hg.integ",
+      "start": "2026-08-01T00:57:27.503260",
+      "attempts": [
+        {
+          "edit": "full proof: Subsingleton.elim + congrArg + 4 AI lemmas + rw + simp[ofReal_add] + ring",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "rw [h_re] introduced cast; fixed via congrArg; ring needed simp [Complex.ofReal_add] first",
+          "time": "2026-08-01T01:06:04.943839"
+        }
+      ],
+      "status": "success",
+      "notes": "re/im decomposition: h_re/h_im via Subsingleton.elim, transport via congrArg, AI via Support subset + mono, RealSimpleFunction.integ_add, ring",
+      "end": "2026-08-01T01:06:04.974459"
+    },
+    {
+      "id": 39,
+      "theorem": "_temp_131_integsmullc_line6",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_integsmullc.lean",
+      "goal": "goal: (hf.smul a).integ = a * hf.integ for complex simple f",
+      "start": "2026-08-01T01:08:49.718992",
+      "attempts": [
+        {
+          "edit": "full proof: integ_eq_of_fun_eq helper + pointwise re/im + 2 AI lemmas + rw chain + Complex.ext",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors, file compiles",
+          "time": "2026-08-01T01:22:05.032969"
+        }
+      ],
+      "status": "success",
+      "notes": "proved via re/im decomposition: Subsingleton-free transport using UnsignedSimpleFunction.integral_eq_integral_of_aeEqual; final ring per Complex.ext component",
+      "end": "2026-08-01T01:22:05.066455"
+    },
+    {
+      "id": 40,
+      "theorem": "integral_conj_proof",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_131_conj_line6.lean",
+      "goal": "prove (hf.conj).integ = (starRingEnd \u2102) hf.integ",
+      "start": "2026-08-01T01:28:11.733266",
+      "attempts": [
+        {
+          "edit": "full proof",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "pointwise re/im via Complex.conj_re/conj_im + integ_eq_of_fun_eq + rw + simp closes",
+          "time": "2026-08-01T01:31:07.393058"
+        }
+      ],
+      "status": "success",
+      "notes": "integ_eq_of_fun_eq helper + conj_re/conj_im pointwise + RealSimpleFunction.integ_smul (-1) + rw [map_add, map_mul] + simp [conj_ofReal, conj_I]",
+      "end": "2026-08-01T01:31:07.422738"
     }
   ]
 }
