@@ -1348,9 +1348,346 @@ noncomputable def UnsignedLebesgueIntegral {d:ℕ} (f: EuclideanSpace' d → ERe
 
 noncomputable def UnsignedMeasurable.integ {d:ℕ} (f: EuclideanSpace' d → EReal) (_: UnsignedMeasurable f) : EReal := UnsignedLebesgueIntegral f
 
+/-- The constant function with value c is an unsigned simple function when c is nonnegative. -/
+lemma const_simple {d : ℕ} (c : ℝ) (hc : 0 ≤ c) :
+    UnsignedSimpleFunction (fun _ : EuclideanSpace' d => (c : EReal)) := by
+  use 1, (fun _ : Fin 1 => (c : EReal)), (fun _ : Fin 1 => (Set.univ : Set (EuclideanSpace' d)))
+  constructor
+  · intro i
+    constructor
+    · simpa using isOpen_univ.measurable
+    · exact EReal.coe_nonneg.mpr hc
+  · ext x
+    simp [smul_eq_mul, EReal.indicator_of_mem (Set.mem_univ x)]
+
+/-- Pointwise identity: the positive part of g minus a real constant equals the atom sum
+    with max-truncated coefficients (atoms refine the representation of g). -/
+lemma max_eq_sum_atomValueEReal {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (c : ℝ) :
+    (fun x => max (g x - (c : EReal)) 0) = ∑ n' : Fin (2^(hg.choose + hg.choose)),
+      max (atomValueEReal hg.choose_spec.choose n'.val - (c : EReal)) 0 •
+        EReal.indicator (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose n') := by
+  let k := hg.choose
+  let c' := hg.choose_spec.choose
+  let E := hg.choose_spec.choose_spec.choose
+  have hmes : ∀ i, LebesgueMeasurable (E i) ∧ c' i ≥ 0 := hg.choose_spec.choose_spec.choose_spec.1
+  have heq : g = ∑ i, (c' i) • (EReal.indicator (E i)) := hg.choose_spec.choose_spec.choose_spec.2
+  let A : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  funext x
+  let n0 : Fin (2^(k+k)) := ⟨atomIndexOf E E x, atomIndexOf_lt E E x⟩
+  have hx_mem : x ∈ A n0 := by
+    simp only [A, atom, Set.mem_setOf_eq, n0]
+    refine ⟨fun j => ?_, fun j => ?_⟩
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E E E x j]
+    · rw [atomMembership_eq_testBit, atomIndexOf_testBit_E' E E x j]
+  have hunique : ∀ m : Fin (2^(k+k)), x ∈ A m → m = n0 := by
+    intro m hm
+    by_contra hne
+    have hdisj : Disjoint (A m) (A n0) := by
+      simpa [A] using atom_pairwiseDisjoint E E (by simp) (by simp) hne
+    exact (Set.disjoint_left.mp hdisj) hm hx_mem
+  have hgx : g x = atomValueEReal c' n0.val := by
+    exact (congrFun heq x).trans (by
+      simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using
+        (sum_indicator_eq_atomValueEReal c' E E n0 x hx_mem))
+  have hrhs : (∑ n' : Fin (2^(k+k)), max (atomValueEReal c' n'.val - (c : EReal)) 0 * EReal.indicator (A n') x) =
+      max (atomValueEReal c' n0.val - (c : EReal)) 0 := by
+    rw [Finset.sum_eq_single n0]
+    · simp only [EReal.indicator_of_mem hx_mem, mul_one]
+    · intro m _ hm_ne
+      have hx_notin : x ∉ A m := fun h => hm_ne (hunique m h)
+      simp only [EReal.indicator_of_notMem hx_notin, mul_zero]
+    · intro h; exact absurd (Finset.mem_univ n0) h
+  rw [hgx]
+  simpa [A, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using hrhs.symm
+
+/-- The positive part of g minus a real constant is simple, via the atom refinement
+    (mirror of simple_min_const: the vertical truncation machinery). -/
+lemma simple_max_sub_const {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (c : ℝ) : UnsignedSimpleFunction (fun x => max (g x - (c : EReal)) 0) := by
+  use 2^(hg.choose + hg.choose),
+    (fun n' : Fin (2^(hg.choose + hg.choose)) => max (atomValueEReal hg.choose_spec.choose n'.val - (c : EReal)) 0),
+    (atom hg.choose_spec.choose_spec.choose hg.choose_spec.choose_spec.choose)
+  constructor
+  · intro i
+    constructor
+    · exact atom_measurable (fun i => (hg.choose_spec.choose_spec.choose_spec.1 i).1)
+        (fun j => (hg.choose_spec.choose_spec.choose_spec.1 j).1) i
+    · exact le_max_right _ (0 : EReal)
+  · exact max_eq_sum_atomValueEReal hg c
+
+/-- The support of an unsigned measurable function is measurable, via TFAE. -/
+lemma supp_measurable {d : ℕ} {f : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f) :
+    LebesgueMeasurable {x | 0 < f x} := by
+  have h4 : ∀ t : EReal, LebesgueMeasurable {x | f x > t} :=
+    ((UnsignedMeasurable.TFAE hf.1).out 0 4 (a := UnsignedMeasurable f)
+      (b := ∀ t : EReal, LebesgueMeasurable {x | f x > t})).mp hf
+  simpa using h4 (0 : EReal)
+
+/-- The upper integral of a simple function is its simple integral. -/
+lemma upperIntegral_simple {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) :
+    UpperUnsignedLebesgueIntegral g = hg.integ := by
+  unfold UpperUnsignedLebesgueIntegral
+  apply le_antisymm
+  · apply sInf_le
+    exact ⟨g, hg, fun x => ⟨le_rfl, rfl⟩⟩
+  · apply le_sInf
+    intro R hR
+    rcases hR with ⟨h, hh, hh_cond⟩
+    have hh_ge : ∀ x, g x ≤ h x := fun x => (hh_cond x).1
+    have hR_eq : R = hh.integ := (hh_cond (Classical.arbitrary _)).2
+    rw [hR_eq]
+    exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hh (AlmostAlways.ofAlways hh_ge)
+
+/-- Monotonicity of the upper integral: pointwise order is preserved by the upper integral. -/
+lemma upperIntegral_mono {d : ℕ} {f g : EuclideanSpace' d → EReal} (hfg : ∀ x, f x ≤ g x) :
+    UpperUnsignedLebesgueIntegral f ≤ UpperUnsignedLebesgueIntegral g := by
+  unfold UpperUnsignedLebesgueIntegral
+  apply le_sInf
+  intro R hR
+  rcases hR with ⟨h, hh, hh_cond⟩
+  apply sInf_le
+  exact ⟨h, hh, fun x => ⟨le_trans (hfg x) (hh_cond x).1, (hh_cond x).2⟩⟩
+
+/-- If an EReal value is bounded above by r over n+1 for every n, then it is nonpositive. -/
+private lemma le_of_forall_nat_div_ereal {a : EReal} {r : ℝ} (hr : 0 ≤ r)
+    (h : ∀ n : ℕ, a ≤ (r / ((n : ℝ) + 1) : EReal)) : a ≤ 0 := by
+  by_contra! hpos
+  by_cases hr0 : r = 0
+  · have ha0 : a ≤ 0 := by simpa [hr0] using h 0
+    exact (lt_irrefl (0 : EReal)) (lt_of_lt_of_le hpos ha0)
+  · obtain ⟨ε', hε'_pos, hε'_lt⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) < a := by
+      cases ha : a with
+      | bot => rw [ha] at hpos; simp at hpos
+      | top => exact ⟨1, one_pos, by
+          have h1_lt_top : (1 : EReal) < ⊤ := EReal.coe_lt_top _
+          simpa [ha] using h1_lt_top⟩
+      | coe s =>
+          have hs_pos : 0 < s := EReal.coe_pos.mp (by rw [← ha]; exact hpos)
+          refine ⟨s / 2, by linarith, ?_⟩
+          have : (s / 2 : ℝ) < s := by linarith
+          simpa [ha] using EReal.coe_lt_coe_iff.mpr this
+    have hrε_pos : 0 < r / ε' := div_pos (lt_of_le_of_ne hr (Ne.symm hr0)) hε'_pos
+    have harch : ∃ N : ℕ, (N : ℝ) > r / ε' := exists_nat_gt (r / ε')
+    rcases harch with ⟨N, hN⟩
+    have hN1 : (N : ℝ) + 1 > r / ε' := by linarith
+    have hden : 0 < (N : ℝ) + 1 := lt_trans hrε_pos hN1
+    have hNr : r < ((N : ℝ) + 1) * ε' := (div_lt_iff₀ hε'_pos).mp hN1
+    have h_r_lt : r / ((N : ℝ) + 1) < ε' := by
+      rw [div_lt_iff₀ hden]
+      nlinarith [hNr]
+    have h_bound_N : a ≤ (r / ((N : ℝ) + 1) : EReal) := h N
+    have h_lt_ereal : ((r / ((N : ℝ) + 1) : ℝ) : EReal) < (ε' : EReal) :=
+      EReal.coe_lt_coe_iff.mpr h_r_lt
+    have h_contra : a < (ε' : EReal) := lt_of_le_of_lt h_bound_N h_lt_ereal
+    exact (lt_irrefl a) (lt_trans h_contra hε'_lt)
+
 /-- Exercise 1.3.11 -/
 theorem LowerUnsignedLebesgueIntegral.eq_upperIntegral {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (hbound: EReal.BoundedFunction f) (hsupp: FiniteMeasureSupport f) :
-    LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f := by sorry
+    LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f := by
+  apply le_antisymm
+  · -- PART 1: L f ≤ U f
+    unfold LowerUnsignedLebesgueIntegral UpperUnsignedLebesgueIntegral
+    apply le_sInf
+    intro R hR
+    rcases hR with ⟨h, hh, hh_cond⟩
+    apply sSup_le
+    intro a ha
+    rcases ha with ⟨g, hg, hg_cond⟩
+    have hg_le_h : ∀ x, g x ≤ h x := fun x => le_trans (hg_cond x).1 (hh_cond x).1
+    have ha_eq : a = hg.integ := (hg_cond (Classical.arbitrary _)).2
+    have hR_eq : R = hh.integ := (hh_cond (Classical.arbitrary _)).2
+    rw [ha_eq, hR_eq]
+    exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hh (AlmostAlways.ofAlways hg_le_h)
+  · -- PART 2: U f ≤ L f
+    classical
+    let supp : Set (EuclideanSpace' d) := {x | 0 < f x}
+    have hsupp_meas : LebesgueMeasurable supp := by
+      simpa [supp] using supp_measurable hf
+    have hsupp' : Lebesgue_measure supp < ⊤ := by
+      unfold FiniteMeasureSupport at hsupp
+      have h_eq : {x | 0 < f x} = Support f := by
+        ext x
+        simp only [Support, Set.mem_setOf_eq]
+        constructor
+        · intro hx
+          exact ne_of_gt hx
+        · intro hx
+          exact lt_of_le_of_ne (hf.1 x) hx.symm
+      simpa [supp, h_eq] using hsupp
+    let μ := Lebesgue_measure supp
+    have hμ_nonneg : 0 ≤ μ := by
+      simpa [μ] using Lebesgue_outer_measure.nonneg (E := supp)
+    have hμ_fin : μ < ⊤ := by
+      simpa [μ] using hsupp'
+    have hμ_fin_real : ∃ r : ℝ, 0 ≤ r ∧ μ = (r : EReal) := by
+      cases hμeq : μ with
+      | bot =>
+          exfalso
+          have hb : 0 ≤ (⊥ : EReal) := by rw [← hμeq]; exact hμ_nonneg
+          exact (not_le_of_gt EReal.bot_lt_zero) hb
+      | top =>
+          exfalso
+          rw [hμeq] at hμ_fin
+          exact (lt_irrefl ⊤) hμ_fin
+      | coe r =>
+          have hr0 : 0 ≤ r := by
+            have hco : 0 ≤ (r : EReal) := by rw [← hμeq]; exact hμ_nonneg
+            exact EReal.coe_nonneg.mp hco
+          exact ⟨r, hr0, rfl⟩
+    rcases hμ_fin_real with ⟨r, hr0, hμ_eq⟩
+    have happrox : ∃ g : ℕ → EuclideanSpace' d → EReal, (∀ n, UnsignedSimpleFunction (g n) ∧ EReal.BoundedFunction (g n)) ∧ UniformConvergesTo g f :=
+      (UnsignedMeasurable.bounded_iff hf.1).1 ⟨hf, hbound⟩
+    rcases happrox with ⟨g, hg_approx, hgu⟩
+    let ε_nn : ℕ → NNReal := fun m => ⟨(1 : ℝ) / ((m : ℝ) + 1), by positivity⟩
+    let ε : ℕ → ℝ := fun m => (ε_nn m : ℝ)
+    have hε_pos : ∀ m : ℕ, 0 < ε m := by
+      intro m
+      dsimp [ε, ε_nn]
+      positivity
+    have hε_nn_pos : ∀ m : ℕ, (0 : NNReal) < ε_nn m := by
+      intro m
+      exact (NNReal.coe_lt_coe.mp (by dsimp [ε_nn]; positivity))
+    have hε_coe : ∀ m : ℕ, (ε_nn m : EReal) = (ε m : EReal) := by
+      intro m
+      rfl
+    have hmain : ∀ m : ℕ, UpperUnsignedLebesgueIntegral f ≤ LowerUnsignedLebesgueIntegral f + ((2 : ℝ) * (ε m : ℝ) : EReal) * μ := by
+      intro m
+      rcases hgu (ε_nn m) (hε_nn_pos m) with ⟨N, hN⟩
+      let nₘ : ℕ := N
+      have hg₀_approx : ∀ x, f x - (ε_nn m : EReal) < g nₘ x ∧ g nₘ x < f x + (ε_nn m : EReal) := hN N le_rfl
+      let g₀ : EuclideanSpace' d → EReal := g nₘ
+      have hg₀ : UnsignedSimpleFunction g₀ := (hg_approx nₘ).1
+      let g₁ : EuclideanSpace' d → EReal := fun x => max (g₀ x - (ε m : EReal)) 0
+      let g₂ : EuclideanSpace' d → EReal := fun x => (g₀ x + (ε m : EReal)) * (Real.toEReal ∘ supp.indicator') x
+      have hg₁ : UnsignedSimpleFunction g₁ := by
+        simpa [g₁] using simple_max_sub_const hg₀ (ε m)
+      have hg₀_add_ε : UnsignedSimpleFunction (fun x => g₀ x + (ε m : EReal)) := by
+        exact UnsignedSimpleFunction.add hg₀ (const_simple (ε m) (le_of_lt (hε_pos m)))
+      have hg₂ : UnsignedSimpleFunction g₂ := by
+        exact simple_mul_indicator hg₀_add_ε hsupp_meas
+      have h2ε_supp : UnsignedSimpleFunction
+          (fun x => ((2 : ℝ) * (ε m : ℝ) : EReal) * (Real.toEReal ∘ supp.indicator') x) := by
+        refine ⟨1, fun _ : Fin 1 => ((2 : ℝ) * (ε m : ℝ) : EReal), fun _ : Fin 1 => supp, ?_, ?_⟩
+        · intro i
+          constructor
+          · simpa using hsupp_meas
+          · exact EReal.coe_nonneg.mpr (mul_nonneg (by norm_num) (le_of_lt (hε_pos m)))
+        · ext x
+          simp [smul_eq_mul, EReal.indicator, Real.EReal_fun]
+      have hg₁_le_f : ∀ x, g₁ x ≤ f x := by
+        intro x
+        dsimp [g₁]
+        have hg₀_lt_f : g₀ x < f x + (ε m : EReal) := by
+          simpa [ε, ε_nn, hε_coe m] using (hg₀_approx x).2
+        have hsub : g₀ x - (ε m : EReal) < f x := by
+          have h' : g₀ x < (ε m : EReal) + f x := by simpa [add_comm] using hg₀_lt_f
+          exact EReal.sub_lt_of_lt_add' h'
+        exact max_le_iff.mpr ⟨le_of_lt hsub, hf.1 x⟩
+      have hf_le_g₂ : ∀ x, f x ≤ g₂ x := by
+        intro x
+        by_cases hx : x ∈ supp
+        · have hg₂x : g₂ x = g₀ x + (ε m : EReal) := by
+            dsimp [g₂]
+            simp [hx]
+          have hg₀_gt : f x - (ε m : EReal) < g₀ x := by
+            simpa [ε, ε_nn, hε_coe m] using (hg₀_approx x).1
+          have hf_lt : f x < g₀ x + (ε m : EReal) := by
+            have hstep : (f x - (ε m : EReal)) + (ε m : EReal) < g₀ x + (ε m : EReal) :=
+              EReal.add_lt_add_right_coe hg₀_gt (ε m)
+            simpa [EReal.sub_add_cancel] using hstep
+          rw [hg₂x]
+          exact le_of_lt hf_lt
+        · have hf0 : f x = 0 := le_antisymm (le_of_not_gt (by simpa [supp] using hx)) (hf.1 x)
+          have hg₂0 : g₂ x = 0 := by
+            dsimp [g₂]
+            simp [hx]
+          rw [hf0, hg₂0]
+      have hg₂_le : ∀ x, g₂ x ≤ g₁ x + ((2 : ℝ) * (ε m : ℝ) : EReal) * (Real.toEReal ∘ supp.indicator') x := by
+        intro x
+        have h2ε : ((2 : ℝ) * (ε m : ℝ) : EReal) = (ε m : EReal) + (ε m : EReal) := by
+          rw [← EReal.coe_mul, ← EReal.coe_add]
+          congr
+          ring
+        by_cases hx : x ∈ supp
+        · have hg₂x : g₂ x = g₀ x + (ε m : EReal) := by
+            dsimp [g₂]
+            simp [hx]
+          have hind : (Real.toEReal ∘ supp.indicator') x = 1 := by
+            simp [hx]
+          by_cases hε_le : (ε m : EReal) ≤ g₀ x
+          · have hnonneg : 0 ≤ g₀ x - (ε m : EReal) := by
+              exact (EReal.sub_nonneg (x := g₀ x) (y := (ε m : EReal))
+                (h_top := Or.inr (EReal.coe_ne_top (ε m)))
+                (h_bot := Or.inr (EReal.coe_ne_bot (ε m)))).mpr hε_le
+            have hcancel : (g₀ x - (ε m : EReal)) + ((2 : ℝ) * (ε m : ℝ) : EReal) = g₀ x + (ε m : EReal) := by
+              rw [h2ε, ← add_assoc]
+              rw [EReal.sub_add_cancel (a := g₀ x) (b := ε m)]
+            calc
+              g₂ x = g₀ x + (ε m : EReal) := hg₂x
+              _ ≤ (g₀ x - (ε m : EReal)) + ((2 : ℝ) * (ε m : ℝ) : EReal) := le_of_eq hcancel.symm
+              _ = max (g₀ x - (ε m : EReal)) 0 + ((2 : ℝ) * (ε m : ℝ) : EReal) * (Real.toEReal ∘ supp.indicator') x := by
+                rw [max_eq_left hnonneg, hind, mul_one]
+          · have hmax0 : max (g₀ x - (ε m : EReal)) 0 = 0 := by
+              exact max_eq_right (EReal.sub_nonpos.mpr (le_of_not_ge hε_le))
+            have hg₀lt : g₀ x < (ε m : EReal) := lt_of_not_ge hε_le
+            calc
+              g₂ x = g₀ x + (ε m : EReal) := hg₂x
+              _ ≤ ((2 : ℝ) * (ε m : ℝ) : EReal) := by
+                calc
+                  g₀ x + (ε m : EReal) ≤ (ε m : EReal) + (ε m : EReal) := add_le_add (le_of_lt hg₀lt) le_rfl
+                  _ = ((2 : ℝ) * (ε m : ℝ) : EReal) := h2ε.symm
+              _ = max (g₀ x - (ε m : EReal)) 0 + ((2 : ℝ) * (ε m : ℝ) : EReal) * (Real.toEReal ∘ supp.indicator') x := by
+                rw [hmax0, hind, mul_one, zero_add]
+        · have hg₂0 : g₂ x = 0 := by
+            dsimp [g₂]
+            simp [hx]
+          have hind0 : (Real.toEReal ∘ supp.indicator') x = 0 := by
+            simp [hx]
+          calc
+            g₂ x = 0 := hg₂0
+            _ ≤ max (g₀ x - (ε m : EReal)) 0 + ((2 : ℝ) * (ε m : ℝ) : EReal) * (Real.toEReal ∘ supp.indicator') x := by
+              rw [hind0, mul_zero, add_zero]
+              exact le_max_right _ (0 : EReal)
+      have hU_le : UpperUnsignedLebesgueIntegral f ≤ hg₂.integ := by
+        rw [← upperIntegral_simple hg₂]
+        exact upperIntegral_mono hf_le_g₂
+      let hsum := UnsignedSimpleFunction.add hg₁ h2ε_supp
+      have hg₂_integ_le : hg₂.integ ≤ hsum.integ := by
+        exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg₂ hsum (AlmostAlways.ofAlways hg₂_le)
+      have hsum_eq : hsum.integ = hg₁.integ + ((2 : ℝ) * (ε m : ℝ) : EReal) * μ := by
+        have hadd := UnsignedSimpleFunction.integral_add hg₁ h2ε_supp
+        have h2ε_integ : h2ε_supp.integ = ((2 : ℝ) * (ε m : ℝ) : EReal) * μ := by
+          rw [UnsignedSimpleFunction.integral_eq h2ε_supp (k := 1)
+            (c := fun _ : Fin 1 => ((2 : ℝ) * (ε m : ℝ) : EReal))
+            (E := fun _ : Fin 1 => supp) (hmes := fun _ => hsupp_meas)
+            (hnonneg := fun _ => EReal.coe_nonneg.mpr (mul_nonneg (by norm_num) (le_of_lt (hε_pos m))))
+            (heq := by ext x; simp [smul_eq_mul, EReal.indicator, Real.EReal_fun])]
+          simp [μ]
+        rw [hadd, h2ε_integ]
+      have hL_ge : hg₁.integ ≤ LowerUnsignedLebesgueIntegral f := by
+        unfold LowerUnsignedLebesgueIntegral
+        exact le_sSup ⟨g₁, hg₁, fun x => ⟨hg₁_le_f x, rfl⟩⟩
+      calc
+        UpperUnsignedLebesgueIntegral f ≤ hg₂.integ := hU_le
+        _ ≤ hsum.integ := hg₂_integ_le
+        _ = hg₁.integ + ((2 : ℝ) * (ε m : ℝ) : EReal) * μ := hsum_eq
+        _ ≤ LowerUnsignedLebesgueIntegral f + ((2 : ℝ) * (ε m : ℝ) : EReal) * μ := add_le_add hL_ge le_rfl
+    have hbound_r : ∀ m : ℕ, UpperUnsignedLebesgueIntegral f - LowerUnsignedLebesgueIntegral f ≤ ((2 : ℝ) * r / ((m : ℝ) + 1) : EReal) := by
+      intro m
+      have hcalc : ((2 : ℝ) * (ε m : ℝ) : EReal) * μ = ((2 : ℝ) * r / ((m : ℝ) + 1) : EReal) := by
+        rw [hμ_eq]
+        simp only [← EReal.coe_mul]
+        change (((2 : ℝ) * (ε m : ℝ) * r : ℝ) : EReal) = (((2 : ℝ) * r / ((m : ℝ) + 1) : ℝ) : EReal)
+        have hεm : ε m = (1 : ℝ) / ((m : ℝ) + 1) := by
+          dsimp [ε, ε_nn]
+        rw [hεm]
+        ring_nf
+      exact EReal.sub_le_of_le_add' (by simpa [hcalc] using hmain m)
+    have hle0 : UpperUnsignedLebesgueIntegral f - LowerUnsignedLebesgueIntegral f ≤ 0 :=
+      le_of_forall_nat_div_ereal (a := UpperUnsignedLebesgueIntegral f - LowerUnsignedLebesgueIntegral f)
+        (r := 2 * r) (mul_nonneg (by norm_num) hr0) hbound_r
+    exact EReal.sub_nonpos.mp hle0
 
 def LowerUnsignedLebesgueIntegral.eq_upperIntegral_unbounded : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f) (hsupp: FiniteMeasureSupport f), LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
@@ -1491,31 +1828,6 @@ lemma lowerIntegral_const_indicator {d : ℕ} {c : ℝ} (hc : 0 ≤ c) {E : Set 
     (heq := by ext x; simp [smul_eq_mul, EReal.indicator, Real.EReal_fun])]
   simp
 
-/-- The upper integral of a simple function is its simple integral. -/
-lemma upperIntegral_simple {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g) :
-    UpperUnsignedLebesgueIntegral g = hg.integ := by
-  unfold UpperUnsignedLebesgueIntegral
-  apply le_antisymm
-  · apply sInf_le
-    exact ⟨g, hg, fun x => ⟨le_rfl, rfl⟩⟩
-  · apply le_sInf
-    intro R hR
-    rcases hR with ⟨h, hh, hh_cond⟩
-    have hh_ge : ∀ x, g x ≤ h x := fun x => (hh_cond x).1
-    have hR_eq : R = hh.integ := (hh_cond (Classical.arbitrary _)).2
-    rw [hR_eq]
-    exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hh (AlmostAlways.ofAlways hh_ge)
-
-/-- Monotonicity of the upper integral: pointwise order is preserved by the upper integral. -/
-lemma upperIntegral_mono {d : ℕ} {f g : EuclideanSpace' d → EReal} (hfg : ∀ x, f x ≤ g x) :
-    UpperUnsignedLebesgueIntegral f ≤ UpperUnsignedLebesgueIntegral g := by
-  unfold UpperUnsignedLebesgueIntegral
-  apply le_sInf
-  intro R hR
-  rcases hR with ⟨h, hh, hh_cond⟩
-  apply sInf_le
-  exact ⟨h, hh, fun x => ⟨le_trans (hfg x) (hh_cond x).1, (hh_cond x).2⟩⟩
-
 /-- Non-strict level sets of an unsigned measurable function are measurable, via TFAE. -/
 lemma level_ge_measurable {d : ℕ} {f : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f)
     (t : ℝ) : LebesgueMeasurable {x | (t : EReal) ≤ f x} := by
@@ -1523,39 +1835,6 @@ lemma level_ge_measurable {d : ℕ} {f : EuclideanSpace' d → EReal} (hf : Unsi
     ((UnsignedMeasurable.TFAE hf.1).out 0 5 (a := UnsignedMeasurable f)
       (b := ∀ t : EReal, LebesgueMeasurable {x | f x ≥ t})).mp hf
   exact h5 (t : EReal)
-
-/-- If an EReal value is bounded above by r over n+1 for every n, then it is nonpositive. -/
-private lemma le_of_forall_nat_div_ereal {a : EReal} {r : ℝ} (hr : 0 ≤ r)
-    (h : ∀ n : ℕ, a ≤ (r / ((n : ℝ) + 1) : EReal)) : a ≤ 0 := by
-  by_contra! hpos
-  by_cases hr0 : r = 0
-  · have ha0 : a ≤ 0 := by simpa [hr0] using h 0
-    exact (lt_irrefl (0 : EReal)) (lt_of_lt_of_le hpos ha0)
-  · obtain ⟨ε', hε'_pos, hε'_lt⟩ : ∃ ε' : ℝ, 0 < ε' ∧ (ε' : EReal) < a := by
-      cases ha : a with
-      | bot => rw [ha] at hpos; simp at hpos
-      | top => exact ⟨1, one_pos, by
-          have h1_lt_top : (1 : EReal) < ⊤ := EReal.coe_lt_top _
-          simpa [ha] using h1_lt_top⟩
-      | coe s =>
-          have hs_pos : 0 < s := EReal.coe_pos.mp (by rw [← ha]; exact hpos)
-          refine ⟨s / 2, by linarith, ?_⟩
-          have : (s / 2 : ℝ) < s := by linarith
-          simpa [ha] using EReal.coe_lt_coe_iff.mpr this
-    have hrε_pos : 0 < r / ε' := div_pos (lt_of_le_of_ne hr (Ne.symm hr0)) hε'_pos
-    have harch : ∃ N : ℕ, (N : ℝ) > r / ε' := exists_nat_gt (r / ε')
-    rcases harch with ⟨N, hN⟩
-    have hN1 : (N : ℝ) + 1 > r / ε' := by linarith
-    have hden : 0 < (N : ℝ) + 1 := lt_trans hrε_pos hN1
-    have hNr : r < ((N : ℝ) + 1) * ε' := (div_lt_iff₀ hε'_pos).mp hN1
-    have h_r_lt : r / ((N : ℝ) + 1) < ε' := by
-      rw [div_lt_iff₀ hden]
-      nlinarith [hNr]
-    have h_bound_N : a ≤ (r / ((N : ℝ) + 1) : EReal) := h N
-    have h_lt_ereal : ((r / ((N : ℝ) + 1) : ℝ) : EReal) < (ε' : EReal) :=
-      EReal.coe_lt_coe_iff.mpr h_r_lt
-    have h_contra : a < (ε' : EReal) := lt_of_le_of_lt h_bound_N h_lt_ereal
-    exact (lt_irrefl a) (lt_trans h_contra hε'_lt)
 
 /-- The constant zero function is a simple unsigned function. -/
 private lemma zero_simple_function {d : ℕ} :
