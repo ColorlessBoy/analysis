@@ -5076,9 +5076,257 @@ theorem UnsignedLebesgueIntegral.trans {d:ℕ} {f: EuclideanSpace' d → EReal} 
     · exact hle (x + a)
     · exact (integral_translate hg a).symm
 
-/-- Exercise 1.3.16 (Linear change of variables). -/
+lemma linear_equiv_det {d : ℕ} (A : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)
+    (hA : LinearMap.det A ≠ 0) :
+    LinearMap.det (LinearMap.equivOfDetNeZero A hA : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) = LinearMap.det A := by
+  simp [LinearMap.equivOfDetNeZero]
+
+/- For an invertible linear map T, the measure of the preimage of a measurable set scales
+    by |det T|⁻¹.  Via Lebesgue_measure.linear applied to T.symm. -/
+lemma measure_preimage_linear {d : ℕ} (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d)
+    {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    Lebesgue_measure (T.symm '' E) = (|LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|⁻¹ : ℝ) * Lebesgue_measure E := by
+  have _ := hE
+  unfold Lebesgue_measure
+  apply le_antisymm
+  · have h_symm_abs : |LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| = (|LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|)⁻¹ := by
+      rw [LinearEquiv.det_coe_symm T, abs_inv]
+    calc
+      Lebesgue_outer_measure (T.symm '' E)
+          ≤ ((abs (LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d))) : ℝ) * Lebesgue_outer_measure E :=
+        Lebesgue_outer_measure.linear_bound (T.symm) E
+      _ = (|LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|⁻¹ : ℝ) * Lebesgue_outer_measure E := by
+        rw [h_symm_abs]
+  · set D := |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| with hD_def
+    have hD_pos : 0 < D := by
+      rw [abs_pos]
+      exact (LinearEquiv.isUnit_det' T).ne_zero
+    have hD_ne : D ≠ 0 := ne_of_gt hD_pos
+    have h_image : T '' (T.symm '' E) = E := by
+      rw [Set.image_image]
+      simp
+    have h_bound : Lebesgue_outer_measure E ≤ (D : ℝ) * Lebesgue_outer_measure (T.symm '' E) := by
+      have h := Lebesgue_outer_measure.linear_bound T (T.symm '' E)
+      rw [h_image] at h
+      simpa [hD_def] using h
+    have h_inv_nonneg : (0 : EReal) ≤ (D⁻¹ : ℝ) := by
+      exact_mod_cast inv_nonneg.mpr hD_pos.le
+    have hDinv_mul_D : ((D⁻¹ : ℝ) : EReal) * (D : EReal) = (1 : EReal) := by
+      rw [← EReal.coe_mul]
+      exact_mod_cast inv_mul_cancel₀ hD_ne
+    have h_mul : (D⁻¹ : ℝ) * Lebesgue_outer_measure E ≤ Lebesgue_outer_measure (T.symm '' E) := by
+      calc
+        (D⁻¹ : ℝ) * Lebesgue_outer_measure E
+            ≤ (D⁻¹ : ℝ) * ((D : ℝ) * Lebesgue_outer_measure (T.symm '' E)) :=
+          mul_le_mul_of_nonneg_left h_bound h_inv_nonneg
+        _ = (((D⁻¹ : ℝ) : EReal) * (D : EReal)) * Lebesgue_outer_measure (T.symm '' E) := by
+          rw [← mul_assoc]
+        _ = (1 : EReal) * Lebesgue_outer_measure (T.symm '' E) := by
+          rw [hDinv_mul_D]
+        _ = Lebesgue_outer_measure (T.symm '' E) := by
+          simp
+    simpa [hD_def] using h_mul
+
+/- Composing a simple function with an invertible linear map is simple, with integral
+    scaled by |det|⁻¹ (preimage direction: g∘T has atoms T⁻¹ '' E_i). -/
+lemma simple_comp_linear {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) :
+    UnsignedSimpleFunction (fun x => g (T x)) := by
+  obtain ⟨k, c, E, ⟨hmes, heq⟩⟩ := hg
+  use k, c, (fun i => T.symm '' (E i))
+  constructor
+  · intro i
+    constructor
+    · exact LebesgueMeasurable.linear (T.symm) (hmes i).1
+    · exact (hmes i).2
+  · funext x
+    rw [heq]
+    simp only [Finset.sum_apply, Pi.smul_apply]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hTx : T x ∈ E i
+    · rw [EReal.indicator_of_mem hTx]
+      have hx : x ∈ T.symm '' E i := by
+        refine ⟨T x, hTx, ?_⟩
+        simp
+      rw [EReal.indicator_of_mem hx]
+    · rw [EReal.indicator_of_notMem hTx]
+      have hx : x ∉ T.symm '' E i := by
+        intro hx
+        rcases hx with ⟨y, hyE, hy⟩
+        have hy_eq : y = T x := by
+          calc
+            y = T (T.symm y) := by simp
+            _ = T x := by rw [hy]
+        rw [hy_eq] at hyE
+        exact hTx hyE
+      rw [EReal.indicator_of_notMem hx]
+
+/- The integral of a simple function composed with an invertible linear map. -/
+lemma simple_comp_linear_integral {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    (T : EuclideanSpace' d ≃ₗ[ℝ] EuclideanSpace' d) :
+    (simple_comp_linear hg T).integ =
+      (|LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|⁻¹ : ℝ) * hg.integ := by
+  have hg' := hg
+  obtain ⟨k, c, E, ⟨hmes, heq⟩⟩ := hg'
+  have hTmes : ∀ i, LebesgueMeasurable (T.symm '' (E i)) := fun i => LebesgueMeasurable.linear (T.symm) (hmes i).1
+  have hcomp_eq : (fun x => g (T x)) = ∑ i, (c i) • (EReal.indicator (T.symm '' (E i))) := by
+    funext x
+    rw [heq]
+    simp only [Finset.sum_apply, Pi.smul_apply]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hTx : T x ∈ E i
+    · rw [EReal.indicator_of_mem hTx]
+      have hx : x ∈ T.symm '' E i := by
+        refine ⟨T x, hTx, ?_⟩
+        simp
+      rw [EReal.indicator_of_mem hx]
+    · rw [EReal.indicator_of_notMem hTx]
+      have hx : x ∉ T.symm '' E i := by
+        intro hx
+        rcases hx with ⟨y, hyE, hy⟩
+        have hy_eq : y = T x := by
+          calc
+            y = T (T.symm y) := by simp
+            _ = T x := by rw [hy]
+        rw [hy_eq] at hyE
+        exact hTx hyE
+      rw [EReal.indicator_of_notMem hx]
+  have hmain : (simple_comp_linear hg T).integ = ∑ i, (c i) * Lebesgue_measure (T.symm '' (E i)) := by
+    rw [UnsignedSimpleFunction.integral_eq (simple_comp_linear hg T) (hmes := hTmes)
+      (hnonneg := fun i => (hmes i).2) (heq := hcomp_eq)]
+  have hg_integ : hg.integ = ∑ i, (c i) * Lebesgue_measure (E i) := by
+    rw [UnsignedSimpleFunction.integral_eq hg (hmes := fun i => (hmes i).1)
+      (hnonneg := fun i => (hmes i).2) (heq := heq)]
+  let r : ℝ := |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|⁻¹
+  have hr_nonneg : 0 ≤ r := by
+    dsimp [r]
+    exact inv_nonneg.mpr (abs_nonneg _)
+  have hnonneg_prod : ∀ i, 0 ≤ (c i) * Lebesgue_measure (E i) := by
+    intro i
+    exact mul_nonneg (hmes i).2 (by simpa [Lebesgue_measure] using Lebesgue_outer_measure.nonneg (E i))
+  have hpre : ∀ i, Lebesgue_measure (T.symm '' (E i)) = (r : ℝ) * Lebesgue_measure (E i) := by
+    intro i
+    dsimp [r]
+    exact measure_preimage_linear T (hmes i).1
+  have hsum : (r : ℝ) * (∑ i, (c i) * Lebesgue_measure (E i)) = ∑ i, (r : EReal) * ((c i) * Lebesgue_measure (E i)) := by
+    rw [EReal.mul_finset_sum_of_nonneg k (r : EReal) (fun i => (c i) * Lebesgue_measure (E i)) hnonneg_prod]
+  rw [hmain, hg_integ]
+  change (∑ i, (c i) * Lebesgue_measure (T.symm '' (E i))) = (r : ℝ) * (∑ i, (c i) * Lebesgue_measure (E i))
+  rw [hsum]
+  apply Finset.sum_congr rfl
+  intro i _
+  rw [hpre i]
+  rw [← mul_assoc]
+  rw [mul_comm (c i)]
+  rw [mul_assoc]
+
+/- Exercise 1.3.16 (Linear change of variables) -/
+
+/-- Exercise 1.3.16 (Linear change of variables)-/
 theorem UnsignedLebesgueIntegral.comp_linear {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) (hA: A.det ≠ 0) :
-    UnsignedLebesgueIntegral (fun x ↦ f (A x)) = |A.det|⁻¹ * hf.integ := by sorry
+    UnsignedLebesgueIntegral (fun x ↦ f (A x)) = |A.det|⁻¹ * hf.integ := by
+  change LowerUnsignedLebesgueIntegral (fun x => f (A x)) =
+    |A.det|⁻¹ * LowerUnsignedLebesgueIntegral f
+
+  have _ := hf
+  let T := LinearMap.equivOfDetNeZero A hA
+  have hT_eq : (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) = A := by
+    dsimp [T]
+    simp [LinearMap.equivOfDetNeZero]
+  have hA_comp : (fun x => f (A x)) = (fun x => f (T x)) := by
+    funext x
+    rw [← hT_eq]
+    rfl
+  let D : ℝ := |LinearMap.det (T : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|
+  have hD_pos : 0 < D := by
+    dsimp [D]
+    rw [abs_pos]
+    exact (LinearEquiv.isUnit_det' T).ne_zero
+  have hD_ne : D ≠ 0 := ne_of_gt hD_pos
+  have hD_nonneg : (0 : EReal) ≤ (D : EReal) := by
+    exact_mod_cast hD_pos.le
+  have hDinv_nonneg : (0 : EReal) ≤ ((D⁻¹ : ℝ) : EReal) := by
+    exact_mod_cast inv_nonneg.mpr hD_pos.le
+  have hDinv_mul_D : ((D⁻¹ : ℝ) : EReal) * (D : EReal) = (1 : EReal) := by
+    rw [← EReal.coe_mul]
+    exact_mod_cast inv_mul_cancel₀ hD_ne
+  have hD_mul_Dinv : (D : EReal) * ((D⁻¹ : ℝ) : EReal) = (1 : EReal) := by
+    rw [← EReal.coe_mul]
+    exact_mod_cast mul_inv_cancel₀ hD_ne
+  let Sf : Set EReal := {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f x ∧ R = hg.integ}
+  let SfT : Set EReal := {R | ∃ g : EuclideanSpace' d → EReal, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f (T x) ∧ R = hg.integ}
+  have hle : sSup SfT ≤ ((D⁻¹ : ℝ) : EReal) * sSup Sf := by
+    apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hg_cond⟩
+    have hg_le : ∀ x, g x ≤ f (T x) := fun x => (hg_cond x).1
+    have hR_eq : R = hg.integ := (hg_cond (Classical.arbitrary _)).2
+    rw [hR_eq]
+    let g' : EuclideanSpace' d → EReal := fun x => g (T.symm x)
+    have hg'_simple : UnsignedSimpleFunction g' := by
+      dsimp [g']
+      exact simple_comp_linear hg T.symm
+    have hg'_le_f : ∀ x, g' x ≤ f x := by
+      intro x
+      have h := hg_le (T.symm x)
+      simpa [g'] using h
+    have h_symm_abs : |LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)| = D⁻¹ := by
+      dsimp [D]
+      rw [LinearEquiv.det_coe_symm T, abs_inv]
+    have hg'_integ : hg'_simple.integ = (D : EReal) * hg.integ := by
+      calc
+        hg'_simple.integ = (simple_comp_linear hg T.symm).integ := rfl
+        _ = (|LinearMap.det (T.symm : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d)|⁻¹ : ℝ) * hg.integ := simple_comp_linear_integral hg T.symm
+        _ = (D : EReal) * hg.integ := by
+          rw [h_symm_abs, inv_inv]
+    have hg'_le_sup : hg'_simple.integ ≤ sSup Sf := by
+      exact le_sSup ⟨g', hg'_simple, fun x => ⟨hg'_le_f x, rfl⟩⟩
+    have hDg_le : (D : EReal) * hg.integ ≤ sSup Sf := by
+      rwa [← hg'_integ]
+    calc
+      hg.integ = ((D⁻¹ : ℝ) : EReal) * ((D : EReal) * hg.integ) := by
+        rw [← mul_assoc, hDinv_mul_D, one_mul]
+      _ ≤ ((D⁻¹ : ℝ) : EReal) * sSup Sf := mul_le_mul_of_nonneg_left hDg_le hDinv_nonneg
+  have hge : ((D⁻¹ : ℝ) : EReal) * sSup Sf ≤ sSup SfT := by
+    have hSf_le : sSup Sf ≤ (D : EReal) * sSup SfT := by
+      apply sSup_le
+      intro R hR
+      rcases hR with ⟨h, hh, hh_cond⟩
+      have hh_le : ∀ x, h x ≤ f x := fun x => (hh_cond x).1
+      have hR_eq : R = hh.integ := (hh_cond (Classical.arbitrary _)).2
+      rw [hR_eq]
+      have hh'_simple : UnsignedSimpleFunction (fun x => h (T x)) := simple_comp_linear hh T
+      have hh'_le : ∀ x, (fun x => h (T x)) x ≤ f (T x) := fun x => hh_le (T x)
+      have hh'_integ : (simple_comp_linear hh T).integ = ((D⁻¹ : ℝ) : EReal) * hh.integ := by
+        simpa [D] using simple_comp_linear_integral hh T
+      have hh'_le_sup : (simple_comp_linear hh T).integ ≤ sSup SfT := by
+        exact le_sSup ⟨(fun x => h (T x)), hh'_simple, fun x => ⟨hh'_le x, rfl⟩⟩
+      have hDh_le : ((D⁻¹ : ℝ) : EReal) * hh.integ ≤ sSup SfT := by
+        rwa [← hh'_integ]
+      calc
+        hh.integ = (D : EReal) * (((D⁻¹ : ℝ) : EReal) * hh.integ) := by
+          rw [← mul_assoc, hD_mul_Dinv, one_mul]
+        _ ≤ (D : EReal) * sSup SfT := mul_le_mul_of_nonneg_left hDh_le hD_nonneg
+    calc
+      ((D⁻¹ : ℝ) : EReal) * sSup Sf
+          ≤ ((D⁻¹ : ℝ) : EReal) * ((D : EReal) * sSup SfT) :=
+        mul_le_mul_of_nonneg_left hSf_le hDinv_nonneg
+      _ = sSup SfT := by
+        rw [← mul_assoc, hDinv_mul_D, one_mul]
+  have hmain : sSup SfT = ((D⁻¹ : ℝ) : EReal) * sSup Sf := le_antisymm hle hge
+  rw [hA_comp]
+  unfold LowerUnsignedLebesgueIntegral
+  have hdetA : |A.det| = D := by
+    dsimp [D]
+    rw [hT_eq]
+  rw [hdetA]
+  change sSup SfT = ((D⁻¹ : ℝ) : EReal) * sSup Sf
+  exact hmain
+
 
 lemma lift_interval_measure {J : BoundedInterval} :
     Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (J : Set ℝ)) = (|J|ₗ : EReal) := by
