@@ -3937,11 +3937,717 @@ theorem UpperUnsignedLebesgueIntegral.eq_outer_measure_integral {d:ℕ} {E: Set 
         UnsignedSimpleFunction.integral_le_integral_of_aeLe (UnsignedSimpleFunction.indicator hE) hg
           (AlmostAlways.ofAlways (fun x => (hcond x).1))
 
-theorem LowerUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: EuclideanSpace' d → EReal) (hf: Unsigned f) (hg: Unsigned g), (LowerUnsignedLebesgueIntegral (f + g) ≠ LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g) := by
-    sorry
+/- 1. For a simple g ≤ 1_A, the integral is bounded by the measure of a measurable subset of A. -/
+lemma indicator_integral_le_meas {d} {A : Set (EuclideanSpace' d)} (g : EuclideanSpace' d → EReal)
+    (hg : UnsignedSimpleFunction g) (hle : ∀ x, g x ≤ Real.toEReal (A.indicator' x)) :
+    ∃ W : Set (EuclideanSpace' d), LebesgueMeasurable W ∧ W ⊆ A ∧ hg.integ ≤ Lebesgue_measure W := by
+  let hg' : UnsignedSimpleFunction g := hg
+  rcases hg with ⟨k, c, E, hmes, heq⟩
+  let Aσ : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+  let v : Fin (2^(k+k)) → EReal := fun σ => atomValueEReal c σ.val
+  have hEmeas : ∀ i, LebesgueMeasurable (E i) := fun i => (hmes i).1
+  have hc_nonneg : ∀ i, c i ≥ 0 := fun i => (hmes i).2
+  have hAσ_meas : ∀ σ, LebesgueMeasurable (Aσ σ) := fun σ => by
+    simpa [Aσ] using atom_measurable hEmeas hEmeas σ
+  have hv_nonneg : ∀ σ, 0 ≤ v σ := fun σ => atomValueEReal_nonneg hc_nonneg σ.val
+  have hg_atoms : g = ∑ σ, v σ • EReal.indicator (Aσ σ) := by
+    simpa [v, Aσ] using (heq.trans (eq_sum_atomValueEReal_indicator c E E))
+  have hg_integ : hg'.integ = ∑ σ, v σ * Lebesgue_measure (Aσ σ) :=
+    UnsignedSimpleFunction.integral_eq hg' (k := 2^(k+k)) (c := v) (E := Aσ)
+      hAσ_meas hv_nonneg hg_atoms
+  have hgx_of_mem : ∀ {σ : Fin (2^(k+k))} {x : EuclideanSpace' d}, x ∈ Aσ σ → g x = v σ := by
+    intro σ x hx
+    have h1 : (∑ τ : Fin (2^(k+k)), v τ * EReal.indicator (Aσ τ) x) = v σ := by
+      rw [Finset.sum_eq_single σ]
+      · rw [EReal.indicator_of_mem hx, mul_one]
+      · intro τ hτ hne
+        have hxnot : x ∉ Aσ τ := by
+          intro hxτ
+          have hd : Disjoint (Aσ σ) (Aσ τ) :=
+            atom_pairwiseDisjoint E E (Set.mem_univ σ) (Set.mem_univ τ) hne.symm
+          rw [Set.disjoint_left] at hd
+          exact (hd hx) hxτ
+        rw [EReal.indicator_of_notMem hxnot, mul_zero]
+      · intro h; exact absurd (Finset.mem_univ σ) h
+    simpa [Pi.smul_apply, smul_eq_mul, h1] using (congrFun hg_atoms x)
+  let W : Set (EuclideanSpace' d) := ⋃ σ : Fin (2^(k+k)), (if 0 < v σ then Aσ σ else ∅)
+  have hW_meas : LebesgueMeasurable W := by
+    have hfin := LebesgueMeasurable.finite_union
+      (E := fun σ : Fin (2^(k+k)) => if 0 < v σ then Aσ σ else ∅)
+      (fun σ => by
+        by_cases hσ : 0 < v σ
+        · change LebesgueMeasurable (if 0 < v σ then Aσ σ else ∅)
+          rw [if_pos hσ]
+          exact hAσ_meas σ
+        · change LebesgueMeasurable (if 0 < v σ then Aσ σ else ∅)
+          rw [if_neg hσ]
+          exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' d))))
+    simpa [W] using hfin
+  have hW_sub : W ⊆ A := by
+    intro x hx
+    have hmem := Set.mem_iUnion.mp hx
+    rcases hmem with ⟨σ, hσ⟩
+    by_cases hvσ : 0 < v σ
+    · rw [if_pos hvσ] at hσ
+      have hpos : (0 : EReal) < g x := by
+        have hgx : g x = v σ := hgx_of_mem hσ
+        rw [hgx]
+        exact hvσ
+      have hle1 : g x ≤ Real.toEReal (A.indicator' x) := hle x
+      by_cases hxA : x ∈ A
+      · exact hxA
+      · have h0 : Real.toEReal (A.indicator' x) = 0 := by
+          rw [Set.indicator'_of_notMem hxA]
+          rfl
+        have : (0 : EReal) < 0 := by simpa [h0] using (lt_of_lt_of_le hpos hle1)
+        exact False.elim (lt_irrefl (0 : EReal) this)
+    · rw [if_neg hvσ] at hσ
+      exact False.elim hσ
+  have hsum_eq : (∑ σ : Fin (2^(k+k)), v σ * Lebesgue_measure (Aσ σ)) ≤
+      (∑ σ : Fin (2^(k+k)), Lebesgue_measure (if 0 < v σ then Aσ σ else ∅)) := by
+    apply Finset.sum_le_sum
+    intro σ hσ
+    by_cases hvσ : 0 < v σ
+    · rw [if_pos hvσ]
+      by_cases hA : (Aσ σ).Nonempty
+      · rcases hA with ⟨x, hx⟩
+        have hgx : g x = v σ := hgx_of_mem hx
+        have hle1 : g x ≤ Real.toEReal (A.indicator' x) := hle x
+        have hle2 : Real.toEReal (A.indicator' x) ≤ (1 : EReal) := by
+          by_cases hxA : x ∈ A
+          · rw [Set.indicator'_of_mem hxA, EReal.coe_one]
+          · rw [Set.indicator'_of_notMem hxA, EReal.coe_zero]
+            exact zero_le_one
+        have hv_le_1 : v σ ≤ (1 : EReal) := by
+          simpa [hgx] using (le_trans hle1 hle2)
+        simpa [mul_comm] using (mul_le_of_le_one_right (Lebesgue_outer_measure.nonneg (Aσ σ)) hv_le_1)
+      · have hμ0 : Lebesgue_measure (Aσ σ) = 0 := by
+          have hE : Aσ σ = ∅ := by
+            rw [Set.eq_empty_iff_forall_notMem]
+            intro x hx
+            exact hA ⟨x, hx⟩
+          rw [hE]
+          exact Lebesgue_outer_measure.of_empty (d := d)
+        simp [hμ0]
+    · rw [if_neg hvσ]
+      have hv0 : v σ = 0 := le_antisymm (le_of_not_gt hvσ) (hv_nonneg σ)
+      rw [hv0, zero_mul]
+      exact Lebesgue_outer_measure.nonneg (∅ : Set (EuclideanSpace' d))
+  have hW_sum : (∑ σ : Fin (2^(k+k)), Lebesgue_measure (if 0 < v σ then Aσ σ else ∅)) =
+      Lebesgue_measure W := by
+    have hfin := Lebesgue_measure.finite_union
+      (E := fun σ : Fin (2^(k+k)) => if 0 < v σ then Aσ σ else ∅)
+      (fun σ => by
+        by_cases hσ : 0 < v σ
+        · change LebesgueMeasurable (if 0 < v σ then Aσ σ else ∅)
+          rw [if_pos hσ]
+          exact hAσ_meas σ
+        · change LebesgueMeasurable (if 0 < v σ then Aσ σ else ∅)
+          rw [if_neg hσ]
+          exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' d))))
+      (by
+        intro σ hσ τ hτ hne
+        by_cases hvσ : 0 < v σ
+        · by_cases hvτ : 0 < v τ
+          · have hd : Disjoint (Aσ σ) (Aσ τ) := atom_pairwiseDisjoint E E hσ hτ hne
+            change Disjoint (if 0 < v σ then Aσ σ else ∅) (if 0 < v τ then Aσ τ else ∅)
+            rw [if_pos hvσ, if_pos hvτ]
+            exact hd
+          · change Disjoint (if 0 < v σ then Aσ σ else ∅) (if 0 < v τ then Aσ τ else ∅)
+            rw [if_pos hvσ, if_neg hvτ]
+            rw [Set.disjoint_iff]
+            intro x hx
+            exact hx.2
+        · change Disjoint (if 0 < v σ then Aσ σ else ∅) (if 0 < v τ then Aσ τ else ∅)
+          rw [if_neg hvσ]
+          rw [Set.disjoint_iff]
+          intro x hx
+          exact hx.1)
+    simpa [W] using hfin.symm
+  refine ⟨W, hW_meas, hW_sub, ?_⟩
+  rw [hg_integ]
+  exact le_trans hsum_eq (le_of_eq hW_sum)
 
-theorem UpperUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: EuclideanSpace' d → EReal) (hf: Unsigned f) (hg: Unsigned g), (UpperUnsignedLebesgueIntegral (f + g) ≠ UpperUnsignedLebesgueIntegral f + UpperUnsignedLebesgueIntegral g) := by
-    sorry
+/- 3. Measurable subsets of the Vitali set have measure zero. -/
+lemma vitali_meas_subset_zero (W : Set (EuclideanSpace' 1)) (hW : LebesgueMeasurable W)
+    (hWV : W ⊆ Real.equiv_EuclideanSpace' '' VitaliSet) :
+    Lebesgue_measure W = 0 := by
+  obtain ⟨f, hf_inj, hf_mem⟩ := exists_injective_rat_enum_Icc
+  let T : ℕ → Set (EuclideanSpace' 1) := fun n => W + {Real.equiv_EuclideanSpace' (f n : ℚ)}
+  have hT_disj : Set.univ.PairwiseDisjoint T := by
+    intro i hi j hj hij
+    have hd : Disjoint
+        ((Real.equiv_EuclideanSpace' '' VitaliSet) + {Real.equiv_EuclideanSpace' (f i : ℚ)})
+        ((Real.equiv_EuclideanSpace' '' VitaliSet) + {Real.equiv_EuclideanSpace' (f j : ℚ)}) :=
+      VitaliSet.translates_pairwise_disjoint f hf_inj hi hj hij
+    change Disjoint (T i) (T j)
+    rw [Set.disjoint_left] at hd ⊢
+    intro z hz hz'
+    have hsub1 : T i ⊆ (Real.equiv_EuclideanSpace' '' VitaliSet) + {Real.equiv_EuclideanSpace' (f i : ℚ)} := by
+      intro z' hz'
+      rw [Set.mem_add] at hz' ⊢
+      rcases hz' with ⟨x, hx, r, hr, hz_eq⟩
+      exact ⟨x, hWV hx, r, hr, hz_eq⟩
+    have hsub2 : T j ⊆ (Real.equiv_EuclideanSpace' '' VitaliSet) + {Real.equiv_EuclideanSpace' (f j : ℚ)} := by
+      intro z' hz'
+      rw [Set.mem_add] at hz' ⊢
+      rcases hz' with ⟨x, hx, r, hr, hz_eq⟩
+      exact ⟨x, hWV hx, r, hr, hz_eq⟩
+    exact hd (hsub1 hz) (hsub2 hz')
+  have hT_meas : ∀ n, LebesgueMeasurable (T n) := fun n => by
+    dsimp [T]
+    exact (LebesgueMeasurable.translate W (Real.equiv_EuclideanSpace' (f n : ℚ))).mp hW
+  have hT_sub : ⋃ n, T n ⊆ Real.equiv_EuclideanSpace' '' Set.Icc (-1 : ℝ) 2 := by
+    intro z hz
+    rw [Set.mem_iUnion] at hz
+    rcases hz with ⟨n, hzn⟩
+    rw [Set.mem_add] at hzn
+    rcases hzn with ⟨x, hx, r, hr, hz_eq⟩
+    rw [Set.mem_singleton_iff] at hr
+    subst hr
+    rcases (hWV hx) with ⟨v, hv, rfl⟩
+    have hv_in : v ∈ Set.Icc (0 : ℝ) 1 := VitaliSet_subset_unit_interval hv
+    have hq_bound : f n ∈ Set.Icc (-1 : ℚ) 1 := hf_mem n
+    refine ⟨v + (f n : ℝ), ?_, ?_⟩
+    · constructor
+      · have h1 : (f n : ℝ) ≥ -1 := by exact_mod_cast hq_bound.1
+        linarith [hv_in.1]
+      · have h2 : (f n : ℝ) ≤ 1 := by exact_mod_cast hq_bound.2
+        linarith [hv_in.2]
+    · ext i
+      fin_cases i
+      have hlhs : (Real.equiv_EuclideanSpace' (v + (f n : ℝ))) ⟨0, by omega⟩ = v + (f n : ℝ) := rfl
+      have hrhs : z ⟨0, by omega⟩ = (Real.equiv_EuclideanSpace' v + Real.equiv_EuclideanSpace' (f n : ℝ)) ⟨0, by omega⟩ := by
+        rw [← hz_eq]
+      have hrhs' : (Real.equiv_EuclideanSpace' v + Real.equiv_EuclideanSpace' (f n : ℝ)) ⟨0, by omega⟩ = v + (f n : ℝ) := rfl
+      rw [hlhs, hrhs, hrhs']
+  have hsum := Lebesgue_measure.countable_union hT_meas hT_disj
+  have hT_eq : ∀ n, Lebesgue_measure (T n) = Lebesgue_measure W := fun n => by
+    dsimp [T]
+    exact Lebesgue_measure.translate _ hW
+  have hle3 : Lebesgue_measure (⋃ n, T n) ≤ 3 := by
+    calc
+      Lebesgue_measure (⋃ n, T n) ≤ Lebesgue_measure (Real.equiv_EuclideanSpace' '' Set.Icc (-1 : ℝ) 2) :=
+        Lebesgue_outer_measure.mono hT_sub
+      _ = ((3 : ℝ) : EReal) := by
+        rw [Lebesgue_measure.Icc_eq (-1) 2 (by norm_num)]
+        norm_num
+  by_cases hW0 : Lebesgue_measure W = 0
+  · exact hW0
+  · have hWpos : 0 < Lebesgue_measure W := lt_of_le_of_ne (Lebesgue_outer_measure.nonneg _) (Ne.symm hW0)
+    have hsum_top : (∑' n : ℕ, Lebesgue_measure (T n)) = ⊤ := by
+      simp only [hT_eq]
+      exact EReal.tsum_const_eq_top_of_pos hWpos
+    have htop : Lebesgue_measure (⋃ n, T n) = ⊤ := by
+      rw [← hsum] at hsum_top
+      exact hsum_top
+    exact False.elim ((by decide : ¬(⊤ : EReal) ≤ 3) (by simpa [htop] using hle3))
+
+/- 2. The lower integral of the Vitali indicator is zero. -/
+lemma vitali_inner_measure_zero :
+    LowerUnsignedLebesgueIntegral
+      (Real.toEReal ∘ (Real.equiv_EuclideanSpace' '' VitaliSet).indicator') = 0 := by
+  apply le_antisymm
+  · unfold LowerUnsignedLebesgueIntegral
+    apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hle : ∀ x, g x ≤ Real.toEReal ((Real.equiv_EuclideanSpace' '' VitaliSet).indicator' x) :=
+      fun x => (hcond x).1
+    have hReq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    rcases indicator_integral_le_meas g hg hle with ⟨W, hW, hWV, hleW⟩
+    have hW0 : Lebesgue_measure W = 0 := vitali_meas_subset_zero W hW hWV
+    exact le_trans hleW (le_of_eq hW0)
+  · have hz : UnsignedSimpleFunction (fun _ : EuclideanSpace' 1 => (0 : EReal)) := by
+      use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' 1)))
+      constructor
+      · intro i; fin_cases i
+      · ext x; simp
+    have hz_integ : hz.integ = 0 := zero_unsigned_integral hz
+    exact le_sSup ⟨(fun _ : EuclideanSpace' 1 => (0 : EReal)), hz, fun x => ⟨by
+      change (0 : EReal) ≤ Real.toEReal ((Real.equiv_EuclideanSpace' '' VitaliSet).indicator' x)
+      by_cases hx : x ∈ Real.equiv_EuclideanSpace' '' VitaliSet
+      · rw [Set.indicator'_of_mem hx]
+        exact zero_le_one
+      · rw [Set.indicator'_of_notMem hx]
+        exact le_rfl
+    , hz_integ.symm⟩⟩
+
+/- 4. The lower integral of the indicator of C \ V is strictly less than 1. -/
+lemma complement_lower_lt_one :
+    LowerUnsignedLebesgueIntegral
+      (Real.toEReal ∘ (Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1 \ Real.equiv_EuclideanSpace' '' VitaliSet).indicator') < 1 := by
+  let V : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' VitaliSet
+  let C : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1
+  have hV_sub_C : V ⊆ C := by
+    intro x hx
+    rcases hx with ⟨v, hv, rfl⟩
+    exact Set.mem_image_of_mem _ (VitaliSet_subset_unit_interval hv)
+  have hC_meas : LebesgueMeasurable C := by
+    have h_box : C = (BoundedInterval.Icc (0 : ℝ) 1 : Box 1).toSet := by
+      unfold C
+      have h_interval : Set.Icc (0 : ℝ) 1 = (BoundedInterval.Icc (0 : ℝ) 1).toSet := by rfl
+      rw [h_interval, ← BoundedInterval.coe_of_box]
+    rw [h_box]
+    exact (IsElementary.measurable (IsElementary.box _))
+  have hC_mu : Lebesgue_measure C = (1 : EReal) := by
+    simpa [C] using (Lebesgue_measure.Icc_eq 0 1 (by norm_num))
+  have hL_C : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ C.indicator') = 1 := by
+    rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral (UnsignedSimpleFunction.indicator hC_meas)]
+    rw [UnsignedSimpleFunction.integral_indicator hC_meas]
+    exact hC_mu
+  have hle1 : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (C \ V).indicator') ≤ 1 := by
+    unfold LowerUnsignedLebesgueIntegral
+    apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hReq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    rw [← hL_C]
+    unfold LowerUnsignedLebesgueIntegral
+    exact le_sSup ⟨g, hg, fun x => ⟨by
+      change g x ≤ Real.toEReal (C.indicator' x)
+      have hgx : g x ≤ Real.toEReal ((C \ V).indicator' x) := (hcond x).1
+      by_cases hx : x ∈ C \ V
+      · have hxC : x ∈ C := hx.1
+        have h1 : Real.toEReal ((C \ V).indicator' x) = Real.toEReal (C.indicator' x) := by
+          rw [Set.indicator'_of_mem hx, Set.indicator'_of_mem hxC]
+        simpa [h1] using hgx
+      · rw [Set.indicator'_of_notMem hx] at hgx
+        have hc0 : (0 : EReal) ≤ Real.toEReal (C.indicator' x) := by
+          by_cases hxC : x ∈ C
+          · rw [Set.indicator'_of_mem hxC]
+            exact zero_le_one
+          · rw [Set.indicator'_of_notMem hxC]
+            exact le_rfl
+        exact le_trans hgx hc0
+    , rfl⟩⟩
+  have hne : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (C \ V).indicator') ≠ 1 := by
+    intro h1
+    have hmu_le : ∀ n : ℕ, Lebesgue_outer_measure V ≤ (1 / ((n : ℝ) + 1) : EReal) := by
+      intro n
+      let eps : ℝ := 1 / ((n : ℝ) + 1)
+      have hep : 0 < eps := by dsimp [eps]; positivity
+      have hlt : ((1 - eps : ℝ) : EReal) < 1 := by
+        exact EReal.coe_lt_coe_iff.mpr (by linarith)
+      have hltSup : ((1 - eps : ℝ) : EReal) <
+          sSup {R' | ∃ g, ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ Real.toEReal ((C \ V).indicator' x) ∧ R' = hg.integ} := by
+        simpa [← h1, LowerUnsignedLebesgueIntegral] using hlt
+      rcases (lt_sSup_iff.mp hltSup) with ⟨R, hR⟩
+      rcases hR with ⟨hRmem, hltR⟩
+      rcases hRmem with ⟨g, hg, hcond⟩
+      have hle : ∀ x, g x ≤ Real.toEReal ((C \ V).indicator' x) := fun x => (hcond x).1
+      have hReq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+      rw [hReq] at hltR
+      rcases indicator_integral_le_meas g hg hle with ⟨W, hW, hWV, hleW⟩
+      have hWbig : ((1 - eps : ℝ) : EReal) < Lebesgue_measure W := lt_of_lt_of_le hltR hleW
+      have hVsub : V ⊆ C \ W := by
+        intro x hx
+        constructor
+        · exact hV_sub_C hx
+        · intro hxW
+          exact (hWV hxW).2 hx
+      have hsum_le : Lebesgue_measure W + Lebesgue_outer_measure V ≤ (1 : EReal) := by
+        have hmuV_le : Lebesgue_outer_measure V ≤ Lebesgue_measure (C \ W) :=
+          Lebesgue_outer_measure.mono hVsub
+        have hW_C : W ⊆ C := by
+          intro x hx
+          exact (hWV hx).1
+        have hunion : Lebesgue_measure C = Lebesgue_measure W + Lebesgue_measure (C \ W) := by
+          have hC_eq : C = W ∪ (C \ W) := by
+            ext x
+            constructor
+            · intro hxC
+              by_cases hxW : x ∈ W
+              · left; exact hxW
+              · right; exact ⟨hxC, hxW⟩
+            · intro hx
+              simp only [Set.mem_union] at hx
+              rcases hx with hxW | hx
+              · exact hW_C hxW
+              · exact (by simpa using hx.1 : x ∈ C)
+          have hdisj : W ∩ (C \ W) = ∅ := by
+            rw [Set.eq_empty_iff_forall_notMem]
+            intro x hx
+            exact hx.2.2 hx.1
+          conv_lhs => rw [hC_eq]
+          exact Lebesgue_measure.union hW (LebesgueMeasurable.inter hC_meas (LebesgueMeasurable.complement hW)) hdisj
+        calc
+          Lebesgue_measure W + Lebesgue_outer_measure V ≤ Lebesgue_measure W + Lebesgue_measure (C \ W) :=
+            add_le_add le_rfl hmuV_le
+          _ = Lebesgue_measure C := hunion.symm
+          _ = 1 := hC_mu
+      have hW_fin : ∃ r : ℝ, Lebesgue_measure W = (r : EReal) := by
+        cases hμ : Lebesgue_measure W with
+        | bot =>
+            exfalso
+            have : (0 : EReal) ≤ ⊥ := by rw [← hμ]; exact Lebesgue_outer_measure.nonneg _
+            exact (not_le_of_gt EReal.bot_lt_zero) this
+        | top =>
+            exfalso
+            have hle : (⊤ : EReal) ≤ 1 := by
+              rw [← hμ]
+              have hsub : W ⊆ Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1 := by
+                intro x hx
+                have hxC : x ∈ C := (hWV hx).1
+                unfold C at hxC
+                rcases hxC with ⟨t, ht, rfl⟩
+                exact Set.mem_image_of_mem _ ht
+              have hI : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1) = (1 : EReal) := by
+                simpa [Lebesgue_measure] using (Lebesgue_measure.Icc_eq 0 1 (by norm_num))
+              exact (Lebesgue_outer_measure.mono hsub).trans (le_of_eq hI)
+            exact (by decide : ¬(⊤ : EReal) ≤ 1) hle
+        | coe r => exact ⟨r, rfl⟩
+      rcases hW_fin with ⟨r, hμW⟩
+      have hV_fin_r : ∃ s : ℝ, Lebesgue_outer_measure V = (s : EReal) := by
+        cases hμ : Lebesgue_outer_measure V with
+        | bot =>
+            exfalso
+            have : (0 : EReal) ≤ ⊥ := by rw [← hμ]; exact Lebesgue_outer_measure.nonneg _
+            exact (not_le_of_gt EReal.bot_lt_zero) this
+        | top => exfalso; exact vitali_bounded_pos_finite.2.2 hμ
+        | coe s => exact ⟨s, rfl⟩
+      rcases hV_fin_r with ⟨s, hμV⟩
+      have hr_big : 1 - eps < r := EReal.coe_lt_coe_iff.mp (by simpa [hμW] using hWbig)
+      have hrs_le : r + s ≤ 1 := by
+        have hc : ((r + s : ℝ) : EReal) ≤ (1 : EReal) := by
+          simpa only [hμW, hμV, EReal.coe_add] using hsum_le
+        simpa using (EReal.coe_le_coe_iff.mp hc)
+      have hs_le : s ≤ eps := by
+        dsimp [eps] at hr_big ⊢
+        nlinarith
+      rw [hμV]
+      exact EReal.coe_le_coe_iff.mpr (by simpa [eps] using hs_le)
+    have hV0 : Lebesgue_outer_measure V = 0 := by
+      cases hμ : Lebesgue_outer_measure V with
+      | bot =>
+          exfalso
+          have : (0 : EReal) ≤ ⊥ := by rw [← hμ]; exact Lebesgue_outer_measure.nonneg _
+          exact (not_le_of_gt EReal.bot_lt_zero) this
+      | top =>
+          exfalso
+          have h0 := hmu_le 0
+          rw [hμ] at h0
+          have : (⊤ : EReal) ≤ 1 := by simpa using h0
+          exact (by decide : ¬(⊤ : EReal) ≤ 1) this
+      | coe s =>
+          have hs0 : s = 0 := by
+            by_contra hs
+            have hs_pos : 0 < s := by
+              have hnonneg : 0 ≤ (s : EReal) := by rw [← hμ]; exact Lebesgue_outer_measure.nonneg _
+              exact lt_of_le_of_ne (EReal.coe_nonneg.mp hnonneg) (Ne.symm hs)
+            have harch : ∃ n : ℕ, 1 / ((n : ℝ) + 1) < s := by
+              obtain ⟨N, hN⟩ := exists_nat_gt (1 / s)
+              refine ⟨N, ?_⟩
+              have hN' : 1 < (N : ℝ) * s := (div_lt_iff₀ hs_pos).mp hN
+              have h1 : 1 < s * ((N : ℝ) + 1) := by nlinarith [hN', hs_pos]
+              exact (div_lt_iff₀ (by positivity : 0 < ((N : ℝ) + 1))).mpr h1
+            rcases harch with ⟨n, hn⟩
+            have hle := hmu_le n
+            rw [hμ] at hle
+            have hc : s ≤ 1 / ((n : ℝ) + 1) := EReal.coe_le_coe_iff.mp hle
+            exact (not_lt_of_ge hc) hn
+          rw [hs0]
+          rfl
+    have hV_pos' : (0 : EReal) < Lebesgue_outer_measure V := vitali_bounded_pos_finite.2.1
+    exact (not_lt_of_ge (le_of_eq hV0)) hV_pos'
+  exact lt_of_le_of_ne hle1 hne
+
+/- 5. The upper integral of an indicator is its outer measure. -/
+lemma upperIntegral_indicator {d} {A : Set (EuclideanSpace' d)} :
+    UpperUnsignedLebesgueIntegral (Real.toEReal ∘ A.indicator') = Lebesgue_outer_measure A := by
+  apply le_antisymm
+  · -- U ≤ μ*:
+    apply EReal.le_of_forall_pos_le_add'
+    intro ε hε
+    have hεE : (0 : EReal) < (ε : EReal) := EReal.coe_pos.mpr hε
+    rcases Lebesgue_outer_measure.exists_open_superset_measure_le A (ε : EReal) hεE with ⟨U, hU_open, hAU, hU_le⟩
+    apply le_trans
+    · apply sInf_le
+      refine ⟨Real.toEReal ∘ U.indicator', UnsignedSimpleFunction.indicator (IsOpen.measurable hU_open), ?_⟩
+      intro x
+      constructor
+      · change Real.toEReal (U.indicator' x) ≥ Real.toEReal (A.indicator' x)
+        by_cases hx : x ∈ A
+        · have hxU : x ∈ U := hAU hx
+          rw [Set.indicator'_of_mem hx, Set.indicator'_of_mem hxU]
+        · rw [Set.indicator'_of_notMem hx]
+          by_cases hxU : x ∈ U
+          · rw [Set.indicator'_of_mem hxU]
+            exact zero_le_one
+          · rw [Set.indicator'_of_notMem hxU]
+      · exact (UnsignedSimpleFunction.integral_indicator (IsOpen.measurable hU_open)).symm
+    · have hinteg : (UnsignedSimpleFunction.indicator (IsOpen.measurable hU_open)).integ = Lebesgue_measure U :=
+        UnsignedSimpleFunction.integral_indicator (IsOpen.measurable hU_open)
+      simpa [hinteg] using hU_le
+  · -- μ* ≤ U:
+    unfold UpperUnsignedLebesgueIntegral
+    apply le_sInf
+    intro R hR
+    rcases hR with ⟨h, hh, hcond⟩
+    have hReq : R = hh.integ := (hcond (Classical.arbitrary _)).2
+    rw [hReq]
+    let hh' : UnsignedSimpleFunction h := hh
+    rcases hh with ⟨k, c, E, hmes, heq⟩
+    let Aσ : Fin (2^(k+k)) → Set (EuclideanSpace' d) := atom E E
+    let v : Fin (2^(k+k)) → EReal := fun σ => atomValueEReal c σ.val
+    have hEmeas : ∀ i, LebesgueMeasurable (E i) := fun i => (hmes i).1
+    have hc_nonneg : ∀ i, c i ≥ 0 := fun i => (hmes i).2
+    have hAσ_meas : ∀ σ, LebesgueMeasurable (Aσ σ) := fun σ => by
+      simpa [Aσ] using atom_measurable hEmeas hEmeas σ
+    have hv_nonneg : ∀ σ, 0 ≤ v σ := fun σ => atomValueEReal_nonneg hc_nonneg σ.val
+    have hh_atoms : h = ∑ σ, v σ • EReal.indicator (Aσ σ) := by
+      simpa [v, Aσ] using (heq.trans (eq_sum_atomValueEReal_indicator c E E))
+    have hh_integ : hh'.integ = ∑ σ, v σ * Lebesgue_measure (Aσ σ) :=
+      UnsignedSimpleFunction.integral_eq hh' (k := 2^(k+k)) (c := v) (E := Aσ)
+        hAσ_meas hv_nonneg hh_atoms
+    have hcover : A ⊆ ⋃ σ : Fin (2^(k+k)), (if (1 : EReal) ≤ v σ then Aσ σ else ∅) := by
+      intro x hx
+      have hhge : (1 : EReal) ≤ h x := by
+        have hc := (hcond x).1
+        have hx1 : Real.toEReal (A.indicator' x) = 1 := by
+          rw [Set.indicator'_of_mem hx]
+          rfl
+        simpa [hx1] using hc
+      have hxmem : x ∈ ⋃ σ : Fin (2^(k+k)), Aσ σ := by
+        by_contra hnot
+        have hz : ∀ σ : Fin (2^(k+k)), EReal.indicator (Aσ σ) x = 0 := by
+          intro σ
+          apply EReal.indicator_of_notMem
+          intro hσ
+          exact hnot (Set.mem_iUnion.mpr ⟨σ, hσ⟩)
+        have hsum0 : (∑ σ : Fin (2^(k+k)), v σ • EReal.indicator (Aσ σ)) x = 0 := by
+          simp [Pi.smul_apply, smul_eq_mul, hz]
+        have h0 : h x = 0 := by
+          simp [hh_atoms, hsum0]
+        rw [h0] at hhge
+        exact (not_lt_of_ge hhge) zero_lt_one
+      have hmem := Set.mem_iUnion.mp hxmem
+      rcases hmem with ⟨σ, hσ⟩
+      -- h x = v σ ≥ 1:
+      have hvge : (1 : EReal) ≤ v σ := by
+        have hxeq : (∑ τ : Fin (2^(k+k)), v τ * EReal.indicator (Aσ τ) x) = v σ := by
+          rw [Finset.sum_eq_single σ]
+          · rw [EReal.indicator_of_mem hσ, mul_one]
+          · intro τ hτ hne
+            have hxnot : x ∉ Aσ τ := by
+              intro hxτ
+              have hd : Disjoint (Aσ σ) (Aσ τ) :=
+                atom_pairwiseDisjoint E E (Set.mem_univ σ) (Set.mem_univ τ) hne.symm
+              rw [Set.disjoint_left] at hd
+              exact (hd hσ) hxτ
+            rw [EReal.indicator_of_notMem hxnot, mul_zero]
+          · intro h; exact absurd (Finset.mem_univ σ) h
+        have hxeq' : h x = v σ := by
+          simpa [Pi.smul_apply, smul_eq_mul, hxeq] using (congrFun hh_atoms x)
+        simpa [hxeq'] using hhge
+      rw [Set.mem_iUnion]
+      exact ⟨σ, by
+        rw [if_pos hvge]
+        exact hσ⟩
+    have hmuA_le : Lebesgue_outer_measure A ≤
+        (∑ σ : Fin (2^(k+k)), Lebesgue_measure (if (1 : EReal) ≤ v σ then Aσ σ else ∅)) := by
+      have hsub : (⋃ σ : Fin (2^(k+k)), (if (1 : EReal) ≤ v σ then Aσ σ else ∅)) ⊆
+          (⋃ σ : Fin (2^(k+k)), (if (1 : EReal) ≤ v σ then Aσ σ else ∅)) := by intro x hx; exact hx
+      have hle := Lebesgue_outer_measure.finite_union_le
+        (E := fun σ : Fin (2^(k+k)) => if (1 : EReal) ≤ v σ then Aσ σ else ∅)
+      calc
+        Lebesgue_outer_measure A ≤ Lebesgue_outer_measure (⋃ σ : Fin (2^(k+k)), (if (1 : EReal) ≤ v σ then Aσ σ else ∅)) :=
+          Lebesgue_outer_measure.mono hcover
+        _ ≤ ∑ σ : Fin (2^(k+k)), Lebesgue_measure (if (1 : EReal) ≤ v σ then Aσ σ else ∅) := hle
+    have hterm_le : ∀ σ : Fin (2^(k+k)),
+        Lebesgue_measure (if (1 : EReal) ≤ v σ then Aσ σ else ∅) ≤ v σ * Lebesgue_measure (Aσ σ) := by
+      intro σ
+      by_cases hvσ : (1 : EReal) ≤ v σ
+      · rw [if_pos hvσ]
+        simpa only [one_mul] using (mul_le_mul_of_nonneg_right hvσ (Lebesgue_outer_measure.nonneg (Aσ σ)))
+      · rw [if_neg hvσ]
+        have hE0 : Lebesgue_measure (∅ : Set (EuclideanSpace' d)) = 0 := by
+          simpa [Lebesgue_measure] using (Lebesgue_outer_measure.of_empty (d := d))
+        rw [hE0]
+        exact EReal.mul_nonneg (hv_nonneg σ) (Lebesgue_outer_measure.nonneg (Aσ σ))
+    calc
+      Lebesgue_outer_measure A ≤ ∑ σ : Fin (2^(k+k)), Lebesgue_measure (if (1 : EReal) ≤ v σ then Aσ σ else ∅) := hmuA_le
+      _ ≤ ∑ σ : Fin (2^(k+k)), v σ * Lebesgue_measure (Aσ σ) := Finset.sum_le_sum (fun σ hσ => hterm_le σ)
+      _ = hh'.integ := hh_integ.symm
+
+theorem LowerUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: EuclideanSpace' d → EReal) (_hf: Unsigned f) (_hg: Unsigned g), (LowerUnsignedLebesgueIntegral (f + g) ≠ LowerUnsignedLebesgueIntegral f + LowerUnsignedLebesgueIntegral g) := by
+  let V : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' VitaliSet
+  let C : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1
+  refine ⟨1, Real.toEReal ∘ V.indicator', Real.toEReal ∘ (C \ V).indicator', ?_, ?_, ?_⟩
+  · intro x
+    change (0 : EReal) ≤ Real.toEReal (V.indicator' x)
+    by_cases hx : x ∈ V
+    · rw [Set.indicator'_of_mem hx]
+      exact zero_le_one
+    · rw [Set.indicator'_of_notMem hx]
+      exact le_rfl
+  · intro x
+    change (0 : EReal) ≤ Real.toEReal ((C \ V).indicator' x)
+    by_cases hx : x ∈ C \ V
+    · rw [Set.indicator'_of_mem hx]
+      exact zero_le_one
+    · rw [Set.indicator'_of_notMem hx]
+      exact le_rfl
+  · have hsum : Real.toEReal ∘ V.indicator' + Real.toEReal ∘ (C \ V).indicator' =
+        Real.toEReal ∘ C.indicator' := by
+      funext x
+      change Real.toEReal (V.indicator' x) + Real.toEReal ((C \ V).indicator' x) =
+        Real.toEReal (C.indicator' x)
+      by_cases hx : x ∈ V
+      · have hxC : x ∈ C := by
+          rcases hx with ⟨v, hv, rfl⟩
+          exact Set.mem_image_of_mem _ (VitaliSet_subset_unit_interval hv)
+        have hxnot : x ∉ C \ V := by
+          intro hx'
+          exact hx'.2 hx
+        rw [Set.indicator'_of_mem hx, Set.indicator'_of_notMem hxnot, Set.indicator'_of_mem hxC]
+        simp
+      · by_cases hxC : x ∈ C
+        · have hx' : x ∈ C \ V := ⟨hxC, hx⟩
+          rw [Set.indicator'_of_notMem hx, Set.indicator'_of_mem hx', Set.indicator'_of_mem hxC]
+          simp
+        · rw [Set.indicator'_of_notMem hx,
+            Set.indicator'_of_notMem (by intro hx'; exact hxC hx'.1),
+            Set.indicator'_of_notMem hxC]
+          simp
+    have hC_meas : LebesgueMeasurable C := by
+      have h_box : C = (BoundedInterval.Icc (0 : ℝ) 1 : Box 1).toSet := by
+        unfold C
+        have h_interval : Set.Icc (0 : ℝ) 1 = (BoundedInterval.Icc (0 : ℝ) 1).toSet := by rfl
+        rw [h_interval, ← BoundedInterval.coe_of_box]
+      rw [h_box]
+      exact (IsElementary.measurable (IsElementary.box _))
+    have hC_mu : Lebesgue_measure C = (1 : EReal) := by
+      simpa [C] using (Lebesgue_measure.Icc_eq 0 1 (by norm_num))
+    have hL_fg : LowerUnsignedLebesgueIntegral
+        (Real.toEReal ∘ V.indicator' + Real.toEReal ∘ (C \ V).indicator') = 1 := by
+      rw [hsum]
+      rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral (UnsignedSimpleFunction.indicator hC_meas)]
+      rw [UnsignedSimpleFunction.integral_indicator hC_meas]
+      exact hC_mu
+    have hL_f : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ V.indicator') = 0 := vitali_inner_measure_zero
+    have hL_g : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (C \ V).indicator') < 1 := complement_lower_lt_one
+    rw [hL_fg]
+    rw [hL_f]
+    exact ne_of_gt (by simpa using hL_g)
+
+theorem UpperUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: EuclideanSpace' d → EReal) (_hf: Unsigned f) (_hg: Unsigned g), (UpperUnsignedLebesgueIntegral (f + g) ≠ UpperUnsignedLebesgueIntegral f + UpperUnsignedLebesgueIntegral g) := by
+  let V : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' VitaliSet
+  let C : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' Set.Icc (0 : ℝ) 1
+  refine ⟨1, Real.toEReal ∘ V.indicator', Real.toEReal ∘ (C \ V).indicator', ?_, ?_, ?_⟩
+  · intro x
+    change (0 : EReal) ≤ Real.toEReal (V.indicator' x)
+    by_cases hx : x ∈ V
+    · rw [Set.indicator'_of_mem hx]
+      exact zero_le_one
+    · rw [Set.indicator'_of_notMem hx]
+      exact le_rfl
+  · intro x
+    change (0 : EReal) ≤ Real.toEReal ((C \ V).indicator' x)
+    by_cases hx : x ∈ C \ V
+    · rw [Set.indicator'_of_mem hx]
+      exact zero_le_one
+    · rw [Set.indicator'_of_notMem hx]
+      exact le_rfl
+  · have hsum : Real.toEReal ∘ V.indicator' + Real.toEReal ∘ (C \ V).indicator' =
+        Real.toEReal ∘ C.indicator' := by
+      funext x
+      change Real.toEReal (V.indicator' x) + Real.toEReal ((C \ V).indicator' x) =
+        Real.toEReal (C.indicator' x)
+      by_cases hx : x ∈ V
+      · have hxC : x ∈ C := by
+          rcases hx with ⟨v, hv, rfl⟩
+          exact Set.mem_image_of_mem _ (VitaliSet_subset_unit_interval hv)
+        have hxnot : x ∉ C \ V := by
+          intro hx'
+          exact hx'.2 hx
+        rw [Set.indicator'_of_mem hx, Set.indicator'_of_notMem hxnot, Set.indicator'_of_mem hxC]
+        simp
+      · by_cases hxC : x ∈ C
+        · have hx' : x ∈ C \ V := ⟨hxC, hx⟩
+          rw [Set.indicator'_of_notMem hx, Set.indicator'_of_mem hx', Set.indicator'_of_mem hxC]
+          simp
+        · rw [Set.indicator'_of_notMem hx,
+            Set.indicator'_of_notMem (by intro hx'; exact hxC hx'.1),
+            Set.indicator'_of_notMem hxC]
+          simp
+    have hC_meas : LebesgueMeasurable C := by
+      have h_box : C = (BoundedInterval.Icc (0 : ℝ) 1 : Box 1).toSet := by
+        unfold C
+        have h_interval : Set.Icc (0 : ℝ) 1 = (BoundedInterval.Icc (0 : ℝ) 1).toSet := by rfl
+        rw [h_interval, ← BoundedInterval.coe_of_box]
+      rw [h_box]
+      exact (IsElementary.measurable (IsElementary.box _))
+    have hC_mu : Lebesgue_measure C = (1 : EReal) := by
+      simpa [C] using (Lebesgue_measure.Icc_eq 0 1 (by norm_num))
+    have hU_fg : UpperUnsignedLebesgueIntegral
+        (Real.toEReal ∘ V.indicator' + Real.toEReal ∘ (C \ V).indicator') = 1 := by
+      rw [hsum]
+      rw [upperIntegral_indicator (A := C)]
+      exact hC_mu
+    have hU_f : UpperUnsignedLebesgueIntegral (Real.toEReal ∘ V.indicator') = Lebesgue_outer_measure V :=
+      upperIntegral_indicator (A := V)
+    have hU_g : UpperUnsignedLebesgueIntegral (Real.toEReal ∘ (C \ V).indicator') = Lebesgue_outer_measure (C \ V) :=
+      upperIntegral_indicator (A := C \ V)
+    have hVb : Bornology.IsBounded V := vitali_bounded_pos_finite.1
+    have hV_fin : Lebesgue_outer_measure V ≠ ⊤ := vitali_bounded_pos_finite.2.2
+    have hinner_ne : inner_measure hVb ≠ Lebesgue_outer_measure V := by
+      intro h
+      exact VitaliSet.nonmeasurable ((inner_measure.eq_iff hVb).mp h)
+    have hV_sub_C : V ⊆ C := by
+      intro x hx
+      rcases hx with ⟨v, hv, rfl⟩
+      exact Set.mem_image_of_mem _ (VitaliSet_subset_unit_interval hv)
+    have hB : IsElementary C := by
+      have h_box : C = (BoundedInterval.Icc (0 : ℝ) 1 : Box 1).toSet := by
+        unfold C
+        have h_interval : Set.Icc (0 : ℝ) 1 = (BoundedInterval.Icc (0 : ℝ) 1).toSet := by rfl
+        rw [h_interval, ← BoundedInterval.coe_of_box]
+      rw [h_box]
+      exact IsElementary.box _
+    have hinner_eq : (inner_measure hVb : EReal) = Lebesgue_measure C - Lebesgue_outer_measure (C \ V) :=
+      inner_measure.eq hVb hB hV_sub_C
+    have hneq : Lebesgue_outer_measure V + Lebesgue_outer_measure (C \ V) ≠ 1 := by
+      intro heq
+      have hsub : Lebesgue_measure C - Lebesgue_outer_measure (C \ V) = Lebesgue_outer_measure V := by
+        cases hμV' : Lebesgue_outer_measure V with
+        | bot =>
+            exfalso
+            have : (0 : EReal) ≤ ⊥ := by rw [← hμV']; exact Lebesgue_outer_measure.nonneg _
+            exact (not_le_of_gt EReal.bot_lt_zero) this
+        | top => exfalso; exact hV_fin hμV'
+        | coe s =>
+            cases hμC' : Lebesgue_outer_measure (C \ V) with
+            | bot =>
+                exfalso
+                have : (0 : EReal) ≤ ⊥ := by rw [← hμC']; exact Lebesgue_outer_measure.nonneg _
+                exact (not_le_of_gt EReal.bot_lt_zero) this
+            | top =>
+                exfalso
+                have hle : (⊤ : EReal) ≤ 1 := by
+                  rw [← hμC']
+                  exact (Lebesgue_outer_measure.mono (Set.diff_subset : C \ V ⊆ C)).trans (le_of_eq hC_mu)
+                exact (by decide : ¬(⊤ : EReal) ≤ 1) hle
+            | coe t =>
+                have hst : s + t = 1 := by
+                  have hc : ((s + t : ℝ) : EReal) = (1 : EReal) := by
+                    simpa [hμV', hμC', EReal.coe_add] using heq
+                  exact EReal.coe_eq_coe_iff.mp hc
+                have ht : t = 1 - s := by linarith
+                rw [hC_mu]
+                change (((1 : ℝ) - t : ℝ) : EReal) = (s : EReal)
+                rw [ht]
+                simp
+      have hinner : (inner_measure hVb : EReal) = Lebesgue_outer_measure V := by
+        rw [hinner_eq]
+        exact hsub
+      exact hinner_ne hinner
+    rw [hU_fg, hU_f, hU_g]
+    exact hneq.symm
+
+
 
 /-- Exercise 1.3.13 (Area interpretation of integral). -/
 theorem LowerUnsignedLebesgueIntegral.eq_area {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) :
