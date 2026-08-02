@@ -1331,9 +1331,6 @@ theorem LowerUnsignedLebesgueIntegral.eq_lim_horiz_trunc {d:ℕ} {f: EuclideanSp
   rw [← hsup]
   simpa [fn] using hconv
 
-def UpperUnsignedLebesgueIntegral.eq_lim_horiz_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (UpperUnsignedLebesgueIntegral f))) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
 
 
 /-- Definition 1.3.13 (Unsigned Lebesgue integral).  For Lean purposes it is convenient to assign a "junk" value to this integral when f is not unsigned measurable. -/
@@ -1547,6 +1544,507 @@ lemma measure_Ioc_ab {a b : ℝ} (hab : a ≤ b) :
       exact_mod_cast hmeas
 
 /-- For u > 0 and r > 0: 1/sqrt(u) > r iff u < 1/r^2. -/
+/- The spike counterexample for the upper integral's horizontal truncation: spike k has
+    value 2^k on (2^k, 2^k + 2^{-2k}), 0 elsewhere.  U f = ⊤ but each ball truncation has
+    integral ≤ 2, so the horizontal truncation limit fails for the upper integral. -/
+noncomputable def f_horiz_piece (k : ℕ) : EuclideanSpace' 1 → EReal :=
+  fun x => if (2 : ℝ) ^ k < EuclideanSpace'.equiv_Real x ∧
+      EuclideanSpace'.equiv_Real x < (2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹ then
+      ((2 : ℝ) ^ k : EReal) else 0
+
+/- The counterexample function: the sum of all spikes (at most one term is nonzero). -/
+noncomputable def f_horiz : EuclideanSpace' 1 → EReal :=
+  fun x => ∑' k : ℕ, f_horiz_piece k x
+
+lemma f_horiz_piece_nonneg (k : ℕ) : ∀ x, 0 ≤ f_horiz_piece k x := by
+  intro x
+  unfold f_horiz_piece
+  by_cases hx : (2 : ℝ) ^ k < EuclideanSpace'.equiv_Real x ∧
+      EuclideanSpace'.equiv_Real x < (2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹
+  · rw [if_pos hx]
+    rw [← EReal.coe_pow]
+    exact EReal.coe_nonneg.mpr (pow_nonneg (by norm_num) k)
+  · rw [if_neg hx]
+
+lemma f_horiz_nonneg : Unsigned f_horiz := by
+  intro x
+  unfold f_horiz
+  exact tsum_nonneg (fun k => f_horiz_piece_nonneg k x)
+
+/- The spike intervals are pairwise disjoint. -/
+lemma spikes_disjoint (j k : ℕ) (hjk : j ≠ k) :
+    Set.Ioo ((2 : ℝ) ^ j) ((2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹) ∩
+      Set.Ioo ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹) = ∅ := by
+  wlog hlt : j < k generalizing j k
+  · have hkj_lt : k < j := lt_of_le_of_ne (not_lt.mp hlt) (fun h => hjk h.symm)
+    have hPkj : Set.Ioo ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹) ∩
+        Set.Ioo ((2 : ℝ) ^ j) ((2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹) = ∅ :=
+      this k j (fun h => hjk h.symm) hkj_lt
+    simpa [Set.inter_comm] using hPkj
+  · apply Set.eq_empty_iff_forall_notMem.mpr
+    intro x hx
+    rcases hx with ⟨hxj, hxk⟩
+    have hxj_lt : x < (2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹ := (Set.mem_Ioo.mp hxj).2
+    have hxk_gt : (2 : ℝ) ^ k < x := (Set.mem_Ioo.mp hxk).1
+    have hw_le_one : ((2 : ℝ) ^ (2 * j : ℕ))⁻¹ ≤ 1 := by
+      exact (inv_le_one₀ (pow_pos (by norm_num) (2 * j))).mpr
+        (one_le_pow₀ (by norm_num))
+    have htwoj : (2 : ℝ) ^ j + 1 ≤ (2 : ℝ) ^ k := by
+      have hjk1 : j + 1 ≤ k := Nat.succ_le_of_lt hlt
+      have hpow_mono : (2 : ℝ) ^ (j + 1) ≤ (2 : ℝ) ^ k :=
+        pow_le_pow_right₀ (by norm_num) hjk1
+      have hsucc : (2 : ℝ) ^ j + 1 ≤ (2 : ℝ) ^ (j + 1) := by
+        rw [pow_succ]
+        have hone : 1 ≤ (2 : ℝ) ^ j := one_le_pow₀ (by norm_num)
+        nlinarith
+      exact le_trans hsucc hpow_mono
+    have hle : (2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹ ≤ (2 : ℝ) ^ k := by
+      calc
+        (2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹ ≤ (2 : ℝ) ^ j + 1 := by
+          exact add_le_add_right hw_le_one ((2 : ℝ) ^ j)
+        _ ≤ (2 : ℝ) ^ k := htwoj
+    have hxj_le : x < (2 : ℝ) ^ k := lt_of_lt_of_le hxj_lt hle
+    exact (lt_irrefl x) (lt_trans hxj_le hxk_gt)
+
+/- On the k-th spike the sum collapses to the single nonzero term. -/
+lemma f_horiz_eq_piece {k : ℕ} {x : EuclideanSpace' 1}
+    (hx : (2 : ℝ) ^ k < EuclideanSpace'.equiv_Real x ∧
+      EuclideanSpace'.equiv_Real x < (2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹) :
+    f_horiz x = ((2 : ℝ) ^ k : EReal) := by
+  have hzero : ∀ j : ℕ, j ≠ k → f_horiz_piece j x = 0 := by
+    intro j hj
+    unfold f_horiz_piece
+    rw [if_neg]
+    intro hcond
+    have hu : EuclideanSpace'.equiv_Real x ∈
+        Set.Ioo ((2 : ℝ) ^ j) ((2 : ℝ) ^ j + ((2 : ℝ) ^ (2 * j : ℕ))⁻¹) := ⟨hcond.1, hcond.2⟩
+    have hu' : EuclideanSpace'.equiv_Real x ∈
+        Set.Ioo ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹) := ⟨hx.1, hx.2⟩
+    exact (Set.eq_empty_iff_forall_notMem.mp (spikes_disjoint j k hj) (EuclideanSpace'.equiv_Real x)) ⟨hu, hu'⟩
+  change (∑' j : ℕ, f_horiz_piece j x) = ((2 : ℝ) ^ k : EReal)
+  rw [tsum_eq_single k hzero]
+  unfold f_horiz_piece
+  rw [if_pos hx]
+
+/- The k-th spike interval, as a subset of the space. -/
+noncomputable def spike (k : ℕ) : Set (EuclideanSpace' 1) :=
+  EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹)
+
+/- For r ≥ 0, the level set of points with r < f_horiz x is the union of the spikes k with 2^k > r. -/
+lemma f_horiz_eq_iUnion_gt (r : ℝ) (hr : 0 ≤ r) :
+    {x : EuclideanSpace' 1 | (r : EReal) < f_horiz x} =
+      ⋃ k : ℕ, (if (2 : ℝ) ^ k > r then spike k else ∅) := by
+  ext x
+  simp only [gt_iff_lt, Set.mem_setOf_eq, Set.mem_iUnion]
+  constructor
+  · intro hx
+    have hgt0 : (0 : EReal) < f_horiz x := lt_of_le_of_lt (EReal.coe_nonneg.mpr hr) hx
+    have hmem : x ∈ ⋃ m : ℕ, spike m := by
+      by_contra hnot
+      have hz : ∀ j : ℕ, f_horiz_piece j x = 0 := by
+        intro j
+        unfold f_horiz_piece
+        rw [if_neg]
+        intro hcond
+        have hxj : x ∈ ⋃ m : ℕ, spike m := by
+          rw [Set.mem_iUnion]
+          exact ⟨j, ⟨hcond.1, hcond.2⟩⟩
+        exact hnot hxj
+      have hf0 : f_horiz x = 0 := by
+        unfold f_horiz
+        simp [hz]
+      exact (not_lt_of_ge (le_of_eq hf0)) hgt0
+    rw [Set.mem_iUnion] at hmem
+    rcases hmem with ⟨m, hm⟩
+    have hf : f_horiz x = ((2 : ℝ) ^ m : EReal) :=
+      f_horiz_eq_piece (Set.mem_Ioo.mp (Set.mem_preimage.mp hm))
+    have hrm : r < (2 : ℝ) ^ m := by
+      rw [hf] at hx
+      have hx' : (r : EReal) < Real.toEReal ((2 : ℝ) ^ m) := by
+        simpa [EReal.coe_pow] using hx
+      exact EReal.coe_lt_coe_iff.mp hx'
+    by_cases hkm : (2 : ℝ) ^ m > r
+    · refine ⟨m, ?_⟩
+      simp [hkm, hm]
+    · exact False.elim ((not_lt_of_ge (le_of_not_gt hkm)) hrm)
+  · intro hx
+    rcases hx with ⟨k, hk⟩
+    by_cases hkr : (2 : ℝ) ^ k > r
+    · rw [if_pos hkr] at hk
+      have hf : f_horiz x = ((2 : ℝ) ^ k : EReal) :=
+        f_horiz_eq_piece (Set.mem_Ioo.mp (Set.mem_preimage.mp hk))
+      rw [hf]
+      rw [← EReal.coe_pow]
+      exact EReal.coe_lt_coe_iff.mpr hkr
+    · rw [if_neg hkr] at hk
+      exact False.elim hk
+
+/- f_horiz is unsigned measurable, via TFAE level sets. -/
+lemma f_horiz_measurable : UnsignedMeasurable f_horiz := by
+  have h5 : ∀ t : EReal, LebesgueMeasurable {x | f_horiz x > t} := by
+    intro t
+    by_cases ht : t = ⊤
+    · have hset : {x | f_horiz x > t} = (∅ : Set (EuclideanSpace' 1)) := by
+        ext x
+        rw [ht]
+        constructor
+        · intro h
+          change f_horiz x > ⊤ at h
+          exact (not_lt_of_ge le_top) (gt_iff_lt.mp h)
+        · intro h
+          simp at h
+      rw [hset]
+      exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' 1)))
+    · cases t with
+      | bot =>
+          have hset : {x | f_horiz x > (⊥ : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+            ext x
+            simp only [gt_iff_lt, Set.mem_univ, iff_true]
+            exact lt_of_lt_of_le (EReal.bot_lt_coe (0 : ℝ)) (f_horiz_nonneg x)
+          rw [hset]
+          exact isOpen_univ.measurable
+      | coe r =>
+          by_cases hr : r < 0
+          · have hset : {x | f_horiz x > (r : EReal)} = (Set.univ : Set (EuclideanSpace' 1)) := by
+              ext x
+              simp only [gt_iff_lt, Set.mem_univ, iff_true]
+              exact lt_of_lt_of_le (EReal.coe_lt_coe_iff.mpr hr) (f_horiz_nonneg x)
+            rw [hset]
+            exact isOpen_univ.measurable
+          · have hr0 : 0 ≤ r := le_of_not_gt hr
+            have hset : {x | f_horiz x > (r : EReal)} =
+                ⋃ k : ℕ, (if (2 : ℝ) ^ k > r then spike k else ∅) :=
+              f_horiz_eq_iUnion_gt r hr0
+            rw [hset]
+            exact LebesgueMeasurable.countable_union (fun k => by
+              by_cases hk : (2 : ℝ) ^ k > r
+              · rw [if_pos hk]
+                exact measurable_Ioo_preimage' ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹)
+              · rw [if_neg hk]
+                exact (isOpen_empty.measurable : LebesgueMeasurable (∅ : Set (EuclideanSpace' 1))))
+      | top =>
+          exact False.elim (ht rfl)
+  exact ((UnsignedMeasurable.TFAE f_horiz_nonneg).out 4 0
+    (a := ∀ t : EReal, LebesgueMeasurable {x | f_horiz x > t})
+    (b := UnsignedMeasurable f_horiz)).mp h5
+
+/- The upper integral of f_horiz is top: any simple g ≥ f has a top atom of positive
+    measure, since f is unbounded on a positive-measure spike. -/
+lemma f_horiz_upper : UpperUnsignedLebesgueIntegral f_horiz = ⊤ := by
+  apply le_antisymm le_top
+  unfold UpperUnsignedLebesgueIntegral
+  apply le_sInf
+  intro R hR
+  rcases hR with ⟨g, hg, hcond⟩
+  let hg' : UnsignedSimpleFunction g := hg
+  rcases hg with ⟨k, c, E, hmes, heq⟩
+  have hge : ∀ x, f_horiz x ≤ g x := fun x => (hcond x).1
+  have hReq : R = hg'.integ := (hcond (Classical.arbitrary _)).2
+  rw [hReq]
+  have hE_meas : ∀ i, LebesgueMeasurable (E i) := fun i => (hmes i).1
+  have hc_nonneg : ∀ i, c i ≥ 0 := fun i => (hmes i).2
+  have hinteg : hg'.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+    UnsignedSimpleFunction.integral_eq hg' hE_meas hc_nonneg heq
+  rw [hinteg]
+  let C : ℝ := ∑ i, EReal.toReal (c i)
+  have hcover : ∀ x, x ∈ {x : EuclideanSpace' 1 | (C : EReal) < f_horiz x} → ∃ i, x ∈ E i ∧ c i = ⊤ := by
+    intro x hx
+    by_contra hnot
+    push_neg at hnot
+    have hg_le_C : g x ≤ (C : EReal) := by
+      rw [heq]
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      calc
+        (∑ i, c i * EReal.indicator (E i) x) ≤ (∑ i, ((c i).toReal : EReal)) := by
+          apply Finset.sum_le_sum
+          intro i hi
+          by_cases hci : c i = ⊤
+          · have hxnot : x ∉ E i := fun hxi => (hnot i hxi) hci
+            rw [indicator_mul_not_mem (E i) (c i) x hxnot]
+            simp [hci]
+          · have hci_notbot : c i ≠ ⊥ := by
+              intro hb
+              have hci0 : (0 : EReal) ≤ ⊥ := by simpa [hb] using hc_nonneg i
+              exact (not_le_of_gt EReal.bot_lt_zero) hci0
+            by_cases hxi : x ∈ E i
+            · rw [indicator_mul_mem (E i) (c i) x hxi]
+              rw [EReal.coe_toReal hci hci_notbot]
+            · rw [indicator_mul_not_mem (E i) (c i) x hxi]
+              exact EReal.coe_nonneg.mpr (EReal.toReal_nonneg (hc_nonneg i))
+        _ = (C : EReal) := by
+          dsimp [C]
+          exact (map_sum (⟨⟨Real.toEReal, EReal.coe_zero⟩, EReal.coe_add⟩ : ℝ →+ EReal)
+            (fun i : Fin k => EReal.toReal (c i)) Finset.univ).symm
+    have hgt : (C : EReal) < g x := lt_of_lt_of_le hx (hge x)
+    exact (lt_irrefl (g x)) (lt_of_le_of_lt hg_le_C hgt)
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, C < (2 : ℝ) ^ m := by
+    obtain ⟨N, hN⟩ := exists_nat_gt C
+    have hNle0 : (N : ℝ) ≤ ((2 : ℕ) ^ N : ℝ) := by
+      exact_mod_cast (Nat.le_of_lt (Nat.lt_two_pow_self : N < 2 ^ N))
+    have hNle : (N : ℝ) ≤ (2 : ℝ) ^ N := by
+      simpa [Nat.cast_pow] using hNle0
+    exact ⟨N, lt_of_lt_of_le hN hNle⟩
+  have hw_pos : 0 < ((2 : ℝ) ^ (2 * m : ℕ))⁻¹ := by
+    exact inv_pos.mpr (pow_pos (by norm_num) (2 * m))
+  have hmu_spike : Lebesgue_measure (spike m) = ((((2 : ℝ) ^ (2 * m : ℕ))⁻¹ : ℝ) : EReal) := by
+    rw [show spike m = EuclideanSpace'.equiv_Real ⁻¹'
+        Set.Ioo ((2 : ℝ) ^ m) ((2 : ℝ) ^ m + ((2 : ℝ) ^ (2 * m : ℕ))⁻¹) by rfl]
+    simpa using (measure_Ioo_ab (le_add_of_nonneg_right (le_of_lt hw_pos)))
+  have hspike_pos : (0 : EReal) < Lebesgue_measure (spike m) := by
+    rw [hmu_spike]
+    exact EReal.coe_pos.mpr hw_pos
+  have hspike_sub : spike m ⊆ {x : EuclideanSpace' 1 | (C : EReal) < f_horiz x} := by
+    intro x hx
+    change (C : EReal) < f_horiz x
+    have hf : f_horiz x = ((2 : ℝ) ^ m : EReal) :=
+      f_horiz_eq_piece (Set.mem_Ioo.mp (Set.mem_preimage.mp hx))
+    rw [hf]
+    have hmE : (C : EReal) < Real.toEReal ((2 : ℝ) ^ m) := EReal.coe_lt_coe_iff.mpr hm
+    simpa [EReal.coe_pow] using hmE
+  have htop_atom : ∃ i₀ : Fin k, c i₀ = ⊤ ∧ 0 < Lebesgue_measure (E i₀) := by
+    by_contra hnot
+    push_neg at hnot
+    let E' : Fin k → Set (EuclideanSpace' 1) := fun i => if c i = ⊤ then E i else ∅
+    have hsub : spike m ⊆ ⋃ i : Fin k, E' i := by
+      intro x hx
+      rcases hcover x (hspike_sub hx) with ⟨i, hxEi, hci⟩
+      rw [Set.mem_iUnion]
+      exact ⟨i, by
+        dsimp [E']
+        rw [if_pos hci]
+        exact hxEi⟩
+    have hmeas0 : ∀ i, Lebesgue_measure (E' i) = 0 := by
+      intro i
+      by_cases hci : c i = ⊤
+      · have hle : Lebesgue_measure (E i) ≤ 0 := hnot i hci
+        have hz : Lebesgue_measure (E i) = 0 :=
+          le_antisymm hle (Lebesgue_outer_measure.nonneg _)
+        simp [E', hci, hz]
+      · simp [E', hci]
+    have hunion : Lebesgue_measure (⋃ i, E' i) ≤ 0 := by
+      calc
+        Lebesgue_measure (⋃ i, E' i) ≤ ∑ i, Lebesgue_measure (E' i) :=
+          Lebesgue_outer_measure.finite_union_le E'
+        _ = 0 := by simp [hmeas0]
+    exact (not_lt_of_ge (le_trans (Lebesgue_outer_measure.mono hsub) hunion)) hspike_pos
+  rcases htop_atom with ⟨i₀, hci₀, hmu₀⟩
+  have hterm : c i₀ * Lebesgue_measure (E i₀) = ⊤ := by
+    rw [hci₀, EReal.top_mul_of_pos hmu₀]
+  have hprod_nonneg : ∀ i, 0 ≤ c i * Lebesgue_measure (E i) :=
+    fun i => EReal.mul_nonneg (hc_nonneg i) (Lebesgue_outer_measure.nonneg _)
+  have hge_top : ⊤ ≤ ∑ i, c i * Lebesgue_measure (E i) := by
+    have hle := Finset.single_le_sum (fun i hi => hprod_nonneg i) (Finset.mem_univ i₀)
+    rw [hterm] at hle
+    exact hle
+  exact hge_top
+
+/- Algebraic helper: 2^k * (2^(2k))⁻¹ = (2⁻¹)^k. -/
+lemma two_pow_mul_inv_two_mul (k : ℕ) :
+    ((2 : ℝ) ^ k) * ((2 : ℝ) ^ (2 * k : ℕ))⁻¹ = ((2 : ℝ)⁻¹) ^ k := by
+  rw [show 2 * k = k + k by omega]
+  rw [← inv_pow, pow_add]
+  rw [← mul_assoc, ← mul_pow]
+  rw [mul_inv_cancel₀ (by norm_num : (2 : ℝ) ≠ 0), one_pow, one_mul]
+
+/- Geometric bound: the sum over Fin m of (2⁻¹)^i is at most 2. -/
+lemma sum_pow_half_le_two (m : ℕ) : (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val) ≤ 2 := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+      rw [Fin.sum_univ_succ]
+      have h0 : ((2 : ℝ)⁻¹) ^ (0 : Fin (m + 1)).val = 1 := by simp
+      rw [h0]
+      have hrew : (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.succ.val) =
+          (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val) * (2 : ℝ)⁻¹ := by
+        calc
+          (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.succ.val) =
+              (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val * (2 : ℝ)⁻¹) := by
+                apply Finset.sum_congr rfl
+                intro i hi
+                simp [pow_succ]
+          _ = (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val) * (2 : ℝ)⁻¹ := by
+                exact (Finset.sum_mul (Finset.univ : Finset (Fin m))
+                  (fun i : Fin m => ((2 : ℝ)⁻¹) ^ i.val) (2 : ℝ)⁻¹).symm
+      rw [hrew]
+      have hle : (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val) * (2 : ℝ)⁻¹ ≤ 2 * (2 : ℝ)⁻¹ := by
+        exact mul_le_mul_of_nonneg_right ih (inv_nonneg.mpr (by norm_num))
+      calc
+        1 + (∑ i : Fin m, ((2 : ℝ)⁻¹) ^ i.val) * (2 : ℝ)⁻¹ ≤ 1 + 2 * (2 : ℝ)⁻¹ := by
+          exact add_le_add_right hle 1
+        _ = 2 := by norm_num
+
+/- The ball truncation of f_horiz has upper integral bounded by 2 uniformly. -/
+lemma f_horiz_trunc_upper_bounded : ∃ c : EReal, c < ⊤ ∧ ∀ n : ℕ, 1 ≤ n →
+    UpperUnsignedLebesgueIntegral
+      (f_horiz * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' 1) n).indicator') ≤ c := by
+  refine ⟨((2 : ℝ) : EReal), EReal.coe_lt_top 2, ?_⟩
+  intro n hn
+  let B : Set (EuclideanSpace' 1) := Metric.ball (0 : EuclideanSpace' 1) n
+  let c : Fin (n + 1) → EReal := fun i => ((2 : ℝ) ^ i.val : EReal)
+  let E : Fin (n + 1) → Set (EuclideanSpace' 1) := fun i => spike i.val ∩ B
+  let h : EuclideanSpace' 1 → EReal := fun x => ∑ i, c i • EReal.indicator (E i) x
+  have hc_nonneg : ∀ i, c i ≥ 0 := fun i => by
+    dsimp [c]
+    simp
+  have hE_meas : ∀ i, LebesgueMeasurable (E i) := fun i =>
+    LebesgueMeasurable.inter
+      (measurable_Ioo_preimage' ((2 : ℝ) ^ i.val) ((2 : ℝ) ^ i.val + ((2 : ℝ) ^ (2 * i.val : ℕ))⁻¹))
+      (IsOpen.measurable (Metric.isOpen_ball : IsOpen (Metric.ball (0 : EuclideanSpace' 1) n)))
+  have hsimple : UnsignedSimpleFunction h := by
+    refine ⟨n + 1, c, E, ?_, ?_⟩
+    · intro i
+      exact ⟨hE_meas i, hc_nonneg i⟩
+    · ext x
+      simp [h]
+  have hterm_nonneg : ∀ x, ∀ j : Fin (n + 1), 0 ≤ c j • EReal.indicator (E j) x := by
+    intro x j
+    rw [smul_eq_mul]
+    exact EReal.mul_nonneg (hc_nonneg j) (EReal.indicator_nonneg (E j) x)
+  have hh_nonneg : ∀ x, 0 ≤ h x := by
+    intro x
+    dsimp [h]
+    exact Finset.sum_nonneg (fun j hj => hterm_nonneg x j)
+  have hh_ge : ∀ x, (f_horiz * Real.toEReal ∘ B.indicator') x ≤ h x := by
+    intro x
+    by_cases hxB : x ∈ B
+    · let u : ℝ := EuclideanSpace'.equiv_Real x
+      have hxball0 : dist x (0 : EuclideanSpace' 1) < (n : ℝ) := (Metric.mem_ball.mp hxB)
+      have hu_abs : |u| < (n : ℝ) := by
+        rw [EuclideanSpace'_dist_eq_Real_dist] at hxball0
+        simpa [Real.dist_eq] using hxball0
+      by_cases hspike : ∃ k : ℕ, u ∈ Set.Ioo ((2 : ℝ) ^ k) ((2 : ℝ) ^ k + ((2 : ℝ) ^ (2 * k : ℕ))⁻¹)
+      · rcases hspike with ⟨k, hk⟩
+        have hu_pos : 0 < u := lt_trans (pow_pos (by norm_num) k) hk.1
+        have hu_lt_n : u < (n : ℝ) := lt_of_le_of_lt (le_abs_self u) hu_abs
+        have hk_lt_n : k < n := by
+          have h2k_lt_n : (2 : ℝ) ^ k < (n : ℝ) := lt_trans hk.1 hu_lt_n
+          have hk_lt_2k : (k : ℝ) < (2 : ℝ) ^ k := by
+            exact_mod_cast (Nat.lt_two_pow_self : k < 2 ^ k)
+          exact_mod_cast (lt_trans hk_lt_2k h2k_lt_n)
+        let i : Fin (n + 1) := ⟨k, by omega⟩
+        have hf : f_horiz x = ((2 : ℝ) ^ k : EReal) := f_horiz_eq_piece hk
+        have hxEi : x ∈ E i := by
+          dsimp [E, B]
+          exact ⟨hk, hxB⟩
+        have hx_ge_c : c i ≤ h x := by
+          dsimp [h]
+          have htermi : c i • EReal.indicator (E i) x = c i := by
+            rw [smul_eq_mul]
+            rw [indicator_mul_mem (E i) (c i) x hxEi]
+          have hle := Finset.single_le_sum (fun j hj => hterm_nonneg x j) (Finset.mem_univ i)
+          rw [htermi] at hle
+          exact hle
+        have hlhs : (f_horiz * Real.toEReal ∘ B.indicator') x ≤ c i := by
+          rw [show (f_horiz * Real.toEReal ∘ B.indicator') x =
+              f_horiz x * Real.toEReal (B.indicator' x) by rfl]
+          rw [Set.indicator'_of_mem hxB]
+          rw [hf]
+          dsimp [c, i]
+          simp
+        exact le_trans hlhs hx_ge_c
+      · have hf0 : f_horiz x = 0 := by
+          have hz : ∀ j : ℕ, f_horiz_piece j x = 0 := by
+            intro j
+            unfold f_horiz_piece
+            rw [if_neg]
+            intro hcond
+            exact hspike ⟨j, ⟨hcond.1, hcond.2⟩⟩
+          unfold f_horiz
+          simp [hz]
+        rw [show (f_horiz * Real.toEReal ∘ B.indicator') x =
+            f_horiz x * Real.toEReal (B.indicator' x) by rfl]
+        simp [hf0]
+        exact hh_nonneg x
+    · rw [show (f_horiz * Real.toEReal ∘ B.indicator') x =
+        f_horiz x * Real.toEReal (B.indicator' x) by rfl]
+      rw [Set.indicator'_of_notMem hxB]
+      simp
+      exact hh_nonneg x
+  have hU_le : UpperUnsignedLebesgueIntegral (f_horiz * Real.toEReal ∘ B.indicator') ≤ hsimple.integ := by
+    rw [← upperIntegral_simple hsimple]
+    exact upperIntegral_mono hh_ge
+  have hsimple_eq : h = ∑ i, (c i) • (EReal.indicator (E i)) := by
+    ext x
+    simp [h]
+  have hinteg : hsimple.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+    UnsignedSimpleFunction.integral_eq hsimple hE_meas hc_nonneg hsimple_eq
+  have hterm_le (i : Fin (n + 1)) :
+      c i * Lebesgue_measure (E i) ≤ Real.toEReal (((2 : ℝ)⁻¹) ^ i.val) := by
+    have hE_le : Lebesgue_measure (E i) ≤ Lebesgue_measure (spike i.val) :=
+      Lebesgue_outer_measure.mono (by
+        dsimp [E]
+        intro x hx
+        exact hx.1)
+    have hmu : Lebesgue_measure (spike i.val) = Real.toEReal (((2 : ℝ) ^ (2 * i.val : ℕ))⁻¹) := by
+      rw [show spike i.val = EuclideanSpace'.equiv_Real ⁻¹'
+          Set.Ioo ((2 : ℝ) ^ i.val) ((2 : ℝ) ^ i.val + ((2 : ℝ) ^ (2 * i.val : ℕ))⁻¹) by rfl]
+      simpa using (measure_Ioo_ab (le_add_of_nonneg_right
+        (le_of_lt (inv_pos.mpr (pow_pos (by norm_num) (2 * i.val))))))
+    have hc_mu : c i * Lebesgue_measure (spike i.val) = Real.toEReal (((2 : ℝ)⁻¹) ^ i.val) := by
+      dsimp [c]
+      rw [hmu]
+      rw [← EReal.coe_pow]
+      rw [← EReal.coe_mul]
+      congr 1
+      exact two_pow_mul_inv_two_mul i.val
+    calc
+      c i * Lebesgue_measure (E i) ≤ c i * Lebesgue_measure (spike i.val) := by
+        exact mul_le_mul_of_nonneg_left hE_le (hc_nonneg i)
+      _ = Real.toEReal (((2 : ℝ)⁻¹) ^ i.val) := hc_mu
+  have hsum_le : (∑ i : Fin (n + 1), c i * Lebesgue_measure (E i)) ≤ (2 : EReal) := by
+    calc
+      (∑ i : Fin (n + 1), c i * Lebesgue_measure (E i))
+          ≤ ∑ i : Fin (n + 1), Real.toEReal (((2 : ℝ)⁻¹) ^ i.val) := by
+            apply Finset.sum_le_sum
+            intro i hi
+            exact hterm_le i
+      _ = Real.toEReal (∑ i : Fin (n + 1), ((2 : ℝ)⁻¹) ^ i.val) := by
+            exact (map_sum (⟨⟨Real.toEReal, EReal.coe_zero⟩, EReal.coe_add⟩ : ℝ →+ EReal)
+              (fun i : Fin (n + 1) => ((2 : ℝ)⁻¹) ^ i.val) Finset.univ).symm
+      _ ≤ ((2 : ℝ) : EReal) := by
+            rw [EReal.coe_le_coe_iff]
+            exact sum_pow_half_le_two (n + 1)
+  have htotal : hsimple.integ ≤ ((2 : ℝ) : EReal) := by
+    rw [hinteg]
+    exact hsum_le
+  exact le_trans hU_le htotal
+
+/- The horizontal truncation limit FAILS for the upper integral: isFalse. -/
+theorem eq_lim_horiz_trunc_upper_isFalse : ¬ (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f),
+    Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (UpperUnsignedLebesgueIntegral f))) := by
+  intro h
+  have hinst : Filter.atTop.Tendsto (fun n : ℕ =>
+      UpperUnsignedLebesgueIntegral (f_horiz * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' 1) n).indicator')) (nhds ⊤) := by
+    simpa [f_horiz_upper] using h 1 f_horiz f_horiz_measurable
+  have htop_seq : ∀ z : ℝ, ∀ᶠ n : ℕ in atTop, (z : EReal) <
+      UpperUnsignedLebesgueIntegral (f_horiz * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' 1) n).indicator') := by
+    intro z
+    have hmem : Set.Ioi (z : EReal) ∈ 𝓝 (⊤ : EReal) := by
+      exact (EReal.mem_nhds_top_iff).mpr ⟨z, fun y hy => hy⟩
+    simpa using (hinst.eventually hmem)
+  rcases f_horiz_trunc_upper_bounded with ⟨c, hc_lt_top, hbounded⟩
+  obtain ⟨z, hc_lt_z⟩ : ∃ z : ℝ, c < (z : EReal) := by
+    cases c with
+    | bot => exact ⟨0, EReal.bot_lt_coe 0⟩
+    | coe r => exact ⟨r + 1, by rw [EReal.coe_lt_coe_iff]; linarith⟩
+    | top => exact False.elim (not_lt_of_ge le_top hc_lt_top)
+  have hev := htop_seq z
+  rw [eventually_atTop] at hev
+  rcases hev with ⟨N, hN⟩
+  let n0 : ℕ := max N 1
+  have hn0_N : N ≤ n0 := le_max_left N 1
+  have hn0_ge1 : 1 ≤ n0 := le_max_right N 1
+  have hs_gt : (z : EReal) < UpperUnsignedLebesgueIntegral
+      (f_horiz * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' 1) n0).indicator') :=
+    hN n0 hn0_N
+  have hs_le : UpperUnsignedLebesgueIntegral
+      (f_horiz * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' 1) n0).indicator') ≤ c :=
+    hbounded n0 hn0_ge1
+  exact (lt_irrefl (z : EReal)) (lt_trans hs_gt (lt_of_le_of_lt hs_le hc_lt_z))
+
+def UpperUnsignedLebesgueIntegral.eq_lim_horiz_trunc : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ UpperUnsignedLebesgueIntegral (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (UpperUnsignedLebesgueIntegral f))) := by
+  apply isFalse
+  exact eq_lim_horiz_trunc_upper_isFalse
 lemma sqrt_inv_gt_iff {r : ℝ} (hr : 0 < r) {u : ℝ} (hu : 0 < u) :
     (r : EReal) < ((1 / Real.sqrt u : ℝ) : EReal) ↔ u < 1 / r ^ 2 := by
   rw [EReal.coe_lt_coe_iff]
