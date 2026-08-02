@@ -2797,9 +2797,104 @@ theorem LowerUnsignedLebesgueIntegral.eq_upperIntegral {d:ℕ} {f: EuclideanSpac
         (r := 2 * r) (mul_nonneg (by norm_num) hr0) hbound_r
     exact EReal.sub_nonpos.mp hle0
 
-def LowerUnsignedLebesgueIntegral.eq_upperIntegral_unbounded : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f) (hsupp: FiniteMeasureSupport f), LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
-  -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+/- The lower integral is at most the upper integral, unconditionally. -/
+lemma upper_lower_ineq {d} {f : EuclideanSpace' d → EReal} :
+    LowerUnsignedLebesgueIntegral f ≤ UpperUnsignedLebesgueIntegral f := by
+  unfold LowerUnsignedLebesgueIntegral UpperUnsignedLebesgueIntegral
+  apply le_sInf
+  intro R hR
+  rcases hR with ⟨h, hh, hh_cond⟩
+  apply sSup_le
+  intro a ha
+  rcases ha with ⟨g, hg, hg_cond⟩
+  have hg_le_h : ∀ x, g x ≤ h x := fun x => le_trans (hg_cond x).1 (hh_cond x).1
+  have ha_eq : a = hg.integ := (hg_cond (Classical.arbitrary _)).2
+  have hR_eq : R = hh.integ := (hh_cond (Classical.arbitrary _)).2
+  rw [ha_eq, hR_eq]
+  exact UnsignedSimpleFunction.integral_le_integral_of_aeLe hg hh (AlmostAlways.ofAlways hg_le_h)
+
+/-- The lower integral of the zero function is zero. -/
+lemma zero_lower_integral {d} :
+    LowerUnsignedLebesgueIntegral (fun _ : EuclideanSpace' d => (0 : EReal)) = 0 := by
+  have hz : UnsignedSimpleFunction (fun _ : EuclideanSpace' d => (0 : EReal)) := by
+    use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' d)))
+    constructor
+    · intro i; fin_cases i
+    · ext x; simp
+  rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral hz]
+  exact zero_unsigned_integral hz
+
+/-- The upper integral is nonnegative. -/
+lemma upper_integral_nonneg {d} {g : EuclideanSpace' d → EReal} : 0 ≤ UpperUnsignedLebesgueIntegral g := by
+  unfold UpperUnsignedLebesgueIntegral
+  apply le_sInf
+  intro R hR
+  rcases hR with ⟨h, hh, hcond⟩
+  have hReq : R = hh.integ := (hcond (Classical.arbitrary _)).2
+  rw [hReq]
+  have hz : UnsignedSimpleFunction (fun _ : EuclideanSpace' d => (0 : EReal)) := by
+    use 0, (fun i : Fin 0 => (0 : EReal)), (fun i : Fin 0 => (∅ : Set (EuclideanSpace' d)))
+    constructor
+    · intro i; fin_cases i
+    · ext x; simp
+  have hle : hz.integ ≤ hh.integ :=
+    UnsignedSimpleFunction.integral_le_integral_of_aeLe hz hh
+      (AlmostAlways.ofAlways (fun x => (UnsignedSimpleFunction.unsignedMeasurable hh).1 x))
+  simpa [zero_unsigned_integral hz] using hle
+
+/- L f_inv_sqrt < ⊤ via the vertical truncation and the uniform upper bound on U(min(f,n)). -/
+lemma f_inv_sqrt_L_lt_top : LowerUnsignedLebesgueIntegral f_inv_sqrt < ⊤ := by
+  rcases f_inv_sqrt_trunc_upper_bounded with ⟨c, hc_lt_top, hbounded⟩
+  have hc_nonneg : 0 ≤ c :=
+    le_trans (upper_integral_nonneg (g := fun x : EuclideanSpace' 1 => min (f_inv_sqrt x) (1 : ℕ)))
+      (hbounded 1 (by norm_num))
+  have hconv := LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc f_inv_sqrt_measurable
+  have hbdd : ∀ n : ℕ, LowerUnsignedLebesgueIntegral (fun x => min (f_inv_sqrt x) n) ≤ c := by
+    intro n
+    by_cases hn : 1 ≤ n
+    · exact le_trans (upper_lower_ineq (f := fun x => min (f_inv_sqrt x) n)) (hbounded n hn)
+    · have hn0 : n = 0 := by omega
+      subst n
+      have hz : (fun x : EuclideanSpace' 1 => min (f_inv_sqrt x) (0 : ℕ)) =
+          (fun _ : EuclideanSpace' 1 => (0 : EReal)) := by
+        funext x
+        simpa using (min_eq_right (f_inv_sqrt_nonneg x))
+      rw [hz]
+      rw [zero_lower_integral]
+      exact hc_nonneg
+  exact lt_of_le_of_lt (le_of_tendsto hconv (Filter.Eventually.of_forall hbdd)) hc_lt_top
+
+/-- f_inv_sqrt has finite measure support: its support lies in the preimage of (0,1). -/
+lemma f_inv_sqrt_finite_support : FiniteMeasureSupport f_inv_sqrt := by
+  unfold FiniteMeasureSupport
+  have hsub : Support f_inv_sqrt ⊆ EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) 1 := by
+    intro x hx
+    simp only [Support, Set.mem_setOf_eq, f_inv_sqrt] at hx
+    by_cases hc : (0 : ℝ) < EuclideanSpace'.equiv_Real x ∧ EuclideanSpace'.equiv_Real x < 1
+    · rw [if_pos hc] at hx
+      exact hc
+    · rw [if_neg hc] at hx
+      exact False.elim (hx rfl)
+  have hmu : Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Ioo (0 : ℝ) 1) = (1 : EReal) := by
+    simpa using (measure_Ioo_ab (show (0 : ℝ) ≤ 1 from by norm_num))
+  have hle : Lebesgue_measure (Support f_inv_sqrt) ≤ 1 := by
+    rw [← hmu]
+    simpa [Lebesgue_measure] using (Lebesgue_outer_measure.mono hsub)
+  exact lt_of_le_of_lt hle (EReal.coe_lt_top 1)
+
+/-- The boundedness hypothesis in Exercise 1.3.11 is necessary: isFalse. -/
+theorem eq_upperIntegral_unbounded_isFalse :
+    ¬ (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f) (_hsupp: FiniteMeasureSupport f),
+       LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
+  intro h
+  have heq : LowerUnsignedLebesgueIntegral f_inv_sqrt = UpperUnsignedLebesgueIntegral f_inv_sqrt :=
+    h 1 f_inv_sqrt f_inv_sqrt_measurable f_inv_sqrt_finite_support
+  rw [f_inv_sqrt_upper] at heq
+  exact (not_lt_of_ge (le_of_eq heq.symm)) f_inv_sqrt_L_lt_top
+
+def LowerUnsignedLebesgueIntegral.eq_upperIntegral_unbounded : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (_hf: UnsignedMeasurable f) (_hsupp: FiniteMeasureSupport f), LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
+  apply isFalse
+  exact eq_upperIntegral_unbounded_isFalse
 
 def LowerUnsignedLebesgueIntegral.eq_upperIntegral_infinite_supp : Decidable (∀ (d:ℕ) (f: EuclideanSpace' d → EReal) (hf: UnsignedMeasurable f) (hbound: EReal.BoundedFunction f), LowerUnsignedLebesgueIntegral f = UpperUnsignedLebesgueIntegral f) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
