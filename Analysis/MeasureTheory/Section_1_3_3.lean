@@ -4653,13 +4653,340 @@ theorem UpperUnsignedLebesgueIntegral.not_additive : ∃ (d:ℕ) (f g: Euclidean
 theorem LowerUnsignedLebesgueIntegral.eq_area {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) :
     LowerUnsignedLebesgueIntegral f = Lebesgue_measure { p | ∃ x, ∃ t:ℝ, EuclideanSpace'.prod_equiv d 1 p = ⟨ x, t ⟩ ∧ 0 ≤ t ∧ t ≤ f x } := by sorry
 
+private lemma iUnion_rat_reindex {α : Type*} (F : ℚ → Set α) (e : ℕ → ℚ) (he : Function.Surjective e) :
+    (⋃ q : ℚ, F q) = ⋃ n : ℕ, F (e n) := by
+  ext x
+  simp only [Set.mem_iUnion]
+  constructor
+  · intro ⟨q, hq⟩
+    obtain ⟨n, hn⟩ := he q
+    exact ⟨n, by simpa [hn] using hq⟩
+  · intro ⟨n, hn⟩
+    exact ⟨e n, hn⟩
+
+/-- Given b ≥ 0, b ≠ ⊤ and b + t' < a, find a rational q with q < a and b + t' < q. -/
+private lemma exists_rat_btwn_sub {a b : EReal} (hb0 : 0 ≤ b) (hb_top : b ≠ ⊤) (t' : ℝ)
+    (h : b + (t' : EReal) < a) : ∃ q : ℚ, a > ((q : ℝ) : EReal) ∧ b + (t' : EReal) < ((q : ℝ) : EReal) := by
+  have hb_bot : b ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hb0)
+  have hb_eq : b = (b.toReal : EReal) := (EReal.coe_toReal hb_top hb_bot).symm
+  by_cases ha_top : a = ⊤
+  · obtain ⟨q, hq⟩ := exists_rat_gt (b.toReal + t')
+    refine ⟨q, ?_, ?_⟩
+    · rw [ha_top]
+      exact EReal.coe_lt_top (q : ℝ)
+    · rw [hb_eq, ← EReal.coe_add]
+      exact EReal.coe_lt_coe_iff.mpr hq
+  · have ha_bot : a ≠ ⊥ := by
+      intro ha
+      rw [ha] at h
+      exact (not_lt_bot h).elim
+    have ha_eq : a = (a.toReal : EReal) := (EReal.coe_toReal ha_top ha_bot).symm
+    have h' : b.toReal + t' < a.toReal := by
+      rw [hb_eq, ha_eq, ← EReal.coe_add] at h
+      exact EReal.coe_lt_coe_iff.mp h
+    obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn (by linarith : b.toReal + t' < a.toReal)
+    refine ⟨q, ?_, ?_⟩
+    · rw [ha_eq]
+      exact EReal.coe_lt_coe_iff.mpr hq2
+    · rw [hb_eq, ← EReal.coe_add]
+      exact EReal.coe_lt_coe_iff.mpr hq1
+
+/-- Level set of (g - f) above a real threshold, for f ≥ 0, f ≠ ⊤. -/
+private lemma sub_gt_set_eq {d : ℕ} {f g : EuclideanSpace' d → EReal} (hf0 : ∀ x, 0 ≤ f x)
+    (hf_top : ∀ x, f x ≠ ⊤) (t' : ℝ) :
+    {x | g x - f x > (t' : EReal)} =
+      ⋃ (q : ℚ), ({x | g x > ((q : ℝ) : EReal)} ∩ {x | f x < (((q : ℝ) - t' : ℝ) : EReal)}) := by
+  ext x
+  constructor
+  · intro hx
+    rw [Set.mem_iUnion]
+    have h_add : (t' : EReal) + f x < g x :=
+      (EReal.lt_sub_iff_add_lt (a := g x) (b := f x) (c := (t' : EReal))
+        (Or.inl (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))))
+        (Or.inl (hf_top x))).mp hx
+    rcases exists_rat_btwn_sub (a := g x) (b := f x) (hf0 x) (hf_top x) t'
+      (by simpa [add_comm] using h_add) with ⟨q, hgq, hfq⟩
+    refine ⟨q, hgq, ?_⟩
+    exact (EReal.lt_sub_iff_add_lt (a := ((q : ℝ) : EReal)) (b := (t' : EReal)) (c := f x)
+      (Or.inr (hf_top x))
+      (Or.inr (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))))).mpr hfq
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨q, hgq, hfq⟩
+    change f x < (((q : ℝ) - t' : ℝ) : EReal) at hfq
+    have hfq' : f x + (t' : EReal) < ((q : ℝ) : EReal) :=
+      (EReal.lt_sub_iff_add_lt (a := ((q : ℝ) : EReal)) (b := (t' : EReal)) (c := f x)
+        (Or.inr (hf_top x))
+        (Or.inr (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))))).mp hfq
+    have h_add : (t' : EReal) + f x < g x := lt_trans (by simpa [add_comm] using hfq') hgq
+    exact (EReal.lt_sub_iff_add_lt (a := g x) (b := f x) (c := (t' : EReal))
+      (Or.inl (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))))
+      (Or.inl (hf_top x))).mpr h_add
+
+/-- Corrected version of the sub measurable lemma: f additionally never takes value top. -/
+lemma sub_measurable {d : ℕ} {f g : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f)
+    (hg : UnsignedMeasurable g) (hf_ne_top : ∀ x, f x ≠ ⊤) (hfg : ∀ x, f x ≤ g x) :
+    UnsignedMeasurable (fun x => g x - f x) := by
+  have hf0 : ∀ x, 0 ≤ f x := hf.1
+  have hf_ne_bot : ∀ x, f x ≠ ⊥ := fun x => ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))
+  have h_uns : Unsigned (fun x => g x - f x) := by
+    intro x
+    exact (EReal.sub_nonneg (Or.inr (hf_ne_top x)) (Or.inr (hf_ne_bot x))).mpr (hfg x)
+  have h4 : ∀ t : EReal, LebesgueMeasurable {x | g x - f x > t} := by
+    intro t
+    rcases eq_bot_or_bot_lt t with rfl | ht_bot
+    · have h_eq : {x | g x - f x > ⊥} = Set.univ := by
+        ext x
+        constructor
+        · intro hx
+          trivial
+        · intro hx
+          exact lt_of_lt_of_le EReal.bot_lt_zero
+            ((EReal.sub_nonneg (Or.inr (hf_ne_top x)) (Or.inr (hf_ne_bot x))).mpr (hfg x))
+      rw [h_eq, ← Set.compl_empty]
+      exact LebesgueMeasurable.empty.complement
+    rcases eq_top_or_lt_top t with rfl | ht_top
+    · have h_eq : {x | g x - f x > ⊤} = (∅ : Set (EuclideanSpace' d)) := by
+        ext x
+        constructor
+        · intro hx
+          change (⊤ : EReal) < g x - f x at hx
+          exact (not_le_of_gt hx) (le_top : g x - f x ≤ ⊤)
+        · intro hx
+          exact False.elim hx
+      exact h_eq ▸ LebesgueMeasurable.empty
+    · induction t using EReal.rec with
+      | bot => exact (not_lt.mpr le_rfl ht_bot).elim
+      | top => exact (not_lt.mpr le_rfl ht_top).elim
+      | coe t' =>
+          have h_eq : {x | g x - f x > (t' : EReal)} =
+              ⋃ q : ℚ, ({x | g x > ((q : ℝ) : EReal)} ∩ {x | f x < (((q : ℝ) - t' : ℝ) : EReal)}) :=
+            sub_gt_set_eq hf0 hf_ne_top t'
+          obtain ⟨e, he⟩ := exists_surjective_nat ℚ
+          rw [h_eq]
+          rw [iUnion_rat_reindex (fun q : ℚ => ({x | g x > ((q : ℝ) : EReal)} ∩
+            {x | f x < (((q : ℝ) - t' : ℝ) : EReal)})) e he]
+          apply LebesgueMeasurable.countable_union
+          intro n
+          apply LebesgueMeasurable.inter
+          · exact (((_root_.UnsignedMeasurable.TFAE hg.1).out 0 4
+              (a := _root_.UnsignedMeasurable g)
+              (b := ∀ t : EReal, LebesgueMeasurable {x | g x > t})).mp hg) (((e n : ℚ) : ℝ) : EReal)
+          · exact (((_root_.UnsignedMeasurable.TFAE hf.1).out 0 6
+              (a := _root_.UnsignedMeasurable f)
+              (b := ∀ t : EReal, LebesgueMeasurable {x | f x < t})).mp hf) ((((e n : ℚ) : ℝ) - t' : ℝ) : EReal)
+  exact (((_root_.UnsignedMeasurable.TFAE h_uns).out 4 0
+    (a := ∀ t : EReal, LebesgueMeasurable {x | g x - f x > t})
+    (b := _root_.UnsignedMeasurable (fun x => g x - f x))).mp h4)
+
+/-- Structural fact: for bounded nonneg v the vertical truncation sequence is eventually
+    constant (min v n = v), so the hvert axiom is automatically satisfied and constrains
+    integ v in no way. -/
+lemma vert_eventually_const {d : ℕ} {v : EuclideanSpace' d → EReal} (hv0 : ∀ x, 0 ≤ v x)
+    (hbound : EReal.BoundedFunction v) :
+    ∀ᶠ n : ℕ in atTop, (fun x : EuclideanSpace' d => min (v x) (n : EReal)) = v := by
+  rcases hbound with ⟨M, hM⟩
+  obtain ⟨N, hN⟩ := exists_nat_gt (M : NNReal)
+  filter_upwards [eventually_ge_atTop N] with n hn
+  funext x
+  apply le_antisymm
+  · exact min_le_left _ _
+  · by_cases hvx_top : v x = ⊤
+    · exfalso
+      have habs : (⊤ : EReal).abs ≤ (M : NNReal) := by simpa [hvx_top] using hM x
+      rw [EReal.abs_top] at habs
+      exact (not_le_of_gt (ENNReal.coe_lt_top (r := (M : NNReal)))) habs
+    · have hvx_bot : v x ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hv0 x))
+      have hvx_eq : v x = ((v x).toReal : EReal) := (EReal.coe_toReal hvx_top hvx_bot).symm
+      have hr_le_M : (v x).toReal ≤ (M : ℝ) := by
+        have habs : ((v x).toReal : EReal).abs ≤ (M : ENNReal) := by
+          rw [← hvx_eq]
+          exact hM x
+        rw [EReal.abs_def] at habs
+        have habs' : |(v x).toReal| ≤ (M : ℝ) := by
+          rw [← ENNReal.ofReal_coe_nnreal] at habs
+          exact (ENNReal.ofReal_le_ofReal_iff (by positivity : 0 ≤ (M : ℝ))).mp habs
+        exact le_trans (le_abs_self _) habs'
+      have hM_le_n : (M : ℝ) ≤ (n : ℝ) := by
+        have hM_le_N : (M : ℝ) ≤ (N : ℝ) := by
+          exact_mod_cast (le_of_lt hN)
+        exact le_trans hM_le_N (by exact_mod_cast hn)
+      have hr_le_n : (v x).toReal ≤ (n : ℝ) := le_trans hr_le_M hM_le_n
+      have hvx_le_n : v x ≤ (n : EReal) := by
+        rw [hvx_eq]
+        exact_mod_cast hr_le_n
+      exact le_min le_rfl hvx_le_n
+
+/-- Structural fact: for v with support in ball m the horizontal truncation sequence is
+    eventually constant (v·1_ball_m' = v for m' ≥ m), so the hhoriz axiom is automatically
+    satisfied and constrains integ v in no way. -/
+lemma horiz_eventually_const_of_supp_ball {d : ℕ} {v : EuclideanSpace' d → EReal}
+    (m : ℕ) (hvsupp : Support v ⊆ Metric.ball (0 : EuclideanSpace' d) m) :
+    ∀ᶠ m' : ℕ in atTop,
+      v * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) m').indicator' = v := by
+  filter_upwards [eventually_ge_atTop m] with m' hm'
+  funext x
+  by_cases hx : x ∈ Support v
+  · have hx_ball : x ∈ Metric.ball (0 : EuclideanSpace' d) m := hvsupp hx
+    have hx_ball' : x ∈ Metric.ball (0 : EuclideanSpace' d) m' :=
+      Metric.mem_ball.mpr (lt_of_lt_of_le (Metric.mem_ball.mp hx_ball) (by exact_mod_cast hm'))
+    simp [hx_ball']
+  · have hvx0 : v x = 0 := by
+      by_contra h
+      exact hx (by simpa [Support] using h)
+    simp [hvx0]
+
+
+/-- integ is monotone on bounded functions: f ≤ g pointwise, both measurable and
+    f never takes the value top, hence integ f ≤ integ g.
+    Decompose g = f + (g - f); by additivity integ g = integ f + integ (g - f),
+    and integ (g - f) is nonnegative by hnonneg. -/
+lemma integ_mono_bounded {d : ℕ} {integ : (EuclideanSpace' d → EReal) → EReal}
+  (_hsimple : ∀ f (hf: UnsignedSimpleFunction f), integ f = hf.integ)
+  (hadd: ∀ f g (_hf: UnsignedMeasurable f) (_hg: UnsignedMeasurable g), integ (f + g) = integ f + integ g)
+  (_hvert: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (fun x ↦ min (f x) n)) (nhds (integ f)))
+  (_hhoriz: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (integ f)))
+  (hnonneg: ∀ f (_hf: UnsignedMeasurable f), 0 ≤ integ f)
+  {f g : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f) (hg : UnsignedMeasurable g)
+  (hf_ne_top : ∀ x, f x ≠ ⊤) (hfg : ∀ x, f x ≤ g x) : integ f ≤ integ g := by
+  have hsub : UnsignedMeasurable (fun x => g x - f x) := sub_measurable hf hg hf_ne_top hfg
+  have hf0 : ∀ x, 0 ≤ f x := hf.1
+  have hf_ne_bot : ∀ x, f x ≠ ⊥ := fun x => ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf0 x))
+  have hdecomp : f + (fun x => g x - f x) = g := by
+    funext x
+    have hcancel : (g x - f x) + f x = g x := sub_add_cancel_finite (hf_ne_top x) (hf_ne_bot x)
+    simpa [add_comm] using hcancel
+  have hg_eq : integ g = integ f + integ (fun x => g x - f x) := by
+    calc
+      integ g = integ (f + (fun x => g x - f x)) := by rw [hdecomp]
+      _ = integ f + integ (fun x => g x - f x) := hadd f (fun x => g x - f x) hf hsub
+  have hnonneg_sub : 0 ≤ integ (fun x => g x - f x) := hnonneg (fun x => g x - f x) hsub
+  rw [hg_eq]
+  exact le_add_of_nonneg_right hnonneg_sub
+
+/-- A bounded EReal-valued function never takes the value top. -/
+private lemma bounded_ne_top {v : EuclideanSpace' d → EReal} (hbound : EReal.BoundedFunction v) :
+    ∀ x, v x ≠ ⊤ := by
+  intro x hx_top
+  rcases hbound with ⟨M, hM⟩
+  have habs : (⊤ : EReal).abs ≤ (M : NNReal) := by simpa [hx_top] using hM x
+  rw [EReal.abs_top] at habs
+  exact (not_le_of_gt (ENNReal.coe_lt_top (r := (M : NNReal)))) habs
+
+/-- integ agrees with the lower integral on bounded finite-support functions.
+    Sandwich: by UnsignedMeasurable.bounded_iff there are simple g₀ with g₀ → v uniformly;
+    g₁ := max (g₀ - ε) 0 ≤ v ≤ g₂ := (g₀ + ε) · ind, g₂ ≤ g₁ + 2ε · ind.
+    integ g₁ = g₁.integ ≤ L v ≤ U v = L v ≤ g₂.integ = integ g₂ via eq_upperIntegral,
+    and integ g₁ ≤ integ v ≤ integ g₂ via integ_mono_bounded; let ε → 0 to get integ v = L v. -/
+lemma integ_eq_L_bounded {d : ℕ} {integ : (EuclideanSpace' d → EReal) → EReal}
+  (hsimple : ∀ f (hf: UnsignedSimpleFunction f), integ f = hf.integ)
+  (hadd: ∀ f g (_hf: UnsignedMeasurable f) (_hg: UnsignedMeasurable g), integ (f + g) = integ f + integ g)
+  (hvert: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (fun x ↦ min (f x) n)) (nhds (integ f)))
+  (hhoriz: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (integ f)))
+  (hnonneg: ∀ f (_hf: UnsignedMeasurable f), 0 ≤ integ f)
+  {v : EuclideanSpace' d → EReal} (hv : UnsignedMeasurable v)
+  (hbound : EReal.BoundedFunction v) (hsupp : FiniteMeasureSupport v) :
+  integ v = LowerUnsignedLebesgueIntegral v := by
+  have hv_ne_top : ∀ x, v x ≠ ⊤ := bounded_ne_top hbound
+  apply le_antisymm
+  · -- integ v ≤ L v: L v = U v, and U v = sInf over simple h ≥ v of h.integ
+    rw [LowerUnsignedLebesgueIntegral.eq_upperIntegral hv hbound hsupp]
+    unfold UpperUnsignedLebesgueIntegral
+    apply le_sInf
+    intro R hR
+    rcases hR with ⟨h, hh, hcond⟩
+    have hv_le_h : ∀ x, v x ≤ h x := fun x => (hcond x).1
+    have hR_eq : R = hh.integ := (hcond (Classical.arbitrary _)).2
+    calc
+      integ v ≤ integ h :=
+        integ_mono_bounded hsimple hadd hvert hhoriz hnonneg hv
+          (UnsignedSimpleFunction.unsignedMeasurable hh) hv_ne_top hv_le_h
+      _ = hh.integ := hsimple h hh
+      _ = R := hR_eq.symm
+  · -- L v ≤ integ v: L v = sSup over simple g ≤ v of g.integ
+    unfold LowerUnsignedLebesgueIntegral
+    apply sSup_le
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    have hg_le_v : ∀ x, g x ≤ v x := fun x => (hcond x).1
+    have hR_eq : R = hg.integ := (hcond (Classical.arbitrary _)).2
+    have hg_ne_top : ∀ x, g x ≠ ⊤ := by
+      intro x hgx_top
+      exact hv_ne_top x (le_antisymm le_top (by simpa [hgx_top] using hg_le_v x))
+    calc
+      R = hg.integ := hR_eq
+      _ = integ g := (hsimple g hg).symm
+      _ ≤ integ v :=
+        integ_mono_bounded hsimple hadd hvert hhoriz hnonneg
+          (UnsignedSimpleFunction.unsignedMeasurable hg) hv hg_ne_top hg_le_v
+
+/-- Multiplying a bounded function by a set indicator keeps it bounded, since the
+    indicator takes only the values 0 and 1. -/
+private lemma bounded_mul_indicator {d : ℕ} {h : EuclideanSpace' d → EReal}
+    (hbound : EReal.BoundedFunction h) {E : Set (EuclideanSpace' d)} :
+    EReal.BoundedFunction (h * Real.toEReal ∘ E.indicator') := by
+  rcases hbound with ⟨M, hM⟩
+  refine ⟨M, ?_⟩
+  intro x
+  by_cases hx : x ∈ E
+  · have hind : Real.toEReal (E.indicator' x) = (1 : EReal) := by
+      simp [Set.indicator'_of_mem hx]
+    simpa [Pi.mul_apply, Function.comp_apply, hind] using hM x
+  · have hind : Real.toEReal (E.indicator' x) = (0 : EReal) := by
+      simp [Set.indicator'_of_notMem hx]
+    simp [Pi.mul_apply, Function.comp_apply, hind]
+
 /-- Exercise 1.3.14 (Uniqueness) -/
+
+-- NOTE: the book's statement has codomain [0, +∞] for the functional; the Lean version
+-- therefore needs the explicit nonnegativity hypothesis `hnonneg` (the naive 4-axiom
+-- statement without it is FALSE: on bounded finitely-supported functions both truncation
+-- axioms are vacuous, and hsimple+hadd do not force nonnegativity of the values).
 theorem UnsignedLebesgueIntegral.unique {d:ℕ} (integ: (EuclideanSpace' d → EReal) → EReal)
   (hsimple : ∀ f (hf: UnsignedSimpleFunction f), integ f = hf.integ)
-  (hadd: ∀ f g (hf: UnsignedMeasurable f) (hg: UnsignedMeasurable g), integ (f + g) = integ f + integ g)
-  (hvert: ∀ f (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (fun x ↦ min (f x) n)) (nhds (integ f)))
-  (hhoriz: ∀ f (hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (integ f)))
-  : ∀ f, UnsignedMeasurable f → integ f = UnsignedLebesgueIntegral f := by sorry
+  (hadd: ∀ f g (_hf: UnsignedMeasurable f) (_hg: UnsignedMeasurable g), integ (f + g) = integ f + integ g)
+  (hvert: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (fun x ↦ min (f x) n)) (nhds (integ f)))
+  (hhoriz: ∀ f (_hf: UnsignedMeasurable f), Filter.atTop.Tendsto (fun n:ℕ ↦ integ (f * Real.toEReal ∘ (Metric.ball 0 n).indicator')) (nhds (integ f)))
+  (hnonneg: ∀ f (_hf: UnsignedMeasurable f), 0 ≤ integ f)
+  : ∀ f, UnsignedMeasurable f → integ f = UnsignedLebesgueIntegral f := by
+
+  -- integ f = limₙ integ (min f n) [hvert]; for each n: min f n is bounded (bounded_min_const).
+  -- integ (min f n) = limₘ integ (min f n · 1_ball m) [hhoriz on min f n]; each truncation is
+  -- bounded finite-support (FiniteMeasureSupport.mul_indicator_ball), so integ = L there by
+  -- integ_eq_L_bounded; L (min f n · 1_ball m) → L (min f n) [eq_lim_horiz_trunc] → L f
+  -- [eq_lim_vert_trunc].  Chain with tendsto_nhds_unique.
+  intro f hf
+  have hfn_meas : ∀ n : ℕ, UnsignedMeasurable (fun x => min (f x) n) := by
+    intro n
+    have hφ : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)) := by
+      simpa using (Continuous.min continuous_id continuous_const : Continuous (fun y : EReal => min y ((n : ℝ) : EReal)))
+    have hφnn : ∀ x ≥ (0 : EReal), min x ((n : ℝ) : EReal) ≥ 0 := by
+      intro x hx
+      exact le_min hx (EReal.coe_nonneg.mpr (Nat.cast_nonneg n))
+    simpa using UnsignedMeasurable.comp_cts hf hφ hφnn
+  have hfn_bound : ∀ n : ℕ, EReal.BoundedFunction (fun x => min (f x) n) :=
+    fun n => bounded_min_const hf.1 n
+  have hagree : ∀ n : ℕ,
+      integ (fun x => min (f x) n) = LowerUnsignedLebesgueIntegral (fun x => min (f x) n) := by
+    intro n
+    apply tendsto_nhds_unique (hhoriz (fun x => min (f x) n) (hfn_meas n))
+    have hconv : Tendsto (fun m : ℕ =>
+        LowerUnsignedLebesgueIntegral ((fun x => min (f x) n) * Real.toEReal ∘ (Metric.ball (0 : EuclideanSpace' d) m).indicator'))
+        atTop (𝓝 (LowerUnsignedLebesgueIntegral (fun x => min (f x) n))) :=
+      LowerUnsignedLebesgueIntegral.eq_lim_horiz_trunc (hfn_meas n)
+    exact hconv.congr (fun m => (integ_eq_L_bounded hsimple hadd hvert hhoriz hnonneg
+      (hv := UnsignedMeasurable.mul_indicator_ball (hfn_meas n) m)
+      (hbound := bounded_mul_indicator (hfn_bound n))
+      (hsupp := FiniteMeasureSupport.mul_indicator_ball (n := m))).symm)
+  apply tendsto_nhds_unique (hvert f hf)
+  have hconvL : Tendsto (fun n : ℕ => LowerUnsignedLebesgueIntegral (fun x => min (f x) n))
+      atTop (𝓝 (LowerUnsignedLebesgueIntegral f)) :=
+    LowerUnsignedLebesgueIntegral.eq_lim_vert_trunc hf
+  have h2 : Tendsto (fun n : ℕ => integ (fun x => min (f x) n))
+      atTop (𝓝 (LowerUnsignedLebesgueIntegral f)) :=
+    hconvL.congr (fun n => (hagree n).symm)
+  simpa [UnsignedLebesgueIntegral] using h2
+
 
 /-- Translating a simple function by a is still simple: translate the atoms. -/
 lemma simple_translate {d : ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
