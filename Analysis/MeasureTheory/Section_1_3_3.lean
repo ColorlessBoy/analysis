@@ -4,6 +4,7 @@ open UnsignedSimpleFunction.IntegralWellDef
 open Filter
 open scoped Topology
 open scoped Pointwise
+open BoundedInterval
 
 /-!
 # Introduction to Measure Theory, Section 1.3.3: Unsigned Lebesgue integrals
@@ -5079,9 +5080,294 @@ theorem UnsignedLebesgueIntegral.trans {d:ℕ} {f: EuclideanSpace' d → EReal} 
 theorem UnsignedLebesgueIntegral.comp_linear {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedMeasurable f) (A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d) (hA: A.det ≠ 0) :
     UnsignedLebesgueIntegral (fun x ↦ f (A x)) = |A.det|⁻¹ * hf.integ := by sorry
 
-/-- Exercise 1.3.17 (Compatibility with the Riemann integral). -/
-theorem RiemannIntegral.eq_UnsignedLebesgueIntegral {I: BoundedInterval} {f: ℝ → ℝ} (hf: RiemannIntegrableOn f I) :
-    (riemannIntegral f I : EReal) = UnsignedLebesgueIntegral (Real.toEReal ∘ (fun x ↦ (f x) * (I.toSet.indicator' x)) ∘ EuclideanSpace'.equiv_Real) := by sorry
+lemma lift_interval_measure {J : BoundedInterval} :
+    Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (J : Set ℝ)) = (|J|ₗ : EReal) := by
+  rw [← BoundedInterval.coe_of_box]
+  rw [Lebesgue_outer_measure.elementary ((J : Box 1).toSet) (IsElementary.box (J : Box 1))]
+  rw [IsElementary.measure_of_box]
+  simp
+
+/-- A nonnegative piecewise constant function (zero off I), lifted to the line and
+    mapped through the EReal coercion, is an unsigned EReal simple function. -/
+lemma pcf_lift_unsigned_simple {I : BoundedInterval} (u : PiecewiseConstantFunction I)
+    (hu0 : ∀ x, 0 ≤ u.f x) (hout : ∀ x ∉ I.toSet, u.f x = 0) :
+    UnsignedSimpleFunction (fun y : EuclideanSpace' 1 => Real.toEReal (u.f (EuclideanSpace'.equiv_Real y))) := by
+  classical
+  let e : ℝ ≃ EuclideanSpace' 1 := Real.equiv_EuclideanSpace'
+  let F : BoundedInterval → Set (EuclideanSpace' 1) := fun J => e '' (J : Set ℝ)
+  have hF_meas : ∀ J, LebesgueMeasurable (F J) := fun J => by
+    change LebesgueMeasurable (Real.equiv_EuclideanSpace' '' (J : Set ℝ))
+    rw [← BoundedInterval.coe_of_box]
+    exact (IsElementary.box (J : Box 1)).measurable
+  let summand (J : BoundedInterval) : EuclideanSpace' 1 → EReal :=
+    (if hJ : J ∈ u.T then (u.c ⟨J, hJ⟩ : EReal) else 0) • EReal.indicator (F J)
+  have hzero_esf : UnsignedSimpleFunction (fun _ : EuclideanSpace' 1 => (0 : EReal)) := by
+    refine ⟨0, fun i => 0, fun i => ∅, ?_, ?_⟩
+    · intro i
+      exact ⟨LebesgueMeasurable.empty, le_rfl⟩
+    · ext y
+      simp
+  have hc_nonneg (J : BoundedInterval) (hJ : J ∈ u.T) (hJne : (J : Set ℝ).Nonempty) : 0 ≤ u.c ⟨J, hJ⟩ := by
+    rcases hJne with ⟨x, hx⟩
+    have hxI : x ∈ I.toSet := by
+      rw [u.cover]
+      exact Set.mem_iUnion₂.mpr ⟨J, hJ, hx⟩
+    rw [← u.const ⟨J, hJ⟩ x hx]
+    exact hu0 x
+  have hind (J : BoundedInterval) (hJ : J ∈ u.T) : UnsignedSimpleFunction (summand J) := by
+    by_cases hJempty : (J : Set ℝ) = ∅
+    · have hzero : summand J = fun _ : EuclideanSpace' 1 => 0 := by
+        ext y
+        have hsum0 : summand J y = 0 := by
+          rw [show summand J y = (u.c ⟨J, hJ⟩ : EReal) • EReal.indicator (F J) y from by
+            simp [summand, hJ]]
+          rw [show F J = (∅ : Set (EuclideanSpace' 1)) from by
+            simp [F, hJempty]]
+          simp [smul_eq_mul, EReal.indicator_of_notMem]
+        exact hsum0
+      rw [hzero]
+      exact hzero_esf
+    · have hJne : (J : Set ℝ).Nonempty := Set.nonempty_iff_ne_empty.mpr (by simpa using hJempty)
+      refine ⟨1, fun _ => (u.c ⟨J, hJ⟩ : EReal), fun _ => F J, ?_, ?_⟩
+      · intro i
+        constructor
+        · exact hF_meas J
+        · exact EReal.coe_nonneg.mpr (hc_nonneg J hJ hJne)
+      · ext y
+        simp [summand, hJ]
+  have hsum_esf : UnsignedSimpleFunction (fun y => ∑ J ∈ u.T, summand J y) := by
+    induction u.T using Finset.induction with
+    | empty =>
+        convert hzero_esf using 1
+    | insert a s ha ih =>
+        have hstep : UnsignedSimpleFunction (summand a) := by
+          by_cases ha_mem : a ∈ u.T
+          · exact hind a ha_mem
+          · have hzero : summand a = fun _ => 0 := by
+              ext y
+              simp [summand, ha_mem]
+            rw [hzero]
+            exact hzero_esf
+        have hadd : UnsignedSimpleFunction (fun y => summand a y + ∑ J ∈ s, summand J y) :=
+          UnsignedSimpleFunction.add hstep ih
+        convert hadd using 1
+        ext y
+        rw [Finset.sum_insert ha]
+  have hsum_eq (x : ℝ) : (∑ J ∈ u.T, summand J (e x)) = Real.toEReal (u.f x) := by
+    by_cases hx : x ∈ I.toSet
+    · have hx_mem : ∃ J' ∈ u.T, x ∈ (J' : Set ℝ) := by
+        rw [u.cover] at hx
+        simpa using hx
+      rcases hx_mem with ⟨J₀, hJ₀, hx₀⟩
+      have hsingle : (∑ J ∈ u.T, summand J (e x)) = summand J₀ (e x) := by
+        apply Finset.sum_eq_single
+        · intro J hJ hne
+          have hnot : e x ∉ F J := by
+            intro hmem
+            rcases hmem with ⟨x', hx', hx''⟩
+            have hx_eq : x' = x := e.injective hx''
+            subst x'
+            have hxJ : x ∈ (J : Set ℝ) := hx'
+            have hdisj : Disjoint (J : Set ℝ) (J₀ : Set ℝ) := u.disjoint hJ hJ₀ hne
+            have hx_inter : x ∈ (J : Set ℝ) ∩ (J₀ : Set ℝ) := ⟨hxJ, hx₀⟩
+            have h_empty : (J : Set ℝ) ∩ (J₀ : Set ℝ) = ∅ := Set.disjoint_iff_inter_eq_empty.mp hdisj
+            rw [h_empty] at hx_inter
+            simp at hx_inter
+          rw [show summand J = (u.c ⟨J, hJ⟩ : EReal) • EReal.indicator (F J) from by
+            simp [summand, hJ]]
+          simp [EReal.indicator_of_notMem hnot, smul_eq_mul]
+        · intro hJ₀_not
+          exact False.elim (hJ₀_not hJ₀)
+      rw [hsingle]
+      have hc : u.c ⟨J₀, hJ₀⟩ = u.f x := by
+        rw [u.const ⟨J₀, hJ₀⟩ x hx₀]
+      have hmemF : e x ∈ F J₀ := ⟨x, hx₀, rfl⟩
+      simp [summand, hJ₀, hmemF, hc, EReal.indicator_of_mem, smul_eq_mul]
+    · have hnot_mem : ∀ J ∈ u.T, e x ∉ F J := by
+        intro J hJ hmem
+        rcases hmem with ⟨x', hx', hx''⟩
+        have hx_eq : x' = x := e.injective hx''
+        subst x'
+        have hxJ : x ∈ (J : Set ℝ) := hx'
+        exact hx (by
+          rw [u.cover]
+          exact Set.mem_iUnion₂.mpr ⟨J, hJ, hxJ⟩)
+      have hsum_zero : (∑ J ∈ u.T, summand J (e x)) = 0 := by
+        apply Finset.sum_eq_zero
+        intro J hJ
+        rw [show summand J = (u.c ⟨J, hJ⟩ : EReal) • EReal.indicator (F J) from by
+          simp [summand, hJ]]
+        simp [EReal.indicator_of_notMem (hnot_mem J hJ), smul_eq_mul]
+      simpa [hout x hx] using hsum_zero
+  have h_eq : (fun y : EuclideanSpace' 1 => ∑ J ∈ u.T, summand J y) =
+      (fun y => Real.toEReal (u.f (EuclideanSpace'.equiv_Real y))) := by
+    ext y
+    have hy : y = e (e.symm y) := (Equiv.apply_symm_apply e y).symm
+    rw [hy]
+    have h := hsum_eq (e.symm y)
+    simpa [e] using h
+  rw [← h_eq]
+  exact hsum_esf
+
+/-- An empty interval has zero length. -/
+lemma interval_length_eq_zero_of_empty {J : BoundedInterval} (hJ : (J : Set ℝ) = ∅) : |J|ₗ = 0 := by
+  cases J with
+  | Ioo a b =>
+      have hba : b ≤ a := by simpa using (Set.Ioo_eq_empty_iff.mp hJ)
+      simp [BoundedInterval.length, max_eq_right (sub_nonpos.mpr hba)]
+  | Icc a b =>
+      have hba : b < a := by simpa using (Set.Icc_eq_empty_iff.mp hJ)
+      simp [BoundedInterval.length, max_eq_right (sub_nonpos.mpr (le_of_lt hba))]
+  | Ioc a b =>
+      have hba : b ≤ a := by simpa using (Set.Ioc_eq_empty_iff.mp hJ)
+      simp [BoundedInterval.length, max_eq_right (sub_nonpos.mpr hba)]
+  | Ico a b =>
+      have hba : b ≤ a := by simpa using (Set.Ico_eq_empty_iff.mp hJ)
+      simp [BoundedInterval.length, max_eq_right (sub_nonpos.mpr hba)]
+
+/-- The lower Lebesgue integral of a lifted piecewise constant function equals its
+    piecewise-constant integral. -/
+lemma pcf_lift_L_integral {I : BoundedInterval} (u : PiecewiseConstantFunction I)
+    (hu0 : ∀ x, 0 ≤ u.f x) (hout : ∀ x ∉ I.toSet, u.f x = 0) :
+    LowerUnsignedLebesgueIntegral (fun y : EuclideanSpace' 1 => Real.toEReal (u.f (EuclideanSpace'.equiv_Real y))) =
+      (u.integral : EReal) := by
+  classical
+  let e : ℝ ≃ EuclideanSpace' 1 := Real.equiv_EuclideanSpace'
+  let F : BoundedInterval → Set (EuclideanSpace' 1) := fun J => e '' (J : Set ℝ)
+  let k : ℕ := Fintype.card u.T
+  let φ : Fin k ≃ u.T := (Fintype.equivFin u.T).symm
+  let c : Fin k → EReal := fun i =>
+    if hJne : ((φ i : BoundedInterval) : Set ℝ).Nonempty then (u.c (φ i) : EReal) else 0
+  let E : Fin k → Set (EuclideanSpace' 1) := fun i => F (φ i)
+  have hF_meas : ∀ J, LebesgueMeasurable (F J) := fun J => by
+    change LebesgueMeasurable (Real.equiv_EuclideanSpace' '' (J : Set ℝ))
+    rw [← BoundedInterval.coe_of_box]
+    exact (IsElementary.box (J : Box 1)).measurable
+  have hc_nonneg (i : Fin k) : 0 ≤ c i := by
+    by_cases hne : ((φ i : BoundedInterval) : Set ℝ).Nonempty
+    · rcases hne with ⟨x, hx⟩
+      have hne' : ((φ i : BoundedInterval) : Set ℝ).Nonempty := ⟨x, hx⟩
+      rw [show c i = (u.c (φ i) : EReal) from by simp [c, hne']]
+      rw [← u.const (φ i) x hx]
+      exact EReal.coe_nonneg.mpr (hu0 x)
+    · simp [c, hne]
+  have hsum_eq (x : ℝ) : (∑ i : Fin k, (c i) • (EReal.indicator (E i)) (e x)) = Real.toEReal (u.f x) := by
+    by_cases hx : x ∈ I.toSet
+    · have hx_mem : ∃ J' ∈ u.T, x ∈ (J' : Set ℝ) := by
+        rw [u.cover] at hx
+        simpa using hx
+      rcases hx_mem with ⟨J₀, hJ₀, hx₀⟩
+      let i₀ : Fin k := φ.symm ⟨J₀, hJ₀⟩
+      have hphi₀ : φ i₀ = ⟨J₀, hJ₀⟩ := by
+        simp [i₀]
+      have hφ₀ : (φ i₀ : BoundedInterval) = J₀ := by
+        exact congrArg Subtype.val hphi₀
+      have hne₀ : ((φ i₀ : BoundedInterval) : Set ℝ).Nonempty := by
+        rw [hφ₀]
+        exact ⟨x, hx₀⟩
+      have hcval : u.c (φ i₀) = u.f x := by
+        rw [u.const (φ i₀) x (by rw [hφ₀]; exact hx₀)]
+      have hmemF₀ : e x ∈ E i₀ := by
+        change e x ∈ e '' ((φ i₀ : BoundedInterval) : Set ℝ)
+        rw [hφ₀]
+        exact ⟨x, hx₀, rfl⟩
+      have hterm₀ : (c i₀) • (EReal.indicator (E i₀)) (e x) = Real.toEReal (u.f x) := by
+        rw [show c i₀ = (u.c (φ i₀) : EReal) from by simp [c, hne₀]]
+        simp [smul_eq_mul, EReal.indicator_of_mem hmemF₀, hcval]
+      have hsingle : (∑ i : Fin k, (c i) • (EReal.indicator (E i)) (e x)) =
+          (c i₀) • (EReal.indicator (E i₀)) (e x) := by
+        apply Finset.sum_eq_single i₀
+        · intro i _ hne
+          have hnot : x ∉ ((φ i : BoundedInterval) : Set ℝ) := by
+            intro hxJ
+            have hφne : φ i ≠ φ i₀ := by
+              intro hphi
+              exact hne (Equiv.injective φ hphi)
+            have hJne' : (φ i : BoundedInterval) ≠ (J₀ : BoundedInterval) := by
+              intro hsub
+              apply hφne
+              apply Subtype.ext
+              rw [hφ₀]
+              exact hsub
+            have hdisj : Disjoint ((φ i : BoundedInterval) : Set ℝ) ((J₀ : BoundedInterval) : Set ℝ) :=
+              u.disjoint (φ i).property hJ₀ hJne'
+            have hx_inter : x ∈ ((φ i : BoundedInterval) : Set ℝ) ∩ ((J₀ : BoundedInterval) : Set ℝ) :=
+              ⟨hxJ, hx₀⟩
+            have h_empty : ((φ i : BoundedInterval) : Set ℝ) ∩ ((J₀ : BoundedInterval) : Set ℝ) = ∅ :=
+              Set.disjoint_iff_inter_eq_empty.mp hdisj
+            rw [h_empty] at hx_inter
+            simp at hx_inter
+          have hnotE : e x ∉ E i := by
+            intro hmem
+            rcases hmem with ⟨x', hx', hx''⟩
+            have hx_eq : x' = x := e.injective hx''
+            subst x'
+            exact hnot hx'
+          simp [EReal.indicator_of_notMem hnotE, smul_eq_mul]
+        · intro hnot
+          exact False.elim (hnot (Finset.mem_univ i₀))
+      rw [hsingle]
+      exact hterm₀
+    · have hnot_mem : ∀ i : Fin k, e x ∉ E i := by
+        intro i hmem
+        rcases hmem with ⟨x', hx', hx''⟩
+        have hx_eq : x' = x := e.injective hx''
+        subst x'
+        have hxJ : x ∈ ((φ i : BoundedInterval) : Set ℝ) := hx'
+        exact hx (by
+          rw [u.cover]
+          exact Set.mem_iUnion₂.mpr ⟨(φ i : BoundedInterval), (φ i).property, hxJ⟩)
+      have hsum_zero : (∑ i : Fin k, (c i) • (EReal.indicator (E i)) (e x)) = 0 := by
+        apply Finset.sum_eq_zero
+        intro i _
+        simp [EReal.indicator_of_notMem (hnot_mem i), smul_eq_mul]
+      simpa [hout x hx] using hsum_zero
+  have hf_eq : (fun y : EuclideanSpace' 1 => Real.toEReal (u.f (EuclideanSpace'.equiv_Real y))) =
+      ∑ i : Fin k, (c i) • (EReal.indicator (E i)) := by
+    ext y
+    have hy : y = e (e.symm y) := (Equiv.apply_symm_apply e y).symm
+    rw [hy]
+    have h := hsum_eq (e.symm y)
+    simp only [Finset.sum_apply, Pi.smul_apply, h]
+    simp [e]
+  have hg : UnsignedSimpleFunction (fun y : EuclideanSpace' 1 => Real.toEReal (u.f (EuclideanSpace'.equiv_Real y))) :=
+    pcf_lift_unsigned_simple u hu0 hout
+  rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral hg]
+  rw [UnsignedSimpleFunction.integral_eq hg (k := k) (c := c) (E := E)
+    (hmes := fun i => hF_meas (φ i)) (hnonneg := hc_nonneg) (heq := hf_eq)]
+  have hterm (i : Fin k) : c i * Lebesgue_measure (E i) = (u.c (φ i) : EReal) * (|(φ i : BoundedInterval)|ₗ : EReal) := by
+    by_cases hne : ((φ i : BoundedInterval) : Set ℝ).Nonempty
+    · have hc : c i = (u.c (φ i) : EReal) := by simp [c, hne]
+      have hE : Lebesgue_measure (E i) = (|(φ i : BoundedInterval)|ₗ : EReal) := by
+        change Lebesgue_measure (e '' ((φ i : BoundedInterval) : Set ℝ)) =
+          (|(φ i : BoundedInterval)|ₗ : EReal)
+        change Lebesgue_outer_measure (e '' ((φ i : BoundedInterval) : Set ℝ)) =
+          (|(φ i : BoundedInterval)|ₗ : EReal)
+        exact lift_interval_measure (J := (φ i : BoundedInterval))
+      rw [hc, hE]
+    · have hc0 : c i = 0 := by simp [c, hne]
+      have hempty : ((φ i : BoundedInterval) : Set ℝ) = ∅ := Set.not_nonempty_iff_eq_empty.mp hne
+      have hlen0 : |(φ i : BoundedInterval)|ₗ = 0 := interval_length_eq_zero_of_empty hempty
+      rw [hc0, hlen0]
+      simp
+  have hsum_conv : (∑ i : Fin k, c i * Lebesgue_measure (E i)) =
+      ∑ J : u.T, (u.c J : EReal) * (|J|ₗ : EReal) := by
+    calc
+      (∑ i : Fin k, c i * Lebesgue_measure (E i)) = ∑ i : Fin k, (u.c (φ i) : EReal) * (|(φ i : BoundedInterval)|ₗ : EReal) := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        exact hterm i
+      _ = ∑ J : u.T, (u.c J : EReal) * (|J|ₗ : EReal) := by
+        exact Equiv.sum_comp φ (fun J : u.T => (u.c J : EReal) * (|J|ₗ : EReal))
+  have hRHS : (u.integral : EReal) = ∑ J : u.T, (u.c J : EReal) * (|J|ₗ : EReal) := by
+    rw [PiecewiseConstantFunction.integral]
+    exact (map_sum (⟨⟨Real.toEReal, EReal.coe_zero⟩, EReal.coe_add⟩ : ℝ →+ EReal)
+      (fun J : u.T => u.c J * |J|ₗ) (Finset.univ : Finset u.T)).trans (by
+        apply Finset.sum_congr rfl
+        intro J hJ
+        exact EReal.coe_mul (u.c J) (|J|ₗ))
+  rw [hsum_conv]
+  rw [hRHS]
 
 /-- The lower integral of a nonnegative constant times an indicator equals the constant
     times the measure of the set. -/
@@ -5103,6 +5389,751 @@ lemma lowerIntegral_const_indicator {d : ℕ} {c : ℝ} (hc : 0 ≤ c) {E : Set 
     (hnonneg := fun _ => EReal.coe_nonneg.mpr hc)
     (heq := by ext x; simp [smul_eq_mul, EReal.indicator, Real.EReal_fun])]
   simp
+
+/-- The lower Lebesgue integral of the lifted product equals the Riemann integral
+    (squeeze argument with step functions). -/
+lemma uniform_piece_inj {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
+    Function.Injective (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) := by
+  intro i j hij
+  have hset : Set.Ico (P.x i.castSucc) (P.x i.succ) = Set.Ico (P.x j.castSucc) (P.x j.succ) := by
+    simpa [BoundedInterval.set_Ico] using congrArg (fun K : BoundedInterval => (K : Set ℝ)) hij
+  have hcast : P.x i.castSucc = P.x j.castSucc := by
+    have hi : P.x i.castSucc ∈ Set.Ico (P.x i.castSucc) (P.x i.succ) :=
+      ⟨le_rfl, P.x_mono Fin.castSucc_lt_succ⟩
+    have h1 : P.x j.castSucc ≤ P.x i.castSucc := by
+      rw [hset] at hi
+      exact hi.1
+    have hj : P.x j.castSucc ∈ Set.Ico (P.x j.castSucc) (P.x j.succ) :=
+      ⟨le_rfl, P.x_mono Fin.castSucc_lt_succ⟩
+    have h2 : P.x i.castSucc ≤ P.x j.castSucc := by
+      rw [← hset] at hj
+      exact hj.1
+    exact le_antisymm h2 h1
+  have hcij : i.castSucc = j.castSucc := P.x_mono.injective hcast
+  apply Fin.ext
+  simpa using congrArg Fin.val hcij
+
+/-- The pieces of a tagged partition are pairwise disjoint (as sets). -/
+lemma uniform_pieces_disjoint {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
+    (((Finset.image (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪
+        ({Icc I.b I.b} : Finset BoundedInterval)) : Finset BoundedInterval) : Set BoundedInterval).PairwiseDisjoint
+      BoundedInterval.toSet := by
+  intro J hJ K hK hne
+  simp only [Finset.mem_coe, Finset.mem_union, Finset.mem_image, Finset.mem_singleton] at hJ hK
+  rcases hJ with (⟨i, _, rfl⟩ | rfl) <;> rcases hK with (⟨j, _, rfl⟩ | rfl)
+  · -- both Ico pieces
+    have hij : i ≠ j := by
+      intro h_eq
+      exact hne (congrArg (fun k : Fin n => Ico (P.x k.castSucc) (P.x k.succ)) h_eq)
+    have hlt_or : i < j ∨ j < i := lt_or_gt_of_ne hij
+    rcases hlt_or with (hlt | hlt)
+    · have hmono : P.x i.succ ≤ P.x j.castSucc := by
+        have hval : (i.succ : Fin (n+1)).val ≤ (j.castSucc : Fin (n+1)).val := by
+          simp [Fin.val_succ]
+          omega
+        exact P.x_mono.monotone hval
+      exact (Set.Ico_disjoint_Ico).mpr (by
+        have h1 : min (P.x i.succ) (P.x j.succ) = P.x i.succ :=
+          min_eq_left (le_trans hmono (le_of_lt (P.x_mono Fin.castSucc_lt_succ)))
+        have h2 : max (P.x i.castSucc) (P.x j.castSucc) = P.x j.castSucc :=
+          max_eq_right (le_trans (le_of_lt (P.x_mono Fin.castSucc_lt_succ)) hmono)
+        rw [h1, h2]
+        exact hmono)
+    · have hmono : P.x j.succ ≤ P.x i.castSucc := by
+        have hval : (j.succ : Fin (n+1)).val ≤ (i.castSucc : Fin (n+1)).val := by
+          simp [Fin.val_succ]
+          omega
+        exact P.x_mono.monotone hval
+      exact ((Set.Ico_disjoint_Ico).mpr (by
+        have h1 : min (P.x j.succ) (P.x i.succ) = P.x j.succ :=
+          min_eq_left (le_trans hmono (le_of_lt (P.x_mono Fin.castSucc_lt_succ)))
+        have h2 : max (P.x j.castSucc) (P.x i.castSucc) = P.x i.castSucc :=
+          max_eq_right (le_trans (le_of_lt (P.x_mono Fin.castSucc_lt_succ)) hmono)
+        rw [h1, h2]
+        exact hmono)).symm
+  · -- Ico vs singleton {I.b}
+    change Disjoint ((Ico (P.x i.castSucc) (P.x i.succ)) : Set ℝ) ((Icc I.b I.b) : Set ℝ)
+    rw [Set.disjoint_iff_inter_eq_empty]
+    apply Set.not_nonempty_iff_eq_empty.mp
+    rintro ⟨x, hx⟩
+    have h1 : x < P.x i.succ := hx.1.2
+    have h2 : P.x i.succ ≤ P.x (Fin.last n) := by
+      exact P.x_mono.monotone (Fin.le_last (i.succ))
+    have h3 : x = I.b := by simpa [BoundedInterval.set_Icc, Set.Icc_self] using hx.2
+    rw [P.x_end] at h2
+    linarith
+  · -- singleton vs Ico
+    change Disjoint ((Icc I.b I.b) : Set ℝ) ((Ico (P.x j.castSucc) (P.x j.succ)) : Set ℝ)
+    rw [Set.disjoint_iff_inter_eq_empty]
+    apply Set.not_nonempty_iff_eq_empty.mp
+    rintro ⟨x, hx⟩
+    have h1 : x < P.x j.succ := hx.2.2
+    have h2 : P.x j.succ ≤ P.x (Fin.last n) := by
+      exact P.x_mono.monotone (Fin.le_last (j.succ))
+    have h3 : x = I.b := by simpa [BoundedInterval.set_Icc, Set.Icc_self] using hx.1
+    rw [P.x_end] at h2
+    linarith
+  · -- both singleton: equal
+    simp at hne
+
+/-- The half-open pieces together with the singleton point cover I. -/
+lemma uniform_pieces_cover {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n)
+    (hI : I = Icc I.a I.b) :
+    I.toSet = ⋃ J ∈ ((Finset.image (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪
+        ({Icc I.b I.b} : Finset BoundedInterval)) : Finset BoundedInterval), J.toSet := by
+  ext x
+  constructor
+  · intro hx
+    rw [hI] at hx
+    have hxab : I.a ≤ x ∧ x ≤ I.b := by simpa using hx
+    by_cases hx_end : x = I.b
+    · subst x
+      refine Set.mem_iUnion₂.mpr ⟨Icc I.b I.b, Finset.mem_union_right _ (Finset.mem_singleton_self _), ?_⟩
+      simp
+    · have hx_lt_Ib : x < I.b := lt_of_le_of_ne hxab.2 hx_end
+      have h_exists : (Finset.filter (fun k : Fin (n+1) => x < P.x k) Finset.univ).Nonempty := by
+        refine ⟨Fin.last n, ?_⟩
+        simp
+        rw [P.x_end]
+        exact hx_lt_Ib
+      let k := Finset.min' (Finset.filter (fun k : Fin (n+1) => x < P.x k) Finset.univ) h_exists
+      have hk_mem : k ∈ Finset.filter (fun k : Fin (n+1) => x < P.x k) Finset.univ :=
+        Finset.min'_mem _ h_exists
+      have hx_lt_Pk : x < P.x k := (Finset.mem_filter.mp hk_mem).2
+      have hk0 : k ≠ (0 : Fin (n+1)) := by
+        intro hk0
+        rw [hk0, P.x_start] at hx_lt_Pk
+        linarith [hxab.1]
+      have hi_pred : ∃ (i : Fin n), i.succ = k := by
+        refine ⟨Fin.pred k hk0, ?_⟩
+        simp
+      rcases hi_pred with ⟨i, hi⟩
+      have hx_lt_Pi_succ : x < P.x i.succ := by
+        rw [hi]
+        exact hx_lt_Pk
+      have hx_ge : P.x i.castSucc ≤ x := by
+        by_contra! hlt
+        have hmem : (i.castSucc : Fin (n+1)) ∈ Finset.filter (fun k' : Fin (n+1) => x < P.x k') Finset.univ := by
+          simp
+          exact hlt
+        have hk_le : k ≤ (i.castSucc : Fin (n+1)) := Finset.min'_le _ _ hmem
+        have h_val' : i.val + 1 = k.val := by
+          simpa [Fin.val_succ] using congrArg Fin.val hi
+        have h_val : k.val = i.val + 1 := h_val'.symm
+        have h_cast_val : (i.castSucc : Fin (n+1)).val = i.val := by simp
+        omega
+      refine Set.mem_iUnion₂.mpr ⟨Ico (P.x i.castSucc) (P.x i.succ), ?_, ?_⟩
+      · exact Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩)
+      · simp [Set.mem_Ico, hx_ge, hx_lt_Pi_succ]
+  · intro hx
+    rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hxJ⟩
+    rw [hI]
+    simp only [Finset.mem_union, Finset.mem_image, Finset.mem_singleton] at hJ
+    rcases hJ with (⟨i, _, rfl⟩ | rfl)
+    · constructor
+      · have hmono : P.x 0 ≤ P.x i.castSucc := P.x_mono.monotone (Fin.zero_le _)
+        calc I.a = P.x 0 := P.x_start.symm
+          _ ≤ P.x i.castSucc := hmono
+          _ ≤ x := hxJ.1
+      · have hmono : P.x i.succ ≤ P.x (Fin.last n) := P.x_mono.monotone (Fin.le_last _)
+        calc x ≤ P.x i.succ := le_of_lt hxJ.2
+          _ ≤ P.x (Fin.last n) := hmono
+          _ = I.b := P.x_end
+    · have hxb : x = I.b := by simpa using hxJ
+      subst x
+      have hab' : I.a ≤ I.b := by
+        have hmono : P.x 0 ≤ P.x (Fin.last n) := P.x_mono.monotone (Fin.zero_le _)
+        rw [P.x_start, P.x_end] at hmono
+        exact hmono
+      exact ⟨hab', le_rfl⟩
+
+/-- Approximate a Riemann integrable function from above and below by piecewise constant
+    functions built from a fine partition, with integral bounds in terms of R and epsilon. -/
+lemma upper_lower_step_approx {f : ℝ → ℝ} {I : BoundedInterval}
+    (hI : I = Icc I.a I.b) (hab : I.a < I.b)
+    (hbound : ∃ M, ∀ x ∈ I.toSet, |f x| ≤ M) (R : ℝ) (ε : ℝ) (hε : 0 < ε)
+    (hεδ : ∀ ε > 0, ∃ δ > 0, ∀ n, ∀ P : TaggedPartition I n, P.norm ≤ δ → |P.RiemannSum f - R| ≤ ε) :
+    ∃ (T : Finset BoundedInterval) (val_u val_l : BoundedInterval → ℝ)
+      (hdisj : (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet)
+      (hcover : I.toSet = ⋃ J ∈ T, J.toSet),
+      (∀ x ∈ I.toSet, (PiecewiseConstantFunction.mkPCF T val_l hdisj hcover).f x ≤ f x ∧ f x ≤ (PiecewiseConstantFunction.mkPCF T val_u hdisj hcover).f x) ∧
+      (∀ x ∉ I.toSet, (PiecewiseConstantFunction.mkPCF T val_u hdisj hcover).f x = 0 ∧ (PiecewiseConstantFunction.mkPCF T val_l hdisj hcover).f x = 0) ∧
+      (PiecewiseConstantFunction.mkPCF T val_u hdisj hcover).integral ≤ R + 2*ε ∧ R - 2*ε ≤ (PiecewiseConstantFunction.mkPCF T val_l hdisj hcover).integral := by
+  classical
+  obtain ⟨M, hM⟩ := hbound
+  obtain ⟨δ, hδ_pos, hδ⟩ := hεδ ε hε
+  have hdata : ∃ (N : ℕ), 0 < N ∧ ∃ P : TaggedPartition I N, P.norm ≤ δ := by
+    obtain ⟨N, hN⟩ := exists_nat_gt ((I.b - I.a) / δ)
+    have hN_pos : 0 < N := by
+      have hpos : 0 < (I.b - I.a) / δ := div_pos (sub_pos.mpr hab) hδ_pos
+      exact Nat.pos_of_ne_zero (fun hz => by rw [hz] at hN; simp at hN; linarith)
+    refine ⟨N, hN_pos, ?_⟩
+    refine ⟨TaggedPartition.uniform I N hN_pos hI hab, ?_⟩
+    rw [TaggedPartition.uniform_norm I N hN_pos hI hab]
+    have hlt : (I.b - I.a) / (N : ℝ) < δ := by
+      calc (I.b - I.a) / (N : ℝ) < (I.b - I.a) / ((I.b - I.a) / δ) := by
+            apply div_lt_div_of_pos_left (sub_pos.mpr hab) (div_pos (sub_pos.mpr hab) hδ_pos) hN
+        _ = δ := by field_simp [ne_of_gt (sub_pos.mpr hab)]
+    exact le_of_lt hlt
+  rcases hdata with ⟨N, hN_pos, P, hP_norm⟩
+  let T : Finset BoundedInterval :=
+    Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ ({Icc I.b I.b} : Finset BoundedInterval)
+  have hdisj : (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet := by
+    simpa [T] using (uniform_pieces_disjoint P)
+  have hcover : I.toSet = ⋃ J ∈ T, J.toSet := by
+    simpa [T] using (uniform_pieces_cover P hI)
+  let val_u : BoundedInterval → ℝ := fun J => sSup {f y | y ∈ (J : Set ℝ)}
+  let val_l : BoundedInterval → ℝ := fun J => sInf {f y | y ∈ (J : Set ℝ)}
+  let u : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T val_u hdisj hcover
+  let l : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T val_l hdisj hcover
+  have hlen_pos : 0 < |I|ₗ := by
+    unfold BoundedInterval.length
+    rw [max_eq_left (le_of_lt (sub_pos.mpr hab))]
+    exact sub_pos.mpr hab
+  have hlen : |I|ₗ = I.b - I.a := by
+    unfold BoundedInterval.length
+    exact max_eq_left (le_of_lt (sub_pos.mpr hab))
+  let κ : ℝ := ε / (2 * (N : ℝ) * |I|ₗ)
+  have hκ_pos : 0 < κ := by
+    dsimp [κ]
+    positivity
+  have hκ_len : κ * |I|ₗ = ε / (2 * (N : ℝ)) := by
+    dsimp [κ]
+    field_simp [ne_of_gt hlen_pos, (by norm_num : (2 : ℝ) ≠ 0), (by exact_mod_cast (ne_of_gt hN_pos) : (N : ℝ) ≠ 0)]
+  have hε_2N : ε / (2 * (N : ℝ)) ≤ ε / 2 := by
+    rw [div_le_div_iff₀ (mul_pos (by norm_num) (Nat.cast_pos.mpr hN_pos)) (by norm_num : (0 : ℝ) < 2)]
+    nlinarith [show (1 : ℝ) ≤ N by exact_mod_cast Nat.succ_le_iff.mpr hN_pos]
+  have hlen_2N : κ * |I|ₗ ≤ ε / 2 := by linarith
+  have h_u_lb : ∀ x ∈ I.toSet, f x ≤ u.f x := by
+    intro x hx
+    have hx_mem : ∃ J' ∈ T, x ∈ (J' : Set ℝ) := by
+      rw [hcover] at hx
+      simpa using hx
+    have hx_choose : x ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ) := (Classical.choose_spec hx_mem).2
+    have hbdd : BddAbove {f y | y ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ)} := by
+      refine ⟨M, ?_⟩
+      intro z hz
+      rcases hz with ⟨y, hy, rfl⟩
+      have hyI : y ∈ I.toSet := by
+        rw [hcover]
+        exact Set.mem_iUnion₂.mpr ⟨Classical.choose hx_mem, (Classical.choose_spec hx_mem).1, hy⟩
+      exact (abs_le.mp (hM y hyI)).2
+    have hf_le : f x ≤ sSup {f y | y ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ)} :=
+      le_csSup hbdd ⟨x, hx_choose, rfl⟩
+    simpa [u, PiecewiseConstantFunction.mkPCF, hx_mem, val_u] using hf_le
+  have h_l_lb : ∀ x ∈ I.toSet, l.f x ≤ f x := by
+    intro x hx
+    have hx_mem : ∃ J' ∈ T, x ∈ (J' : Set ℝ) := by
+      rw [hcover] at hx
+      simpa using hx
+    have hx_choose : x ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ) := (Classical.choose_spec hx_mem).2
+    have hbdd : BddBelow {f y | y ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ)} := by
+      refine ⟨-M, ?_⟩
+      intro z hz
+      rcases hz with ⟨y, hy, rfl⟩
+      have hyI : y ∈ I.toSet := by
+        rw [hcover]
+        exact Set.mem_iUnion₂.mpr ⟨Classical.choose hx_mem, (Classical.choose_spec hx_mem).1, hy⟩
+      exact (abs_le.mp (hM y hyI)).1
+    have hinf_le : sInf {f y | y ∈ ((Classical.choose hx_mem : BoundedInterval) : Set ℝ)} ≤ f x :=
+      csInf_le hbdd ⟨x, hx_choose, rfl⟩
+    simpa [l, PiecewiseConstantFunction.mkPCF, hx_mem, val_l] using hinf_le
+  have h_u_out : ∀ x ∉ I.toSet, u.f x = 0 := by
+    intro x hx
+    have hnot : ¬ ∃ J' ∈ T, x ∈ (J' : Set ℝ) := by
+      intro h
+      rcases h with ⟨J', hJ', hx'⟩
+      exact hx (by rw [hcover]; exact Set.mem_iUnion₂.mpr ⟨J', hJ', hx'⟩)
+    simp [u, PiecewiseConstantFunction.mkPCF, hnot]
+  have h_l_out : ∀ x ∉ I.toSet, l.f x = 0 := by
+    intro x hx
+    have hnot : ¬ ∃ J' ∈ T, x ∈ (J' : Set ℝ) := by
+      intro h
+      rcases h with ⟨J', hJ', hx'⟩
+      exact hx (by rw [hcover]; exact Set.mem_iUnion₂.mpr ⟨J', hJ', hx'⟩)
+    simp [l, PiecewiseConstantFunction.mkPCF, hnot]
+  have hdelta_len (i : Fin N) : |Ico (P.x i.castSucc) (P.x i.succ)|ₗ = P.delta i := by
+    change max (P.x i.succ - P.x i.castSucc) 0 = P.x i.succ - P.x i.castSucc
+    rw [max_eq_left (sub_nonneg.mpr (le_of_lt (P.x_mono Fin.castSucc_lt_succ)))]
+  have hsing_len : |Icc I.b I.b|ₗ = 0 := by
+    simp [BoundedInterval.length]
+  have htags_u : ∀ i : Fin N, ∃ t : ℝ, t ∈ (Ico (P.x i.castSucc) (P.x i.succ) : Set ℝ) ∧
+      val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ < f t := by
+    intro i
+    let S := {f y | y ∈ (Ico (P.x i.castSucc) (P.x i.succ) : Set ℝ)}
+    have hnonempty : S.Nonempty :=
+      ⟨f (P.x i.castSucc), P.x i.castSucc, by
+        simp [Set.mem_Ico, P.x_mono Fin.castSucc_lt_succ], rfl⟩
+    have hbdd : BddAbove S := by
+      refine ⟨M, ?_⟩
+      intro z hz
+      rcases hz with ⟨y, hy, rfl⟩
+      have hyI : y ∈ I.toSet := by
+        rw [hcover]
+        exact Set.mem_iUnion₂.mpr ⟨Ico (P.x i.castSucc) (P.x i.succ), by
+          dsimp [T]
+          exact Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩), hy⟩
+      exact (abs_le.mp (hM y hyI)).2
+    have hlt : val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ < sSup S := by
+      dsimp [val_u, S]
+      linarith
+    rcases exists_lt_of_lt_csSup hnonempty hlt with ⟨y, hy, hlt'⟩
+    rcases hy with ⟨t, ht, rfl⟩
+    exact ⟨t, ht, hlt'⟩
+  have htags_l : ∀ i : Fin N, ∃ t : ℝ, t ∈ (Ico (P.x i.castSucc) (P.x i.succ) : Set ℝ) ∧
+      f t < val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ := by
+    intro i
+    let S := {f y | y ∈ (Ico (P.x i.castSucc) (P.x i.succ) : Set ℝ)}
+    have hnonempty : S.Nonempty :=
+      ⟨f (P.x i.castSucc), P.x i.castSucc, by
+        simp [Set.mem_Ico, P.x_mono Fin.castSucc_lt_succ], rfl⟩
+    have hbdd : BddBelow S := by
+      refine ⟨-M, ?_⟩
+      intro z hz
+      rcases hz with ⟨y, hy, rfl⟩
+      have hyI : y ∈ I.toSet := by
+        rw [hcover]
+        exact Set.mem_iUnion₂.mpr ⟨Ico (P.x i.castSucc) (P.x i.succ), by
+          dsimp [T]
+          exact Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩), hy⟩
+      exact (abs_le.mp (hM y hyI)).1
+    have hlt : sInf S < val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ := by
+      dsimp [val_l, S]
+      linarith
+    rcases exists_lt_of_csInf_lt hnonempty hlt with ⟨y, hy, hlt'⟩
+    rcases hy with ⟨t, ht, rfl⟩
+    exact ⟨t, ht, hlt'⟩
+  let P' : TaggedPartition I N := {
+    x := P.x
+    x_tag := fun i => Classical.choose (htags_u i)
+    x_start := P.x_start
+    x_end := P.x_end
+    x_mono := P.x_mono
+    x_tag_between := fun i => by
+      have h := (Classical.choose_spec (htags_u i)).1
+      exact ⟨h.1, le_of_lt h.2⟩
+  }
+  let P'' : TaggedPartition I N := {
+    x := P.x
+    x_tag := fun i => Classical.choose (htags_l i)
+    x_start := P.x_start
+    x_end := P.x_end
+    x_mono := P.x_mono
+    x_tag_between := fun i => by
+      have h := (Classical.choose_spec (htags_l i)).1
+      exact ⟨h.1, le_of_lt h.2⟩
+  }
+  have hP'_norm : P'.norm ≤ δ := by
+    have hnorm_eq : P'.norm = P.norm := by
+      unfold TaggedPartition.norm P'
+      exact congrArg iSup (funext (fun i => rfl))
+    rw [hnorm_eq]
+    exact hP_norm
+  have hP''_norm : P''.norm ≤ δ := by
+    have hnorm_eq : P''.norm = P.norm := by
+      unfold TaggedPartition.norm P''
+      exact congrArg iSup (funext (fun i => rfl))
+    rw [hnorm_eq]
+    exact hP_norm
+  have hRS_u : |P'.RiemannSum f - R| ≤ ε := hδ N P' hP'_norm
+  have hRS_l : |P''.RiemannSum f - R| ≤ ε := hδ N P'' hP''_norm
+  have hsum_ge : (∑ i : Fin N, (val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ) * P.delta i) ≤
+      P'.RiemannSum f := by
+    rw [show P'.RiemannSum f = ∑ i : Fin N, f (P'.x_tag i) * P.delta i from rfl]
+    apply Finset.sum_le_sum
+    intro i hi
+    have ht := (Classical.choose_spec (htags_u i)).2
+    have hδnonneg : 0 ≤ P.delta i := le_of_lt (sub_pos.mpr (P.x_mono Fin.castSucc_lt_succ))
+    exact mul_le_mul_of_nonneg_right (le_of_lt ht) hδnonneg
+  have hsum_le : P''.RiemannSum f ≤ ∑ i : Fin N, (val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ) * P.delta i := by
+    rw [show P''.RiemannSum f = ∑ i : Fin N, f (P''.x_tag i) * P.delta i from rfl]
+    apply Finset.sum_le_sum
+    intro i hi
+    have ht := (Classical.choose_spec (htags_l i)).2
+    have hδnonneg : 0 ≤ P.delta i := le_of_lt (sub_pos.mpr (P.x_mono Fin.castSucc_lt_succ))
+    exact mul_le_mul_of_nonneg_right (le_of_lt ht) hδnonneg
+  have hsum_calc_u : (∑ i : Fin N, (val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ) * P.delta i) =
+      (∑ i : Fin N, val_u (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i) - κ * |I|ₗ := by
+    simp only [sub_mul]
+    rw [Finset.sum_sub_distrib]
+    have hκ_sum : (∑ i : Fin N, κ * P.delta i) = κ * |I|ₗ := by
+      rw [← Finset.mul_sum]
+      rw [TaggedPartition.sum_delta_eq]
+      rw [hlen]
+    rw [hκ_sum]
+  have hsum_calc_l : (∑ i : Fin N, (val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ) * P.delta i) =
+      (∑ i : Fin N, val_l (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i) + κ * |I|ₗ := by
+    simp only [add_mul]
+    rw [Finset.sum_add_distrib]
+    have hκ_sum : (∑ i : Fin N, κ * P.delta i) = κ * |I|ₗ := by
+      rw [← Finset.mul_sum]
+      rw [TaggedPartition.sum_delta_eq]
+      rw [hlen]
+    rw [hκ_sum]
+  have hu_int_eq : u.integral = ∑ i : Fin N, val_u (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i := by
+    rw [show u.integral = ∑ J ∈ T, val_u J * |J|ₗ from PiecewiseConstantFunction.mkPCF_integral T val_u hdisj hcover]
+    have hT_eq : T = Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ ({Icc I.b I.b} : Finset BoundedInterval) := by
+      rfl
+    rw [hT_eq]
+    have hsum_image : (∑ J ∈ Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ, val_u J * |J|ₗ)
+        = ∑ i : Fin N, val_u (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i := by
+      rw [Finset.sum_image]
+      · apply Finset.sum_congr rfl
+        intro i hi
+        rw [hdelta_len i]
+      · exact (uniform_piece_inj P).injOn
+    have hsing_sum : (∑ J ∈ ({Icc I.b I.b} : Finset BoundedInterval), val_u J * |J|ₗ) = 0 := by
+      simp
+    rw [Finset.sum_union]
+    · rw [hsum_image, hsing_sum]
+      simp
+    · rw [Finset.disjoint_left]
+      intro J hJ
+      rcases Finset.mem_image.mp hJ with ⟨i, _, rfl⟩
+      simp
+  have hl_int_eq : l.integral = ∑ i : Fin N, val_l (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i := by
+    rw [show l.integral = ∑ J ∈ T, val_l J * |J|ₗ from PiecewiseConstantFunction.mkPCF_integral T val_l hdisj hcover]
+    have hT_eq : T = Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ ({Icc I.b I.b} : Finset BoundedInterval) := by
+      rfl
+    rw [hT_eq]
+    have hsum_image : (∑ J ∈ Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ, val_l J * |J|ₗ)
+        = ∑ i : Fin N, val_l (Ico (P.x i.castSucc) (P.x i.succ)) * P.delta i := by
+      rw [Finset.sum_image]
+      · apply Finset.sum_congr rfl
+        intro i hi
+        rw [hdelta_len i]
+      · exact (uniform_piece_inj P).injOn
+    have hsing_sum : (∑ J ∈ ({Icc I.b I.b} : Finset BoundedInterval), val_l J * |J|ₗ) = 0 := by
+      simp
+    rw [Finset.sum_union]
+    · rw [hsum_image, hsing_sum]
+      simp
+    · rw [Finset.disjoint_left]
+      intro J hJ
+      rcases Finset.mem_image.mp hJ with ⟨i, _, rfl⟩
+      simp
+  have hu_int : u.integral ≤ R + 2 * ε := by
+    have hle1 : u.integral ≤ (∑ i : Fin N, (val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ) * P.delta i) + κ * |I|ₗ := by
+      rw [hu_int_eq, hsum_calc_u]
+      linarith
+    have habs := abs_le.mp hRS_u
+    calc
+      u.integral ≤ (∑ i : Fin N, (val_u (Ico (P.x i.castSucc) (P.x i.succ)) - κ) * P.delta i) + κ * |I|ₗ := hle1
+      _ ≤ P'.RiemannSum f + κ * |I|ₗ := by linarith
+      _ ≤ R + ε + κ * |I|ₗ := by linarith
+      _ ≤ R + ε + ε / 2 := by linarith [hlen_2N]
+      _ ≤ R + 2 * ε := by linarith
+  have hl_int : R - 2 * ε ≤ l.integral := by
+    have hle1 : (∑ i : Fin N, (val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ) * P.delta i) - κ * |I|ₗ ≤ l.integral := by
+      rw [hl_int_eq, hsum_calc_l]
+      linarith
+    have habs := abs_le.mp hRS_l
+    calc
+      R - 2 * ε ≤ R - ε - κ * |I|ₗ := by nlinarith [hlen_2N]
+      _ ≤ P''.RiemannSum f - κ * |I|ₗ := by linarith
+      _ ≤ (∑ i : Fin N, (val_l (Ico (P.x i.castSucc) (P.x i.succ)) + κ) * P.delta i) - κ * |I|ₗ := by linarith
+      _ ≤ l.integral := hle1
+  refine ⟨T, val_u, val_l, hdisj, hcover, ?_, ?_, ?_⟩
+  · intro x hx
+    exact ⟨by simpa [l] using h_l_lb x hx, by simpa [u] using h_u_lb x hx⟩
+  · intro x hx
+    exact ⟨by simpa [u] using h_u_out x hx, by simpa [l] using h_l_out x hx⟩
+  · exact ⟨by simpa [u] using hu_int, by simpa [l] using hl_int⟩
+
+/-- From Riemann integrability (nondegenerate case), obtain sequences of piecewise constant
+    upper and lower approximations with integral bounds tending to the Riemann integral. -/
+lemma upper_lower_seqs {f : ℝ → ℝ} {I : BoundedInterval} (hf : RiemannIntegrableOn f I)
+    (hab : I.a < I.b) :
+    ∃ (u l : ℕ → PiecewiseConstantFunction I),
+      (∀ n, ∀ x ∈ I.toSet, (l n).f x ≤ f x ∧ f x ≤ (u n).f x) ∧
+      (∀ n, ∀ x ∉ I.toSet, (u n).f x = 0 ∧ (l n).f x = 0) ∧
+      (∀ n, (u n).integral ≤ riemannIntegral f I + 2 / 2 ^ (n + 1)) ∧
+      (∀ n, riemannIntegral f I - 2 / 2 ^ (n + 1) ≤ (l n).integral) := by
+  classical
+  have hI : I = Icc I.a I.b := hf.1
+  have hbound : ∃ M, ∀ x ∈ I.toSet, |f x| ≤ M := RiemannIntegrable.bounded hf
+  have hεδ : ∀ ε > 0, ∃ δ > 0, ∀ n, ∀ P : TaggedPartition I n, P.norm ≤ δ →
+      |P.RiemannSum f - riemannIntegral f I| ≤ ε := by
+    exact (riemann_integral_eq_iff (riemannIntegral f I)).mp (riemann_integral_of_integrable hf)
+  choose T val_u val_l hdisj hcover hA hB hC using
+    fun n => upper_lower_step_approx hI hab hbound (riemannIntegral f I) (1 / 2 ^ (n + 1)) (by positivity) hεδ
+  let u : ℕ → PiecewiseConstantFunction I := fun n =>
+    PiecewiseConstantFunction.mkPCF (T n) (val_u n) (hdisj n) (hcover n)
+  let l : ℕ → PiecewiseConstantFunction I := fun n =>
+    PiecewiseConstantFunction.mkPCF (T n) (val_l n) (hdisj n) (hcover n)
+  refine ⟨u, l, ?_, ?_, ?_, ?_⟩
+  · intro n x hx
+    rcases hA n x hx with ⟨hl, hu⟩
+    exact ⟨by simpa [l] using hl, by simpa [u] using hu⟩
+  · intro n x hx
+    rcases hB n x hx with ⟨hu, hl⟩
+    exact ⟨by simpa [u] using hu, by simpa [l] using hl⟩
+  · intro n
+    rcases hC n with ⟨hu, _hl⟩
+    have hconv : 2 * (1 / 2 ^ (n + 1) : ℝ) = 2 / 2 ^ (n + 1) := by
+      rw [one_div, div_eq_mul_inv]
+    simpa [u, hconv] using hu
+  · intro n
+    rcases hC n with ⟨_hu, hl⟩
+    have hconv : 2 * (1 / 2 ^ (n + 1) : ℝ) = 2 / 2 ^ (n + 1) := by
+      rw [one_div, div_eq_mul_inv]
+    simpa [l, hconv] using hl
+
+/-- Replace a piecewise constant function by its pointwise maximum with zero. -/
+def pcf_max_zero {I : BoundedInterval} (g : PiecewiseConstantFunction I) : PiecewiseConstantFunction I where
+  f := fun x => max (g.f x) 0
+  T := g.T
+  c := fun J => max (g.c J) 0
+  disjoint := g.disjoint
+  cover := g.cover
+  const := by
+    intro J x hx
+    rw [g.const J x hx]
+
+/-- The nonnegative truncation of a piecewise constant function is nonnegative. -/
+lemma pcf_max_zero.f_nonneg {I : BoundedInterval} (g : PiecewiseConstantFunction I) :
+    ∀ x, 0 ≤ (pcf_max_zero g).f x := by
+  intro x
+  simp [pcf_max_zero]
+
+/-- If g vanishes outside I, so does its nonnegative truncation. -/
+lemma pcf_max_zero.f_zero_off {I : BoundedInterval} (g : PiecewiseConstantFunction I)
+    (hg : ∀ x ∉ I.toSet, g.f x = 0) :
+    ∀ x ∉ I.toSet, (pcf_max_zero g).f x = 0 := by
+  intro x hx
+  simp [pcf_max_zero, hg x hx]
+
+/-- Truncating at zero does not decrease the integral. -/
+lemma pcf_max_zero.integral_ge {I : BoundedInterval} (g : PiecewiseConstantFunction I) :
+    g.integral ≤ (pcf_max_zero g).integral := by
+  unfold PiecewiseConstantFunction.integral pcf_max_zero
+  apply Finset.sum_le_sum
+  intro J _hJ
+  exact mul_le_mul_of_nonneg_right (le_max_left _ _) (BoundedInterval.length_nonneg J)
+
+/-- The lower unsigned Lebesgue integral is monotone with respect to pointwise order. -/
+lemma L_mono_pointwise {d : ℕ} {F G : EuclideanSpace' d → EReal} (h : ∀ y, F y ≤ G y) :
+    LowerUnsignedLebesgueIntegral F ≤ LowerUnsignedLebesgueIntegral G := by
+  unfold LowerUnsignedLebesgueIntegral
+  exact sSup_le_sSup (by
+    intro R hR
+    rcases hR with ⟨g, hg, hcond⟩
+    refine ⟨g, hg, ?_⟩
+    intro x
+    exact ⟨le_trans (hcond x).1 (h x), (hcond x).2⟩)
+
+/-- If a is bounded above by r + c n for a sequence c n → 0, then a ≤ r. -/
+lemma ereal_le_of_tendsto_coe {a : EReal} {r : ℝ} {c : ℕ → ℝ} (hc : Tendsto c atTop (𝓝 0))
+    (h : ∀ n, a ≤ ((r + c n : ℝ) : EReal)) : a ≤ (r : EReal) := by
+  by_contra hnot
+  have hb : (r : EReal) < a := lt_of_not_ge hnot
+  rcases EReal.exists_between_coe_real hb with ⟨y, hyr, hya⟩
+  have hyr' : r < y := (EReal.coe_lt_coe_iff).mp hyr
+  have hε : 0 < y - r := sub_pos.mpr hyr'
+  rcases (Metric.tendsto_atTop.mp hc) (y - r) hε with ⟨N, hN⟩
+  have hcN : |c N| < y - r := by simpa [Real.dist_eq] using hN N (le_rfl)
+  have hsum : r + c N < y := by linarith [abs_lt.mp hcN]
+  have hlt : ((r + c N : ℝ) : EReal) < (y : EReal) := (EReal.coe_lt_coe_iff).2 hsum
+  have hbad : a < a := lt_of_le_of_lt (h N) (lt_trans hlt hya)
+  exact (lt_irrefl a) hbad
+
+/-- If a is bounded below by r - c n for a sequence c n → 0, then r ≤ a. -/
+lemma ereal_ge_of_tendsto_coe {a : EReal} {r : ℝ} {c : ℕ → ℝ} (hc : Tendsto c atTop (𝓝 0))
+    (h : ∀ n, ((r - c n : ℝ) : EReal) ≤ a) : (r : EReal) ≤ a := by
+  by_contra hnot
+  have ha : a < (r : EReal) := lt_of_not_ge hnot
+  rcases EReal.exists_between_coe_real ha with ⟨y, hay, hyr⟩
+  have hyr' : y < r := (EReal.coe_lt_coe_iff).mp hyr
+  have hε : 0 < r - y := sub_pos.mpr hyr'
+  rcases (Metric.tendsto_atTop.mp hc) (r - y) hε with ⟨N, hN⟩
+  have hcN : |c N| < r - y := by simpa [Real.dist_eq] using hN N (le_rfl)
+  have hsum : y < r - c N := by linarith [abs_lt.mp hcN]
+  have hlt : (y : EReal) < ((r - c N : ℝ) : EReal) := (EReal.coe_lt_coe_iff).2 hsum
+  have hbad : a < a := lt_trans hay (lt_of_lt_of_le hlt (h N))
+  exact (lt_irrefl a) hbad
+
+/-- The sequence 2 / 2^(n+1) tends to zero. -/
+lemma tendsto_two_div_two_pow : Tendsto (fun n : ℕ => (2 / 2 ^ (n + 1) : ℝ)) atTop (𝓝 0) := by
+  have hpow : Tendsto (fun n : ℕ => ((1 : ℝ) / 2) ^ n) atTop (𝓝 0) :=
+    tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0 : ℝ) ≤ 1 / 2) (by norm_num : (1 / 2 : ℝ) < 1)
+  refine hpow.congr' ?_
+  filter_upwards with n
+  have h1 : (2 / 2 ^ (n + 1) : ℝ) = 1 / 2 ^ n := by
+    rw [pow_succ]
+    field_simp [pow_ne_zero n (by norm_num : (2 : ℝ) ≠ 0)]
+  have h2 : (1 / 2 : ℝ) ^ n = 1 / 2 ^ n := by
+    rw [div_pow]
+    simp
+  exact h2.trans h1.symm
+
+/-- The lower Lebesgue integral of the lifted product equals the Riemann integral
+    (squeeze argument with step functions). -/
+theorem riemann_eq_L {I : BoundedInterval} {f : ℝ → ℝ} (hf : RiemannIntegrableOn f I)
+    (hf0 : ∀ x ∈ I.toSet, 0 ≤ f x) :
+    (riemannIntegral f I : EReal) =
+      LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (fun x => (f x) * (I.toSet.indicator' x)) ∘ EuclideanSpace'.equiv_Real) := by
+  classical
+  let e : ℝ ≃ EuclideanSpace' 1 := Real.equiv_EuclideanSpace'
+  let F : EuclideanSpace' 1 → EReal := fun y =>
+    Real.toEReal (f (EuclideanSpace'.equiv_Real y) * I.toSet.indicator' (EuclideanSpace'.equiv_Real y))
+  change (riemannIntegral f I : EReal) = LowerUnsignedLebesgueIntegral F
+  by_cases hdeg : I.a = I.b
+  · -- degenerate case: I is a singleton, both sides are zero
+    have hI : I = Icc I.a I.b := hf.1
+    have hI' : I = Icc I.a I.a := by simpa [hdeg] using hI
+    have hR0 : riemannIntegral f I = 0 := riemannIntegral_of_singleton I.a hI'
+    have hIset : I.toSet = {I.a} := by
+      rw [hI']
+      simp
+    let E : Set (EuclideanSpace' 1) := e '' ((Icc I.a I.a : BoundedInterval) : Set ℝ)
+    have hF_eq' : ∀ x : ℝ, F (e x) = (f I.a : EReal) * (Real.toEReal (E.indicator' (e x))) := by
+      intro x
+      by_cases hx : x ∈ I.toSet
+      · have hxI : x = I.a := by simpa [hIset] using hx
+        have hind2 : I.toSet.indicator' x = 1 := Set.indicator'_of_mem hx
+        have hind1 : E.indicator' (e x) = 1 :=
+          Set.indicator'_of_mem ⟨x, by simp [hxI], rfl⟩
+        change Real.toEReal (f x * I.toSet.indicator' x) = (f I.a : EReal) * (Real.toEReal (E.indicator' (e x)))
+        rw [hind2, hind1]
+        simp [hxI]
+      · have hind2 : I.toSet.indicator' x = 0 := Set.indicator'_of_notMem hx
+        have hind1 : E.indicator' (e x) = 0 :=
+          Set.indicator'_of_notMem (by
+            intro hmem
+            rcases hmem with ⟨x', hxE, hxy⟩
+            apply hx
+            have hx' : x' = I.a := by
+              rw [← Set.mem_singleton_iff]
+              simpa using hxE
+            have hxx' : x' = x := e.injective hxy
+            rw [← hxx']
+            rw [hIset]
+            simp [hx'])
+        change Real.toEReal (f x * I.toSet.indicator' x) = (f I.a : EReal) * (Real.toEReal (E.indicator' (e x)))
+        rw [hind2, hind1]
+        simp
+    have hF_eq : F = fun y : EuclideanSpace' 1 => (f I.a : EReal) * (Real.toEReal ∘ E.indicator') y := by
+      ext y
+      have hy : y = e (e.symm y) := (Equiv.apply_symm_apply e y).symm
+      rw [hy]
+      exact hF_eq' (e.symm y)
+    have hfa0 : 0 ≤ f I.a := hf0 I.a (by simp [hIset])
+    have hE_meas : LebesgueMeasurable E := by
+      change LebesgueMeasurable (Real.equiv_EuclideanSpace' '' ((Icc I.a I.a : BoundedInterval) : Set ℝ))
+      rw [← BoundedInterval.coe_of_box]
+      exact (IsElementary.box (Icc I.a I.a : Box 1)).measurable
+    have hlen : |(Icc I.a I.a : BoundedInterval)|ₗ = 0 := by
+      simp [BoundedInterval.length]
+    have hμ : Lebesgue_outer_measure E = (|(Icc I.a I.a : BoundedInterval)|ₗ : EReal) := by
+      exact lift_interval_measure (J := (Icc I.a I.a : BoundedInterval))
+    have hμE : Lebesgue_measure E = 0 := by
+      change Lebesgue_outer_measure E = (0 : EReal)
+      rw [hμ, hlen]
+      simp
+    have hL0 : LowerUnsignedLebesgueIntegral F = 0 := by
+      rw [hF_eq]
+      rw [lowerIntegral_const_indicator hfa0 hE_meas]
+      rw [hμE]
+      simp
+    rw [hR0]
+    simp [hL0]
+  · -- nondegenerate case: squeeze with step functions
+    have hab : I.a < I.b := by
+      have hnonempty : I.toSet.Nonempty := hf.2.1
+      have hI : I = Icc I.a I.b := hf.1
+      rw [hI] at hnonempty
+      rcases hnonempty with ⟨x, hx1, hx2⟩
+      by_contra! hge
+      have : I.a = I.b := by linarith
+      exact hdeg this
+    rcases upper_lower_seqs hf hab with ⟨u, l, hle, hout, huR, hlR⟩
+    have u_nonneg : ∀ n, ∀ x, 0 ≤ (u n).f x := by
+      intro n x
+      by_cases hx : x ∈ I.toSet
+      · have hf : 0 ≤ f x := hf0 x hx
+        have hu : f x ≤ (u n).f x := (hle n x hx).2
+        linarith
+      · rw [(hout n x hx).1]
+    have hF_le_u' (n : ℕ) : ∀ x : ℝ, F (e x) ≤ Real.toEReal ((u n).f (EuclideanSpace'.equiv_Real (e x))) := by
+      intro x
+      by_cases hx : x ∈ I.toSet
+      · have hind : I.toSet.indicator' x = 1 := Set.indicator'_of_mem hx
+        have hmono : (f x : EReal) ≤ ((u n).f x : EReal) :=
+          (EReal.coe_le_coe_iff).2 (hle n x hx).2
+        simpa [F, e, hind] using hmono
+      · have hind : I.toSet.indicator' x = 0 := Set.indicator'_of_notMem hx
+        have hu0 : (u n).f x = 0 := (hout n x hx).1
+        simp [F, e, hind, hu0]
+    have hF_le_u (n : ℕ) : ∀ y, F y ≤ Real.toEReal ((u n).f (EuclideanSpace'.equiv_Real y)) := by
+      intro y
+      have hy : y = e (e.symm y) := (Equiv.apply_symm_apply e y).symm
+      rw [hy]
+      exact hF_le_u' n (e.symm y)
+    have hL_le (n : ℕ) : LowerUnsignedLebesgueIntegral F ≤ ((u n).integral : EReal) := by
+      have h1 : LowerUnsignedLebesgueIntegral F ≤
+          LowerUnsignedLebesgueIntegral (fun y => Real.toEReal ((u n).f (EuclideanSpace'.equiv_Real y))) :=
+        L_mono_pointwise (hF_le_u n)
+      have h2 : LowerUnsignedLebesgueIntegral (fun y => Real.toEReal ((u n).f (EuclideanSpace'.equiv_Real y))) =
+          ((u n).integral : EReal) :=
+        pcf_lift_L_integral (u n) (u_nonneg n) (fun x hx => (hout n x hx).1)
+      rwa [h2] at h1
+    have hL_le_R' : ∀ n, LowerUnsignedLebesgueIntegral F ≤ ((riemannIntegral f I + 2 / 2 ^ (n + 1) : ℝ) : EReal) := by
+      intro n
+      have h1 : ((u n).integral : EReal) ≤ ((riemannIntegral f I + 2 / 2 ^ (n + 1) : ℝ) : EReal) := by
+        exact (EReal.coe_le_coe_iff).2 (huR n)
+      exact le_trans (hL_le n) h1
+    have hL_le_R : LowerUnsignedLebesgueIntegral F ≤ (riemannIntegral f I : EReal) :=
+      ereal_le_of_tendsto_coe tendsto_two_div_two_pow hL_le_R'
+    have lp_nonneg : ∀ n, ∀ x, 0 ≤ (pcf_max_zero (l n)).f x := fun n => pcf_max_zero.f_nonneg (l n)
+    have lp_zero_off : ∀ n, ∀ x ∉ I.toSet, (pcf_max_zero (l n)).f x = 0 :=
+      fun n => pcf_max_zero.f_zero_off (l n) (fun x hx => (hout n x hx).2)
+    have hlp_le_F' (n : ℕ) : ∀ x : ℝ, Real.toEReal ((pcf_max_zero (l n)).f x) ≤ F (e x) := by
+      intro x
+      by_cases hx : x ∈ I.toSet
+      · have hind : I.toSet.indicator' x = 1 := Set.indicator'_of_mem hx
+        have hmax : max ((l n).f x) 0 ≤ f x := by
+          exact (max_le_iff).2 ⟨(hle n x hx).1, hf0 x hx⟩
+        have hmono : ((pcf_max_zero (l n)).f x : EReal) ≤ (f x : EReal) := by
+          simpa [pcf_max_zero] using (EReal.coe_le_coe_iff).2 hmax
+        simpa [F, e, hind] using hmono
+      · have hind : I.toSet.indicator' x = 0 := Set.indicator'_of_notMem hx
+        have h0 : (pcf_max_zero (l n)).f x = 0 := lp_zero_off n x hx
+        simp [F, e, hind, h0]
+    have hlp_le_F (n : ℕ) : ∀ y, Real.toEReal ((pcf_max_zero (l n)).f (EuclideanSpace'.equiv_Real y)) ≤ F y := by
+      intro y
+      have hy : y = e (e.symm y) := (Equiv.apply_symm_apply e y).symm
+      rw [hy]
+      exact hlp_le_F' n (e.symm y)
+    have hlp_integral_le_L (n : ℕ) : ((pcf_max_zero (l n)).integral : EReal) ≤ LowerUnsignedLebesgueIntegral F := by
+      have h1 : LowerUnsignedLebesgueIntegral (fun y => Real.toEReal ((pcf_max_zero (l n)).f (EuclideanSpace'.equiv_Real y))) ≤
+          LowerUnsignedLebesgueIntegral F :=
+        L_mono_pointwise (hlp_le_F n)
+      have h2 : LowerUnsignedLebesgueIntegral (fun y => Real.toEReal ((pcf_max_zero (l n)).f (EuclideanSpace'.equiv_Real y))) =
+          ((pcf_max_zero (l n)).integral : EReal) :=
+        pcf_lift_L_integral (pcf_max_zero (l n)) (lp_nonneg n) (lp_zero_off n)
+      rwa [h2] at h1
+    have hR_le_L' : ∀ n, ((riemannIntegral f I - 2 / 2 ^ (n + 1) : ℝ) : EReal) ≤ LowerUnsignedLebesgueIntegral F := by
+      intro n
+      have h1 : ((riemannIntegral f I - 2 / 2 ^ (n + 1) : ℝ) : EReal) ≤ ((l n).integral : EReal) := by
+        exact (EReal.coe_le_coe_iff).2 (hlR n)
+      have h2 : ((l n).integral : EReal) ≤ ((pcf_max_zero (l n)).integral : EReal) := by
+        exact (EReal.coe_le_coe_iff).2 (pcf_max_zero.integral_ge (l n))
+      exact le_trans (le_trans h1 h2) (hlp_integral_le_L n)
+    have hR_le_L : (riemannIntegral f I : EReal) ≤ LowerUnsignedLebesgueIntegral F :=
+      ereal_ge_of_tendsto_coe tendsto_two_div_two_pow hR_le_L'
+    exact le_antisymm hR_le_L hL_le_R
+
+/-- Exercise 1.3.17 (Compatibility with the Riemann integral) -/
+-- NOTE: the book's statement (Exercise 1.3.17) is "Let f : [a,b] → [0, +∞] be Riemann
+-- integrable"; the Lean version therefore needs the explicit nonnegativity hypothesis
+-- `hf0` (without it the statement is FALSE: for f ≡ -1 the Riemann integral is -|I|
+-- while the RHS lower integral over nonnegative simple functions below f is empty).
+theorem RiemannIntegral.eq_UnsignedLebesgueIntegral {I: BoundedInterval} {f: ℝ → ℝ} (hf: RiemannIntegrableOn f I)
+    (hf0: ∀ x ∈ I.toSet, 0 ≤ f x) :
+    (riemannIntegral f I : EReal) = UnsignedLebesgueIntegral (Real.toEReal ∘ (fun x ↦ (f x) * (I.toSet.indicator' x)) ∘ EuclideanSpace'.equiv_Real) := by
+  change (riemannIntegral f I : EReal) =
+    LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (fun x => (f x) * (I.toSet.indicator' x)) ∘ EuclideanSpace'.equiv_Real)
+  exact riemann_eq_L hf hf0
 
 /-- Non-strict level sets of an unsigned measurable function are measurable, via TFAE. -/
 lemma level_ge_measurable {d : ℕ} {f : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f)
