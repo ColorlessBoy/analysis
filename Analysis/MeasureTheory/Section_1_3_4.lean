@@ -985,18 +985,7 @@ theorem L1.dist_eq_zero {d:ℕ} (f g: EuclideanSpace' d → ℂ) (hf: ComplexAbs
       exact sub_eq_zero.mp (norm_eq_zero.mp h_norm_zero)
   rw [h_sets_eq]
 
-/-- Exercise 1.3.19 (Integration is linear) -/
-noncomputable def L1.integ {d:ℕ} : L1 d →ₗ[ℂ] ℂ := {
-  toFun := Quotient.lift (fun F ↦ F.integrable.integ) (by sorry)
-  map_smul' := by sorry
-  map_add' := by sorry
-}
-
-noncomputable def L1.conj {d:ℕ} : L1 d → L1 d := Quotient.lift (fun F ↦ (F.conj : L1 d)) (by sorry)
-
-theorem L1.integ_conj {d:ℕ} (F: L1 d) : L1.integ (L1.conj F) = starRingEnd ℂ (L1.integ F) := by sorry
-
-/-- Exercise 1.3.20(i) (Translation invariance). -/
+/-- Exercise 1.3.20 (Translation invariance)-/
 theorem RealAbsolutelyIntegrable.trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : RealAbsolutelyIntegrable (fun x ↦ f (x + a)) := by sorry
 
 theorem RealAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : (hf.trans a).integ = hf.integ  := by sorry
@@ -1166,6 +1155,7 @@ lemma EReal.neg_fun_smul_neg {X: Type*} (f: X → ℝ) (c: ℝ) (hc: c < 0) :
   funext x
   simp only [EReal.pos_fun, EReal.neg_fun, Pi.smul_apply, smul_eq_mul]
   have hnc : 0 ≤ -c := neg_nonneg.mpr (le_of_lt hc)
+
   congr 1
   rw [show -(c * f x) = (-c) * f x from by ring]
   rw [← mul_zero (-c), (mul_max_of_nonneg (f x) 0 hnc).symm, mul_zero]
@@ -1351,6 +1341,128 @@ lemma ComplexAbsolutelyIntegrable.integ_smul {d:ℕ} {f: EuclideanSpace' d → �
     simp only [Complex.add_im, Complex.mul_im, Complex.I_re, Complex.I_im, Complex.ofReal_re,
                Complex.ofReal_im, mul_zero, zero_add, h_integ_im, h_integ_re]
     ring
+
+
+lemma AlmostEverywhereEqual.comp {d:ℕ} {X Y : Type*} {f g : EuclideanSpace' d → X}
+    (h : AlmostEverywhereEqual f g) (φ : X → Y) : AlmostEverywhereEqual (fun x => φ (f x)) (fun x => φ (g x)) := by
+  unfold AlmostEverywhereEqual at *
+  exact AlmostAlways.mp h (fun x hx => congrArg φ hx)
+
+/-- A `PreL1` element whose norm-distance to another is zero has almost everywhere equal functions. -/
+lemma PreL1.ae_of_dist_eq_zero {d:ℕ} {F G : PreL1 d} (h : dist F G = 0) : AlmostEverywhereEqual F.f G.f := by
+  have hd : dist (SeparationQuotient.mk F : L1 d) (SeparationQuotient.mk G) = 0 := by
+    rwa [SeparationQuotient.dist_mk]
+  have h' := L1.dist_eq_zero F.f G.f F.integrable G.integrable
+  exact (h'.mp hd)
+
+/-- The real Lebesgue integral of two almost everywhere equal functions is equal. -/
+lemma RealAbsolutelyIntegrable.integ_of_aeEqual {d:ℕ} {f g : EuclideanSpace' d → ℝ}
+    (hf : RealAbsolutelyIntegrable f) (hg : RealAbsolutelyIntegrable g)
+    (hae : AlmostEverywhereEqual f g) : hf.integ = hg.integ := by
+  simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ]
+  have h_ae_pos : AlmostEverywhereEqual (EReal.pos_fun f) (EReal.pos_fun g) :=
+    AlmostEverywhereEqual.comp hae (fun y : ℝ => (max y 0).toEReal)
+  have h_ae_neg : AlmostEverywhereEqual (EReal.neg_fun f) (EReal.neg_fun g) :=
+    AlmostEverywhereEqual.comp hae (fun y : ℝ => (max (-y) 0).toEReal)
+  have h_pos_eq : UnsignedLebesgueIntegral (EReal.pos_fun f) = UnsignedLebesgueIntegral (EReal.pos_fun g) :=
+    LowerUnsignedLebesgueIntegral.integral_eq_integral_of_aeEqual hf.pos.1 hg.pos.1 h_ae_pos
+  have h_neg_eq : UnsignedLebesgueIntegral (EReal.neg_fun f) = UnsignedLebesgueIntegral (EReal.neg_fun g) :=
+    LowerUnsignedLebesgueIntegral.integral_eq_integral_of_aeEqual hf.neg.1 hg.neg.1 h_ae_neg
+  rw [h_pos_eq, h_neg_eq]
+
+/-- The complex Lebesgue integral of two almost everywhere equal functions is equal. -/
+lemma ComplexAbsolutelyIntegrable.integ_of_aeEqual {d:ℕ} {f g : EuclideanSpace' d → ℂ}
+    (hf : ComplexAbsolutelyIntegrable f) (hg : ComplexAbsolutelyIntegrable g)
+    (hae : AlmostEverywhereEqual f g) : hf.integ = hg.integ := by
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  have h_ae_re : AlmostEverywhereEqual (Complex.re_fun f) (Complex.re_fun g) :=
+    AlmostEverywhereEqual.comp hae Complex.re
+  have h_ae_im : AlmostEverywhereEqual (Complex.im_fun f) (Complex.im_fun g) :=
+    AlmostEverywhereEqual.comp hae Complex.im
+  have h_re_eq : hf.re.integ = hg.re.integ :=
+    RealAbsolutelyIntegrable.integ_of_aeEqual hf.re hg.re h_ae_re
+  have h_im_eq : hf.im.integ = hg.im.integ :=
+    RealAbsolutelyIntegrable.integ_of_aeEqual hf.im hg.im h_ae_im
+  rw [h_re_eq, h_im_eq]
+
+/-- Additivity of the complex Lebesgue integral. -/
+lemma ComplexAbsolutelyIntegrable.integ_add {d:ℕ} {f g : EuclideanSpace' d → ℂ}
+    (hf : ComplexAbsolutelyIntegrable f) (hg : ComplexAbsolutelyIntegrable g) :
+    (hf.add hg).integ = hf.integ + hg.integ := by
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  have h_re_fun : Complex.re_fun (f + g) = Complex.re_fun f + Complex.re_fun g := by
+    funext x
+    simp only [Complex.re_fun, Pi.add_apply]
+    rw [Complex.add_re]
+  have h_im_fun : Complex.im_fun (f + g) = Complex.im_fun f + Complex.im_fun g := by
+    funext x
+    simp only [Complex.im_fun, Pi.add_apply]
+    rw [Complex.add_im]
+  have h_re_integ : (hf.add hg).re.integ = (hf.re.add hg.re).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_re_fun]
+  have h_im_integ : (hf.add hg).im.integ = (hf.im.add hg.im).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_im_fun]
+  rw [h_re_integ, h_im_integ]
+  rw [RealAbsolutelyIntegrable.integ_add' (hf := hf.re) (hg := hg.re),
+      RealAbsolutelyIntegrable.integ_add' (hf := hf.im) (hg := hg.im)]
+  rw [Complex.ofReal_add, Complex.ofReal_add]
+  ring
+
+/-- Conjugation commutes with the complex Lebesgue integral. -/
+lemma ComplexAbsolutelyIntegrable.integ_conj {d:ℕ} {f : EuclideanSpace' d → ℂ}
+    (hf : ComplexAbsolutelyIntegrable f) : hf.conj.integ = starRingEnd ℂ hf.integ := by
+  have h_pt_re : Complex.re_fun (Complex.conj_fun f) = Complex.re_fun f := by
+    funext x
+    simp [Complex.re_fun, Complex.conj_fun, Complex.conj_re]
+  have h_pt_im : Complex.im_fun (Complex.conj_fun f) = (-1 : ℝ) • Complex.im_fun f := by
+    funext x
+    simp [Complex.im_fun, Complex.conj_fun, Complex.conj_im]
+  have h_re_int : hf.conj.re.integ = hf.re.integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_pt_re]
+  have h_im_int : hf.conj.im.integ = (hf.im.smul (-1 : ℝ)).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_pt_im]
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  rw [h_re_int, h_im_int]
+  rw [RealAbsolutelyIntegrable.integ_smul' (hf := hf.im)]
+  rw [map_add, map_mul]
+  simp [Complex.conj_ofReal, Complex.conj_I]
+
+/-- Exercise 1.3.19 (Integration is linear) -/
+noncomputable def L1.integ {d:ℕ} : L1 d →ₗ[ℂ] ℂ := {
+  toFun := Quotient.lift (fun F ↦ F.integrable.integ) (by
+    intro F G h
+    have hdist : dist F G = 0 := Metric.inseparable_iff.mp h
+    have hae : AlmostEverywhereEqual F.f G.f := PreL1.ae_of_dist_eq_zero hdist
+    exact ComplexAbsolutelyIntegrable.integ_of_aeEqual F.integrable G.integrable hae)
+  map_smul' := by
+    intro a F
+    refine Quotient.inductionOn F ?_
+    intro F'
+    exact ComplexAbsolutelyIntegrable.integ_smul F'.integrable a
+  map_add' := by
+    intro F G
+    refine Quotient.inductionOn F ?_
+    intro F'
+    refine Quotient.inductionOn G ?_
+    intro G'
+    exact ComplexAbsolutelyIntegrable.integ_add F'.integrable G'.integrable
+}
+
+noncomputable def L1.conj {d:ℕ} : L1 d → L1 d := Quotient.lift (fun F ↦ (F.conj : L1 d)) (by
+  intro F G h
+  have hdist : dist F G = 0 := Metric.inseparable_iff.mp h
+  have hae : AlmostEverywhereEqual F.f G.f := PreL1.ae_of_dist_eq_zero hdist
+  have hae_conj : AlmostEverywhereEqual (Complex.conj_fun F.f) (Complex.conj_fun G.f) :=
+    AlmostEverywhereEqual.comp hae (starRingEnd ℂ)
+  apply SeparationQuotient.mk_eq_mk.mpr
+  rw [Metric.inseparable_iff]
+  exact (L1.dist_eq_zero (f := Complex.conj_fun F.f) (g := Complex.conj_fun G.f)
+      (hf := F.integrable.conj) (hg := G.integrable.conj)).mpr hae_conj)
+
+theorem L1.integ_conj {d:ℕ} (F: L1 d) : L1.integ (L1.conj F) = starRingEnd ℂ (L1.integ F) := by
+  refine Quotient.inductionOn F ?_
+  intro F'
+  simpa [L1.integ, L1.conj] using ComplexAbsolutelyIntegrable.integ_conj (F'.integrable)
 
 -- Helper: |u*f| integral equals |f| integral when |u| = 1
 lemma ComplexAbsolutelyIntegrable.abs_smul_unit {d:ℕ} {f: EuclideanSpace' d → ℂ}
