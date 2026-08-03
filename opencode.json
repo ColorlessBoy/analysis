@@ -3,6 +3,10 @@
   "model": "opencode-go/deepseek-v4-flash",
   "provider": {
     "opencode-go": {
+      "options": {
+        "timeout": 1800000,
+        "chunkTimeout": 600000
+      },
       "models": {
         "deepseek-v4-flash": {
           "variants": {
@@ -24,6 +28,12 @@
     }
   },
   "lsp": true,
+  "subagent_depth": 2,
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 15000
+  },
   "permission": {
     "*": "allow",
     "read": "allow",

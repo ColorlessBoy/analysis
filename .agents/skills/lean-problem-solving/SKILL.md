@@ -93,3 +93,39 @@ Process files sequentially. For each file:
 4. Use already-proved theorems in later proofs
 
 The complete output of `lake env lean <file>.lean` should contain ONLY type-info outputs from intentional `#check` commands, and nothing else.
+
+### 9. Failure handling and integration discipline (learned the hard way, 2026-08)
+
+**The main thread must NEVER hand-patch a real file to rescue a failed integration.** If a
+subagent fails or its PROOF_BLOCK does not integrate cleanly:
+
+1. Revert the real file (`git checkout -- Analysis/.../<file>.lean`) so it is always in a
+   clean, compiling state.
+2. Record the failure (`experience.py session end <id> fail "..."`).
+3. Update the temp file with the corrected approach / partial results, then launch a
+   **FRESH subagent** to continue there. Repeat until the temp file is genuinely clean.
+4. Only then integrate, and only commit after the real file reports 0 errors AND 0 warnings.
+
+**Temp-file verification can be a false positive**: a temp file imports the real file, and the
+LSP serves diagnostics against the *stale* `.olean` of the real file. If the real file was
+edited without rebuilding, the temp file's "0 errors" is meaningless. ALWAYS run the MCP
+rebuild (`lean_build`) after any real-file change, and re-verify the temp file, before
+trusting its diagnostics.
+
+**Real-file-only pitfalls that temp files do NOT expose** (seen in Section_1_3_3):
+- `rcases hg with ⟨k, c, E, hmes, heq⟩` on an `UnsignedSimpleFunction` hypothesis DESTROYS
+  `hg`; copy first: `let hg' : UnsignedSimpleFunction g := hg` and use `hg'.integ`.
+- `rcases`/`obtain` on a membership `x ∈ W` where `W` is a `let`-bound set fails with
+  "is not an inductive datatype": use `unfold W at hx` first (or inline the set expression).
+- `rw [h_interval, ← BoundedInterval.coe_of_box]` on image equalities fails after `change`
+  because `change` delta-unfolds the equiv abbreviation; prefer `unfold C` (let only) or
+  the elementary-measure route (`Lebesgue_outer_measure.elementary` + `measure_eq`).
+- `simp [...] using h` parses only as `simpa [...] using h`; the plain `simp ... using` form
+  is a syntax error.
+- Theorems with unused `∃`-binders trigger `linter.unusedVariables`; rename them `_hf`/`_hg`.
+- EReal `1 / ↑N` and `↑(1 / N)` are defeq but not syntactically equal: rw may fail where
+  `exact`/`simpa` succeed.
+
+**Checklist before integration**: temp file 0 errors AND 0 warnings (after a rebuild);
+real file reverted to clean; integration done in ONE step; real file re-verified 0 errors
+AND 0 warnings; then commit.

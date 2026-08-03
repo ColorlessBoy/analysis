@@ -433,6 +433,139 @@
       "tactics": "le_sInf+le_antisymm; Finset.single_le_sum; Finset.sum_range_sub'; Fin.sum_univ_succ; measure_Ioc_ab; EReal.tendsto_nhds_top_iff_real",
       "description": "Upper integral vertical truncation is FALSE: counterexample f=1/sqrt x on (0,1): U f = top via top-atom covering argument; U(min f n) bounded by 8 via dyadic simple functions with Ioc pieces; contradiction via eventually above any real vs uniform bound",
       "time": "2026-08-01T23:26:57.821103"
+    },
+    {
+      "theorem": "eq_lim_horiz_trunc_upper_isFalse",
+      "file": "_temp_133_horiz_upper2.lean",
+      "tactics": "wlog, tsum_eq_single, TFAE level sets, le_sInf+single_le_sum+top_mul_of_pos, Fin simple fn + measure_Ioo_ab + sum_pow_half_le_two, EReal.mem_nhds_top_iff",
+      "description": "f_horiz spike counterexample: U f = top but U(f*1_ball n) <= 2",
+      "time": "2026-08-02T12:12:12.124241"
+    },
+    {
+      "theorem": "eq_lim_horiz_trunc(Upper) isFalse",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "f_horiz spike counterexample: tsum of 2^k-indicators on (2^k, 2^k+2^{-2k}); U=top via C=sum of toReal bound + spike of measure 2^{-2k}; trunc bounded by geom sum \u2264 2",
+      "description": "Upper horizontal truncation Decidable is FALSE; subagent proved 8-lemma bundle; integration lesson: keep plain /- -/ comments, insert AFTER all deps (measurable_Ioo_preimage', measure_Ioo_ab, upperIntegral_simple come later in file)",
+      "time": "2026-08-02T12:22:35.611502"
+    },
+    {
+      "theorem": "eq_upperIntegral_unbounded_isFalse",
+      "file": "_temp_133_unbounded.lean",
+      "tactics": "unfold; le_sInf; sSup_le; rw; integral_le_integral_of_aeLe / use 0 Fin0; eq_simpleIntegral; zero_unsigned_integral / 240-line step-function copy (n on (0,1/n^2], i+1 on (1/(i+1)^2,1/i^2]) telescoping \u2264 8 / le_of_tendsto + min_eq_right + zero_lower_integral / Support \u2286 preimage Ioo via simp only [Support, mem_setOf_eq, f_inv_sqrt]; measure_Ioo_ab; rw [\u2190 hmu] / instantiate \u2200, rw [f_inv_sqrt_upper], lt_irrefl",
+      "description": "counterexample f_inv_sqrt: L \u2264 8 < \u22a4 = U; choose is opaque so per-term U(min)\u22648 reproved with explicit 8",
+      "time": "2026-08-02T12:40:40.564971"
+    },
+    {
+      "theorem": "eq_upperIntegral_unbounded isFalse",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "f_inv_sqrt: U=top (existing) + L < top via eq_lim_vert_trunc + upper_lower_ineq + f_inv_sqrt_trunc_upper_bounded (opaque c ok: L \u2264 c < top); FiniteMeasureSupport via (0,1)-preimage",
+      "description": "subagent duplicated 240 lines (f_inv_sqrt_trunc_upper_le_eight) because choose is opaque; slimmed to \u2203c version using opaque c directly; def binders hf/hsupp need _-prefix for linter",
+      "time": "2026-08-02T12:47:38.773067"
+    },
+    {
+      "theorem": "f_tail_surface",
+      "file": "_temp_133_infinite_supp.lean",
+      "tactics": "wlog/tsum_eq_single/measure_Ioo_ab/simp only [Set.mem_setOf_eq, Set.mem_iUnion]/rw if_pos/coe_pow rewrites/simpa using abs_le_of_nonneg_le (n:=1)/upperIntegral_simple+mono/sum_pow_half_le_two/le_of_tendsto",
+      "description": "f_tail counterexample bundle: 11 proofs done, f_tail_upper_aux left as single allowed sorry",
+      "time": "2026-08-02T13:36:44.385949"
+    },
+    {
+      "theorem": "eq_upperIntegral_infinite_supp isFalse",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "f_tail bounded spikes 2^{-k} on (k,k+1): U=top via atom-pigeonhole (tail_upper_choice + tail_upper_fiber + measure_finset_sum), L<=2 via horizontal truncation + upper_lower_ineq + sum_pow_half_le_two",
+      "description": "subagent died twice on this (empty returns); main thread proved it; abs_le_of_nonneg_le moved before block (fwd ref); def binders renamed _-prefixed",
+      "time": "2026-08-02T14:30:59.290557"
+    },
+    {
+      "theorem": "not_additive_fix",
+      "file": "_temp_133_not_add.lean",
+      "tactics": "unfold C + h_interval rfl + rw [h_interval, \u2190 BoundedInterval.coe_of_box]; simpa [C] using Lebesgue_measure.Icc_eq; rcases (hWV hx); drop trailing tactic after goal-closing rw",
+      "description": "Fixed Vitali not_additive bundle: renamed 2 conflicting theorems to *_proof, robust box-coercion proofs, simpa-based measure computations",
+      "time": "2026-08-02T16:28:23.235206"
+    },
+    {
+      "theorem": "not_additive lower+upper",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "Vitali counterexample: L(1_V)=0 (inner measure via translates), L(1_{C\\V})<1, U(1_A)=mu*(A) via exists_open_superset_measure_le, upper >1 via inner_measure.eq_iff + inner_measure.eq",
+      "description": "integration lesson: temp diagnostics stale without rebuild; W param vs let; simpa [C] unfolds let; hC_mu via elementary route",
+      "time": "2026-08-02T16:33:43.458452"
+    },
+    {
+      "theorem": "eq_area_simple",
+      "file": "_temp_133_eq_area.lean",
+      "tactics": "rw[BoundedInterval.coe_of_box]; ext; simp[Set.mem_image]; measure_Icc_preimage via box route; measure_vert_interval via cases v + upward_monotone_convergence; simple_area_measure via atom decomposition + prod_mem_iff + finite_union/prod/union",
+      "description": "simple-function part of eq_area: Icc preimage measure, vertical interval measure, area under simple function = simple integral",
+      "time": "2026-08-02T17:28:31.271224"
+    },
+    {
+      "theorem": "integ_eq_L_bounded",
+      "file": "_temp_133_unique5.lean",
+      "tactics": "le_antisymm; rw eq_upperIntegral; le_sInf/sSup_le; integ_mono_bounded; bounded_ne_top helper",
+      "description": "integ v = L v via L=U=sInf over simple h>=v and sSup over simple g<=v; bounded=>never-top enables integ_mono_bounded",
+      "time": "2026-08-02T21:48:09.870471"
+    },
+    {
+      "theorem": "unique_proof",
+      "file": "_temp_133_unique5.lean",
+      "tactics": "tendsto_nhds_unique + eq_lim_vert_trunc/eq_lim_horiz_trunc + integ_eq_L_bounded + bounded_mul_indicator",
+      "description": "proved integ f = L f via double truncation chain: integ(min f n)=L(min f n) pointwise via hhoriz+eq_lim_horiz_trunc on bounded finite-support truncations, then hvert+eq_lim_vert_trunc",
+      "time": "2026-08-02T21:56:46.595199"
+    },
+    {
+      "theorem": "UnsignedLebesgueIntegral.unique",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "hadd+sub_measurable(f\u2260\u22a4)+integ_mono_bounded+integ_eq_L_bounded via eq_upperIntegral le_sInf/sSup_le+tendsto_nhds_unique double truncation",
+      "description": "Exercise 1.3.14 complete: statement was FALSE without hnonneg (both truncation axioms vacuous on bounded finite-support fns); added hnonneg per book's [0,+\u221e] codomain; sub_measurable needs f\u2260\u22a4 (\u22a4-\u22a4=\u22a5); bounded_ne_top helper",
+      "time": "2026-08-02T22:03:26.109066"
+    },
+    {
+      "theorem": "pcf_lift_L_integral",
+      "file": "_temp_133_riemann.lean",
+      "tactics": "eq_simpleIntegral+integral_eq, hterm via lift_interval_measure, map_sum .trans",
+      "description": "fixed 6 errors in pcf_lift_L_integral",
+      "time": "2026-08-02T23:33:04.877823"
+    },
+    {
+      "theorem": "riemann_eq_L",
+      "file": "_temp_133_riemann.lean",
+      "tactics": "le_antisymm + upper_lower_seqs (public copy of private step-approx machinery) + L_mono_pointwise + pcf_max_zero + ereal_le/ge_of_tendsto_coe + EReal.exists_between_coe_real epsilon argument",
+      "description": "Riemann integral = lower Lebesgue integral of lifted f*1_I via step-function squeeze; degenerate case via lowerIntegral_const_indicator; key trick: prove pointwise comparisons at e x then wrap with Equiv.apply_symm_apply",
+      "time": "2026-08-03T00:11:01.257584"
+    },
+    {
+      "theorem": "RiemannIntegral.eq_UnsignedLebesgueIntegral",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "upper_lower_seqs step-fn squeeze + pcf_lift_L_integral + pcf_max_zero + ereal_le/ge_of_tendsto_coe",
+      "description": "Exercise 1.3.17 complete: reproduced public riemann_step_seqs (private in 1_3_2); squeeze L(f\u00b71_I) between u_n/l_n step-fn lifts; statement needed hf0 (f\u22650) per book's [0,+\u221e]",
+      "time": "2026-08-03T00:21:51.550512"
+    },
+    {
+      "theorem": "comp_linear_proof",
+      "file": "_temp_133_linear.lean",
+      "tactics": "simp [LinearMap.equivOfDetNeZero]; measure via linear_bound + det_coe_symm/abs_inv; sSup sandwich with T and T.symm",
+      "description": "Linear change of variables via LinearMap.equivOfDetNeZero and Lebesgue_outer_measure.linear_bound",
+      "time": "2026-08-03T07:27:54.091352"
+    },
+    {
+      "theorem": "UnsignedLebesgueIntegral.comp_linear",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "LinearMap.equivOfDetNeZero + Lebesgue_outer_measure.linear_bound + simple_comp_linear(_integral) + sSup sandwich",
+      "description": "Exercise 1.3.16 complete: preimage measure scales by |det|\u207b\u00b9 (LinearEquiv.det_coe_symm + abs_inv); simple\u2218T simple via atoms T\u207b\u00b9''E_i; sSup sandwich both directions",
+      "time": "2026-08-03T07:34:37.895110"
+    },
+    {
+      "theorem": "eq_area_proof",
+      "file": "_temp_133_area.lean",
+      "tactics": "vertical_strip_eq; Lebesgue_measure.prod + lift_interval_measure; atom strips + integral_min_const + upward MCT; TFAE(iv) + graph_measure_zero + sSup",
+      "description": "Exercise 1.3.13 area interpretation: region measure = lower integral",
+      "time": "2026-08-03T08:26:58.843163"
+    },
+    {
+      "theorem": "LowerUnsignedLebesgueIntegral.eq_area",
+      "file": "analysis/MeasureTheory/Section_1_3_3.lean",
+      "tactics": "Lebesgue_measure.prod + lift_interval_measure + simple_area_measure via atom refinement + graph_measure_zero + upward MCT",
+      "description": "Exercise 1.3.13 complete: region = \u22c3 strips over atoms (min g n); graph of measurable f has measure 0 (NEW graph_measure_zero); TFAE(iv) layer cake g_n \u2191 f; \u03bc(R f) = lim \u03bc(R g_n) = L f",
+      "time": "2026-08-03T08:33:48.443445"
     }
   ],
   "errors": [
@@ -451,6 +584,14 @@
       "message": "Missing bound on \u03a0(a_i + \u03b4) - \u03a0 a_i \u2264 d*M^{d-1}*\u03b4 needed to bound DyadicCube excess volume",
       "solution": "",
       "time": "2026-07-30T01:35:00.839145"
+    },
+    {
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_133_unique4_work.lean",
+      "line": "1",
+      "type": "statement_false",
+      "message": "sub_measurable (g-f measurable for f<=g) is FALSE: EReal.sub_top gives top-top=bot, so f=g=top counterexample; fix: add hypothesis \u2200 x, f x \u2260 \u22a4",
+      "solution": "--solution add hf_ne_top : \u2200 x, f x \u2260 \u22a4; proof via TFAE level sets + rational sandwich (EReal.lt_sub_iff_add_lt), pattern of UnsignedMeasurable.add",
+      "time": "2026-08-02T20:04:28.798113"
     }
   ]
 }
