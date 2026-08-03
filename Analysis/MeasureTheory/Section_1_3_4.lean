@@ -1276,7 +1276,175 @@ theorem RiemannIntegrableOn.realAbsolutelyIntegrable {I: BoundedInterval} {f: �
 theorem RiemannIntegral.eq_integ {I: BoundedInterval} {f: ℝ → ℝ} (hf: RiemannIntegrableOn f I) :
     riemannIntegral f I  = hf.realAbsolutelyIntegrable.integ := by sorry
 
-/-- Exercise 1.3.21 (Absolute summability is a special case of absolute integrability) -/
+/-- The unit cell of the integer lattice: the preimage of `[n, n+1)` under the real-coordinate map. -/
+noncomputable abbrev cell (n : ℤ) : Set (EuclideanSpace' 1) := {x | ⌊EuclideanSpace'.equiv_Real x⌋ = n}
+
+lemma cell_eq_box (n : ℤ) : cell n = (BoundedInterval.Ico (n : ℝ) ((n : ℝ) + 1) : Box 1).toSet := by
+  ext x
+  change ⌊EuclideanSpace'.equiv_Real x⌋ = n ↔ x ∈ (BoundedInterval.Ico (n : ℝ) ((n : ℝ) + 1) : Box 1).toSet
+  rw [Box.mem_toSet]
+  constructor
+  · intro hx i
+    have hi : i = ⟨0, by simp⟩ := by
+      apply Fin.ext
+      simp
+    rw [hi]
+    have hfl : ⌊EuclideanSpace'.equiv_Real x⌋ = n := hx
+    rw [Int.floor_eq_iff] at hfl
+    exact ⟨hfl.1, by simpa using hfl.2⟩
+  · intro hx
+    have hx0 : (EuclideanSpace'.equiv_Real x) ∈ Set.Ico (n : ℝ) ((n : ℝ) + 1) := by
+      exact hx ⟨0, by simp⟩
+    rw [Int.floor_eq_iff]
+    exact ⟨hx0.1, by simpa using hx0.2⟩
+
+lemma cell_measurable (n : ℤ) : LebesgueMeasurable (cell n) := by
+  rw [cell_eq_box]
+  exact (IsElementary.box (BoundedInterval.Ico (n : ℝ) ((n : ℝ) + 1) : Box 1)).measurable
+
+lemma cell_measure (n : ℤ) : Lebesgue_measure (cell n) = 1 := by
+  rw [cell_eq_box]
+  unfold Lebesgue_measure
+  rw [Lebesgue_outer_measure.elementary _ (IsElementary.box _)]
+  rw [IsElementary.measure_of_box]
+  simp only [Box.volume, BoundedInterval.length]
+  norm_num
+
+lemma cells_cover : (⋃ n : ℤ, cell n) = Set.univ := by
+  ext x
+  simp only [Set.mem_iUnion, Set.mem_univ, iff_true]
+  exact ⟨⌊EuclideanSpace'.equiv_Real x⌋, rfl⟩
+
+lemma cells_disjoint : Set.univ.PairwiseDisjoint (cell : ℤ → Set (EuclideanSpace' 1)) := by
+  intro n hn m hm hne
+  change Disjoint (cell n) (cell m)
+  rw [Set.disjoint_left]
+  intro x hxn hxm
+  exact hne (hxn.symm.trans hxm)
+
+lemma RealSimpleFunction.zero {d:ℕ} : RealSimpleFunction (0 : EuclideanSpace' d → ℝ) := by
+  use 0, fun i => Fin.elim0 i, fun i => Fin.elim0 i
+  constructor
+  · intro i; exact Fin.elim0 i
+  · funext x; simp
+
+lemma RealSimpleFunction.sum {d:ℕ} {ι : Type*} (s : Finset ι) {f : ι → EuclideanSpace' d → ℝ}
+    (hf : ∀ i ∈ s, RealSimpleFunction (f i)) : RealSimpleFunction (∑ i ∈ s, f i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      simp
+      exact RealSimpleFunction.zero
+  | insert i s his ih =>
+      rw [Finset.sum_insert his]
+      exact RealSimpleFunction.add (hf i (Finset.mem_insert_self i s))
+        (ih (fun j hj => hf j (Finset.mem_insert_of_mem hj)))
+
+lemma ComplexSimpleFunction.zero {d:ℕ} : ComplexSimpleFunction (0 : EuclideanSpace' d → ℂ) := by
+  use 0, fun i => Fin.elim0 i, fun i => Fin.elim0 i
+  constructor
+  · intro i; exact Fin.elim0 i
+  · funext x; simp
+
+lemma ComplexSimpleFunction.sum {d:ℕ} {ι : Type*} (s : Finset ι) {f : ι → EuclideanSpace' d → ℂ}
+    (hf : ∀ i ∈ s, ComplexSimpleFunction (f i)) : ComplexSimpleFunction (∑ i ∈ s, f i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      simp
+      exact ComplexSimpleFunction.zero
+  | insert i s his ih =>
+      rw [Finset.sum_insert his]
+      exact ComplexSimpleFunction.add (hf i (Finset.mem_insert_self i s))
+        (ih (fun j hj => hf j (Finset.mem_insert_of_mem hj)))
+
+/-- A real function defined on integer steps is measurable. -/
+lemma RealMeasurable.floor {a : ℤ → ℝ} : RealMeasurable (fun x => a ⌊EuclideanSpace'.equiv_Real x⌋) := by
+  let g : ℕ → EuclideanSpace' 1 → ℝ := fun N => ∑ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), a n • (cell n).indicator'
+  use g
+  constructor
+  · intro N
+    have h_single : ∀ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), RealSimpleFunction (a n • (cell n).indicator') := fun n hn => by
+      use 1, fun _ => a n, fun _ => cell n
+      constructor
+      · intro i; exact cell_measurable n
+      · funext x
+        simp [Pi.smul_apply, smul_eq_mul]
+    simpa [g] using RealSimpleFunction.sum (Finset.Icc (-(N : ℤ)) (N : ℤ)) h_single
+  · intro x
+    let m : ℤ := ⌊EuclideanSpace'.equiv_Real x⌋
+    have h_eventual : ∀ᶠ N in Filter.atTop, g N x = a m := by
+      refine Filter.eventually_atTop.mpr ?_
+      refine ⟨Int.natAbs m, ?_⟩
+      intro N hN
+      have hmem : m ∈ Finset.Icc (-(N : ℤ)) (N : ℤ) := by
+        simp only [Finset.mem_Icc]
+        have h1 : |m| ≤ (Int.natAbs m : ℤ) := by rw [Int.abs_eq_natAbs]
+        have h2 : (Int.natAbs m : ℤ) ≤ (N : ℤ) := by exact_mod_cast hN
+        exact abs_le.mp (le_trans h1 h2)
+      have h_sum : (∑ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), a n • (cell n).indicator' x) = a m := by
+        have h_term : ∀ n, a n • (cell n).indicator' x = if n = m then a m else 0 := fun n => by
+          by_cases hnm : n = m
+          · subst hnm
+            have hxm : x ∈ cell m := by
+              show ⌊EuclideanSpace'.equiv_Real x⌋ = m
+              rfl
+            simp [Pi.smul_apply, smul_eq_mul, Set.indicator'_of_mem hxm]
+          · have hx' : x ∉ cell n := by
+              intro hx
+              exact hnm (hx.symm.trans (by rfl : ⌊EuclideanSpace'.equiv_Real x⌋ = m))
+            simp [Pi.smul_apply, smul_eq_mul, Set.indicator'_of_notMem hx', hnm]
+        rw [Finset.sum_congr rfl (fun n hn => h_term n)]
+        simp [hmem]
+      simpa [g, Finset.sum_apply] using h_sum
+    have h_eq : (fun N : ℕ => g N x) =ᶠ[Filter.atTop] (fun _ : ℕ => a m) := by
+      exact h_eventual
+    exact Filter.Tendsto.congr' h_eq.symm tendsto_const_nhds
+
+/-- A complex function defined on integer steps is measurable. -/
+lemma ComplexMeasurable.floor {a : ℤ → ℂ} : ComplexMeasurable (fun x => a ⌊EuclideanSpace'.equiv_Real x⌋) := by
+  let g : ℕ → EuclideanSpace' 1 → ℂ := fun N => ∑ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), a n • Complex.indicator (cell n)
+  use g
+  constructor
+  · intro N
+    have h_single : ∀ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), ComplexSimpleFunction (a n • Complex.indicator (cell n)) := fun n hn => by
+      use 1, fun _ => a n, fun _ => cell n
+      constructor
+      · intro i; exact cell_measurable n
+      · funext x
+        simp [Pi.smul_apply, smul_eq_mul]
+    simpa [g] using ComplexSimpleFunction.sum (Finset.Icc (-(N : ℤ)) (N : ℤ)) h_single
+  · intro x
+    let m : ℤ := ⌊EuclideanSpace'.equiv_Real x⌋
+    have h_eventual : ∀ᶠ N in Filter.atTop, g N x = a m := by
+      refine Filter.eventually_atTop.mpr ?_
+      refine ⟨Int.natAbs m, ?_⟩
+      intro N hN
+      have hmem : m ∈ Finset.Icc (-(N : ℤ)) (N : ℤ) := by
+        simp only [Finset.mem_Icc]
+        have h1 : |m| ≤ (Int.natAbs m : ℤ) := by rw [Int.abs_eq_natAbs]
+        have h2 : (Int.natAbs m : ℤ) ≤ (N : ℤ) := by exact_mod_cast hN
+        exact abs_le.mp (le_trans h1 h2)
+      have h_sum : (∑ n ∈ Finset.Icc (-(N : ℤ)) (N : ℤ), a n • Complex.indicator (cell n) x) = a m := by
+        have h_term : ∀ n, a n • Complex.indicator (cell n) x = if n = m then a m else 0 := fun n => by
+          by_cases hnm : n = m
+          · subst hnm
+            have hxm : x ∈ cell m := by
+              show ⌊EuclideanSpace'.equiv_Real x⌋ = m
+              rfl
+            simp [Pi.smul_apply, smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxm]
+          · have hx' : x ∉ cell n := by
+              intro hx
+              exact hnm (hx.symm.trans (by rfl : ⌊EuclideanSpace'.equiv_Real x⌋ = m))
+            simp [Pi.smul_apply, smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx', hnm]
+        rw [Finset.sum_congr rfl (fun n hn => h_term n)]
+        simp [hmem]
+      simpa [g, Finset.sum_apply] using h_sum
+    have h_eq : (fun N : ℕ => g N x) =ᶠ[Filter.atTop] (fun _ : ℕ => a m) := by
+      exact h_eventual
+    exact Filter.Tendsto.congr' h_eq.symm tendsto_const_nhds
+
+/-- Exercise 1.3.21 (Absolute summability is a special case of absolute integrability)-/
 theorem AbsolutelySummable.realAbsolutelyIntegrable_iff {a: ℤ → ℝ} : ∑' n, |a n|.toEReal < ⊤ ↔ RealAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by sorry
 
 theorem AbsolutelySummable.complexAbsolutelyIntegrable_iff {a: ℤ → ℂ} : ∑' n, ‖a n‖.toEReal < ⊤ ↔ ComplexAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by sorry
