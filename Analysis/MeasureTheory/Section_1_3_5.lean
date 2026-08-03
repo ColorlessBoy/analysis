@@ -1490,10 +1490,78 @@ def UniformlyConvergesToOn {X Y:Type*} [PseudoMetricSpace Y] (f: ℕ → X → Y
 def LocallyUniformlyConvergesTo {X Y:Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] (f: ℕ → X → Y) (g: X → Y) : Prop :=
   ∀ (K: Set X), Bornology.IsBounded K → UniformlyConvergesToOn f g K
 
+/-- Uniform convergence on a superset implies uniform convergence on a subset -/
+private lemma UniformlyConvergesToOn.mono {X Y:Type*} [PseudoMetricSpace Y] (f: ℕ → X → Y) (g: X → Y)
+    {S T : Set X} (hST : S ⊆ T) (hT : UniformlyConvergesToOn f g T) :
+    UniformlyConvergesToOn f g S := by
+  intro ε hε
+  obtain ⟨N, hN⟩ := hT ε hε
+  refine ⟨N, ?_⟩
+  intro n hn x
+  exact hN n hn ⟨x.val, hST x.2⟩
+
+/-- Uniform convergence on a finite union can be combined -/
+private lemma UniformlyConvergesToOn.finite_union {X Y:Type*} [PseudoMetricSpace Y] (f: ℕ → X → Y) (g: X → Y)
+    {ι : Type*} (S : Finset ι) (U : ι → Set X) (hS : ∀ i ∈ S, UniformlyConvergesToOn f g (U i)) :
+    UniformlyConvergesToOn f g (⋃ i : S, U i.val) := by
+  intro ε hε
+  have hN : ∀ i : S, ∃ N, ∀ n ≥ N, ∀ x : U i.val, dist (f n x.val) (g x.val) ≤ ε := by
+    intro i
+    exact hS i.val i.2 ε hε
+  let N : S → ℕ := fun i => Classical.choose (hN i)
+  let M : ℕ := S.attach.sup fun i => N i
+  refine ⟨M, ?_⟩
+  intro n hn x
+  have hxmem : x.val ∈ ⋃ i : S, U i.val := x.2
+  obtain ⟨i, hi⟩ := Set.mem_iUnion.mp hxmem
+  have hNspec : ∀ m ≥ N i, ∀ y : U i.val, dist (f m y.val) (g y.val) ≤ ε :=
+    Classical.choose_spec (hN i)
+  have hni : N i ≤ M := by
+    dsimp [M]
+    exact Finset.le_sup (s := S.attach) (f := fun j => N j) (b := i) (by simp)
+  exact hNspec n (le_trans hni hn) ⟨x.val, hi⟩
+
 /-- Remark 1.3.22 -/
 theorem LocallyUniformlyConvergesTo.iff {d:ℕ} {Y:Type*} [PseudoMetricSpace Y] (f: ℕ → EuclideanSpace' d → Y) (g: EuclideanSpace' d → Y) :
   LocallyUniformlyConvergesTo f g ↔
-  ∀ x₀, ∃ U: Set (EuclideanSpace' d), x₀ ∈ U ∧ IsOpen U ∧ UniformlyConvergesToOn f g U := by sorry
+  ∀ x₀, ∃ U: Set (EuclideanSpace' d), x₀ ∈ U ∧ IsOpen U ∧ UniformlyConvergesToOn f g U := by
+  constructor
+  · intro hf x₀
+    refine ⟨Metric.ball x₀ 1, Metric.mem_ball_self (by norm_num : (1:ℝ) > 0), Metric.isOpen_ball, ?_⟩
+    exact hf (Metric.ball x₀ 1) Metric.isBounded_ball
+  · intro hf K hK
+    have hKcomp : IsCompact (closure K) :=
+      (Metric.isCompact_iff_isClosed_bounded (α := EuclideanSpace' d)).mpr
+        ⟨isClosed_closure, hK.closure⟩
+    let C : Set (EuclideanSpace' d) := closure K
+    let U : C → Set (EuclideanSpace' d) := fun x => Classical.choose (hf x.val)
+    have hU_mem : ∀ x : C, x.val ∈ U x := by
+      intro x
+      exact (Classical.choose_spec (hf x.val)).1
+    have hU_open : ∀ x : C, IsOpen (U x) := by
+      intro x
+      exact (Classical.choose_spec (hf x.val)).2.1
+    have hU_conv : ∀ x : C, UniformlyConvergesToOn f g (U x) := by
+      intro x
+      exact (Classical.choose_spec (hf x.val)).2.2
+    have hcov : C ⊆ ⋃ x : C, U x := by
+      intro x hx
+      exact Set.mem_iUnion.mpr ⟨⟨x, hx⟩, hU_mem ⟨x, hx⟩⟩
+    obtain ⟨t, ht_cov⟩ := hKcomp.elim_finite_subcover (fun x : C => U x) hU_open hcov
+    have hS_conv : ∀ x ∈ t, UniformlyConvergesToOn f g (U x) := by
+      intro x hx
+      exact hU_conv x
+    have hS_union : UniformlyConvergesToOn f g (⋃ x : t, U x.val) :=
+      UniformlyConvergesToOn.finite_union f g t U (by
+        intro x hx
+        exact hU_conv x)
+    have hK_sub : K ⊆ ⋃ x : t, U x.val := by
+      intro x hx
+      have hcov2 : x ∈ ⋃ j ∈ t, U j := ht_cov (subset_closure hx)
+      simp only [Set.mem_iUnion] at hcov2
+      obtain ⟨j, hj, hji⟩ := hcov2
+      exact Set.mem_iUnion.mpr ⟨⟨j, hj⟩, hji⟩
+    exact UniformlyConvergesToOn.mono f g hK_sub hS_union
 
 def LocallyUniformlyConvergesToOn {X Y:Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] (f: ℕ → X → Y) (g: X → Y) (S: Set X): Prop :=
   LocallyUniformlyConvergesTo (fun n (x:S) ↦ f n x.val) (fun x ↦ g x.val)
