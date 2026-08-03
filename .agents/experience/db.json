@@ -566,6 +566,20 @@
       "tactics": "Lebesgue_measure.prod + lift_interval_measure + simple_area_measure via atom refinement + graph_measure_zero + upward MCT",
       "description": "Exercise 1.3.13 complete: region = \u22c3 strips over atoms (min g n); graph of measurable f has measure 0 (NEW graph_measure_zero); TFAE(iv) layer cake g_n \u2191 f; \u03bc(R f) = lim \u03bc(R g_n) = L f",
       "time": "2026-08-03T08:33:48.443445"
+    },
+    {
+      "theorem": "floor_integral_le_tsum",
+      "file": "_temp_eint_upper.lean",
+      "tactics": "sSup_le; rcases simple; integral_eq; measure_le_tsum_cells (outer_measure_union_le_int via Equiv.intEquivNat); cell_sum_le_b (per-cell simple via integral_le_integral_of_aeLe); sum_le_tsum_of_cells (ENNReal: toENNReal_tsum/sum_of_nonneg + tsum_mul_left + tsum_comm + tsum_le_tsum); coe_toENNReal + coe_ennreal_le_coe_ennreal_iff",
+      "description": "UnsignedLebesgueIntegral of |a\u2218floor| \u2264 tsum |a n|: reduce to sSup set, split each simple-function atom over \u2124 cells, per-cell bound via simple-function mono, assemble in ENNReal",
+      "time": "2026-08-03T14:34:14.028688"
+    },
+    {
+      "theorem": "riemann_fix",
+      "file": "_temp_riemann.lean",
+      "tactics": "Filter.tendsto_congr', .mp of pointwise-eq, change e x, simp without Eset/e, have hx' : x.ofLp 0 \u2208 ..., max_eq_right/max_eq_left, sub_eq_add_neg+neg_one_smul",
+      "description": "Fixed 12 errors in _temp_riemann.lean to compile clean",
+      "time": "2026-08-03T17:03:41.109467"
     }
   ],
   "errors": [

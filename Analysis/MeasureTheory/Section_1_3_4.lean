@@ -1759,10 +1759,10 @@ lemma tag_mem_I {I : BoundedInterval} (hI : I = Icc I.a I.b) {n : ℕ} (P : Tagg
 /-- Every bounded interval is measurable. -/
 lemma interval_measurable (J : BoundedInterval) : MeasurableSet (J : Set ℝ) := by
   cases J with
-  | Ioo a b => simpa using (measurableSet_Ioo : MeasurableSet (Set.Ioo a b))
-  | Icc a b => simpa using (measurableSet_Icc : MeasurableSet (Set.Icc a b))
-  | Ioc a b => simpa using (measurableSet_Ioc : MeasurableSet (Set.Ioc a b))
-  | Ico a b => simpa using (measurableSet_Ico : MeasurableSet (Set.Ico a b))
+  | Ioo a b => simp
+  | Icc a b => simp
+  | Ioc a b => simp
+  | Ico a b => simp
 
 /-- The volume (as a real) of the i-th subinterval equals its length delta. -/
 lemma subinterval_vol {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) (i : Fin n) :
@@ -1823,7 +1823,7 @@ lemma iUnion_Ico_partition {n : ℕ} (x : Fin (n+1) → ℝ) (hx : StrictMono x)
         have hk_le : k ≤ (i.castSucc : Fin (n+1)) := Finset.min'_le _ _ hmem
         have h_val : k.val = i.val + 1 := by
           have hvi : i.succ.val = i.val + 1 := by simp
-          have hkv : k.val = i.succ.val := by simpa [hi] using rfl
+          have hkv : k.val = i.succ.val := by simp [hi]
           rw [hvi] at hkv
           exact hkv
         have h_cast : (i.castSucc : Fin (n+1)).val = i.val := by simp
@@ -1849,7 +1849,7 @@ lemma partition_point_count_le_two {n : ℕ} (x : Fin (n+1) → ℝ) (hx : Stric
       intro i hi
       by_contra! hgt
       have hlt : (S.min' hS).succ < i.castSucc := by
-        rw [Fin.lt_iff_val_lt_val]
+        rw [Fin.lt_def]
         simp
         omega
       have hmono : x (S.min' hS).succ < x i.castSucc := hx hlt
@@ -1880,7 +1880,7 @@ lemma partition_point_count_le_two {n : ℕ} (x : Fin (n+1) → ℝ) (hx : Stric
         ((Finset.univ : Finset (Fin n)).filter (fun i => i.val = m)) ∪
         ((Finset.univ : Finset (Fin n)).filter (fun i => i.val = m + 1)) := by
       ext i
-      simp [Finset.mem_filter, Finset.mem_union, or_assoc, or_left_comm]
+      simp [Finset.mem_filter, Finset.mem_union]
     have htotal : ((Finset.univ : Finset (Fin n)).filter (fun i => i.val = m ∨ i.val = m + 1)).card ≤ 2 := by
       rw [hsplit]
       exact le_trans (Finset.card_union_le _ _) (by omega)
@@ -2150,7 +2150,7 @@ lemma pcf_sum_conv {I : BoundedInterval} (g : PiecewiseConstantFunction I) (F : 
 
 /-- Stripping the membership guard in a sum over g.T. -/
 lemma pcf_sum_conv' {I : BoundedInterval} (g : PiecewiseConstantFunction I) (F : BoundedInterval → ℝ) :
-    (∑ J ∈ g.T, (if hJ : J ∈ g.T then F J else 0)) = ∑ J ∈ g.T, F J := by
+    (∑ J ∈ g.T, (if _hJ : J ∈ g.T then F J else 0)) = ∑ J ∈ g.T, F J := by
   apply Finset.sum_congr rfl
   intro J hJ
   rw [dif_pos hJ]
@@ -2943,7 +2943,7 @@ theorem RiemannIntegrableOn.realAbsolutelyIntegrable {I: BoundedInterval} {f: �
       · intro hx
         rcases hx with ⟨y, hy, hxy⟩
         have : e (Real.equiv_EuclideanSpace' y) = y := by
-          simpa [e] using (Equiv.apply_symm_apply EuclideanSpace'.equiv_Real y)
+          simp [e]
         have hxeq : e x = y := by
           rw [← hxy]
           exact this
@@ -3009,7 +3009,7 @@ theorem RiemannIntegrableOn.realAbsolutelyIntegrable {I: BoundedInterval} {f: �
       · rw [Set.indicator'_of_notMem hx]
         have : |f (e x) * 0| = 0 := by simp
         rw [this]
-        simp [hM0]
+        simp
     have hmono := LowerUnsignedLebesgueIntegral.mono (realMeasurable_abs_um hmeas) hT_um
       (AlmostAlways.ofAlways hle)
     exact lt_of_le_of_lt hmono hT_lt
@@ -3068,13 +3068,13 @@ theorem RiemannIntegral.eq_integ {I: BoundedInterval} {f: ℝ → ℝ} (hf: Riem
     funext x
     dsimp [p, n]
     rw [sub_eq_add_neg]
-    simp [neg_one_smul]
+    simp
   have hpn_int : riemannIntegral (p - n) I = riemannIntegral p I - riemannIntegral n I := by
     rw [hpn]
     have h1 := riemann_integral_add' hp (RiemannIntegrableOn.smul (-1) hn)
     have h2 := riemann_integral_smul' (-1) hn
     rw [h1, h2]
-    simp [neg_one_smul]
+    simp
     ring
   calc
     riemannIntegral f I = riemannIntegral (p - n) I := riemannIntegral_congr (congrFun hfn)
@@ -3198,11 +3198,11 @@ lemma RealMeasurable.floor {a : ℤ → ℝ} : RealMeasurable (fun x => a ⌊Euc
             have hxm : x ∈ cell m := by
               show ⌊EuclideanSpace'.equiv_Real x⌋ = m
               rfl
-            simp [Pi.smul_apply, smul_eq_mul, Set.indicator'_of_mem hxm]
+            simp [smul_eq_mul, Set.indicator'_of_mem hxm]
           · have hx' : x ∉ cell n := by
               intro hx
               exact hnm (hx.symm.trans (by rfl : ⌊EuclideanSpace'.equiv_Real x⌋ = m))
-            simp [Pi.smul_apply, smul_eq_mul, Set.indicator'_of_notMem hx', hnm]
+            simp [smul_eq_mul, Set.indicator'_of_notMem hx', hnm]
         rw [Finset.sum_congr rfl (fun n hn => h_term n)]
         simp [hmem]
       simpa [g, Finset.sum_apply] using h_sum
@@ -3241,11 +3241,11 @@ lemma ComplexMeasurable.floor {a : ℤ → ℂ} : ComplexMeasurable (fun x => a 
             have hxm : x ∈ cell m := by
               show ⌊EuclideanSpace'.equiv_Real x⌋ = m
               rfl
-            simp [Pi.smul_apply, smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxm]
+            simp [smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxm]
           · have hx' : x ∉ cell n := by
               intro hx
               exact hnm (hx.symm.trans (by rfl : ⌊EuclideanSpace'.equiv_Real x⌋ = m))
-            simp [Pi.smul_apply, smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx', hnm]
+            simp [smul_eq_mul, Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx', hnm]
         rw [Finset.sum_congr rfl (fun n hn => h_term n)]
         simp [hmem]
       simpa [g, Finset.sum_apply] using h_sum
@@ -3313,13 +3313,13 @@ lemma EReal.tsum_eq_ennreal_of_nonneg {α : Type*} {f : α → EReal} (hf : ∀ 
       }
       exact (Summable.map_tsum (f := fun a => (f a).toENNReal) ENNReal.summable φ continuous_coe_ennreal_ereal).symm
 
-/-- `toENNReal` commutes with tsums of nonneg EReals. -/
+/-- {name}`toENNReal` commutes with tsums of nonneg EReal values. -/
 lemma EReal.toENNReal_tsum_of_nonneg {α : Type*} {f : α → EReal} (hf : ∀ a, 0 ≤ f a) :
     (∑' a, f a).toENNReal = ∑' a, (f a).toENNReal := by
   rw [EReal.tsum_eq_ennreal_of_nonneg hf]
   exact EReal.toENNReal_coe
 
-/-- `toENNReal` commutes with finite sums of nonneg EReals. -/
+/-- {name}`toENNReal` commutes with finite sums of nonneg EReal values. -/
 lemma EReal.toENNReal_sum_of_nonneg {α : Type*} (s : Finset α) {f : α → EReal}
     (hf : ∀ a ∈ s, 0 ≤ f a) : (∑ a ∈ s, f a).toENNReal = ∑ a ∈ s, (f a).toENNReal := by
   classical
@@ -3355,9 +3355,9 @@ lemma measure_le_tsum_cells {E : Set (EuclideanSpace' 1)} :
     _ = ∑' n, Lebesgue_measure (E ∩ cell n) := by
       simp [Lebesgue_measure]
 
-/-- For each unit cell `cell n`, the simple-function contribution restricted to that cell
-    is at most `|a n|` (since the simple function is ≤ |a∘floor| pointwise, and on the cell
-    the floor equals `n`). -/
+/-- For each unit cell {lit}`cell n`, the simple-function contribution restricted to that
+    cell is at most {lit}`|a n|` (since the simple function is ≤ |a∘floor| pointwise, and
+    on the cell the floor equals {lit}`n`). -/
 lemma cell_sum_le_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n) {k : ℕ} {c : Fin k → EReal} {E : Fin k → Set (EuclideanSpace' 1)}
     (hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0)
     (hg_le : ∀ x, (∑ i, c i • EReal.indicator (E i) x) ≤ (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) :
@@ -3431,9 +3431,9 @@ lemma cell_sum_le_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n) {k : ℕ} {c : Fin
     _ ≤ hu_n.integ := h_integ_le
     _ = (b n).toEReal := hu_n_integ
 
-/-- Assemble: the finite sum `∑ i, c i * measure (E i)` is bounded by `∑' n, b n`,
-    using the measure-vs-cells split and the per-cell bound. All work is done in ENNReal
-    where tsum manipulation is unconditional. -/
+/-- Assemble: the finite sum {lit}`∑ i, c i * measure (E i)` is bounded by
+    {lit}`∑' n, b n`, using the measure-vs-cells split and the per-cell bound. All work is
+    done in ENNReal where tsum manipulation is unconditional. -/
 lemma sum_le_tsum_of_cells {b : ℤ → EReal} (hb : ∀ n, 0 ≤ b n)
     {k : ℕ} {c : Fin k → EReal} (hc : ∀ i, 0 ≤ c i)
     {E : Fin k → Set (EuclideanSpace' 1)}
@@ -4003,7 +4003,7 @@ lemma AlmostEverywhereEqual.comp {d:ℕ} {X Y : Type*} {f g : EuclideanSpace' d 
   unfold AlmostEverywhereEqual at *
   exact AlmostAlways.mp h (fun x hx => congrArg φ hx)
 
-/-- A `PreL1` element whose norm-distance to another is zero has almost everywhere equal functions. -/
+/-- A {lean}`PreL1` element whose norm-distance to another is zero has almost everywhere equal functions. -/
 lemma PreL1.ae_of_dist_eq_zero {d:ℕ} {F G : PreL1 d} (h : dist F G = 0) : AlmostEverywhereEqual F.f G.f := by
   have hd : dist (SeparationQuotient.mk F : L1 d) (SeparationQuotient.mk G) = 0 := by
     rwa [SeparationQuotient.dist_mk]
@@ -4203,7 +4203,7 @@ def ComplexAbsolutelyIntegrableOn.restrict {d:ℕ} {f: EuclideanSpace' d → ℂ
   rw [hfun]
   exact hf.mul_indicator hF
 
-def ComplexAbsolutelyIntegrableOn.mono {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E): ComplexAbsolutelyIntegrableOn f F := by
+def ComplexAbsolutelyIntegrableOn.mono {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (_hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E): ComplexAbsolutelyIntegrableOn f F := by
   change ComplexAbsolutelyIntegrable (f * Complex.indicator F)
   have hfun : f * Complex.indicator F = (f * Complex.indicator E) * Complex.indicator F := by
     funext x

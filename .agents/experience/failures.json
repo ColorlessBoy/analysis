@@ -1583,6 +1583,60 @@
       "status": "success",
       "notes": "eq_area done \u2014 file has ZERO sorries",
       "end": "2026-08-03T08:33:48.476563"
+    },
+    {
+      "id": 98,
+      "theorem": "floor_integral_le_tsum",
+      "file": "_temp_eint_upper.lean",
+      "goal": "Prove UnsignedLebesgueIntegral of |a\u2218floor| \u2264 tsum of |a n| via sSup + cell partition",
+      "start": "2026-08-03T14:18:54.050333",
+      "attempts": [
+        {
+          "edit": "final",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all helpers + main proof compile",
+          "time": "2026-08-03T14:34:06.546249"
+        }
+      ],
+      "status": "success",
+      "notes": "sSup_le + cell partition + ENNReal tsum machinery",
+      "end": "2026-08-03T14:34:06.511949"
+    },
+    {
+      "id": 99,
+      "theorem": "riemann_realAbsEqInteg",
+      "file": "_temp_riemann.lean",
+      "goal": "prove realAbsolutelyIntegrable + eq_integ",
+      "start": "2026-08-03T14:50:36.890290",
+      "attempts": [
+        {
+          "edit": "pcf_RiemannSum_close compiles",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "boundary lemma done",
+          "time": "2026-08-03T16:16:08.030348"
+        },
+        {
+          "edit": "RiemannIntegrableOn.abs compiles",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "abs integrability done",
+          "time": "2026-08-03T16:28:23.101431"
+        }
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": 100,
+      "theorem": "riemann_fix",
+      "file": "_temp_riemann.lean",
+      "goal": "fix all remaining errors in _temp_riemann.lean",
+      "start": "2026-08-03T16:44:07.936198",
+      "attempts": [],
+      "status": "success",
+      "notes": "all errors fixed; file compiles with 0 errors",
+      "end": "2026-08-03T17:03:41.070294"
     }
   ]
 }
