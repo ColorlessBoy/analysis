@@ -1104,18 +1104,171 @@ theorem ComplexAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d �
   rw [RealAbsolutelyIntegrable.integ_trans (hf := hf.re) (a := a),
       RealAbsolutelyIntegrable.integ_trans (hf := hf.im) (a := a)]
 
-/-- Exercise 1.3.20(ii) (Linear change of variables). -/
+/-- Precomposing a real simple function with an invertible linear map gives a real simple function. -/
+lemma RealSimpleFunction.comp_linear {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealSimpleFunction f)
+    {A : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA : A.det ≠ 0) :
+    RealSimpleFunction (fun x => f (A x)) := by
+  obtain ⟨k, c, E, hmes, heq⟩ := hf
+  have hA_inj : Function.Injective A := by
+    have hker : LinearMap.ker A = ⊥ := by
+      by_contra hne
+      exact hA ((LinearMap.det_eq_zero_iff_ker_ne_bot).mpr hne)
+    exact LinearMap.ker_eq_bot.mp hker
+  let T := LinearEquiv.ofInjectiveEndo A hA_inj
+  have hTx : ∀ x, T x = A x := fun x => by
+    simp [T]
+  use k, c, fun i => T.symm '' (E i)
+  constructor
+  · intro i
+    exact LebesgueMeasurable.linear T.symm (hmes i)
+  · rw [heq]
+    funext x
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hx : A x ∈ E i
+    · rw [Set.indicator'_of_mem hx]
+      have hx' : x ∈ T.symm '' (E i) := by
+        exact (Set.mem_image T.symm (E i) x).mpr ⟨A x, hx, by
+          rw [← hTx x]
+          exact T.symm_apply_apply x⟩
+      rw [Set.indicator'_of_mem hx']
+    · rw [Set.indicator'_of_notMem hx]
+      rw [Set.indicator'_of_notMem]
+      intro hx'
+      rcases (Set.mem_image T.symm (E i) x).mp hx' with ⟨y, hy, hy_eq⟩
+      apply hx
+      rw [← hTx x]
+      rw [← hy_eq]
+      rw [T.apply_symm_apply y]
+      exact hy
+
+/-- Precomposing a complex simple function with an invertible linear map gives a complex simple function. -/
+lemma ComplexSimpleFunction.comp_linear {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexSimpleFunction f)
+    {A : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA : A.det ≠ 0) :
+    ComplexSimpleFunction (fun x => f (A x)) := by
+  obtain ⟨k, c, E, hmes, heq⟩ := hf
+  have hA_inj : Function.Injective A := by
+    have hker : LinearMap.ker A = ⊥ := by
+      by_contra hne
+      exact hA ((LinearMap.det_eq_zero_iff_ker_ne_bot).mpr hne)
+    exact LinearMap.ker_eq_bot.mp hker
+  let T := LinearEquiv.ofInjectiveEndo A hA_inj
+  have hTx : ∀ x, T x = A x := fun x => by
+    simp [T]
+  use k, c, fun i => T.symm '' (E i)
+  constructor
+  · intro i
+    exact LebesgueMeasurable.linear T.symm (hmes i)
+  · rw [heq]
+    funext x
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hx : A x ∈ E i
+    · have hx' : x ∈ T.symm '' (E i) := by
+        exact (Set.mem_image T.symm (E i) x).mpr ⟨A x, hx, by
+          rw [← hTx x]
+          exact T.symm_apply_apply x⟩
+      rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx,
+          Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx']
+    · rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx]
+      rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem]
+      intro hx'
+      rcases (Set.mem_image T.symm (E i) x).mp hx' with ⟨y, hy, hy_eq⟩
+      apply hx
+      rw [← hTx x]
+      rw [← hy_eq]
+      rw [T.apply_symm_apply y]
+      exact hy
+
+/-- Real measurability is preserved under precomposition with an invertible linear map. -/
+lemma RealMeasurable.comp_linear {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealMeasurable f)
+    {A : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA : A.det ≠ 0) :
+    RealMeasurable (fun x => f (A x)) := by
+  obtain ⟨g, hg_simple, hg_conv⟩ := hf
+  use fun n => fun x => g n (A x)
+  constructor
+  · intro n; exact RealSimpleFunction.comp_linear (hg_simple n) hA
+  · intro x
+    simpa using (hg_conv (A x))
+
+/-- Complex measurability is preserved under precomposition with an invertible linear map. -/
+lemma ComplexMeasurable.comp_linear {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexMeasurable f)
+    {A : EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA : A.det ≠ 0) :
+    ComplexMeasurable (fun x => f (A x)) := by
+  obtain ⟨g, hg_simple, hg_conv⟩ := hf
+  use fun n => fun x => g n (A x)
+  constructor
+  · intro n; exact ComplexSimpleFunction.comp_linear (hg_simple n) hA
+  · intro x
+    simpa using (hg_conv (A x))
+
+/-- Exercise 1.3.20 (Linear change of variables)-/
 theorem RealAbsolutelyIntegrable.comp_linear {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) {A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA: A.det ≠ 0) :
-    RealAbsolutelyIntegrable (fun x ↦ f (A x)) := by sorry
+    RealAbsolutelyIntegrable (fun x ↦ f (A x)) := by
+  constructor
+  · exact hf.1.comp_linear hA
+  · rw [show EReal.abs_fun (fun x ↦ f (A x)) = fun x => EReal.abs_fun f (A x) by rfl]
+    rw [UnsignedLebesgueIntegral.comp_linear (hf.abs.1) A hA]
+    have hdet_pos : 0 < |A.det|⁻¹ := inv_pos.mpr (abs_pos.mpr hA)
+    have h_ne_top : (|A.det|⁻¹ : ℝ).toEReal * UnsignedLebesgueIntegral (EReal.abs_fun f) ≠ ⊤ := by
+      rw [EReal.mul_ne_top]
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · left; exact EReal.coe_ne_bot (|A.det|⁻¹)
+      · left; exact le_of_lt (EReal.coe_pos.mpr hdet_pos)
+      · left; exact EReal.coe_ne_top (|A.det|⁻¹)
+      · right; exact hf.2.ne_top
+    exact Ne.lt_top h_ne_top
 
 theorem RealAbsolutelyIntegrable.integ_comp_linear {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) {A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA: A.det ≠ 0) :
-    (hf.comp_linear hA).integ = |A.det|⁻¹ * hf.integ := by sorry
+    (hf.comp_linear hA).integ = |A.det|⁻¹ * hf.integ := by
+  have h_pos_eq : (UnsignedLebesgueIntegral (EReal.pos_fun (fun x ↦ f (A x)))).toReal = |A.det|⁻¹ * (UnsignedLebesgueIntegral (EReal.pos_fun f)).toReal := by
+    rw [show EReal.pos_fun (fun x ↦ f (A x)) = fun x => EReal.pos_fun f (A x) by rfl]
+    rw [UnsignedLebesgueIntegral.comp_linear (hf.pos.1) A hA]
+    rw [EReal.toReal_mul, EReal.toReal_coe]
+    rfl
+  have h_neg_eq : (UnsignedLebesgueIntegral (EReal.neg_fun (fun x ↦ f (A x)))).toReal = |A.det|⁻¹ * (UnsignedLebesgueIntegral (EReal.neg_fun f)).toReal := by
+    rw [show EReal.neg_fun (fun x ↦ f (A x)) = fun x => EReal.neg_fun f (A x) by rfl]
+    rw [UnsignedLebesgueIntegral.comp_linear (hf.neg.1) A hA]
+    rw [EReal.toReal_mul, EReal.toReal_coe]
+    rfl
+  simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ]
+  rw [h_pos_eq, h_neg_eq]
+  ring
 
 theorem ComplexAbsolutelyIntegrable.comp_linear {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) {A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA: A.det ≠ 0) :
-    ComplexAbsolutelyIntegrable (fun x ↦ f (A x)) := by sorry
+    ComplexAbsolutelyIntegrable (fun x ↦ f (A x)) := by
+  constructor
+  · exact hf.1.comp_linear hA
+  · rw [show EReal.abs_fun (fun x ↦ f (A x)) = fun x => EReal.abs_fun f (A x) by rfl]
+    rw [UnsignedLebesgueIntegral.comp_linear (hf.abs.1) A hA]
+    have hdet_pos : 0 < |A.det|⁻¹ := inv_pos.mpr (abs_pos.mpr hA)
+    have h_ne_top : (|A.det|⁻¹ : ℝ).toEReal * UnsignedLebesgueIntegral (EReal.abs_fun f) ≠ ⊤ := by
+      rw [EReal.mul_ne_top]
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · left; exact EReal.coe_ne_bot (|A.det|⁻¹)
+      · left; exact le_of_lt (EReal.coe_pos.mpr hdet_pos)
+      · left; exact EReal.coe_ne_top (|A.det|⁻¹)
+      · right; exact hf.2.ne_top
+    exact Ne.lt_top h_ne_top
 
 theorem ComplexAbsolutelyIntegrable.integ_comp_linear {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) {A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA: A.det ≠ 0) :
-    (hf.comp_linear hA).integ = |A.det|⁻¹ * hf.integ := by sorry
+    (hf.comp_linear hA).integ = |A.det|⁻¹ * hf.integ := by
+  have hre_fun : Complex.re_fun (fun x => f (A x)) = (fun x => Complex.re_fun f (A x)) := rfl
+  have him_fun : Complex.im_fun (fun x => f (A x)) = (fun x => Complex.im_fun f (A x)) := rfl
+  have h_re_eq : (hf.comp_linear hA).re.integ = (hf.re.comp_linear hA).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, hre_fun]
+  have h_im_eq : (hf.comp_linear hA).im.integ = (hf.im.comp_linear hA).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, him_fun]
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  rw [h_re_eq, h_im_eq]
+  rw [RealAbsolutelyIntegrable.integ_comp_linear (hf := hf.re) (hA := hA),
+      RealAbsolutelyIntegrable.integ_comp_linear (hf := hf.im) (hA := hA)]
+  rw [Complex.ofReal_mul, Complex.ofReal_mul]
+  ring
 
 /-- Exercise 1.3.20(iii) (Compatibility with the Riemann integral). -/
 theorem RiemannIntegrableOn.realAbsolutelyIntegrable {I: BoundedInterval} {f: ℝ → ℝ} (hf: RiemannIntegrableOn f I) : RealAbsolutelyIntegrable ((fun x ↦ (f x) * (I.toSet.indicator' x)) ∘ EuclideanSpace'.equiv_Real) := by sorry
