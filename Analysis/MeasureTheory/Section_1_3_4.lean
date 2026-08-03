@@ -1,5 +1,7 @@
 import Analysis.MeasureTheory.Section_1_3_3
 
+open scoped Pointwise
+
 /-!
 # Introduction to Measure Theory, Section 1.3.4: Absolute integrability
 
@@ -985,14 +987,122 @@ theorem L1.dist_eq_zero {d:ℕ} (f g: EuclideanSpace' d → ℂ) (hf: ComplexAbs
       exact sub_eq_zero.mp (norm_eq_zero.mp h_norm_zero)
   rw [h_sets_eq]
 
+/-- Precomposing a real simple function with a translation gives a real simple function. -/
+lemma RealSimpleFunction.translate {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealSimpleFunction f) (a : EuclideanSpace' d) :
+    RealSimpleFunction (fun x => f (x + a)) := by
+  obtain ⟨k, c, E, hmes, heq⟩ := hf
+  use k, c, fun i => E i + ({(-a)} : Set (EuclideanSpace' d))
+  constructor
+  · intro i
+    exact (LebesgueMeasurable.translate (E i) (-a)).mp (hmes i)
+  · rw [heq]
+    funext x
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hx : x + a ∈ E i
+    · rw [Set.indicator'_of_mem hx]
+      have hx' : x ∈ E i + ({(-a)} : Set (EuclideanSpace' d)) :=
+        Set.mem_add.mpr ⟨x + a, hx, -a, Set.mem_singleton (-a), by abel⟩
+      rw [Set.indicator'_of_mem hx']
+    · rw [Set.indicator'_of_notMem hx]
+      rw [Set.indicator'_of_notMem]
+      intro hx'
+      rcases Set.mem_add.mp hx' with ⟨e, he, t, ht, heq'⟩
+      have ht' : t = -a := Set.mem_singleton_iff.mp ht
+      apply hx
+      rw [← heq', ht']
+      rw [show (e + (-a)) + a = e from by abel]
+      exact he
+
+/-- Precomposing a complex simple function with a translation gives a complex simple function. -/
+lemma ComplexSimpleFunction.translate {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexSimpleFunction f) (a : EuclideanSpace' d) :
+    ComplexSimpleFunction (fun x => f (x + a)) := by
+  obtain ⟨k, c, E, hmes, heq⟩ := hf
+  use k, c, fun i => E i + ({(-a)} : Set (EuclideanSpace' d))
+  constructor
+  · intro i
+    exact (LebesgueMeasurable.translate (E i) (-a)).mp (hmes i)
+  · rw [heq]
+    funext x
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hx : x + a ∈ E i
+    · have hx' : x ∈ E i + ({(-a)} : Set (EuclideanSpace' d)) :=
+        Set.mem_add.mpr ⟨x + a, hx, -a, Set.mem_singleton (-a), by abel⟩
+      rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx,
+          Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx']
+    · rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx]
+      rw [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem]
+      intro hx'
+      rcases Set.mem_add.mp hx' with ⟨e, he, t, ht, heq'⟩
+      have ht' : t = -a := Set.mem_singleton_iff.mp ht
+      apply hx
+      rw [← heq', ht']
+      rw [show (e + (-a)) + a = e from by abel]
+      exact he
+
+/-- Real measurability is preserved under precomposition with a translation. -/
+lemma RealMeasurable.translate {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealMeasurable f) (a : EuclideanSpace' d) :
+    RealMeasurable (fun x => f (x + a)) := by
+  obtain ⟨g, hg_simple, hg_conv⟩ := hf
+  use fun n => fun x => g n (x + a)
+  constructor
+  · intro n; exact RealSimpleFunction.translate (hg_simple n) a
+  · intro x
+    simpa using (hg_conv (x + a))
+
+/-- Complex measurability is preserved under precomposition with a translation. -/
+lemma ComplexMeasurable.translate {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexMeasurable f) (a : EuclideanSpace' d) :
+    ComplexMeasurable (fun x => f (x + a)) := by
+  obtain ⟨g, hg_simple, hg_conv⟩ := hf
+  use fun n => fun x => g n (x + a)
+  constructor
+  · intro n; exact ComplexSimpleFunction.translate (hg_simple n) a
+  · intro x
+    simpa using (hg_conv (x + a))
+
 /-- Exercise 1.3.20 (Translation invariance)-/
-theorem RealAbsolutelyIntegrable.trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : RealAbsolutelyIntegrable (fun x ↦ f (x + a)) := by sorry
+theorem RealAbsolutelyIntegrable.trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : RealAbsolutelyIntegrable (fun x ↦ f (x + a)) := by
+  constructor
+  · exact hf.1.translate a
+  · rw [show EReal.abs_fun (fun x ↦ f (x + a)) = fun x => EReal.abs_fun f (x + a) by rfl]
+    rw [UnsignedLebesgueIntegral.trans (hf.abs.1) a]
+    exact hf.2
 
-theorem RealAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : (hf.trans a).integ = hf.integ  := by sorry
+theorem RealAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) (a: EuclideanSpace' d) : (hf.trans a).integ = hf.integ  := by
+  have h_pos_eq : (UnsignedLebesgueIntegral (EReal.pos_fun (fun x ↦ f (x + a)))).toReal = (UnsignedLebesgueIntegral (EReal.pos_fun f)).toReal := by
+    rw [show EReal.pos_fun (fun x ↦ f (x + a)) = fun x => EReal.pos_fun f (x + a) by rfl]
+    rw [UnsignedLebesgueIntegral.trans (hf.pos.1) a]
+    rfl
+  have h_neg_eq : (UnsignedLebesgueIntegral (EReal.neg_fun (fun x ↦ f (x + a)))).toReal = (UnsignedLebesgueIntegral (EReal.neg_fun f)).toReal := by
+    rw [show EReal.neg_fun (fun x ↦ f (x + a)) = fun x => EReal.neg_fun f (x + a) by rfl]
+    rw [UnsignedLebesgueIntegral.trans (hf.neg.1) a]
+    rfl
+  simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ]
+  rw [h_pos_eq, h_neg_eq]
 
-theorem ComplexAbsolutelyIntegrable.trans {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) (a: EuclideanSpace' d) : ComplexAbsolutelyIntegrable (fun x ↦ f (x + a)) := by sorry
+theorem ComplexAbsolutelyIntegrable.trans {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) (a: EuclideanSpace' d) : ComplexAbsolutelyIntegrable (fun x ↦ f (x + a)) := by
+  constructor
+  · exact hf.1.translate a
+  · rw [show EReal.abs_fun (fun x ↦ f (x + a)) = fun x => EReal.abs_fun f (x + a) by rfl]
+    rw [UnsignedLebesgueIntegral.trans (hf.abs.1) a]
+    exact hf.2
 
-theorem ComplexAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) (a: EuclideanSpace' d) : (hf.trans a).integ = hf.integ  := by sorry
+theorem ComplexAbsolutelyIntegrable.integ_trans {d:ℕ} {f: EuclideanSpace' d → ℂ} (hf: ComplexAbsolutelyIntegrable f) (a: EuclideanSpace' d) : (hf.trans a).integ = hf.integ  := by
+  have hre_fun : Complex.re_fun (fun x => f (x + a)) = (fun x => Complex.re_fun f (x + a)) := rfl
+  have him_fun : Complex.im_fun (fun x => f (x + a)) = (fun x => Complex.im_fun f (x + a)) := rfl
+  have h_re_eq : (hf.trans a).re.integ = (hf.re.trans a).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, hre_fun]
+  have h_im_eq : (hf.trans a).im.integ = (hf.im.trans a).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, him_fun]
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  rw [h_re_eq, h_im_eq]
+  rw [RealAbsolutelyIntegrable.integ_trans (hf := hf.re) (a := a),
+      RealAbsolutelyIntegrable.integ_trans (hf := hf.im) (a := a)]
 
 /-- Exercise 1.3.20(ii) (Linear change of variables). -/
 theorem RealAbsolutelyIntegrable.comp_linear {d:ℕ} {f: EuclideanSpace' d → ℝ} (hf: RealAbsolutelyIntegrable f) {A: EuclideanSpace' d →ₗ[ℝ] EuclideanSpace' d} (hA: A.det ≠ 0) :
