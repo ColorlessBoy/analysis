@@ -1281,23 +1281,6 @@ theorem AbsolutelySummable.realAbsolutelyIntegrable_iff {a: ℤ → ℝ} : ∑' 
 
 theorem AbsolutelySummable.complexAbsolutelyIntegrable_iff {a: ℤ → ℂ} : ∑' n, ‖a n‖.toEReal < ⊤ ↔ ComplexAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by sorry
 
-def ComplexAbsolutelyIntegrableOn {d:ℕ} (f: EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)) : Prop := ComplexAbsolutelyIntegrable (f * Complex.indicator E)
-
-noncomputable def ComplexAbsolutelyIntegrableOn.integ {d:ℕ} {f: EuclideanSpace' d → ℂ} {E: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) : ℂ :=
-  ComplexAbsolutelyIntegrable.integ hf
-
-/-- Exercise 1.3.22 -/
-theorem ComplexAbsolutelyIntegrableOn.glue {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)}
-    (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hdisj: Disjoint E F)
-    (hf: ComplexAbsolutelyIntegrableOn f (E ∪ F)) :
-    ∃ hE : ComplexAbsolutelyIntegrableOn f E, ∃ hF: ComplexAbsolutelyIntegrableOn f F, hf.integ = hE.integ + hF.integ := by sorry
-
-def ComplexAbsolutelyIntegrableOn.restrict {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (hF: LebesgueMeasurable F): ComplexAbsolutelyIntegrableOn (f * Complex.indicator F) E := by sorry
-
-def ComplexAbsolutelyIntegrableOn.mono {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E): ComplexAbsolutelyIntegrableOn f F := by sorry
-
-theorem ComplexAbsolutelyIntegrableOn.integ_restrict {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E) (hf: ComplexAbsolutelyIntegrableOn f E) : (hf.mono hE hF hsub).integ = (hf.restrict hF).integ:= by sorry
-
 /-- Lemma 1.3.19 (Triangle inequality) -/
 
 -- Helper: |∫f| ≤ ∫|f| for real absolutely integrable functions
@@ -1532,6 +1515,30 @@ lemma RealAbsolutelyIntegrable.integ_add' {d:ℕ} {f g: EuclideanSpace' d → �
 
   linarith
 
+lemma ComplexAbsolutelyIntegrable.integ_add {d:ℕ} {f g : EuclideanSpace' d → ℂ}
+    (hf : ComplexAbsolutelyIntegrable f) (hg : ComplexAbsolutelyIntegrable g) :
+    (hf.add hg).integ = hf.integ + hg.integ := by
+  simp only [ComplexAbsolutelyIntegrable.integ]
+  have h_re_fun : Complex.re_fun (f + g) = Complex.re_fun f + Complex.re_fun g := by
+    funext x
+    simp only [Complex.re_fun, Pi.add_apply]
+    rw [Complex.add_re]
+  have h_im_fun : Complex.im_fun (f + g) = Complex.im_fun f + Complex.im_fun g := by
+    funext x
+    simp only [Complex.im_fun, Pi.add_apply]
+    rw [Complex.add_im]
+  have h_re_integ : (hf.add hg).re.integ = (hf.re.add hg.re).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_re_fun]
+  have h_im_integ : (hf.add hg).im.integ = (hf.im.add hg.im).integ := by
+    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_im_fun]
+  rw [h_re_integ, h_im_integ]
+  rw [RealAbsolutelyIntegrable.integ_add' (hf := hf.re) (hg := hg.re),
+      RealAbsolutelyIntegrable.integ_add' (hf := hf.im) (hg := hg.im)]
+  rw [Complex.ofReal_add, Complex.ofReal_add]
+  ring
+
+/-- Conjugation commutes with the complex Lebesgue integral. -/
+
 -- Helper: subtraction linearity for real integral
 lemma RealAbsolutelyIntegrable.integ_sub' {d:ℕ} {f g: EuclideanSpace' d → ℝ}
     (hf: RealAbsolutelyIntegrable f) (hg: RealAbsolutelyIntegrable g) :
@@ -1649,29 +1656,6 @@ lemma ComplexAbsolutelyIntegrable.integ_of_aeEqual {d:ℕ} {f g : EuclideanSpace
   rw [h_re_eq, h_im_eq]
 
 /-- Additivity of the complex Lebesgue integral. -/
-lemma ComplexAbsolutelyIntegrable.integ_add {d:ℕ} {f g : EuclideanSpace' d → ℂ}
-    (hf : ComplexAbsolutelyIntegrable f) (hg : ComplexAbsolutelyIntegrable g) :
-    (hf.add hg).integ = hf.integ + hg.integ := by
-  simp only [ComplexAbsolutelyIntegrable.integ]
-  have h_re_fun : Complex.re_fun (f + g) = Complex.re_fun f + Complex.re_fun g := by
-    funext x
-    simp only [Complex.re_fun, Pi.add_apply]
-    rw [Complex.add_re]
-  have h_im_fun : Complex.im_fun (f + g) = Complex.im_fun f + Complex.im_fun g := by
-    funext x
-    simp only [Complex.im_fun, Pi.add_apply]
-    rw [Complex.add_im]
-  have h_re_integ : (hf.add hg).re.integ = (hf.re.add hg.re).integ := by
-    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_re_fun]
-  have h_im_integ : (hf.add hg).im.integ = (hf.im.add hg.im).integ := by
-    simp only [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ, h_im_fun]
-  rw [h_re_integ, h_im_integ]
-  rw [RealAbsolutelyIntegrable.integ_add' (hf := hf.re) (hg := hg.re),
-      RealAbsolutelyIntegrable.integ_add' (hf := hf.im) (hg := hg.im)]
-  rw [Complex.ofReal_add, Complex.ofReal_add]
-  ring
-
-/-- Conjugation commutes with the complex Lebesgue integral. -/
 lemma ComplexAbsolutelyIntegrable.integ_conj {d:ℕ} {f : EuclideanSpace' d → ℂ}
     (hf : ComplexAbsolutelyIntegrable f) : hf.conj.integ = starRingEnd ℂ hf.integ := by
   have h_pt_re : Complex.re_fun (Complex.conj_fun f) = Complex.re_fun f := by
@@ -1728,6 +1712,132 @@ theorem L1.integ_conj {d:ℕ} (F: L1 d) : L1.integ (L1.conj F) = starRingEnd ℂ
   simpa [L1.integ, L1.conj] using ComplexAbsolutelyIntegrable.integ_conj (F'.integrable)
 
 -- Helper: |u*f| integral equals |f| integral when |u| = 1
+
+/-- Indicator of a disjoint union is the sum of indicators. -/
+lemma Complex.indicator_union {X:Type*} {E F : Set X} (hdisj : Disjoint E F) :
+    Complex.indicator (E ∪ F) = Complex.indicator E + Complex.indicator F := by
+  funext x
+  rw [Pi.add_apply, Complex.indicator, Complex.indicator, Complex.indicator,
+      Real.complex_fun, Real.complex_fun, Real.complex_fun]
+  by_cases hxE : x ∈ E
+  · have hxF : x ∉ F := Set.disjoint_left.mp hdisj hxE
+    rw [Set.indicator'_of_mem (show x ∈ E ∪ F from Or.inl hxE), Set.indicator'_of_mem hxE,
+        Set.indicator'_of_notMem hxF]
+    simp
+  · by_cases hxF : x ∈ F
+    · rw [Set.indicator'_of_mem (show x ∈ E ∪ F from Or.inr hxF), Set.indicator'_of_notMem hxE,
+        Set.indicator'_of_mem hxF]
+      simp
+    · rw [Set.indicator'_of_notMem (by intro h; rcases h with hE | hF; exact hxE hE; exact hxF hF),
+        Set.indicator'_of_notMem hxE, Set.indicator'_of_notMem hxF]
+      simp
+
+/-- Multiplying a complex absolutely integrable function by an indicator of a measurable set
+    preserves absolute integrability. -/
+lemma ComplexAbsolutelyIntegrable.mul_indicator {d:ℕ} {f : EuclideanSpace' d → ℂ}
+    (hf : ComplexAbsolutelyIntegrable f) {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    ComplexAbsolutelyIntegrable (f * Complex.indicator E) := by
+  constructor
+  · have h_ind_meas : ComplexMeasurable (Complex.indicator E) :=
+      ⟨fun _ => Complex.indicator E, fun _ => ComplexSimpleFunction.indicator hE, fun _ => tendsto_const_nhds⟩
+    exact ComplexMeasurable.mul hf.1 h_ind_meas
+  · have h_le : ∀ x, EReal.abs_fun (f * Complex.indicator E) x ≤ EReal.abs_fun f x := fun x => by
+      simp only [EReal.abs_fun]
+      apply EReal.coe_le_coe_iff.mpr
+      have hind : ‖Complex.indicator E x‖ ≤ 1 := by
+        by_cases hx : x ∈ E
+        · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx]
+        · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx]
+      calc ‖(f * Complex.indicator E) x‖ = ‖f x * Complex.indicator E x‖ := rfl
+        _ = ‖f x‖ * ‖Complex.indicator E x‖ := norm_mul (f x) (Complex.indicator E x)
+        _ ≤ ‖f x‖ * 1 := mul_le_mul_of_nonneg_left hind (norm_nonneg (f x))
+        _ = ‖f x‖ := by rw [mul_one]
+    have h_abs_meas : UnsignedMeasurable (EReal.abs_fun (f * Complex.indicator E)) := by
+      constructor
+      · intro x; simp only [EReal.abs_fun]; exact EReal.coe_nonneg.mpr (norm_nonneg _)
+      · obtain ⟨g, hg_simple, hg_conv⟩ := ComplexMeasurable.mul hf.1
+          ⟨fun _ => Complex.indicator E, fun _ => ComplexSimpleFunction.indicator hE, fun _ => tendsto_const_nhds⟩
+        use fun n => EReal.abs_fun (g n)
+        constructor
+        · intro n; exact (hg_simple n).abs
+        · intro x
+          simp only [EReal.abs_fun]
+          exact (continuous_coe_real_ereal.comp continuous_norm).continuousAt.tendsto.comp (hg_conv x)
+    have h_mono : UnsignedLebesgueIntegral (EReal.abs_fun (f * Complex.indicator E)) ≤
+                  UnsignedLebesgueIntegral (EReal.abs_fun f) := by
+      apply LowerUnsignedLebesgueIntegral.mono h_abs_meas hf.abs.1
+      exact AlmostAlways.ofAlways h_le
+    exact lt_of_le_of_lt h_mono hf.2
+
+def ComplexAbsolutelyIntegrableOn {d:ℕ} (f: EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)) : Prop := ComplexAbsolutelyIntegrable (f * Complex.indicator E)
+
+noncomputable def ComplexAbsolutelyIntegrableOn.integ {d:ℕ} {f: EuclideanSpace' d → ℂ} {E: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) : ℂ :=
+  ComplexAbsolutelyIntegrable.integ hf
+
+/-- Exercise 1.3.22 -/
+theorem ComplexAbsolutelyIntegrableOn.glue {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)}
+    (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hdisj: Disjoint E F)
+    (hf: ComplexAbsolutelyIntegrableOn f (E ∪ F)) :
+    ∃ hE : ComplexAbsolutelyIntegrableOn f E, ∃ hF: ComplexAbsolutelyIntegrableOn f F, hf.integ = hE.integ + hF.integ := by
+  let hE' : ComplexAbsolutelyIntegrableOn f E := by
+    have hfun : f * Complex.indicator E = (f * Complex.indicator (E ∪ F)) * Complex.indicator E := by
+      funext x
+      by_cases hxE : x ∈ E
+      · have hx : x ∈ E ∪ F := Or.inl hxE
+        simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxE, Set.indicator'_of_mem hx]
+      · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hxE]
+    change ComplexAbsolutelyIntegrable (f * Complex.indicator E)
+    rw [hfun]
+    exact hf.mul_indicator hE
+  let hF' : ComplexAbsolutelyIntegrableOn f F := by
+    have hfun : f * Complex.indicator F = (f * Complex.indicator (E ∪ F)) * Complex.indicator F := by
+      funext x
+      by_cases hxF : x ∈ F
+      · have hx : x ∈ E ∪ F := Or.inr hxF
+        simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxF, Set.indicator'_of_mem hx]
+      · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hxF]
+    change ComplexAbsolutelyIntegrable (f * Complex.indicator F)
+    rw [hfun]
+    exact hf.mul_indicator hF
+  have h_pointwise : f * Complex.indicator (E ∪ F) = f * Complex.indicator E + f * Complex.indicator F := by
+    rw [Complex.indicator_union hdisj]
+    funext x
+    simp [Pi.mul_apply, Pi.add_apply, mul_add]
+  have h_integ_eq : hf.integ = (hE'.add hF').integ := by
+    simp only [ComplexAbsolutelyIntegrableOn.integ, ComplexAbsolutelyIntegrable.integ, h_pointwise]
+  refine ⟨hE', hF', ?_⟩
+  rw [h_integ_eq]
+  exact ComplexAbsolutelyIntegrable.integ_add hE' hF'
+
+def ComplexAbsolutelyIntegrableOn.restrict {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (hF: LebesgueMeasurable F): ComplexAbsolutelyIntegrableOn (f * Complex.indicator F) E := by
+  change ComplexAbsolutelyIntegrable ((f * Complex.indicator F) * Complex.indicator E)
+  have hfun : (f * Complex.indicator F) * Complex.indicator E = (f * Complex.indicator E) * Complex.indicator F := by
+    funext x
+    simp only [Pi.mul_apply]
+    ring
+  rw [hfun]
+  exact hf.mul_indicator hF
+
+def ComplexAbsolutelyIntegrableOn.mono {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hf: ComplexAbsolutelyIntegrableOn f E) (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E): ComplexAbsolutelyIntegrableOn f F := by
+  change ComplexAbsolutelyIntegrable (f * Complex.indicator F)
+  have hfun : f * Complex.indicator F = (f * Complex.indicator E) * Complex.indicator F := by
+    funext x
+    by_cases hxF : x ∈ F
+    · have hxE : x ∈ E := hsub hxF
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxF, Set.indicator'_of_mem hxE]
+    · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hxF]
+  rw [hfun]
+  exact hf.mul_indicator hF
+
+theorem ComplexAbsolutelyIntegrableOn.integ_restrict {d:ℕ} {f: EuclideanSpace' d → ℂ} {E F: Set (EuclideanSpace' d)} (hE: LebesgueMeasurable E) (hF: LebesgueMeasurable F) (hsub: F ⊆ E) (hf: ComplexAbsolutelyIntegrableOn f E) : (hf.mono hE hF hsub).integ = (hf.restrict hF).integ:= by
+  have hfun : (f * Complex.indicator F) * Complex.indicator E = f * Complex.indicator F := by
+    funext x
+    by_cases hxF : x ∈ F
+    · have hxE : x ∈ E := hsub hxF
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxF, Set.indicator'_of_mem hxE]
+    · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hxF]
+  simp only [ComplexAbsolutelyIntegrableOn.integ, ComplexAbsolutelyIntegrable.integ, hfun]
+
 lemma ComplexAbsolutelyIntegrable.abs_smul_unit {d:ℕ} {f: EuclideanSpace' d → ℂ}
     (hf: ComplexAbsolutelyIntegrable f) (c: ℂ) (hc: ‖c‖ = 1) :
     (hf.smul c).abs.integ = hf.abs.integ := by
