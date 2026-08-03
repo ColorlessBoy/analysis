@@ -1570,7 +1570,7 @@ def LocallyUniformlyConvergesToOn {X Y:Type*} [PseudoMetricSpace X] [PseudoMetri
   LocallyUniformlyConvergesTo (fun n (x:S) ↦ f n x.val) (fun x ↦ g x.val)
 
 /-- Example 1.3.23 -/
-example : LocallyUniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ x.toReal / n) (fun x ↦ 0) := by
+example : LocallyUniformlyConvergesTo (fun n (_x:EuclideanSpace' 1) ↦ _x.toReal / n) (fun _ ↦ 0) := by
   intro K hK
   rw [UniformlyConvergesToOn]
   intro ε hε
@@ -1605,7 +1605,7 @@ example : LocallyUniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ x.toReal 
     _ ≤ R' / (n : ℝ) := div_le_div_of_nonneg_right hle hnn.le
     _ ≤ ε := hN n hnN
 
-example : ¬ UniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ x.toReal / n) (fun x ↦ 0) := by
+example : ¬ UniformlyConvergesTo (fun n (_x:EuclideanSpace' 1) ↦ _x.toReal / n) (fun _ ↦ 0) := by
   rw [UniformlyConvergesTo]
   push_neg
   refine ⟨1 / 2, by norm_num, ?_⟩
@@ -1820,7 +1820,7 @@ example : ¬ UniformlyConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Fin
   linarith
 
 /-- Example 1.3.25 -/
-example : PointwiseConvergesTo (fun n (x:EuclideanSpace' 1) ↦ if x.toReal > 0 then 1 / (n * x.toReal) else 0) (fun x ↦ 0) := by
+example : PointwiseConvergesTo (fun n (_x:EuclideanSpace' 1) ↦ if _x.toReal > 0 then 1 / (n * _x.toReal) else 0) (fun _ ↦ 0) := by
   intro x
   by_cases hx : 0 < x.toReal
   · -- x.toReal > 0: 1/(n * x.toReal) → 0
@@ -1833,7 +1833,7 @@ example : PointwiseConvergesTo (fun n (x:EuclideanSpace' 1) ↦ if x.toReal > 0 
   · -- x.toReal ≤ 0: 0 → 0
     simp [hx]
 
-example : ¬ LocallyUniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ if x.toReal > 0 then 1 / (n * x.toReal) else 0) (fun x ↦ 0) := by
+example : ¬ LocallyUniformlyConvergesTo (fun n (_x:EuclideanSpace' 1) ↦ if _x.toReal > 0 then 1 / (n * _x.toReal) else 0) (fun _ ↦ 0) := by
   rw [LocallyUniformlyConvergesTo]
   push_neg
   -- Pick K = {x | 0 < x.toReal ∧ x.toReal ≤ 1}
@@ -1902,14 +1902,370 @@ example : ¬ LocallyUniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ if x.t
     rw [hg, sub_zero]
     norm_num
 
-/-- Theorem 1.3.26 (Egorov's theorem). -/
+lemma egorov_tsum_geometric {ε : ℝ} (hε : 0 < ε) :
+    (∑' m : ℕ, (ε / 2^(m+1) : EReal)) ≤ ε := by
+    have hstep : ∀ m : ℕ, ε / 2^(m+1) = ε * (1 / 2 : ℝ) ^ (m+1) := by
+      intro m
+      rw [div_pow]
+      simp [div_eq_mul_inv]
+    have hgeom : (∑' m : ℕ, (1 / 2 : ℝ) ^ (m + 1)) = 1 := by
+      calc
+        (∑' m : ℕ, (1 / 2 : ℝ) ^ (m + 1)) = ∑' m : ℕ, (1 / 2 : ℝ) * (1 / 2 : ℝ) ^ m := by
+          apply tsum_congr
+          intro m
+          rw [pow_succ]
+          ring
+        _ = (1 / 2 : ℝ) * ∑' m : ℕ, (1 / 2 : ℝ) ^ m := by
+          rw [tsum_mul_left]
+        _ = (1 / 2 : ℝ) * ((1 - (1 / 2 : ℝ))⁻¹) := by
+          congr 1
+          exact tsum_geometric_of_abs_lt_one (r := (1 / 2 : ℝ)) (by norm_num)
+        _ = 1 := by
+          norm_num
+    have hreal : (∑' m : ℕ, (ε / 2^(m+1) : ℝ)) = ε := by
+      calc
+        (∑' m : ℕ, (ε / 2^(m+1) : ℝ)) = ∑' m : ℕ, ε * (1 / 2 : ℝ) ^ (m + 1) := by
+          exact tsum_congr hstep
+        _ = ε * (∑' m : ℕ, (1 / 2 : ℝ) ^ (m + 1)) := by
+          rw [tsum_mul_left]
+        _ = ε * 1 := by
+          rw [hgeom]
+        _ = ε := by
+          ring
+    have hnn : ∀ m : ℕ, 0 ≤ ε / 2^(m+1) := by
+      intro m
+      positivity
+    have hsumm : Summable (fun m : ℕ => ε / 2^(m+1)) := by
+      have hs : Summable (fun m : ℕ => (1 / 2 : ℝ) ^ (m + 1)) := by
+        convert (Summable.mul_left (1 / 2 : ℝ) (summable_geometric_of_abs_lt_one (r := (1 / 2 : ℝ)) (by norm_num))) using 1
+        ext m
+        rw [pow_succ]
+        ring
+      simpa [hstep] using (Summable.mul_left ε hs)
+    have hpoint : ∀ m : ℕ, (ε / 2^(m+1) : EReal) = (↑(ε / 2^(m+1) : ℝ) : EReal) := by
+      intro m
+      rw [EReal.coe_div, EReal.coe_pow]
+      rfl
+    calc
+      (∑' m : ℕ, (ε / 2^(m+1) : EReal)) = (∑' m : ℕ, (↑(ε / 2^(m+1) : ℝ) : EReal)) := by
+        exact tsum_congr hpoint
+      _ = (↑(∑' m : ℕ, (ε / 2^(m+1) : ℝ)) : EReal) := by
+        exact (EReal.coe_tsum_of_nonneg hnn hsumm).symm
+      _ ≤ (ε : EReal) := by
+        rw [hreal]
+
+/-- Preimage of a closed set under a complex measurable function is Lebesgue measurable. -/
+lemma ComplexMeasurable.preimage_closed {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexMeasurable f)
+    {K : Set ℂ} (hK : IsClosed K) : LebesgueMeasurable (f ⁻¹' K) := by
+  exact ((ComplexMeasurable_TFAE_helpers.ComplexMeasurable.TFAE (f := f)).out 0 5
+    (a := ComplexMeasurable f)
+    (b := ∀ K : Set ℂ, IsClosed K → LebesgueMeasurable (f ⁻¹' K))).mp hf K hK
+
+/-- The "bad" set where some f(k) (k ≥ n) is still at distance ≥ 1/(m+1) from g is measurable. -/
+lemma egorov_bad_set_measurable {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}
+    (hf : ∀ n, ComplexMeasurable (f n)) (hg : ComplexMeasurable g) (n m : ℕ) :
+    LebesgueMeasurable (⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖}) := by
+    have hK : IsClosed ({z : ℂ | (1 / (m + 1 : ℝ)) ≤ ‖z‖}) := by
+      simpa using (IsClosed.preimage continuous_norm (isClosed_Ici (a := (1 / (m + 1 : ℝ)))))
+    have hmeas : ∀ j : ℕ, LebesgueMeasurable ({x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖}) := by
+      intro j
+      have hsub : ComplexMeasurable (f (n + j) - g) := ComplexMeasurable.sub (hf (n + j)) hg
+      have hEq : ({x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖}) =
+          (f (n + j) - g) ⁻¹' {z : ℂ | (1 / (m + 1 : ℝ)) ≤ ‖z‖} := by
+        ext x
+        rfl
+      rw [hEq]
+      exact ComplexMeasurable.preimage_closed hsub hK
+    exact LebesgueMeasurable.countable_union hmeas
+
+/-- The intersection over n of the bad sets is null: it consists of points where convergence fails. -/
+lemma egorov_bad_inter_null {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}
+    (hfg : PointwiseAeConvergesTo f g) (m : ℕ) :
+    IsNull (⋂ n : ℕ, (⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖})) := by
+    let B : Set (EuclideanSpace' d) := {x | ¬ Filter.atTop.Tendsto (fun k ↦ f k x) (nhds (g x))}
+    have hB : IsNull B := by
+      simpa [B, PointwiseAeConvergesTo, AlmostAlways] using hfg
+    have hsub : (⋂ n : ℕ, (⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖})) ⊆ B := by
+      intro x hx ht
+      have hε : 0 < (1 / (m + 1 : ℝ)) := by positivity
+      have hN : ∃ N, ∀ k ≥ N, dist (f k x) (g x) < (1 / (m + 1 : ℝ)) :=
+        (Metric.tendsto_atTop.mp ht) (1 / (m + 1 : ℝ)) hε
+      rcases hN with ⟨N, hN'⟩
+      have hmem : x ∈ ⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (N + j) x - g x‖} :=
+        Set.mem_iInter.mp hx N
+      rcases Set.mem_iUnion.mp hmem with ⟨j, hj⟩
+      have hlt : ‖f (N + j) x - g x‖ < (1 / (m + 1 : ℝ)) := by
+        have hd := hN' (N + j) (Nat.le_add_right N j)
+        simpa [dist_eq_norm] using hd
+      exact (not_lt_of_ge hj) hlt
+    exact IsNull.subset hB hsub
+
+/-- Egorov's theorem on a set of finite measure: uniform convergence outside a small set. -/
+theorem egorov_on_finite_set {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}
+    (hf : ∀ n, ComplexMeasurable (f n)) (hg : ComplexMeasurable g)
+    (hfg : PointwiseAeConvergesTo f g) (A : Set (EuclideanSpace' d))
+    (hA : LebesgueMeasurable A) (hAf : Lebesgue_measure A < ⊤)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ E ⊆ A ∧ Lebesgue_measure E ≤ ε ∧
+      UniformlyConvergesToOn f g (A \ E) := by
+  let B : ℕ → ℕ → Set (EuclideanSpace' d) := fun m n => A ∩ ⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n + j) x - g x‖}
+  have hB_meas : ∀ m n, LebesgueMeasurable (B m n) := by
+    intro m n
+    exact LebesgueMeasurable.inter hA (egorov_bad_set_measurable hf hg n m)
+  have hB_mono : ∀ m n, B m (n+1) ⊆ B m n := by
+    intro m n x hx
+    rcases hx with ⟨hxA, hxbad⟩
+    refine ⟨hxA, ?_⟩
+    rcases Set.mem_iUnion.mp hxbad with ⟨j, hj⟩
+    exact Set.mem_iUnion.mpr ⟨j + 1, by simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hj⟩
+  have hB_fin : ∀ m, ∃ n, Lebesgue_measure (B m n) < ⊤ := by
+    intro m
+    exact ⟨0, lt_of_le_of_lt (Lebesgue_outer_measure.mono (Set.inter_subset_left)) hAf⟩
+  have hB_inter_meas : ∀ m, Lebesgue_measure (⋂ n, B m n) = 0 := by
+    intro m
+    have hInter_null : IsNull (⋂ n, B m n) :=
+      IsNull.subset (egorov_bad_inter_null hfg m) (Set.iInter_mono (fun n => Set.inter_subset_right))
+    simpa [Lebesgue_measure] using hInter_null
+  have hDMC : ∀ m, Filter.atTop.Tendsto (fun n ↦ Lebesgue_measure (B m n)) (nhds 0) := by
+    intro m
+    simpa [hB_inter_meas m] using
+      (Lebesgue_measure.downward_monotone_convergence (E := B m) (hE := hB_meas m)
+        (hmono := hB_mono m) (hfin := hB_fin m))
+  have hchoose : ∀ m, ∃ n, Lebesgue_measure (B m n) ≤ (ε / 2^(m+1) : EReal) := by
+    intro m
+    have hpos : 0 < (ε / 2^(m+1) : EReal) := by
+      have hreal : 0 < (ε / 2^(m+1) : ℝ) := div_pos hε (pow_pos (by norm_num) (m + 1))
+      rw [show (ε / 2^(m+1) : EReal) = (↑(ε / 2^(m+1) : ℝ) : EReal) by
+        rw [EReal.coe_div, EReal.coe_pow]; rfl]
+      exact EReal.coe_pos.mpr hreal
+    have hev : ∀ᶠ n in Filter.atTop, Lebesgue_measure (B m n) < (ε / 2^(m+1) : EReal) := by
+      simpa using (hDMC m) (isOpen_Iio.mem_nhds hpos)
+    rcases Filter.eventually_atTop.mp hev with ⟨N, hN⟩
+    exact ⟨N, le_of_lt (hN N le_rfl)⟩
+  let n₀ : ℕ → ℕ := fun m => Classical.choose (hchoose m)
+  have hB_n₀ : ∀ m, Lebesgue_measure (B m (n₀ m)) ≤ (ε / 2^(m+1) : EReal) :=
+    fun m => Classical.choose_spec (hchoose m)
+  let E : Set (EuclideanSpace' d) := ⋃ m : ℕ, B m (n₀ m)
+  have hE_meas : LebesgueMeasurable E := LebesgueMeasurable.countable_union (fun m => hB_meas m (n₀ m))
+  have hE_sub : E ⊆ A := by
+    intro x hx
+    rcases Set.mem_iUnion.mp hx with ⟨m, hm⟩
+    exact hm.1
+  have hnonneg : ∀ m, 0 ≤ (ε / 2^(m+1) : EReal) := by
+    intro m
+    have hreal : 0 ≤ (ε / 2^(m+1) : ℝ) := div_nonneg (le_of_lt hε) (le_of_lt (pow_pos (by norm_num) (m + 1)))
+    rw [show (ε / 2^(m+1) : EReal) = (↑(ε / 2^(m+1) : ℝ) : EReal) by
+      rw [EReal.coe_div, EReal.coe_pow]; rfl]
+    exact EReal.coe_nonneg.mpr hreal
+  have hE_le : Lebesgue_measure E ≤ ε := by
+    calc
+      Lebesgue_measure E ≤ ∑' m : ℕ, Lebesgue_measure (B m (n₀ m)) :=
+        Lebesgue_outer_measure.union_le (fun m => B m (n₀ m))
+      _ ≤ ∑' m : ℕ, (ε / 2^(m+1) : EReal) := by
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun m => Lebesgue_measure (B m (n₀ m)))
+          (fun m => Lebesgue_outer_measure.nonneg (B m (n₀ m)))]
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun m => (ε / 2^(m+1) : EReal)) hnonneg]
+        rw [EReal.coe_ennreal_le_coe_ennreal_iff]
+        apply ENNReal.tsum_le_tsum
+        intro m
+        exact EReal.toENNReal_le_toENNReal (hB_n₀ m)
+      _ ≤ ε := egorov_tsum_geometric hε
+  have hU : UniformlyConvergesToOn f g (A \ E) := by
+    rw [UniformlyConvergesToOn, UniformlyConvergesTo]
+    intro ε' hε'
+    obtain ⟨m, hm⟩ := exists_nat_one_div_lt hε'
+    refine ⟨n₀ m, ?_⟩
+    intro n hn x
+    have hxnotB : x.val ∉ B m (n₀ m) := fun hb =>
+      x.2.2 (Set.subset_iUnion (fun m' => B m' (n₀ m')) m hb)
+    have hxnotBad : x.val ∉ ⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n₀ m + j) x - g x‖} := by
+      intro hbad
+      exact hxnotB ⟨x.2.1, hbad⟩
+    have hlt : ‖f n x.val - g x.val‖ < 1 / (m + 1 : ℝ) := by
+      by_contra hge
+      have hge' : (1 / (m + 1 : ℝ)) ≤ ‖f n x.val - g x.val‖ := le_of_not_gt hge
+      have hmem : x.val ∈ ⋃ j : ℕ, {x | (1 / (m + 1 : ℝ)) ≤ ‖f (n₀ m + j) x - g x‖} :=
+        Set.mem_iUnion.mpr ⟨n - n₀ m, by simpa [Nat.add_sub_of_le hn] using hge'⟩
+      exact hxnotBad hmem
+    exact le_trans (by simpa [dist_eq_norm] using hlt.le) (le_of_lt hm)
+  exact ⟨E, hE_meas, hE_sub, hE_le, hU⟩
+
+/-- The pointwise a.e. limit of complex measurable functions is complex measurable (no boundedness needed). -/
+lemma ComplexMeasurable.aeLimit_of_pointwiseAe {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}
+    (hf : ∀ n, ComplexMeasurable (f n)) (hfg : PointwiseAeConvergesTo f g) : ComplexMeasurable g := by
+  have hre_ae : PointwiseAeConvergesTo (fun n => Complex.re_fun (f n)) (Complex.re_fun g) := by
+    apply AlmostAlways.mp hfg
+    intro x hx
+    exact Complex.continuous_re.continuousAt.tendsto.comp hx
+  have him_ae : PointwiseAeConvergesTo (fun n => Complex.im_fun (f n)) (Complex.im_fun g) := by
+    apply AlmostAlways.mp hfg
+    intro x hx
+    exact Complex.continuous_im.continuousAt.tendsto.comp hx
+  have hre : RealMeasurable (Complex.re_fun g) := by
+    apply ((RealMeasurable_TFAE_helpers.RealMeasurable.TFAE (f := Complex.re_fun g)).out 2 0
+      (a := UnsignedMeasurable (EReal.pos_fun (Complex.re_fun g)) ∧
+            UnsignedMeasurable (EReal.neg_fun (Complex.re_fun g)))
+      (b := RealMeasurable (Complex.re_fun g))).mp
+    constructor
+    · apply UnsignedMeasurable.aeLimit (fun n => EReal.pos_fun (Complex.re_fun (f n)))
+      · intro n
+        exact RealMeasurable.measurable_pos ((ComplexMeasurable.iff.mp (hf n)).1)
+      · intro x
+        simp only [EReal.pos_fun]
+        exact EReal.coe_nonneg.mpr (le_max_right _ _)
+      · apply AlmostAlways.mp hre_ae
+        intro x hx
+        exact (continuous_coe_real_ereal.comp (Continuous.max continuous_id continuous_const)).continuousAt.tendsto.comp hx
+    · apply UnsignedMeasurable.aeLimit (fun n => EReal.neg_fun (Complex.re_fun (f n)))
+      · intro n
+        exact RealMeasurable.measurable_neg ((ComplexMeasurable.iff.mp (hf n)).1)
+      · intro x
+        simp only [EReal.neg_fun]
+        exact EReal.coe_nonneg.mpr (le_max_right _ _)
+      · apply AlmostAlways.mp hre_ae
+        intro x hx
+        exact (continuous_coe_real_ereal.comp (Continuous.max continuous_neg continuous_const)).continuousAt.tendsto.comp hx
+  have him : RealMeasurable (Complex.im_fun g) := by
+    apply ((RealMeasurable_TFAE_helpers.RealMeasurable.TFAE (f := Complex.im_fun g)).out 2 0
+      (a := UnsignedMeasurable (EReal.pos_fun (Complex.im_fun g)) ∧
+            UnsignedMeasurable (EReal.neg_fun (Complex.im_fun g)))
+      (b := RealMeasurable (Complex.im_fun g))).mp
+    constructor
+    · apply UnsignedMeasurable.aeLimit (fun n => EReal.pos_fun (Complex.im_fun (f n)))
+      · intro n
+        exact RealMeasurable.measurable_pos ((ComplexMeasurable.iff.mp (hf n)).2)
+      · intro x
+        simp only [EReal.pos_fun]
+        exact EReal.coe_nonneg.mpr (le_max_right _ _)
+      · apply AlmostAlways.mp him_ae
+        intro x hx
+        exact (continuous_coe_real_ereal.comp (Continuous.max continuous_id continuous_const)).continuousAt.tendsto.comp hx
+    · apply UnsignedMeasurable.aeLimit (fun n => EReal.neg_fun (Complex.im_fun (f n)))
+      · intro n
+        exact RealMeasurable.measurable_neg ((ComplexMeasurable.iff.mp (hf n)).2)
+      · intro x
+        simp only [EReal.neg_fun]
+        exact EReal.coe_nonneg.mpr (le_max_right _ _)
+      · apply AlmostAlways.mp him_ae
+        intro x hx
+        exact (continuous_coe_real_ereal.comp (Continuous.max continuous_neg continuous_const)).continuousAt.tendsto.comp hx
+  exact ComplexMeasurable.iff.mpr ⟨hre, him⟩
+
+/-- The box with side from -N to N in every coordinate. -/
+private def egorov_box (d : ℕ) (N : ℕ) : Box d :=
+  Box.mk (fun _ : Fin d => (BoundedInterval.Icc (-(N : ℝ)) (N : ℝ) : BoundedInterval))
+
+/-- The set of points whose coordinates all lie in -N..N. -/
+private def egorov_A {d : ℕ} (N : ℕ) : Set (EuclideanSpace' d) := (egorov_box d N).toSet
+
+/-- A box is Lebesgue measurable. -/
+private lemma egorov_A_meas {d : ℕ} (N : ℕ) : LebesgueMeasurable (egorov_A (d := d) N) := by
+  exact Jordan_measurable.lebesgue (IsElementary.jordanMeasurable (IsElementary.box (egorov_box d N)))
+
+/-- A box has finite Lebesgue measure. -/
+private lemma egorov_A_fin {d : ℕ} (N : ℕ) : Lebesgue_measure (egorov_A (d := d) N) < ⊤ := by
+  unfold Lebesgue_measure
+  rw [Lebesgue_outer_measure.elementary (egorov_A (d := d) N) (IsElementary.box (egorov_box d N))]
+  exact EReal.coe_lt_top _
+
+/-- Every bounded set is contained in some box A N. -/
+private lemma egorov_bounded_subset_box {d : ℕ} (K : Set (EuclideanSpace' d)) (hK : Bornology.IsBounded K) :
+    ∃ N, K ⊆ egorov_A (d := d) N := by
+  obtain ⟨R, hR⟩ := (Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)).mp hK
+  obtain ⟨N, hN⟩ := exists_nat_gt (max R 0)
+  refine ⟨N, ?_⟩
+  intro x hx
+  have hxB : x ∈ Metric.closedBall (0 : EuclideanSpace' d) R := hR hx
+  have hxR : ‖x‖ ≤ max R 0 := by
+    have hd : dist x 0 ≤ R := Metric.mem_closedBall.mp hxB
+    simpa [dist_eq_norm] using le_trans hd (le_max_left R 0)
+  have hxN : ‖x‖ ≤ (N : ℝ) := le_trans hxR (le_of_lt hN)
+  intro i
+  have hcoord : |x i| ≤ ‖x‖ := EuclideanSpace'.coord_le_norm x i
+  simpa [egorov_A, egorov_box, Box.mem_toSet, BoundedInterval.set_Icc] using
+    (Set.mem_Icc.mpr (abs_le.mp (le_trans hcoord hxN)))
+
+/-- The image of a bounded subset of a subspace under the coercion is bounded. -/
+private lemma egorov_bounded_image {d : ℕ} {S : Set (EuclideanSpace' d)} (K : Set {x : EuclideanSpace' d // x ∈ S})
+    (hK : Bornology.IsBounded K) : Bornology.IsBounded (Subtype.val '' K) := by
+  by_cases hS : Nonempty {x : EuclideanSpace' d // x ∈ S}
+  · rcases hS with ⟨z₀⟩
+    rcases (Metric.isBounded_iff_subset_closedBall (z₀ : {x : EuclideanSpace' d // x ∈ S})).mp hK with ⟨R, hR⟩
+    rw [Metric.isBounded_iff_subset_closedBall (z₀.val : EuclideanSpace' d)]
+    refine ⟨R, ?_⟩
+    intro y hy
+    rcases hy with ⟨w, hw, rfl⟩
+    have hwB : w ∈ Metric.closedBall (z₀ : {x : EuclideanSpace' d // x ∈ S}) R := hR hw
+    exact Metric.mem_closedBall.mpr (by simpa [Subtype.dist_eq] using (Metric.mem_closedBall.mp hwB))
+  · rw [Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)]
+    refine ⟨0, ?_⟩
+    intro y hy
+    rcases hy with ⟨w, hw, rfl⟩
+    exact False.elim (hS ⟨w⟩)
+
+/-- Theorem 1.3.26 (Egorov's theorem) -/
 theorem PointwiseAeConvergesTo.locallyUniformlyConverges_outside_small {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}
   (hf: ∀ n, ComplexMeasurable (f n))
   (hfg: PointwiseAeConvergesTo f g)
   (ε : ℝ) (hε : 0 < ε) :
   ∃ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧
     Lebesgue_measure E ≤ ε ∧
-    LocallyUniformlyConvergesToOn f g Eᶜ := by sorry
+    LocallyUniformlyConvergesToOn f g Eᶜ := by
+  have hg : ComplexMeasurable g := ComplexMeasurable.aeLimit_of_pointwiseAe hf hfg
+  let hchain : ∀ N : ℕ, ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ E ⊆ egorov_A (d := d) N ∧
+      Lebesgue_measure E ≤ (↑(ε / 2^(N+1) : ℝ) : EReal) ∧ UniformlyConvergesToOn f g (egorov_A (d := d) N \ E) :=
+    fun N => egorov_on_finite_set hf hg hfg (egorov_A (d := d) N) (egorov_A_meas N) (egorov_A_fin N)
+      (ε / 2^(N+1)) (div_pos hε (pow_pos (by norm_num) (N+1)))
+  let E_N : ℕ → Set (EuclideanSpace' d) := fun N => Classical.choose (hchain N)
+  have hEN_spec : ∀ N, LebesgueMeasurable (E_N N) ∧ E_N N ⊆ egorov_A (d := d) N ∧
+      Lebesgue_measure (E_N N) ≤ (↑(ε / 2^(N+1) : ℝ) : EReal) ∧
+      UniformlyConvergesToOn f g (egorov_A (d := d) N \ E_N N) :=
+    fun N => Classical.choose_spec (hchain N)
+  have hEN_meas : ∀ N, LebesgueMeasurable (E_N N) := fun N => (hEN_spec N).1
+  have hEN_le : ∀ N, Lebesgue_measure (E_N N) ≤ (ε / 2^(N+1) : EReal) := by
+    intro N
+    rw [show (ε / 2^(N+1) : EReal) = (↑(ε / 2^(N+1) : ℝ) : EReal) by
+      rw [EReal.coe_div, EReal.coe_pow]; rfl]
+    exact (hEN_spec N).2.2.1
+  have hEN_conv : ∀ N, UniformlyConvergesTo
+      (fun n (x : {x : EuclideanSpace' d // x ∈ egorov_A (d := d) N \ E_N N}) ↦ f n x.val)
+      (fun x ↦ g x.val) := by
+    intro N
+    exact (hEN_spec N).2.2.2
+  let E : Set (EuclideanSpace' d) := ⋃ N : ℕ, E_N N
+  have hE_meas : LebesgueMeasurable E := LebesgueMeasurable.countable_union hEN_meas
+  have hnonneg : ∀ N, 0 ≤ (ε / 2^(N+1) : EReal) := by
+    intro N
+    have hreal : 0 ≤ (ε / 2^(N+1) : ℝ) := div_nonneg (le_of_lt hε) (le_of_lt (pow_pos (by norm_num) (N + 1)))
+    rw [show (ε / 2^(N+1) : EReal) = (↑(ε / 2^(N+1) : ℝ) : EReal) by
+      rw [EReal.coe_div, EReal.coe_pow]; rfl]
+    exact EReal.coe_nonneg.mpr hreal
+  have hE_le : Lebesgue_measure E ≤ ε := by
+    calc
+      Lebesgue_measure E ≤ ∑' N : ℕ, Lebesgue_measure (E_N N) :=
+        Lebesgue_outer_measure.union_le (fun N => E_N N)
+      _ ≤ ∑' N : ℕ, (ε / 2^(N+1) : EReal) := by
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun N => Lebesgue_measure (E_N N))
+          (fun N => Lebesgue_outer_measure.nonneg (E_N N))]
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun N => (ε / 2^(N+1) : EReal)) hnonneg]
+        rw [EReal.coe_ennreal_le_coe_ennreal_iff]
+        apply ENNReal.tsum_le_tsum
+        intro N
+        exact EReal.toENNReal_le_toENNReal (hEN_le N)
+      _ ≤ ε := egorov_tsum_geometric hε
+  have hLU : LocallyUniformlyConvergesToOn f g Eᶜ := by
+    unfold LocallyUniformlyConvergesToOn LocallyUniformlyConvergesTo UniformlyConvergesToOn UniformlyConvergesTo
+    intro K hK ε' hε'
+    have hKimg : Bornology.IsBounded (Subtype.val '' K) := egorov_bounded_image (S := Eᶜ) K hK
+    obtain ⟨N, hKN⟩ := egorov_bounded_subset_box (Subtype.val '' K) hKimg
+    obtain ⟨N₀, hN₀⟩ := hEN_conv N ε' hε'
+    refine ⟨N₀, ?_⟩
+    intro n hn x
+    have hxA : x.val.val ∈ egorov_A (d := d) N :=
+      hKN ((Set.mem_image Subtype.val K x.val.val).mpr ⟨x.val, x.2, rfl⟩)
+    have hxnotEN : x.val.val ∉ E_N N := fun hmem => x.val.2 (Set.subset_iUnion (fun N' => E_N N') N hmem)
+    exact hN₀ n hn ⟨x.val.val, ⟨hxA, hxnotEN⟩⟩
+  exact ⟨E, hE_meas, hE_le, hLU⟩
 
 /-- The exceptional set in Egorov's theorem cannot be taken to be null -/
 example : ∃ (d:ℕ) (f : ℕ → EuclideanSpace' d → ℝ) (g : EuclideanSpace' d → ℝ),
@@ -1936,9 +2292,10 @@ theorem PointwiseAeConvergesTo.uniformlyConverges_outside_small {d:ℕ} {f : ℕ
   (hSm: LebesgueMeasurable S)
   (hS: Lebesgue_measure S < ⊤)
   (ε : ℝ) (hε : 0 < ε) :
-  ∃ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧
+  ∃ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧ E ⊆ S ∧
     Lebesgue_measure E ≤ ε ∧
-    UniformlyConvergesToOn f g (S ∩ Eᶜ) := by sorry
+    UniformlyConvergesToOn f g (S \ E) := by
+  exact egorov_on_finite_set hf (ComplexMeasurable.aeLimit_of_pointwiseAe hf hfg) hfg S hSm hS ε hε
 
 /-- Theorem 1.3.28 (Lusin's theorem) -/
 theorem ComplexAbsolutelyIntegrable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℂ}
@@ -1985,18 +2342,669 @@ theorem UnsignedMeasurable.approx_by_continuous_outside_small {d:ℕ} {f : Eucli
       Lebesgue_measure E ≤ ε ∧
       ∀ x ∉ E, g x = f x := by sorry
 
-/-- Exercise 1.3.25 (a) (Littlewood-like principle) -/
+lemma ComplexAbsolutelyIntegrable.chebyshev {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexAbsolutelyIntegrable f)
+    (η : ℝ) (hη : 0 < η) :
+    Lebesgue_measure {x | (η : ℝ) ≤ ‖f x‖} ≤
+      ((η : ℝ)⁻¹ : EReal) * UnsignedLebesgueIntegral (EReal.abs_fun f) := by
+  let E : Set (EuclideanSpace' d) := {x | (η : ℝ) ≤ ‖f x‖}
+  have hE_meas : LebesgueMeasurable E := by
+    have hEq : E = f ⁻¹' {z : ℂ | (η : ℝ) ≤ ‖z‖} := by
+      ext x
+      rfl
+    rw [hEq]
+    exact ComplexMeasurable.preimage_closed hf.1
+      (by simpa using (IsClosed.preimage continuous_norm (isClosed_Ici (a := η))))
+  have hE_simple : UnsignedSimpleFunction (EReal.indicator E) := UnsignedSimpleFunction.indicator hE_meas
+  have hc : (0 : EReal) ≤ (η : EReal) := EReal.coe_nonneg.mpr (le_of_lt hη)
+  have h_pw : ∀ x, ((η : EReal) • EReal.indicator E) x ≤ EReal.abs_fun f x := by
+    intro x
+    by_cases hx : x ∈ E
+    · rw [Pi.smul_apply, smul_eq_mul, EReal.indicator_of_mem hx, mul_one]
+      simp only [EReal.abs_fun]
+      exact EReal.coe_le_coe_iff.mpr (by simpa [E] using hx)
+    · rw [Pi.smul_apply, smul_eq_mul, EReal.indicator_of_notMem hx, mul_zero]
+      simp only [EReal.abs_fun]
+      exact EReal.coe_nonneg.mpr (norm_nonneg (f x))
+  have hmono : LowerUnsignedLebesgueIntegral ((η : EReal) • EReal.indicator E) ≤
+      UnsignedLebesgueIntegral (EReal.abs_fun f) :=
+    LowerUnsignedLebesgueIntegral.mono
+      (hE_simple.smul hc).unsignedMeasurable
+      hf.abs.1
+      (AlmostAlways.ofAlways h_pw)
+  have hinteg : LowerUnsignedLebesgueIntegral ((η : EReal) • EReal.indicator E) =
+      (η : EReal) * Lebesgue_measure E := by
+    rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral (hE_simple.smul hc)]
+    rw [UnsignedSimpleFunction.integral_smul hE_simple hc]
+    exact congrArg (fun z => (η : EReal) * z) (UnsignedSimpleFunction.integral_indicator hE_meas)
+  have hηm : (η : EReal) * Lebesgue_measure E ≤ UnsignedLebesgueIntegral (EReal.abs_fun f) := by
+    rw [← hinteg]
+    exact hmono
+  have hinv : (0 : EReal) ≤ ((η : ℝ)⁻¹ : EReal) := EReal.coe_nonneg.mpr (inv_nonneg.mpr (le_of_lt hη))
+  have hle' : ((η : ℝ)⁻¹ : EReal) * ((η : EReal) * Lebesgue_measure E) ≤
+      ((η : ℝ)⁻¹ : EReal) * UnsignedLebesgueIntegral (EReal.abs_fun f) := by
+    exact mul_le_mul_of_nonneg_left hηm hinv
+  have hLHS : ((η : ℝ)⁻¹ : EReal) * ((η : EReal) * Lebesgue_measure E) = Lebesgue_measure E := by
+    rw [← mul_assoc]
+    have hinv_mul : ((η : ℝ)⁻¹ : EReal) * (η : EReal) = 1 := by
+      rw [← EReal.coe_inv, ← EReal.coe_mul, inv_mul_cancel₀ (ne_of_gt hη), EReal.coe_one]
+    rw [hinv_mul, one_mul]
+  simpa [E, hLHS] using hle'
+
+/-- Multiplying an unsigned simple function by an indicator gives an unsigned simple function. -/
+lemma UnsignedSimpleFunction.mul_indicator {d:ℕ} {g : EuclideanSpace' d → EReal} (hg : UnsignedSimpleFunction g)
+    {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    UnsignedSimpleFunction (fun x => g x * EReal.indicator E x) := by
+  rcases hg with ⟨k, c, F, hcond, heq⟩
+  set E' : Fin k → Set (EuclideanSpace' d) := fun i => F i ∩ E with hE'_def
+  refine ⟨k, c, E', fun i => ⟨LebesgueMeasurable.inter (hcond i).1 hE, (hcond i).2⟩, ?_⟩
+  ext x
+  rw [heq]
+  by_cases hxE : x ∈ E
+  · rw [EReal.indicator_of_mem hxE, mul_one]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_congr rfl
+    intro i _
+    apply congrArg (fun y : EReal => c i * y)
+    by_cases hx : x ∈ F i
+    · rw [EReal.indicator_of_mem hx, EReal.indicator_of_mem (by exact ⟨hx, hxE⟩)]
+    · rw [EReal.indicator_of_notMem hx, EReal.indicator_of_notMem (by exact fun h => hx h.1)]
+  · rw [EReal.indicator_of_notMem hxE, mul_zero]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Eq.symm
+    apply Finset.sum_eq_zero
+    intro i _
+    rw [EReal.indicator_of_notMem (by exact fun h => hxE h.2), mul_zero]
+
+/-- Multiplying an unsigned measurable function by an indicator gives an unsigned measurable function. -/
+lemma UnsignedMeasurable.mul_indicator {d:ℕ} {f : EuclideanSpace' d → EReal} (hf : UnsignedMeasurable f)
+    {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    UnsignedMeasurable (fun x => f x * EReal.indicator E x) := by
+  constructor
+  · intro x
+    exact mul_nonneg (hf.1 x) (EReal.indicator_nonneg E x)
+  · obtain ⟨g, hg_simple, hg_conv⟩ := hf.2
+    refine ⟨fun n => fun x => g n x * EReal.indicator E x, ?_, ?_⟩
+    · intro n
+      exact UnsignedSimpleFunction.mul_indicator (hg_simple n) hE
+    · intro x
+      by_cases hxE : x ∈ E
+      · simpa [EReal.indicator_of_mem hxE] using hg_conv x
+      · simp [EReal.indicator_of_notMem hxE]
+
+/-- The measure of the part of a finite-measure set outside a large ball tends to zero. -/
+lemma ball_complement_measure_tendsto_zero {d:ℕ} {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E)
+    (hEf : Lebesgue_measure E < ⊤) :
+    Filter.atTop.Tendsto (fun n : ℕ =>
+      Lebesgue_measure (E ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) (nhds 0) := by
+  let B : ℕ → Set (EuclideanSpace' d) := fun n => E ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ
+  have hB_meas : ∀ n, LebesgueMeasurable (B n) := by
+    intro n
+    dsimp [B]
+    exact hE.inter ((IsOpen.measurable (Metric.isOpen_ball)).complement)
+  have hB_mono : ∀ n, B (n + 1) ⊆ B n := by
+    intro n x hx
+    dsimp [B] at hx ⊢
+    exact ⟨hx.1, fun hb => hx.2 (Metric.ball_subset_ball (by norm_num : (n : ℝ) ≤ ((n + 1 : ℕ) : ℝ)) hb)⟩
+  have hB_fin : ∃ n, Lebesgue_measure (B n) < ⊤ := by
+    refine ⟨0, ?_⟩
+    dsimp [B]
+    exact lt_of_le_of_lt (Lebesgue_outer_measure.mono (Set.inter_subset_left)) hEf
+  have hconv : Tendsto (fun n => Lebesgue_measure (B n)) atTop (nhds (Lebesgue_measure (⋂ n, B n))) :=
+    Lebesgue_measure.downward_monotone_convergence hB_meas hB_mono hB_fin
+  have hB_inter : ⋂ n, B n = ∅ := by
+    ext x
+    constructor
+    · intro hx
+      have hx_mem : ∀ n, x ∈ B n := Set.mem_iInter.mp hx
+      obtain ⟨n, hn⟩ := exists_nat_gt ‖x‖
+      have hxn : x ∈ Metric.ball (0 : EuclideanSpace' d) (n : ℝ) := by
+        simpa [Metric.mem_ball, dist_eq_norm, sub_zero] using hn
+      exact (hx_mem n).2 hxn
+    · intro hx
+      simp at hx
+  have hB_empty_meas : Lebesgue_measure (⋂ n, B n) = 0 := by
+    simp [hB_inter]
+  change Tendsto (fun n => Lebesgue_measure (B n)) atTop (nhds 0)
+  simpa [hB_empty_meas] using hconv
+
+private lemma coe_sum_eq_sum_coe {n : ℕ} (a : Fin n → ℝ) :
+    (↑(∑ i, a i) : EReal) = ∑ i, (↑(a i) : EReal) := by
+  induction n with
+  | zero => simp [Finset.univ_eq_empty]
+  | succ m ih =>
+    rw [Fin.sum_univ_castSucc, Fin.sum_univ_castSucc, EReal.coe_add]
+    congr 1
+    exact ih (fun i => a i.castSucc)
+
+/-- The tail measure of a finite-measure set, scaled by a nonneg scalar, tends to zero. -/
+private lemma coe_mul_ball_complement_tendsto_zero {d:ℕ} {E : Set (EuclideanSpace' d)} {c : ℝ}
+    (hE : LebesgueMeasurable E) (hEf : Lebesgue_measure E < ⊤) (_hc : 0 ≤ c) :
+    Filter.atTop.Tendsto (fun n : ℕ =>
+      (c : EReal) * Lebesgue_measure (E ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) (nhds 0) := by
+  have h := ball_complement_measure_tendsto_zero hE hEf
+  have hmul := EReal.Tendsto.mul_const
+    (m := fun n : ℕ => Lebesgue_measure (E ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ))
+    (a := 0) (b := (c : EReal)) h
+    (Or.inr (EReal.coe_ne_bot c)) (Or.inr (EReal.coe_ne_top c))
+  simpa [mul_comm] using hmul
+
+/-- The tail integral of a real simple function equals the sum of per-atom tail measures. -/
+private lemma real_simple_tail_integral_eq {d:ℕ} {g : EuclideanSpace' d → ℝ} {k : ℕ} {c : Fin k → ℝ}
+    {E : Fin k → Set (EuclideanSpace' d)} (hg_eq : g = ∑ i, c i • (E i).indicator')
+    (hmes : ∀ i, LebesgueMeasurable (E i)) (hc_nn : ∀ i, 0 ≤ c i) (R : ℝ) :
+    UnsignedLebesgueIntegral
+      (fun x => (g x : EReal) * EReal.indicator (Metric.ball (0 : EuclideanSpace' d) R)ᶜ x) =
+      ∑ i, (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) R)ᶜ) := by
+  let B : Set (EuclideanSpace' d) := (Metric.ball (0 : EuclideanSpace' d) R)ᶜ
+  have hB_meas : LebesgueMeasurable B := (IsOpen.measurable (Metric.isOpen_ball)).complement
+  have hgE_eq : (fun x => g x * B.indicator' x) = ∑ i, c i • (E i ∩ B).indicator' := by
+    ext x
+    rw [hg_eq]
+    by_cases hx : x ∈ B
+    · rw [Set.indicator'_of_mem hx, mul_one]
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      apply Finset.sum_congr rfl
+      intro i _
+      congr 1
+      by_cases hxi : x ∈ E i
+      · rw [Set.indicator'_of_mem hxi, Set.indicator'_of_mem (by exact ⟨hxi, hx⟩)]
+      · rw [Set.indicator'_of_notMem hxi, Set.indicator'_of_notMem (by intro h; exact hxi h.1)]
+    · rw [Set.indicator'_of_notMem hx, mul_zero]
+      symm
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      exact Finset.sum_eq_zero (s := Finset.univ) (f := fun i => c i * (E i ∩ B).indicator' x) (by
+        intro i _
+        simp only
+        rw [Set.indicator'_of_notMem (by intro h; exact hx h.2)]
+        ring)
+  have hElift : (fun x => (g x : EReal) * EReal.indicator B x) =
+      ∑ i : Fin k, (c i : EReal) • EReal.indicator (E i ∩ B) := by
+    ext x
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, EReal.indicator, Real.EReal_fun]
+    rw [← EReal.coe_mul]
+    simp only [← EReal.coe_mul]
+    rw [← coe_sum_eq_sum_coe (fun i => c i * (E i ∩ B).indicator' x)]
+    congr 1
+    have hxeq := congrFun hgE_eq x
+    simpa [Pi.smul_apply, smul_eq_mul] using hxeq
+  have hElift_simple : UnsignedSimpleFunction (fun x => (g x : EReal) * EReal.indicator B x) :=
+    ⟨k, (fun i => (c i : EReal)), (fun i => E i ∩ B),
+      fun i => ⟨LebesgueMeasurable.inter (hmes i) hB_meas, EReal.coe_nonneg.mpr (hc_nn i)⟩, hElift⟩
+  rw [show (fun x => (g x : EReal) * EReal.indicator (Metric.ball (0 : EuclideanSpace' d) R)ᶜ x) =
+      fun x => (g x : EReal) * EReal.indicator B x from rfl]
+  rw [UnsignedLebesgueIntegral, LowerUnsignedLebesgueIntegral.eq_simpleIntegral hElift_simple]
+  rw [UnsignedSimpleFunction.integral_eq hElift_simple (k := k) (c := fun i => (c i : EReal))
+    (E := fun i => E i ∩ B) (hmes := fun i => LebesgueMeasurable.inter (hmes i) hB_meas)
+    (hnonneg := fun i => EReal.coe_nonneg.mpr (hc_nn i)) (heq := hElift)]
+
+/-- The tail of a finite-integral nonneg-coefficient real simple function outside a large ball is small. -/
+private lemma real_simple_tail_integral_small {d:ℕ} {g : EuclideanSpace' d → ℝ} {k : ℕ} {c : Fin k → ℝ}
+    {E : Fin k → Set (EuclideanSpace' d)} (hg_eq : g = ∑ i, c i • (E i).indicator')
+    (hmes : ∀ i, LebesgueMeasurable (E i)) (hc_nn : ∀ i, 0 ≤ c i)
+    (hfin : UnsignedLebesgueIntegral (fun x => (g x : EReal)) < ⊤) (δ : ℝ) (hδ : 0 < δ) :
+    ∃ R : ℝ, UnsignedLebesgueIntegral
+      (fun x => (g x : EReal) * EReal.indicator (Metric.ball (0 : EuclideanSpace' d) R)ᶜ x) ≤ δ := by
+  have hg_meas : UnsignedMeasurable (fun x => (g x : EReal)) := by
+    constructor
+    · intro x
+      exact EReal.coe_nonneg.mpr (by
+        rw [hg_eq]
+        simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+        exact Finset.sum_nonneg (fun j _ => mul_nonneg (hc_nn j) (Set.indicator_nonneg (fun _ _ => zero_le_one) x)))
+    · refine ⟨fun _ => fun x => (g x : EReal), ?_, ?_⟩
+      · intro n
+        refine ⟨k, (fun i => (c i : EReal)), E, fun i => ⟨hmes i, EReal.coe_nonneg.mpr (hc_nn i)⟩, ?_⟩
+        ext x
+        simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, EReal.indicator, Real.EReal_fun]
+        simp only [← EReal.coe_mul]
+        rw [← coe_sum_eq_sum_coe (fun i => c i * (E i).indicator' x)]
+        congr 1
+        simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using congrFun hg_eq x
+      · intro x
+        exact tendsto_const_nhds
+  have hthin (i : Fin k) : (c i : EReal) * Lebesgue_measure (E i) < ⊤ := by
+    have h_pw : ∀ x, ((c i : EReal) * EReal.indicator (E i) x) ≤ (g x : EReal) := by
+      intro x
+      rw [hg_eq]
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, EReal.indicator, Real.EReal_fun]
+      rw [coe_sum_eq_sum_coe (fun j => c j * (E j).indicator' x)]
+      simp only [← EReal.coe_mul]
+      exact Finset.single_le_sum (s := Finset.univ) (a := i)
+        (f := fun j => (c j : EReal) * EReal.indicator (E j) x)
+        (fun j _ => mul_nonneg (EReal.coe_nonneg.mpr (hc_nn j)) (EReal.indicator_nonneg (E j) x))
+        (Finset.mem_univ i)
+    have hs_i : UnsignedSimpleFunction (fun x => (c i : EReal) * EReal.indicator (E i) x) :=
+      ⟨1, (fun _ : Fin 1 => (c i : EReal)), (fun _ : Fin 1 => E i),
+        fun j => ⟨hmes i, EReal.coe_nonneg.mpr (hc_nn i)⟩,
+        by ext x; simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Fin.sum_univ_one]⟩
+    have hmono : LowerUnsignedLebesgueIntegral (fun x => (c i : EReal) * EReal.indicator (E i) x) ≤
+        UnsignedLebesgueIntegral (fun x => (g x : EReal)) :=
+      LowerUnsignedLebesgueIntegral.mono (UnsignedSimpleFunction.measurable hs_i (by
+        intro x
+        exact mul_nonneg (EReal.coe_nonneg.mpr (hc_nn i)) (EReal.indicator_nonneg (E i) x)))
+        hg_meas (AlmostAlways.ofAlways h_pw)
+    calc (c i : EReal) * Lebesgue_measure (E i)
+        = LowerUnsignedLebesgueIntegral (fun x => (c i : EReal) * EReal.indicator (E i) x) := by
+            rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral hs_i]
+            rw [UnsignedSimpleFunction.integral_eq hs_i (k := 1) (c := fun _ : Fin 1 => (c i : EReal))
+              (E := fun _ : Fin 1 => E i) (hmes := fun _ => hmes i)
+              (hnonneg := fun _ => EReal.coe_nonneg.mpr (hc_nn i))
+              (heq := by ext x; simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Fin.sum_univ_one])]
+            simp
+      _ ≤ UnsignedLebesgueIntegral (fun x => (g x : EReal)) := hmono
+      _ < ⊤ := hfin
+  have hEi_fin (i : Fin k) (hci : c i ≠ 0) : Lebesgue_measure (E i) < ⊤ := by
+    have hcpos : 0 < c i := lt_of_le_of_ne (hc_nn i) (Ne.symm hci)
+    by_contra htop
+    have hmt : Lebesgue_measure (E i) = ⊤ := by
+      by_contra hne
+      exact htop (lt_of_le_of_ne (le_top : Lebesgue_measure (E i) ≤ ⊤) hne)
+    have hprod : (c i : EReal) * Lebesgue_measure (E i) = ⊤ := by
+      rw [hmt]
+      exact EReal.mul_top_of_pos (EReal.coe_pos.mpr hcpos)
+    exact (lt_irrefl ⊤) (hprod ▸ hthin i)
+  have hterm (i : Fin k) : Tendsto (fun n : ℕ =>
+      (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) atTop (nhds 0) := by
+    by_cases hci : c i = 0
+    · simp [hci]
+    · exact coe_mul_ball_complement_tendsto_zero (hmes i) (hEi_fin i hci) (hc_nn i)
+  have hterm_lt (n : ℕ) (i : Fin k) :
+      (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ) < ⊤ := by
+    by_cases hci : c i = 0
+    · simp [hci]
+    · exact lt_of_le_of_lt
+        (mul_le_mul_of_nonneg_left
+          (Lebesgue_outer_measure.mono (Set.inter_subset_left)) (EReal.coe_nonneg.mpr (hc_nn i)))
+        (hthin i)
+  have hsum_lt_top : ∀ n : ℕ, (∑ i : Fin k,
+      (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) < ⊤ := by
+    intro n
+    have hgoal : (∑ i ∈ (Finset.univ : Finset (Fin k)),
+        (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) < ⊤ := by
+      refine Finset.induction_on (s := Finset.univ) ?_ ?_
+      · simp
+      · intro i s his ih
+        rw [Finset.sum_insert his]
+        exact EReal.add_lt_top (ne_of_lt (hterm_lt n i)) (ne_of_lt ih)
+    simpa using hgoal
+  have hsum : Tendsto (fun n : ℕ => ∑ i : Fin k,
+      (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) atTop (nhds 0) := by
+    rw [tendsto_order]
+    constructor
+    · intro b hb
+      filter_upwards [] with n
+      exact lt_of_lt_of_le hb (Finset.sum_nonneg (fun i _ =>
+        mul_nonneg (EReal.coe_nonneg.mpr (hc_nn i)) (Lebesgue_outer_measure.nonneg _)))
+    · intro b hb
+      rcases b with _ | r
+      · exact (False.elim (not_lt_of_ge (bot_le : (⊥ : EReal) ≤ 0) hb))
+      · rcases r with _ | r
+        · filter_upwards [] with n
+          exact hsum_lt_top n
+        · have hr : 0 < r := EReal.coe_pos.mp hb
+          by_cases hk : k = 0
+          · subst hk
+            filter_upwards [] with n
+            simp
+            exact hb
+          · have hkpos : 0 < (k : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hk)
+            have hkne : (k : ℝ) ≠ 0 := ne_of_gt hkpos
+            have hk1pos : 0 < (k + 1 : ℝ) := by positivity
+            let t : EReal := (r / (k + 1 : ℝ) : EReal)
+            have ht : 0 < t := EReal.coe_pos.mpr (div_pos hr hk1pos)
+            have hsmall (i : Fin k) : ∀ᶠ n : ℕ in Filter.atTop,
+                (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ) < t :=
+              (hterm i).eventually (isOpen_Iio.mem_nhds ht)
+            have hall : ∀ᶠ n : ℕ in Filter.atTop, ∀ i : Fin k,
+                (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ) < t :=
+              Filter.eventually_all.mpr (fun i => hsmall i)
+            refine hall.mono ?_
+            intro n hn
+            calc (∑ i : Fin k, (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ))
+                ≤ ∑ i : Fin k, t := Finset.sum_le_sum (fun i _ => le_of_lt (hn i))
+              _ < (r : EReal) := by
+                  have ht : t = (↑(r / (k + 1 : ℝ)) : EReal) := by rfl
+                  rw [ht, ← coe_sum_eq_sum_coe (fun _ : Fin k => r / (k + 1 : ℝ))]
+                  apply EReal.coe_lt_coe_iff.mpr
+                  rw [Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin]
+                  have hk1 : (k + 1 : ℝ) ≠ 0 := by positivity
+                  have hk1pos : 0 < (k + 1 : ℝ) := by positivity
+                  calc (k : ℝ) * (r / (k + 1 : ℝ))
+                      = (k : ℝ) * r / (k + 1 : ℝ) := by rw [← mul_div_assoc]
+                    _ < (k + 1 : ℝ) * r / (k + 1 : ℝ) := by
+                        apply div_lt_div_of_pos_right _ hk1pos
+                        nlinarith [hr]
+                    _ = r := by
+                        simpa [mul_comm] using (mul_div_cancel_right₀ (a := r) (b := (k + 1 : ℝ)) hk1)
+  have hδe : 0 < (δ : EReal) := EReal.coe_pos.mpr hδ
+  have hev : ∀ᶠ n : ℕ in Filter.atTop,
+      (∑ i : Fin k, (c i : EReal) * Lebesgue_measure (E i ∩ (Metric.ball (0 : EuclideanSpace' d) (n : ℝ))ᶜ)) < (δ : EReal) :=
+    hsum.eventually (isOpen_Iio.mem_nhds hδe)
+  rcases Filter.eventually_atTop.mp hev with ⟨N, hN⟩
+  refine ⟨(N : ℝ), ?_⟩
+  rw [real_simple_tail_integral_eq hg_eq hmes hc_nn (N : ℝ)]
+  exact le_of_lt (hN N le_rfl)
+
+/-- The difference of a real measurable function and a smaller unsigned simple function is unsigned measurable. -/
+lemma real_measurable_sub_unsigned {d:ℕ} {φ : EuclideanSpace' d → ℝ} {g : EuclideanSpace' d → EReal}
+    (hφ : RealMeasurable φ) (hg : UnsignedSimpleFunction g) (hle : ∀ x, g x ≤ (φ x : EReal)) :
+    UnsignedMeasurable (fun x => (φ x : EReal) - g x) := by
+  have hfin : ∀ x, g x ≠ ⊤ := by
+    intro x hgx
+    have htop : (φ x : EReal) = ⊤ := le_antisymm le_top (by simpa [hgx] using hle x)
+    exact (EReal.coe_ne_top (φ x)) htop
+  rcases hg with ⟨k, c, E, hcond, heq⟩
+  set c' : Fin k → ℝ := fun i => (c i).toReal with hc'_def
+  set h : EuclideanSpace' d → ℝ := fun x => ∑ i, c' i * (E i).indicator' x with hh_def
+  have hh_simple : RealSimpleFunction h := by
+    exact ⟨k, c', E, fun i => (hcond i).1, by ext x; simp [hh_def, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]⟩
+  have hh_eq : ∀ x, (h x : EReal) = g x := by
+    intro x
+    simp only [hh_def, heq, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    have hcoe_sum : ∀ (n : ℕ) (a : Fin n → ℝ),
+        (↑(∑ i, a i) : EReal) = ∑ i, (↑(a i) : EReal) := by
+      intro n a; induction n with
+      | zero => simp [Finset.univ_eq_empty]
+      | succ m ih =>
+        rw [Fin.sum_univ_castSucc, Fin.sum_univ_castSucc, EReal.coe_add]
+        congr 1; exact ih (fun i => a i.castSucc)
+    rw [hcoe_sum]
+    congr 1; ext i
+    by_cases hx : x ∈ E i
+    · simp only [hc'_def, Set.indicator', Set.indicator_of_mem hx, mul_one,
+        EReal.indicator, Real.EReal_fun]
+      have hci_ne_bot : c i ≠ ⊥ :=
+        ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hcond i).2)
+      have hci_ne_top : c i ≠ ⊤ := by
+        intro hci_top
+        apply hfin x
+        rw [heq]; simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+        apply eq_top_iff.mpr
+        have htop : c i * EReal.indicator (E i) x = ⊤ := by
+          simp [hci_top, EReal.indicator, Real.EReal_fun, Set.indicator', Set.indicator_of_mem hx]
+        calc ⊤ = c i * EReal.indicator (E i) x := htop.symm
+          _ ≤ ∑ j, c j * EReal.indicator (E j) x :=
+            Finset.single_le_sum (f := fun j => c j * EReal.indicator (E j) x)
+              (fun j _ => mul_nonneg (hcond j).2 (by
+                simp only [EReal.indicator, Real.EReal_fun]
+                by_cases hxj : x ∈ E j
+                · simp [Set.indicator'_of_mem hxj]
+                · simp [Set.indicator'_of_notMem hxj])) (Finset.mem_univ i)
+      rw [show (1 : ℝ).toEReal = (1 : EReal) from rfl, mul_one]
+      exact EReal.coe_toReal hci_ne_top hci_ne_bot
+    · simp only [Set.indicator'_of_notMem hx, mul_zero, EReal.coe_zero,
+        EReal.indicator, Real.EReal_fun, MulZeroClass.mul_zero]
+  have hh_real : RealMeasurable h := ⟨fun _ => h, fun _ => hh_simple, fun _ => tendsto_const_nhds⟩
+  have hsub_real : RealMeasurable (φ - h) := RealMeasurable.sub hφ hh_real
+  have hsub_nn : ∀ x, 0 ≤ (φ - h) x := fun x =>
+    sub_nonneg.mpr (EReal.coe_le_coe_iff.mp (by rw [hh_eq x]; exact hle x))
+  have hφminush : (fun x => (φ x : EReal) - g x) = fun x => EReal.pos_fun (φ - h) x := by
+    funext x
+    rw [← hh_eq x]
+    simp only [EReal.pos_fun, max_eq_left (hsub_nn x)]
+    simp [EReal.coe_sub]
+  exact hφminush ▸ RealMeasurable.measurable_pos hsub_real
+
+private lemma unsigned_approx_from_sup_134 {d:ℕ} {f: EuclideanSpace' d → EReal}
+    (hf : UnsignedAbsolutelyIntegrable f) (ε : ℝ) (hε : 0 < ε) :
+    ∃ (g : EuclideanSpace' d → EReal) (hg : UnsignedSimpleFunction g),
+      (∀ x, g x ≤ f x) ∧
+      UnsignedLebesgueIntegral f ≤ hg.integ + ε := by
+  set L := UnsignedLebesgueIntegral f with hL_def
+  have hL_lt_top : L < ⊤ := hf.2
+  have hL_ne_top : L ≠ ⊤ := ne_of_lt hL_lt_top
+  have hL_nonneg : (0 : EReal) ≤ L := UnsignedLebesgueIntegral.nonneg hf.1
+  have hL_ne_bot : L ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hL_nonneg)
+  have hε_ne_bot : (ε : EReal) ≠ ⊥ := EReal.coe_ne_bot ε
+  have hε_ne_top : (ε : EReal) ≠ ⊤ := EReal.coe_ne_top ε
+  have hL_sub_lt : L - (ε : EReal) < L := by
+    rw [EReal.sub_lt_iff (Or.inl hε_ne_bot) (Or.inl hε_ne_top)]
+    calc L = 0 + L := (zero_add L).symm
+      _ < (ε : EReal) + L := EReal.add_lt_add_of_lt_of_le
+          (EReal.coe_pos.mpr hε) le_rfl hL_ne_bot hL_ne_top
+      _ = L + (ε : EReal) := add_comm _ _
+  have hR_exists : ∃ R ∈ { R : EReal | ∃ g : EuclideanSpace' d → EReal,
+      ∃ hg : UnsignedSimpleFunction g, ∀ x, g x ≤ f x ∧ R = hg.integ },
+      L - (ε : EReal) < R := by
+    by_contra h_all
+    push_neg at h_all
+    have h_le : L ≤ L - (ε : EReal) := by
+      conv_lhs => rw [hL_def, UnsignedLebesgueIntegral, LowerUnsignedLebesgueIntegral]
+      exact sSup_le fun R hR => h_all R hR
+    exact absurd h_le (not_le.mpr hL_sub_lt)
+  obtain ⟨R, hR_mem, hR_gt⟩ := hR_exists
+  obtain ⟨g, hg, hcond⟩ := hR_mem
+  have hg_le : ∀ x, g x ≤ f x := fun x => (hcond x).1
+  have hR_eq : R = hg.integ := (hcond (0 : EuclideanSpace' d)).2
+  refine ⟨g, hg, hg_le, ?_⟩
+  rw [hR_eq] at hR_gt
+  exact le_of_lt ((EReal.sub_lt_iff (Or.inl hε_ne_bot)
+      (Or.inl hε_ne_top)).mp hR_gt)
+
+/-- Exercise 1.3.25 (a) -/
 theorem ComplexAbsolutelyIntegrable.almost_bounded_support {d:ℕ} {f : EuclideanSpace' d → ℂ}
   (hf: ComplexAbsolutelyIntegrable f)
   (ε : ℝ) (hε : 0 < ε) :
-  ∃ (R: ℝ), PreL1.norm (f * Complex.indicator (Metric.ball 0 R)ᶜ) ≤ ε := by sorry
+  ∃ (R: ℝ), PreL1.norm (f * Complex.indicator (Metric.ball 0 R)ᶜ) ≤ ε := by
+  obtain ⟨g, hg, hg_le, hg_bound⟩ := unsigned_approx_from_sup_134 hf.abs (ε / 2) (half_pos hε)
+  have hfin_g : ∀ x, g x ≠ ⊤ := fun x =>
+    ne_of_lt (lt_of_le_of_lt (hg_le x) (by simp only [EReal.abs_fun]; exact EReal.coe_lt_top _))
+  rcases hg with ⟨k, c, E, hcond, heq⟩
+  have hg : UnsignedSimpleFunction g := ⟨k, c, E, hcond, heq⟩
+  have hgx_nn : ∀ x, 0 ≤ g x := by
+    intro x
+    rw [heq]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    exact Finset.sum_nonneg (fun j _ => mul_nonneg (hcond j).2 (EReal.indicator_nonneg (E j) x))
+  have hg_meas : UnsignedMeasurable g := UnsignedSimpleFunction.measurable hg hgx_nn
+  set c' : Fin k → ℝ := fun i => (c i).toReal with hc'_def
+  set h : EuclideanSpace' d → ℝ := fun x => ∑ i, c' i * (E i).indicator' x with hh_def
+  have hh_simple : RealSimpleFunction h :=
+    ⟨k, c', E, fun i => (hcond i).1, by ext x; simp [hh_def, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]⟩
+  have hh_eq : ∀ x, (h x : EReal) = g x := by
+    intro x
+    simp only [hh_def, heq, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    rw [coe_sum_eq_sum_coe (fun i => c' i * (E i).indicator' x)]
+    congr 1
+    ext i
+    by_cases hx : x ∈ E i
+    · simp only [hc'_def, Set.indicator', Set.indicator_of_mem hx, mul_one,
+        EReal.indicator, Real.EReal_fun]
+      have hci_ne_bot : c i ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hcond i).2)
+      have hci_ne_top : c i ≠ ⊤ := by
+        intro hci_top
+        apply hfin_g x
+        rw [heq]; simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+        apply eq_top_iff.mpr
+        have htop : c i * EReal.indicator (E i) x = ⊤ := by
+          simp [hci_top, EReal.indicator, Real.EReal_fun, Set.indicator', Set.indicator_of_mem hx]
+        calc ⊤ = c i * EReal.indicator (E i) x := htop.symm
+          _ ≤ ∑ j, c j * EReal.indicator (E j) x :=
+            Finset.single_le_sum (f := fun j => c j * EReal.indicator (E j) x)
+              (fun j _ => mul_nonneg (hcond j).2 (by
+                simp only [EReal.indicator, Real.EReal_fun]
+                by_cases hxj : x ∈ E j
+                · simp [Set.indicator'_of_mem hxj]
+                · simp [Set.indicator'_of_notMem hxj])) (Finset.mem_univ i)
+      rw [show (1 : ℝ).toEReal = (1 : EReal) from rfl, mul_one]
+      exact EReal.coe_toReal hci_ne_top hci_ne_bot
+    · simp only [Set.indicator'_of_notMem hx, mul_zero, EReal.coe_zero,
+        EReal.indicator, Real.EReal_fun, MulZeroClass.mul_zero]
+  have hc'_nn : ∀ i, 0 ≤ c' i := fun i => by
+    simp only [hc'_def]
+    exact EReal.toReal_nonneg (hcond i).2
+  have hh_fin : UnsignedLebesgueIntegral (fun x => (h x : EReal)) < ⊤ := by
+    have hfun : (fun x => (h x : EReal)) = g := funext (fun x => hh_eq x)
+    rw [hfun]
+    have hmono := LowerUnsignedLebesgueIntegral.mono hg_meas hf.abs.1 (AlmostAlways.ofAlways hg_le)
+    exact lt_of_le_of_lt (by simpa [UnsignedLebesgueIntegral] using hmono) hf.abs.2
+  have hh_repr : h = ∑ i, c' i • (E i).indicator' := by
+    ext x
+    simp [hh_def, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  obtain ⟨R, hR⟩ := real_simple_tail_integral_small (g := h) (hg_eq := hh_repr)
+    (hmes := fun i => (hcond i).1) (hc_nn := hc'_nn) hh_fin (ε / 2) (half_pos hε)
+  have hφnorm : RealMeasurable (fun x => ‖f x‖) := by
+    exact ((RealMeasurable_TFAE_helpers.RealMeasurable.TFAE (f := fun x => ‖f x‖)).out 4 0
+      (a := ∀ K : Set ℝ, IsClosed K → LebesgueMeasurable ((fun x => ‖f x‖) ⁻¹' K))
+      (b := RealMeasurable (fun x => ‖f x‖))).mp (by
+        intro K hK
+        have hKpre : IsClosed ((fun z : ℂ => ‖z‖) ⁻¹' K) := hK.preimage continuous_norm
+        simpa using (ComplexMeasurable.preimage_closed hf.1 hKpre))
+  have hsub_meas : UnsignedMeasurable (fun x => EReal.abs_fun f x - g x) :=
+    real_measurable_sub_unsigned hφnorm hg hg_le
+  have h_id : ∀ x, g x + (EReal.abs_fun f x - g x) = EReal.abs_fun f x := by
+    intro x
+    rw [show g x = (↑(g x).toReal : EReal) from
+      (EReal.coe_toReal (hfin_g x)
+        (ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hgx_nn x)))).symm]
+    rw [add_comm]
+    exact (EReal.sub_add_cancel (a := EReal.abs_fun f x) (b := (g x).toReal))
+  have hsum_meas : UnsignedMeasurable (fun x => g x + (EReal.abs_fun f x - g x)) :=
+    hg_meas.add hsub_meas
+  have hint_sum : UnsignedLebesgueIntegral (fun x => g x + (EReal.abs_fun f x - g x)) =
+      UnsignedLebesgueIntegral g + UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) := by
+    simpa [UnsignedLebesgueIntegral] using (LowerUnsignedLebesgueIntegral.add hg_meas hsub_meas hsum_meas)
+  have hint_g : UnsignedLebesgueIntegral g = hg.integ := by
+    rw [UnsignedLebesgueIntegral]
+    exact LowerUnsignedLebesgueIntegral.eq_simpleIntegral hg
+  have hg_integ_le : hg.integ ≤ UnsignedLebesgueIntegral (EReal.abs_fun f) := by
+    have hmono := LowerUnsignedLebesgueIntegral.mono hg_meas hf.abs.1 (AlmostAlways.ofAlways hg_le)
+    calc hg.integ = UnsignedLebesgueIntegral g := hint_g.symm
+      _ = LowerUnsignedLebesgueIntegral g := by rw [UnsignedLebesgueIntegral]
+      _ ≤ LowerUnsignedLebesgueIntegral (EReal.abs_fun f) := hmono
+      _ = UnsignedLebesgueIntegral (EReal.abs_fun f) := by rw [UnsignedLebesgueIntegral]
+  have hg_integ_ne_top : hg.integ ≠ ⊤ := ne_of_lt (lt_of_le_of_lt hg_integ_le hf.abs.2)
+  have hg_integ_nn : 0 ≤ hg.integ := by
+    simpa [hint_g] using (UnsignedLebesgueIntegral.nonneg hg_meas)
+  have hg_integ_ne_bot : hg.integ ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hg_integ_nn)
+  have hle1 : UnsignedLebesgueIntegral (EReal.abs_fun f) =
+      hg.integ + UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) := by
+    have hfun : (fun x => g x + (EReal.abs_fun f x - g x)) = EReal.abs_fun f := funext h_id
+    conv_lhs => rw [← hfun]
+    rw [hint_sum, hint_g]
+  have hle2 : hg.integ + UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) ≤
+      hg.integ + (ε / 2 : EReal) := by
+    rw [← hle1]
+    simpa using hg_bound
+  have hsub_bound : UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) ≤ ε / 2 :=
+    cancel_add_left hg_integ_ne_top hg_integ_ne_bot hle2
+  have hballR_meas : LebesgueMeasurable (Metric.ball (0 : EuclideanSpace' d) R)ᶜ :=
+    (IsOpen.measurable (Metric.isOpen_ball)).complement
+  have hR' : UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x) ≤ ε / 2 := by
+    have hfun : (fun x => (h x : EReal) * EReal.indicator (Metric.ball 0 R)ᶜ x) =
+        fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x := by
+      funext x
+      rw [hh_eq x]
+    simpa [hfun] using hR
+  have h_pw : ∀ x, EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x ≤
+      (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x + (EReal.abs_fun f x - g x)) x := fun x => by
+    by_cases hx : x ∈ (Metric.ball 0 R)ᶜ
+    · simp [EReal.indicator_of_mem hx, mul_one, h_id x]
+    · simp [EReal.indicator_of_notMem hx, mul_zero, zero_add]
+      exact (EReal.sub_nonneg (Or.inl (EReal.coe_ne_top (‖f x‖)))
+        (Or.inl (EReal.coe_ne_bot (‖f x‖)))).mpr (hg_le x)
+  have hmono : UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x) ≤
+      UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x + (EReal.abs_fun f x - g x)) := by
+    simpa [UnsignedLebesgueIntegral] using (LowerUnsignedLebesgueIntegral.mono
+      (UnsignedMeasurable.mul_indicator hf.abs.1 hballR_meas)
+      (UnsignedMeasurable.add (UnsignedMeasurable.mul_indicator hg_meas hballR_meas) hsub_meas)
+      (AlmostAlways.ofAlways h_pw))
+  have hadd : UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x + (EReal.abs_fun f x - g x)) =
+      UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x) +
+      UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) := by
+    simpa [UnsignedLebesgueIntegral] using (LowerUnsignedLebesgueIntegral.add
+      (UnsignedMeasurable.mul_indicator hg_meas hballR_meas) hsub_meas
+      (UnsignedMeasurable.add (UnsignedMeasurable.mul_indicator hg_meas hballR_meas) hsub_meas))
+  have hmain : UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x) ≤ (ε : EReal) := by
+    calc UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x)
+        ≤ UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x + (EReal.abs_fun f x - g x)) := hmono
+      _ = UnsignedLebesgueIntegral (fun x => g x * EReal.indicator (Metric.ball 0 R)ᶜ x) +
+          UnsignedLebesgueIntegral (fun x => EReal.abs_fun f x - g x) := hadd
+      _ ≤ (ε / 2 : EReal) + (ε / 2 : EReal) := add_le_add hR' hsub_bound
+      _ = (ε : EReal) := by
+          change (↑(ε / 2 : ℝ) : EReal) + (↑(ε / 2 : ℝ) : EReal) = (ε : EReal)
+          rw [← EReal.coe_add]
+          congr 1
+          linarith
+  refine ⟨R, ?_⟩
+  unfold PreL1.norm
+  have h_pw2 : (fun x => EReal.abs_fun (f * Complex.indicator (Metric.ball 0 R)ᶜ) x) =
+      fun x => EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x := by
+    funext x
+    simp only [EReal.abs_fun, Pi.mul_apply]
+    rw [norm_mul]
+    by_cases hx : x ∈ (Metric.ball 0 R)ᶜ
+    · rw [EReal.indicator_of_mem hx, mul_one]
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx]
+    · rw [EReal.indicator_of_notMem hx, mul_zero]
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx]
+  rw [show EReal.abs_fun (f * Complex.indicator (Metric.ball 0 R)ᶜ) =
+      fun x => EReal.abs_fun f x * EReal.indicator (Metric.ball 0 R)ᶜ x from
+      funext (fun x => congrFun h_pw2 x)]
+  exact hmain
 
+/-- Exercise 1.3.25 (b) -/
 def BoundedOn {X Y:Type*} [PseudoMetricSpace Y] (f: X → Y) (S: Set X) : Prop := Bornology.IsBounded (f '' S)
 
-/-- Exercise 1.3.25 (b) (Littlewood-like principle) -/
 theorem ComplexAbsolutelyIntegrable.almost_bounded {d:ℕ} {f : EuclideanSpace' d → ℂ}
   (hf: ComplexAbsolutelyIntegrable f)
   (ε : ℝ) (hε : 0 < ε) :
   ∃ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧
     Lebesgue_measure E ≤ ε ∧
-    BoundedOn f Eᶜ := by sorry
+    BoundedOn f Eᶜ := by
+  let I : EReal := UnsignedLebesgueIntegral (EReal.abs_fun f)
+  have hI_lt : I < ⊤ := hf.abs.2
+  have hI_nn : 0 ≤ I := UnsignedLebesgueIntegral.nonneg hf.abs.1
+  have hI_ne_bot : I ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero hI_nn)
+  have hI_ne_top : I ≠ ⊤ := ne_of_lt hI_lt
+  have hI_toReal_nn : 0 ≤ I.toReal := EReal.toReal_nonneg hI_nn
+  let M : ℝ := max 1 (2 * I.toReal / ε + 1)
+  have hMpos : 0 < M := by
+    exact lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_left 1 (2 * I.toReal / ε + 1))
+  have hM_ratio : M⁻¹ * I.toReal ≤ ε / 2 := by
+    have hMge : 2 * I.toReal / ε + 1 ≤ M := le_max_right 1 (2 * I.toReal / ε + 1)
+    have hpos : 0 < 2 * I.toReal / ε + 1 := by positivity
+    have hinv : M⁻¹ ≤ (2 * I.toReal / ε + 1)⁻¹ :=
+      (inv_le_inv₀ hMpos hpos).mpr hMge
+    have hle : I.toReal ≤ (ε / 2) * (2 * I.toReal / ε + 1) := by
+      have hcalc : (ε / 2) * (2 * I.toReal / ε + 1) = I.toReal + ε / 2 := by
+        field_simp [ne_of_gt hε]
+      rw [hcalc]
+      nlinarith
+    calc M⁻¹ * I.toReal
+        ≤ (2 * I.toReal / ε + 1)⁻¹ * I.toReal := mul_le_mul_of_nonneg_right hinv hI_toReal_nn
+      _ ≤ ε / 2 := by
+          have hinv_nn : 0 ≤ (2 * I.toReal / ε + 1)⁻¹ := by positivity
+          have hmul := mul_le_mul_of_nonneg_left hle hinv_nn
+          calc (2 * I.toReal / ε + 1)⁻¹ * I.toReal
+              ≤ (2 * I.toReal / ε + 1)⁻¹ * ((ε / 2) * (2 * I.toReal / ε + 1)) := hmul
+            _ = ε / 2 := by
+                field_simp [show 2 * I.toReal / ε + 1 ≠ 0 by positivity]
+  let E : Set (EuclideanSpace' d) := {x | (M : ℝ) ≤ ‖f x‖}
+  have hE_meas : LebesgueMeasurable E := by
+    have hEq : E = f ⁻¹' {z : ℂ | (M : ℝ) ≤ ‖z‖} := by
+      ext x
+      rfl
+    rw [hEq]
+    exact ComplexMeasurable.preimage_closed hf.1
+      (by simpa using (IsClosed.preimage continuous_norm (isClosed_Ici (a := M))))
+  have hE_le : Lebesgue_measure E ≤ ε := by
+    have hcheb := ComplexAbsolutelyIntegrable.chebyshev hf M hMpos
+    have hI_real : I = (I.toReal : EReal) := (EReal.coe_toReal hI_ne_top hI_ne_bot).symm
+    calc Lebesgue_measure E
+        ≤ ((M : ℝ)⁻¹ : EReal) * I := by simpa [E] using hcheb
+      _ = ((M⁻¹ * I.toReal : ℝ) : EReal) := by
+          conv_lhs => rw [hI_real]
+          rw [← EReal.coe_inv, ← EReal.coe_mul]
+      _ ≤ (ε / 2 : EReal) := EReal.coe_le_coe_iff.mpr hM_ratio
+      _ ≤ (ε : EReal) := EReal.coe_le_coe_iff.mpr (by linarith)
+  have hbounded : BoundedOn f Eᶜ := by
+    unfold BoundedOn
+    rw [Metric.isBounded_iff_subset_closedBall (0 : ℂ)]
+    refine ⟨M, ?_⟩
+    intro z hz
+    rcases hz with ⟨x, hx, rfl⟩
+    rw [Metric.mem_closedBall, dist_eq_norm, sub_zero]
+    have hx' : ¬ (M : ℝ) ≤ ‖f x‖ := by simpa [E] using hx
+    exact le_of_lt (lt_of_not_ge hx')
+  exact ⟨E, hE_meas, hE_le, hbounded⟩
