@@ -1,7 +1,10 @@
 import Analysis.MeasureTheory.Section_1_3_4
 import Mathlib.Topology.UrysohnsLemma
+import Mathlib.Analysis.Analytic.Basic
+import Mathlib.Analysis.SpecificLimits.Normed
 
 open Filter
+open scoped Topology
 
 /-!
 # Introduction to Measure Theory, Section 1.3.5: Littlewood's three principles
@@ -1619,12 +1622,202 @@ example : ¬ UniformlyConvergesTo (fun n (x:EuclideanSpace' 1) ↦ x.toReal / n)
   rw [hcast, div_self hne]
   norm_num
 
+/-- Mathlib's {name}`TendstoUniformly` is equivalent to our {name}`UniformlyConvergesTo` -/
+private lemma tendstoUniformly_iff_uniformlyConvergesTo {X Y:Type*} [PseudoMetricSpace Y]
+    (F : ℕ → X → Y) (f : X → Y) :
+    TendstoUniformly F f atTop ↔ UniformlyConvergesTo F f := by
+  constructor
+  · intro h ε hε
+    have hball : {p : Y × Y | dist p.1 p.2 < ε} ∈ uniformity Y :=
+      Metric.mem_uniformity_dist.mpr ⟨ε, hε, by intro a b hab; exact hab⟩
+    rcases (eventually_atTop.mp (h {p : Y × Y | dist p.1 p.2 < ε} hball)) with ⟨N, hN⟩
+    refine ⟨N, ?_⟩
+    intro n hn x
+    have hlt : dist (f x) (F n x) < ε := hN n hn x
+    rw [dist_comm] at hlt
+    exact le_of_lt hlt
+  · intro h u hu
+    obtain ⟨ε, hε, hsub⟩ := Metric.mem_uniformity_dist.mp hu
+    obtain ⟨N, hN⟩ := h (ε / 2) (half_pos hε)
+    refine (eventually_ge_atTop N).mono (fun n hn => ?_)
+    intro x
+    have hle : dist (F n x) (f x) ≤ ε / 2 := hN n hn x
+    have hlt : dist (f x) (F n x) < ε := by
+      rw [dist_comm]; exact lt_of_le_of_lt hle (half_lt_self hε)
+    exact hsub hlt
+
+/-- Mathlib's {name}`TendstoUniformlyOn` is equivalent to our {name}`UniformlyConvergesToOn` -/
+private lemma tendstoUniformlyOn_iff_uniformlyConvergesToOn {X Y:Type*} [PseudoMetricSpace Y]
+    (F : ℕ → X → Y) (f : X → Y) (S : Set X) :
+    TendstoUniformlyOn F f atTop S ↔ UniformlyConvergesToOn F f S := by
+  rw [UniformlyConvergesToOn]
+  rw [tendstoUniformlyOn_iff_tendstoUniformly_comp_coe]
+  exact tendstoUniformly_iff_uniformlyConvergesTo (F := fun n (x : S) => F n x.val) (f := fun x => f x.val)
+
+/-- A function equal pointwise to a uniformly convergent one is uniformly convergent -/
+private lemma UniformlyConvergesToOn.of_fun_eq {X Y:Type*} [PseudoMetricSpace Y]
+    {F G : ℕ → X → Y} {f : X → Y} {S : Set X}
+    (hF : UniformlyConvergesToOn F f S) (hFG : ∀ n x, F n x = G n x) :
+    UniformlyConvergesToOn G f S := by
+  intro ε hε
+  obtain ⟨N, hN⟩ := hF ε hε
+  refine ⟨N, ?_⟩
+  intro n hn x
+  have := hN n hn x
+  simpa [hFG] using this
+
+/-- The exponential Taylor series converges uniformly on any ball around 0 -/
+private lemma exp_taylor_uniform_on_ball (R : ℝ) :
+    UniformlyConvergesToOn
+      (fun N (t : ℝ) => ∑ n ∈ Finset.range N, t^n / (n.factorial : ℝ))
+      (fun t => t.exp) (Metric.ball 0 (R + 1)) := by
+  let R' : ℝ := max R 0
+  have hR' : 0 ≤ R' := le_max_right R 0
+  have hR'1 : 0 < R' + 1 := by linarith
+  have hfp' : HasFPowerSeriesOnBall NormedSpace.exp (NormedSpace.expSeries ℝ ℝ) 0 ⊤ :=
+    NormedSpace.exp_hasFPowerSeriesOnBall (𝕂 := ℝ) (𝔸 := ℝ)
+  have huni : TendstoUniformlyOn
+      (fun (n : ℕ) (t : ℝ) => (NormedSpace.expSeries ℝ ℝ).partialSum n t)
+      NormedSpace.exp atTop (Metric.ball 0 (R + 1)) := by
+    have hsub : Metric.ball (0 : ℝ) (R + 1) ⊆ Metric.ball (0 : ℝ) (R' + 1) := by
+      intro t ht
+      rw [Metric.mem_ball] at ht ⊢
+      have hlt : |t| < R + 1 := by
+        simpa [Real.dist_eq, sub_zero] using ht
+      have hRR' : R + 1 ≤ R' + 1 := by
+        have : R ≤ R' := le_max_left R 0
+        linarith
+      have hlt' : |t| < R' + 1 := lt_of_lt_of_le hlt hRR'
+      simpa [Real.dist_eq, sub_zero] using hlt'
+    have huni' : TendstoUniformlyOn
+        (fun (n : ℕ) (t : ℝ) => (NormedSpace.expSeries ℝ ℝ).partialSum n t)
+        NormedSpace.exp atTop (Metric.ball 0 (R' + 1)) := by
+      simpa [zero_add] using
+        (hfp'.tendstoUniformlyOn (x := 0) (r := ⊤) (r' := ⟨R' + 1, by linarith⟩)
+          (by exact WithTop.coe_lt_top _))
+    exact huni'.mono hsub
+  have huni' : UniformlyConvergesToOn
+      (fun (n : ℕ) (t : ℝ) => (NormedSpace.expSeries ℝ ℝ).partialSum n t)
+      NormedSpace.exp (Metric.ball 0 (R + 1)) :=
+    (tendstoUniformlyOn_iff_uniformlyConvergesToOn _ _ _).mp huni
+  have huni2 : UniformlyConvergesToOn
+      (fun (n : ℕ) (t : ℝ) => (NormedSpace.expSeries ℝ ℝ).partialSum n t)
+      (fun t => t.exp) (Metric.ball 0 (R + 1)) := by
+    convert huni' using 1
+    rw [Real.exp_eq_exp_ℝ]
+  refine UniformlyConvergesToOn.of_fun_eq huni2 ?_
+  intro N t
+  rw [FormalMultilinearSeries.partialSum]
+  simp_rw [NormedSpace.expSeries_apply_eq_div]
+
 /-- Example 1.3.24 -/
-example : LocallyUniformlyConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by sorry
+example : LocallyUniformlyConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by
+  intro K hK
+  obtain ⟨R, hKsub⟩ := (Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' 1)).mp hK
+  have hconv : UniformlyConvergesToOn
+      (fun N (t : ℝ) => ∑ n ∈ Finset.range N, t^n / (n.factorial : ℝ))
+      (fun t => t.exp) (Metric.ball 0 (R + 1)) := exp_taylor_uniform_on_ball R
+  rw [UniformlyConvergesToOn] at hconv ⊢
+  rw [UniformlyConvergesTo] at hconv ⊢
+  intro ε hε
+  obtain ⟨N, hN⟩ := hconv ε hε
+  refine ⟨N, ?_⟩
+  intro n hn x
+  have hx : x.val.toReal ∈ Metric.ball (0 : ℝ) (R + 1) := by
+    rw [Metric.mem_ball]
+    have hnorm : ‖x.val‖ ≤ R := by
+      have hxball : x.val ∈ Metric.closedBall (0 : EuclideanSpace' 1) R := hKsub x.2
+      simpa [dist_eq_norm] using (Metric.mem_closedBall.mp hxball)
+    have hcoord : |x.val.toReal| ≤ ‖x.val‖ := by
+      unfold EuclideanSpace'.toReal
+      exact EuclideanSpace'.coord_le_norm x.val ⟨0, by simp⟩
+    have hle : |x.val.toReal| ≤ R := le_trans hcoord hnorm
+    rw [Real.dist_eq, sub_zero]
+    exact lt_of_le_of_lt hle (by linarith)
+  exact hN n hn ⟨x.val.toReal, hx⟩
 
-example : PointwiseConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by sorry
+example : PointwiseConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by
+  intro x
+  have htsum : (∑' n : ℕ, x.toReal ^ n / (n.factorial : ℝ)) = x.toReal.exp := by
+    rw [Real.exp_eq_exp_ℝ]
+    rw [NormedSpace.exp_eq_tsum_div (𝔸 := ℝ)]
+  have hsum : Summable (fun n : ℕ => x.toReal ^ n / (n.factorial : ℝ)) :=
+    Real.summable_pow_div_factorial x.toReal
+  have hhas : HasSum (fun n : ℕ => x.toReal ^ n / (n.factorial : ℝ)) (∑' n : ℕ, x.toReal ^ n / (n.factorial : ℝ)) :=
+    hsum.hasSum
+  have htend : Tendsto (fun N : ℕ => ∑ n ∈ Finset.range N, x.toReal ^ n / (n.factorial : ℝ)) atTop
+      (nhds (∑' n : ℕ, x.toReal ^ n / (n.factorial : ℝ))) :=
+    hhas.tendsto_sum_nat
+  simpa [htsum] using htend
 
-example : ¬ UniformlyConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by sorry
+example : ¬ UniformlyConvergesTo (fun N (x:EuclideanSpace' 1) ↦ ∑ n ∈ Finset.range N, x.toReal^n / n.factorial) (fun x ↦ x.toReal.exp) := by
+  rw [UniformlyConvergesTo]
+  push_neg
+  refine ⟨1, by norm_num, ?_⟩
+  intro N
+  let x : EuclideanSpace' 1 := (2 * (N + 1) : ℝ).toEuclideanSpace'
+  refine ⟨N + 1, by omega, ?_⟩
+  refine ⟨x, ?_⟩
+  have hx : x.toReal = (2 * (N + 1) : ℝ) := by
+    simp [x, Real.toEuclideanSpace', Real.equiv_EuclideanSpace', EuclideanSpace'.toReal,
+      EuclideanSpace'.equiv_Real]
+  let f : ℕ → ℝ := fun k => x.toReal ^ k / (k.factorial : ℝ)
+  have hxnn : 0 ≤ x.toReal := by linarith
+  have hf_nonneg : ∀ k, 0 ≤ f k := by
+    intro k
+    unfold f
+    exact div_nonneg (pow_nonneg hxnn _) (by exact_mod_cast (Nat.factorial_pos k).le)
+  have htsum : (∑' k : ℕ, f k) = x.toReal.exp := by
+    unfold f
+    rw [Real.exp_eq_exp_ℝ]
+    rw [NormedSpace.exp_eq_tsum_div (𝔸 := ℝ)]
+  have hsum : Summable f := by
+    unfold f
+    exact Real.summable_pow_div_factorial x.toReal
+  have hhas : HasSum f (∑' k : ℕ, f k) := hsum.hasSum
+  let P : ℝ := ∑ k ∈ Finset.range (N + 1), f k
+  have hsplit : HasSum (fun k => f (k + (N + 1))) (∑' k : ℕ, f k - P) := by
+    rw [hasSum_nat_add_iff]
+    convert hhas using 1
+    ring
+  have htail_le : f (N + 1) ≤ ∑' k : ℕ, f k - P := by
+    have hsum_tail : Summable (fun k => f (k + (N + 1))) := hsplit.summable
+    have hle0 : ∀ j, j ≠ 0 → 0 ≤ f (j + (N + 1)) := by
+      intro j hj
+      exact hf_nonneg (j + (N + 1))
+    have hle := Summable.le_tsum hsum_tail (i := 0) hle0
+    simpa [hsplit.tsum_eq] using hle
+  have hterm_ge : 2 ≤ f (N + 1) := by
+    unfold f
+    rw [hx]
+    have hfact : (N + 1).factorial ≤ (N + 1) ^ (N + 1) := Nat.factorial_le_pow (N + 1)
+    have hden_pos : 0 < ((N + 1).factorial : ℝ) := by exact_mod_cast Nat.factorial_pos (N + 1)
+    calc
+      (2 : ℝ) ≤ (2 : ℝ) ^ (N + 1) := by
+        have : (2 : ℝ) ^ 1 ≤ 2 ^ (N + 1) := pow_le_pow_right₀ (by norm_num : (1:ℝ) ≤ 2) (by omega)
+        simpa using this
+      _ = (2 * (N + 1)) ^ (N + 1) / (N + 1) ^ (N + 1) := by
+        rw [mul_pow]
+        field_simp [pow_ne_zero _ (by positivity : (N + 1 : ℝ) ≠ 0)]
+      _ ≤ (2 * (N + 1)) ^ (N + 1) / ((N + 1).factorial : ℝ) := by
+        have hnum : 0 ≤ (2 * (N + 1) : ℝ) ^ (N + 1) := by positivity
+        have hc1 : 0 < (N + 1 : ℝ) ^ (N + 1) := by positivity
+        have hfact' : ((N + 1).factorial : ℝ) ≤ (N + 1 : ℝ) ^ (N + 1) := by exact_mod_cast hfact
+        rw [div_le_div_iff₀ hc1 hden_pos]
+        exact mul_le_mul_of_nonneg_left hfact' hnum
+      _ = (2 * (N + 1) : ℝ) ^ (N + 1) / ((N + 1).factorial : ℝ) := by rfl
+  have hle : f (N + 1) ≤ x.toReal.exp - P := by
+    have : x.toReal.exp - P = ∑' k : ℕ, f k - P := by rw [htsum]
+    rw [this]
+    exact htail_le
+  have hbig : 2 ≤ x.toReal.exp - P := le_trans hterm_ge hle
+  rw [Real.dist_eq]
+  rw [show (∑ n ∈ Finset.range (N + 1), x.toReal ^ n / (n.factorial : ℝ)) = P from by
+    rfl]
+  rw [show |P - x.toReal.exp| = x.toReal.exp - P from by
+    rw [abs_sub_comm]
+    exact abs_of_nonneg (by linarith)]
+  linarith
 
 /-- Example 1.3.25 -/
 example : PointwiseConvergesTo (fun n (x:EuclideanSpace' 1) ↦ if x.toReal > 0 then 1 / (n * x.toReal) else 0) (fun x ↦ 0) := by
