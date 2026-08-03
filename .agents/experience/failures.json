@@ -1637,6 +1637,198 @@
       "status": "success",
       "notes": "all errors fixed; file compiles with 0 errors",
       "end": "2026-08-03T17:03:41.070294"
+    },
+    {
+      "id": 101,
+      "theorem": "egorov_tsum_geometric",
+      "file": "_temp_egorov.lean",
+      "goal": "\u2211' m, \u03b5/2^(m+1) \u2264 \u03b5",
+      "start": "2026-08-03T22:56:43.446124",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 102,
+      "theorem": "egorov_tsum_geometric",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov_line7.lean",
+      "goal": "sum of \u03b5/2^(m+1) over m \u2264 \u03b5",
+      "start": "2026-08-03T22:57:21.022905",
+      "attempts": [
+        {
+          "edit": "wrote full proof: hstep, hgeom, hreal, hnn, hsumm, hpoint, final calc",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "full proof written",
+          "time": "2026-08-03T23:03:23.766316"
+        },
+        {
+          "edit": "fixed hpoint via rw [EReal.coe_div, EReal.coe_pow] + rfl, removed dead hpow2, removed le_rfl",
+          "errors_before": 2,
+          "errors_after": 0,
+          "excerpt": "final: 0 errors",
+          "time": "2026-08-03T23:10:40.581091"
+        }
+      ],
+      "status": "success",
+      "notes": "Proved via real tsum + EReal.coe_tsum_of_nonneg; key lemmas: tsum_geometric_of_abs_lt_one, tsum_mul_left, EReal.coe_div, EReal.coe_pow",
+      "end": "2026-08-03T23:10:40.614631"
+    },
+    {
+      "id": 103,
+      "theorem": "preimage_closed",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov2.lean",
+      "goal": "preimage of closed set under ComplexMeasurable is LebesgueMeasurable",
+      "start": "2026-08-03T23:13:17.458259",
+      "attempts": [
+        {
+          "edit": "wrote full proof via TFAE out 0 5",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "exact ((ComplexMeasurable_TFAE_helpers.ComplexMeasurable.TFAE (f := f)).out 0 5 (a := ...) (b := ...)).mp hf K hK",
+          "time": "2026-08-03T23:14:41.749697"
+        }
+      ],
+      "status": "success",
+      "notes": "TFAE out 0 5 with explicit a and b, then .mp hf K hK",
+      "end": "2026-08-03T23:14:41.785095"
+    },
+    {
+      "id": 104,
+      "theorem": "bad_set_measurable",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov3.lean",
+      "goal": "bad set measurable",
+      "start": "2026-08-03T23:15:28.503891",
+      "attempts": [
+        {
+          "edit": "full proof: hK via IsClosed.preimage continuous_norm (isClosed_Ici (a := ...)), hmeas via ComplexMeasurable.sub + preimage_closed, countable_union",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "compile clean",
+          "time": "2026-08-03T23:17:57.242330"
+        }
+      ],
+      "status": "success",
+      "notes": "bad set measurable: level set = preimage of closed Ici under norm; ComplexMeasurable.sub + preimage_closed + countable_union",
+      "end": "2026-08-03T23:17:57.276444"
+    },
+    {
+      "id": 105,
+      "theorem": "bad_inter_null",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov4.lean",
+      "goal": "inter of bad sets is null",
+      "start": "2026-08-03T23:19:18.639214",
+      "attempts": [
+        {
+          "edit": "full proof written",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "0 errors 0 warnings",
+          "time": "2026-08-03T23:22:15.611030"
+        }
+      ],
+      "status": "success",
+      "notes": "subset of ae-convergence failure set; Metric.tendsto_atTop + mem_iInter/mem_iUnion + not_lt_of_ge",
+      "end": "2026-08-03T23:22:21.591572"
+    },
+    {
+      "id": 106,
+      "theorem": "egorov_on_finite_set",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov.lean",
+      "goal": "Egorov on finite measure set",
+      "start": "2026-08-03T23:23:31.961001",
+      "attempts": [],
+      "status": "success",
+      "notes": "Egorov on finite measure set proved: B m n = A \u2229 bad sets, DMC on measure, choose n0 via eventually-Iio, E = union of B m (n0 m), tsum bound via EReal-ENNReal bridge, uniform conv by contradiction on bad set membership",
+      "end": "2026-08-03T23:32:07.066211"
+    },
+    {
+      "id": 107,
+      "theorem": "egorov_full",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_egorov.lean",
+      "goal": "full Egorov: local uniform outside small set",
+      "start": "2026-08-03T23:34:10.090744",
+      "attempts": [
+        {
+          "edit": "full proof written: hg via UnsignedMeasurable.aeLimit+TFAE, box chain E_N, hE_le tsum, hLU via unfold+subtype image",
+          "errors_before": 5,
+          "errors_after": 0,
+          "excerpt": "0 errors after fixes (BoundedInterval.Icc, TFAE .mp, explicit subtype binders, unfold instead of rw, Set.mem_image applied)",
+          "time": "2026-08-03T23:54:34.777650"
+        }
+      ],
+      "status": "success",
+      "notes": "full Egorov theorem proven: derived ComplexMeasurable g from hf+hfg via RealMeasurable TFAE 2->0 with UnsignedMeasurable.aeLimit (no boundedness needed); boxes via Box.mk+BoundedInterval.Icc+Jordan; chain via egorov_on_finite_set with eps/2^(N+1); local uniform via subtype image bounded (by_cases nonempty) + bounded K subset box",
+      "end": "2026-08-03T23:54:34.808403"
+    },
+    {
+      "id": 108,
+      "theorem": "chebyshev",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_cheb.lean",
+      "goal": "Chebyshev inequality",
+      "start": "2026-08-04T00:00:33.021257",
+      "attempts": [
+        {
+          "edit": "full proof written",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "chebyshev via indicator smul + integral_smul + mono + inv mul cancel",
+          "time": "2026-08-04T00:07:54.927580"
+        }
+      ],
+      "status": "success",
+      "notes": "proved: E measurable via preimage_closed, hE_simple.smul, eq_simpleIntegral + integral_smul + integral_indicator, mul_le_mul_of_nonneg_left, coe_inv+coe_mul+inv_mul_cancel\u2080",
+      "end": "2026-08-04T00:07:54.961243"
+    },
+    {
+      "id": 109,
+      "theorem": "ex1325_helpers",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_cheb.lean",
+      "goal": "mul_indicator x2 + ball tail + sub_unsigned",
+      "start": "2026-08-04T00:12:51.414405",
+      "attempts": [
+        {
+          "edit": "Lemma 1 mul_indicator",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "case-split on x\u2208E avoids EReal non-distributivity",
+          "time": "2026-08-04T00:23:46.231549"
+        },
+        {
+          "edit": "Lemma 2 mul_indicator measurable",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "case-split on x\u2208E; simp handles tendsto_const_nhds",
+          "time": "2026-08-04T00:25:21.008060"
+        },
+        {
+          "edit": "Lemma 3 ball tail",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "downward_monotone_convergence + iInter = empty via exists_nat_gt",
+          "time": "2026-08-04T00:26:53.578872"
+        }
+      ],
+      "status": "success",
+      "notes": "all four lemmas proved: mul_indicator via case-split on x\u2208E (EReal not distributive), measurable via 0/1 indicator cases, ball tail via downward monotone convergence, sub_unsigned via inline toRealSimple replication",
+      "end": "2026-08-04T00:29:00.889628"
+    },
+    {
+      "id": 110,
+      "theorem": "ex1325",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_cheb.lean",
+      "goal": "tail + almost_bounded_support + almost_bounded",
+      "start": "2026-08-04T00:44:51.791046",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 111,
+      "theorem": "ex1325_theorems",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_cheb.lean",
+      "goal": "almost_bounded_support + almost_bounded",
+      "start": "2026-08-04T01:14:06.473035",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }

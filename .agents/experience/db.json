@@ -580,6 +580,83 @@
       "tactics": "Filter.tendsto_congr', .mp of pointwise-eq, change e x, simp without Eset/e, have hx' : x.ofLp 0 \u2208 ..., max_eq_right/max_eq_left, sub_eq_add_neg+neg_one_smul",
       "description": "Fixed 12 errors in _temp_riemann.lean to compile clean",
       "time": "2026-08-03T17:03:41.109467"
+    },
+    {
+      "theorem": "egorov_tsum_geometric",
+      "file": "_temp_egorov_line7.lean",
+      "tactics": "tsum_congr, tsum_mul_left, tsum_geometric_of_abs_lt_one, EReal.coe_tsum_of_nonneg, EReal.coe_div, EReal.coe_pow",
+      "description": "Real geometric tsum = \u03b5, then EReal.coe_tsum_of_nonneg maps to EReal; rw [EReal.coe_div, EReal.coe_pow]; rfl for coe/nat-cast mismatch",
+      "time": "2026-08-03T23:11:59.930263"
+    },
+    {
+      "theorem": "preimage_closed",
+      "file": "_temp_egorov2.lean",
+      "tactics": "TFAE out 0 5 + .mp hf K hK",
+      "description": "preimage of closed set under ComplexMeasurable via ComplexMeasurable.TFAE index 5",
+      "time": "2026-08-03T23:14:47.070860"
+    },
+    {
+      "theorem": "egorov_bad_set_measurable",
+      "file": "_temp_egorov3.lean",
+      "tactics": "countable_union; preimage_closed; IsClosed.preimage continuous_norm (isClosed_Ici (a := c))",
+      "description": "level set {x | c \u2264 \u2016f x - g x\u2016} = preimage of closed Ici under norm; ComplexMeasurable.sub gives measurability of f(n+j)-g",
+      "time": "2026-08-03T23:18:02.515229"
+    },
+    {
+      "theorem": "egorov_bad_inter_null",
+      "file": "_temp_egorov4.lean",
+      "tactics": "let B; simpa [B, PointwiseAeConvergesTo, AlmostAlways]; subset via Metric.tendsto_atTop, mem_iInter, mem_iUnion, Nat.le_add_right, dist_eq_norm, not_lt_of_ge; IsNull.subset",
+      "description": "bad-set intersection is null via subset of a.e. failure set",
+      "time": "2026-08-03T23:22:21.623033"
+    },
+    {
+      "theorem": "egorov_on_finite_set",
+      "file": "_temp_egorov.lean",
+      "tactics": "let B; hB_meas; hB_mono; hB_fin; hB_inter_meas; hDMC (downward_monotone_convergence); hchoose (Tendsto.eventually via isOpen_Iio.mem_nhds + eventually_atTop); n0=Classical.choose; E=\u22c3B m (n0 m); hE_le via EReal.tsum_eq_ennreal_of_nonneg (f:=...) + ENNReal.tsum_le_tsum + toENNReal_le_toENNReal; hU via exists_nat_one_div_lt + by_contra + Nat.add_sub_of_le",
+      "description": "Egorov on finite set: bad-set decomposition, downward monotone convergence, ENNReal tsum bridge for measure bound",
+      "time": "2026-08-03T23:32:07.097176"
+    },
+    {
+      "theorem": "PointwiseAeConvergesTo.locallyUniformlyConverges_outside_small",
+      "file": "analysis/MeasureTheory/Section_1_3_5.lean",
+      "tactics": "hg via RealMeasurable TFAE out 2 0 .mp + UnsignedMeasurable.aeLimit (no boundedness!); Box.mk (BoundedInterval.Icc -N N); Jordan_measurable.lebesgue (IsElementary.box); bounded subset box via isBounded_iff_subset_closedBall + exists_nat_gt; chain egorov_on_finite_set eps/2^(N+1); hE_le via EReal tsum dance + egorov_tsum_geometric; hLU via unfold 4 defs, subtype image bounded by_cases Nonempty, mem_image, x.val.2",
+      "description": "Egorov local: key trick - g measurable follows from a.e. limit via UnsignedMeasurable.aeLimit (project's aeLimit needs boundedness but unsigned version does not); use unfold not rw for defs with subtype binders; explicit subtype {x // x \u2208 S} for set differences in binder position",
+      "time": "2026-08-03T23:54:44.243196"
+    },
+    {
+      "theorem": "ComplexAbsolutelyIntegrable.chebyshev",
+      "file": "_temp_cheb.lean",
+      "tactics": "let E; preimage_closed; indicator; smul; mono; eq_simpleIntegral+integral_smul+integral_indicator; mul_le_mul_of_nonneg_left; coe_inv+coe_mul+inv_mul_cancel\u2080; simpa",
+      "description": "Chebyshev inequality: m({\u03b7 \u2264 \u2016f\u2016}) \u2264 \u03b7\u207b\u00b9\u222b|f|",
+      "time": "2026-08-04T00:07:54.993621"
+    },
+    {
+      "theorem": "UnsignedSimpleFunction.mul_indicator",
+      "file": "_temp_cheb.lean",
+      "tactics": "rcases, set E', by_cases hxE : x \u2208 E, sum_congr, congrArg, indicator_of_mem/notMem",
+      "description": "case-split on x\u2208E avoids EReal non-distributivity (Finset.sum_mul unavailable)",
+      "time": "2026-08-04T00:29:00.922084"
+    },
+    {
+      "theorem": "UnsignedMeasurable.mul_indicator",
+      "file": "_temp_cheb.lean",
+      "tactics": "constructor, mul_nonneg, refine, UnsignedSimpleFunction.mul_indicator, by_cases hxE : x \u2208 E, simpa/simp",
+      "description": "indicator is 0/1 so no ContinuousMul needed for Tendsto",
+      "time": "2026-08-04T00:29:00.952377"
+    },
+    {
+      "theorem": "ball_complement_measure_tendsto_zero",
+      "file": "_temp_cheb.lean",
+      "tactics": "let B, downward_monotone_convergence, iInter=empty via exists_nat_gt \u2016x\u2016, simp [hB_inter]",
+      "description": "measure of E outside balls \u2192 0 by monotone convergence to empty",
+      "time": "2026-08-04T00:29:00.984542"
+    },
+    {
+      "theorem": "real_measurable_sub_unsigned",
+      "file": "_temp_cheb.lean",
+      "tactics": "hfin, rcases, set c'/h, hh_simple, hh_eq with hcoe_sum, hh_real, sub, pos_fun, h\u03c6minush \u25b8 measurable_pos",
+      "description": "toRealSimple is private \u2014 replicated inline; final via RealMeasurable.measurable_pos",
+      "time": "2026-08-04T00:29:01.014752"
     }
   ],
   "errors": [
