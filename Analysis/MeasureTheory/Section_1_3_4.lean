@@ -1444,10 +1444,418 @@ lemma ComplexMeasurable.floor {a : ℤ → ℂ} : ComplexMeasurable (fun x => a 
       exact h_eventual
     exact Filter.Tendsto.congr' h_eq.symm tendsto_const_nhds
 
-/-- Exercise 1.3.21 (Absolute summability is a special case of absolute integrability)-/
-theorem AbsolutelySummable.realAbsolutelyIntegrable_iff {a: ℤ → ℝ} : ∑' n, |a n|.toEReal < ⊤ ↔ RealAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by sorry
+lemma UnsignedSimpleFunction.zero {d:ℕ} : UnsignedSimpleFunction (0 : EuclideanSpace' d → EReal) := by
+  use 0, fun i => Fin.elim0 i, fun i => Fin.elim0 i
+  constructor
+  · intro i; exact Fin.elim0 i
+  · funext x; simp
 
-theorem AbsolutelySummable.complexAbsolutelyIntegrable_iff {a: ℤ → ℂ} : ∑' n, ‖a n‖.toEReal < ⊤ ↔ ComplexAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by sorry
+lemma UnsignedSimpleFunction.sum {d:ℕ} {ι : Type*} (s : Finset ι) {f : ι → EuclideanSpace' d → EReal}
+    (hf : ∀ i ∈ s, UnsignedSimpleFunction (f i)) : UnsignedSimpleFunction (∑ i ∈ s, f i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      simp
+      exact UnsignedSimpleFunction.zero
+  | insert i s his ih =>
+      rw [Finset.sum_insert his]
+      exact UnsignedSimpleFunction.add (hf i (Finset.mem_insert_self i s))
+        (ih (fun j hj => hf j (Finset.mem_insert_of_mem hj)))
+
+lemma UnsignedSimpleFunction.measurable {d:ℕ} {f : EuclideanSpace' d → EReal} (hf : UnsignedSimpleFunction f) (huns : Unsigned f) : UnsignedMeasurable f := by
+  exact ⟨huns, fun _ => f, fun _ => hf, fun _ => tendsto_const_nhds⟩
+
+lemma UnsignedMeasurable.zero {d:ℕ} : UnsignedMeasurable (0 : EuclideanSpace' d → EReal) := by
+  exact ⟨fun x => le_rfl, fun _ => 0, fun _ => UnsignedSimpleFunction.zero, fun _ => tendsto_const_nhds⟩
+
+/-- Countable subadditivity of Lebesgue outer measure, ℤ-indexed. -/
+lemma outer_measure_union_le_int {d : ℕ} (E : ℤ → Set (EuclideanSpace' d)) :
+    Lebesgue_outer_measure (⋃ i : ℤ, E i) ≤ ∑' i, Lebesgue_outer_measure (E i) := by
+  let f : ℕ → Set (EuclideanSpace' d) := fun j => E (Equiv.intEquivNat.symm j)
+  have h_union : (⋃ i : ℤ, E i) = ⋃ j : ℕ, f j := by
+    ext x
+    constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hi⟩
+      rw [Set.mem_iUnion]
+      exact ⟨Equiv.intEquivNat i, by simpa [f] using hi⟩
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨j, hj⟩
+      rw [Set.mem_iUnion]
+      exact ⟨Equiv.intEquivNat.symm j, by simpa [f] using hj⟩
+  calc
+    Lebesgue_outer_measure (⋃ i : ℤ, E i) = Lebesgue_outer_measure (⋃ j : ℕ, f j) := by rw [h_union]
+    _ ≤ ∑' j, Lebesgue_outer_measure (f j) := Lebesgue_outer_measure.union_le f
+    _ = ∑' i, Lebesgue_outer_measure (E i) := by
+      simpa [f] using (Equiv.intEquivNat.tsum_eq (fun j : ℕ => Lebesgue_outer_measure (E (Equiv.intEquivNat.symm j)))).symm
+
+/-- A nonneg EReal tsum equals the coercion of the corresponding ENNReal tsum. -/
+lemma EReal.tsum_eq_ennreal_of_nonneg {α : Type*} {f : α → EReal} (hf : ∀ a, 0 ≤ f a) :
+    (∑' a, f a) = ((∑' a, (f a).toENNReal : ENNReal) : EReal) := by
+  calc
+    (∑' a, f a) = ∑' a, ((f a).toENNReal : EReal) := tsum_congr (fun a => (EReal.coe_toENNReal (hf a)).symm)
+    _ = ((∑' a, (f a).toENNReal : ENNReal) : EReal) := by
+      let φ : ENNReal →+ EReal := {
+        toFun := (↑·)
+        map_zero' := by simp
+        map_add' := EReal.coe_ennreal_add
+      }
+      exact (Summable.map_tsum (f := fun a => (f a).toENNReal) ENNReal.summable φ continuous_coe_ennreal_ereal).symm
+
+/-- `toENNReal` commutes with tsums of nonneg EReals. -/
+lemma EReal.toENNReal_tsum_of_nonneg {α : Type*} {f : α → EReal} (hf : ∀ a, 0 ≤ f a) :
+    (∑' a, f a).toENNReal = ∑' a, (f a).toENNReal := by
+  rw [EReal.tsum_eq_ennreal_of_nonneg hf]
+  exact EReal.toENNReal_coe
+
+/-- `toENNReal` commutes with finite sums of nonneg EReals. -/
+lemma EReal.toENNReal_sum_of_nonneg {α : Type*} (s : Finset α) {f : α → EReal}
+    (hf : ∀ a ∈ s, 0 ≤ f a) : (∑ a ∈ s, f a).toENNReal = ∑ a ∈ s, (f a).toENNReal := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s has ih =>
+      rw [Finset.sum_insert has, Finset.sum_insert has]
+      rw [EReal.toENNReal_add (hf a (Finset.mem_insert_self a s))
+        (Finset.sum_nonneg (fun b hb => hf b (Finset.mem_insert_of_mem hb)))]
+      rw [ih (fun b hb => hf b (Finset.mem_insert_of_mem hb))]
+
+/-- The Lebesgue measure of a set is at most the sum over all unit cells of the
+    measures of its intersections with the cells (cells cover the space). -/
+lemma measure_le_tsum_cells {E : Set (EuclideanSpace' 1)} :
+    Lebesgue_measure E ≤ ∑' n : ℤ, Lebesgue_measure (E ∩ cell n) := by
+  have h_eq : E = ⋃ n : ℤ, (E ∩ cell n) := by
+    ext x
+    constructor
+    · intro hx
+      rw [Set.mem_iUnion]
+      have hx_cells : x ∈ (⋃ n : ℤ, cell n) := by rw [cells_cover]; trivial
+      rw [Set.mem_iUnion] at hx_cells
+      rcases hx_cells with ⟨n, hn⟩
+      exact ⟨n, hx, hn⟩
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      exact hn.1
+  calc
+    Lebesgue_measure E = Lebesgue_outer_measure (⋃ n : ℤ, E ∩ cell n) := by
+      rw [← h_eq]; rfl
+    _ ≤ ∑' n, Lebesgue_outer_measure (E ∩ cell n) := outer_measure_union_le_int (fun n => E ∩ cell n)
+    _ = ∑' n, Lebesgue_measure (E ∩ cell n) := by
+      simp [Lebesgue_measure]
+
+/-- For each unit cell `cell n`, the simple-function contribution restricted to that cell
+    is at most `|a n|` (since the simple function is ≤ |a∘floor| pointwise, and on the cell
+    the floor equals `n`). -/
+lemma cell_sum_le_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n) {k : ℕ} {c : Fin k → EReal} {E : Fin k → Set (EuclideanSpace' 1)}
+    (hmes : ∀ i, LebesgueMeasurable (E i) ∧ c i ≥ 0)
+    (hg_le : ∀ x, (∑ i, c i • EReal.indicator (E i) x) ≤ (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) :
+    ∀ n : ℤ, (∑ i, c i * Lebesgue_measure (E i ∩ cell n)) ≤ (b n).toEReal := by
+  intro n
+  let g_n : EuclideanSpace' 1 → EReal := fun x => ∑ i, c i * EReal.indicator (E i ∩ cell n) x
+  have hg_n : UnsignedSimpleFunction g_n := by
+    use k, c, fun i => E i ∩ cell n
+    constructor
+    · intro i
+      exact ⟨LebesgueMeasurable.inter (hmes i).1 (cell_measurable n), (hmes i).2⟩
+    · ext x
+      simp [g_n, Pi.smul_apply, smul_eq_mul]
+  have hg_n_eq : g_n = ∑ i, (c i) • (EReal.indicator (E i ∩ cell n)) := by
+    ext x
+    simp [g_n, Pi.smul_apply, smul_eq_mul]
+  have hg_n_integ : hg_n.integ = ∑ i, c i * Lebesgue_measure (E i ∩ cell n) := by
+    rw [UnsignedSimpleFunction.integral_eq hg_n (k := k) (c := c) (E := fun i => E i ∩ cell n)
+      (hmes := fun i => LebesgueMeasurable.inter (hmes i).1 (cell_measurable n))
+      (hnonneg := fun i => (hmes i).2) (heq := hg_n_eq)]
+  let u_n : EuclideanSpace' 1 → EReal := fun x => (b n).toEReal * EReal.indicator (cell n) x
+  have hu_n : UnsignedSimpleFunction u_n := by
+    use 1, (fun _ : Fin 1 => (b n).toEReal), (fun _ : Fin 1 => cell n)
+    constructor
+    · intro i
+      exact ⟨cell_measurable n, EReal.coe_nonneg.mpr (hb n)⟩
+    · ext x
+      simp [u_n, Pi.smul_apply, smul_eq_mul]
+  have hu_n_eq : u_n = ∑ i : Fin 1, ((b n).toEReal) • (EReal.indicator (cell n)) := by
+    ext x
+    simp [u_n, Pi.smul_apply, smul_eq_mul]
+  have hu_n_integ : hu_n.integ = (b n).toEReal := by
+    rw [UnsignedSimpleFunction.integral_eq hu_n (k := 1)
+      (c := fun _ : Fin 1 => (b n).toEReal) (E := fun _ : Fin 1 => cell n)
+      (hmes := fun i => cell_measurable n) (hnonneg := fun i => EReal.coe_nonneg.mpr (hb n))
+      (heq := hu_n_eq)]
+    rw [cell_measure n]
+    simp
+  have h_pw : ∀ x, g_n x ≤ u_n x := by
+    intro x
+    by_cases hx : x ∈ cell n
+    · have hx_floor : ⌊EuclideanSpace'.equiv_Real x⌋ = n := hx
+      have h_ind : ∀ i, EReal.indicator (E i ∩ cell n) x = EReal.indicator (E i) x := by
+        intro i
+        by_cases hxi : x ∈ E i
+        · have hx_inter : x ∈ E i ∩ cell n := ⟨hxi, hx⟩
+          simp [EReal.indicator_of_mem hx_inter, EReal.indicator_of_mem hxi]
+        · have hx_not_inter : x ∉ E i ∩ cell n := fun h => hxi h.1
+          simp [EReal.indicator_of_notMem hx_not_inter, EReal.indicator_of_notMem hxi]
+      calc
+        g_n x = (∑ i, c i • EReal.indicator (E i)) x := by
+          simp [g_n, h_ind, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+        _ ≤ (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal := by
+          simpa [Finset.sum_apply, Pi.smul_apply] using hg_le x
+        _ = (b n).toEReal := by
+          congr
+        _ = u_n x := by
+          simp [u_n, EReal.indicator_of_mem hx]
+    · have hx_not : ∀ i, x ∉ E i ∩ cell n := fun i h => hx h.2
+      have hg_n_zero : g_n x = 0 := by
+        have h0 : ∀ i, c i * EReal.indicator (E i ∩ cell n) x = 0 := fun i => by
+          simp [EReal.indicator_of_notMem (hx_not i)]
+        simp [g_n, h0]
+      have hu_n_zero : u_n x = 0 := by
+        simp [u_n, EReal.indicator_of_notMem hx]
+      rw [hg_n_zero, hu_n_zero]
+  have h_integ_le : hg_n.integ ≤ hu_n.integ :=
+    UnsignedSimpleFunction.integral_le_integral_of_aeLe hg_n hu_n (AlmostAlways.ofAlways h_pw)
+  calc
+    (∑ i, c i * Lebesgue_measure (E i ∩ cell n)) = hg_n.integ := hg_n_integ.symm
+    _ ≤ hu_n.integ := h_integ_le
+    _ = (b n).toEReal := hu_n_integ
+
+/-- Assemble: the finite sum `∑ i, c i * measure (E i)` is bounded by `∑' n, b n`,
+    using the measure-vs-cells split and the per-cell bound. All work is done in ENNReal
+    where tsum manipulation is unconditional. -/
+lemma sum_le_tsum_of_cells {b : ℤ → EReal} (hb : ∀ n, 0 ≤ b n)
+    {k : ℕ} {c : Fin k → EReal} (hc : ∀ i, 0 ≤ c i)
+    {E : Fin k → Set (EuclideanSpace' 1)}
+    (hmeas : ∀ i, Lebesgue_measure (E i) ≤ ∑' n, Lebesgue_measure (E i ∩ cell n))
+    (hcell : ∀ n, (∑ i, c i * Lebesgue_measure (E i ∩ cell n)) ≤ b n) :
+    (∑ i, c i * Lebesgue_measure (E i)) ≤ ∑' n, b n := by
+  let M : EReal := ∑ i, c i * Lebesgue_measure (E i)
+  have hM_nn : 0 ≤ M := by
+    dsimp [M]
+    apply Finset.sum_nonneg
+    intro i hi
+    exact mul_nonneg (hc i) (Lebesgue_outer_measure.nonneg (E i))
+  -- per-term bound in ENNReal
+  have hperterm : ∀ i, (c i * Lebesgue_measure (E i)).toENNReal ≤
+      ∑' n, (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal := by
+    intro i
+    calc
+      (c i * Lebesgue_measure (E i)).toENNReal
+          = (c i).toENNReal * (Lebesgue_measure (E i)).toENNReal :=
+            EReal.toENNReal_mul' (Lebesgue_outer_measure.nonneg (E i))
+      _ ≤ (c i).toENNReal * (∑' n, Lebesgue_measure (E i ∩ cell n)).toENNReal := by
+          exact mul_le_mul_right (EReal.toENNReal_le_toENNReal (hmeas i)) (c i).toENNReal
+      _ = (c i).toENNReal * (∑' n, (Lebesgue_measure (E i ∩ cell n)).toENNReal) := by
+          simp [Lebesgue_measure, EReal.toENNReal_tsum_of_nonneg (fun n => Lebesgue_outer_measure.nonneg _)]
+      _ = ∑' n, (c i).toENNReal * (Lebesgue_measure (E i ∩ cell n)).toENNReal := by
+          rw [ENNReal.tsum_mul_left]
+      _ = ∑' n, (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal := by
+          refine tsum_congr (fun n => ?_)
+          exact (EReal.toENNReal_mul' (Lebesgue_outer_measure.nonneg _)).symm
+  have hA : M.toENNReal ≤ ∑' n, (b n).toENNReal := by
+    calc
+      M.toENNReal = ∑ i, (c i * Lebesgue_measure (E i)).toENNReal := by
+        dsimp [M]
+        exact EReal.toENNReal_sum_of_nonneg Finset.univ
+          (fun i hi => mul_nonneg (hc i) (Lebesgue_outer_measure.nonneg (E i)))
+      _ ≤ ∑ i, (∑' n, (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal) := by
+          exact Finset.sum_le_sum (fun i hi => hperterm i)
+      _ = ∑' n, (∑ i, (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal) := by
+          let γ : Fin k → ℤ → ENNReal := fun i n => (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal
+          calc
+            ∑ i, ∑' n, γ i n = ∑' i : Fin k, ∑' n, γ i n := by simp
+            _ = ∑' n, ∑' i : Fin k, γ i n := (ENNReal.tsum_comm (f := fun (n : ℤ) (i : Fin k) => γ i n)).symm
+            _ = ∑' n, ∑ i, γ i n := by simp
+      _ ≤ ∑' n, (b n).toENNReal := by
+          exact ENNReal.tsum_le_tsum (fun n => by
+            calc
+              ∑ i, (c i * Lebesgue_measure (E i ∩ cell n)).toENNReal
+                  = (∑ i, c i * Lebesgue_measure (E i ∩ cell n)).toENNReal := by
+                    exact (EReal.toENNReal_sum_of_nonneg Finset.univ
+                      (f := fun i => c i * Lebesgue_measure (E i ∩ cell n))
+                      (fun i hi => mul_nonneg (hc i) (Lebesgue_outer_measure.nonneg _))).symm
+              _ ≤ (b n).toENNReal := EReal.toENNReal_le_toENNReal (hcell n))
+  have hT_nn : 0 ≤ ∑' n, b n := by
+    apply tsum_nonneg
+    exact hb
+  calc
+    (∑ i, c i * Lebesgue_measure (E i)) = M := rfl
+    _ = (M.toENNReal : EReal) := (EReal.coe_toENNReal hM_nn).symm
+    _ ≤ ((∑' n, (b n).toENNReal : ENNReal) : EReal) :=
+        EReal.coe_ennreal_le_coe_ennreal_iff.mpr hA
+    _ = ∑' n, b n := (EReal.tsum_eq_ennreal_of_nonneg hb).symm
+
+/-- The Lebesgue integral of |a∘floor| is at most the tsum of |a n|. -/
+ lemma floor_integral_le_tsum_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n) :
+     UnsignedLebesgueIntegral (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) ≤ ∑' n, (b n).toEReal := by
+   let B : ℤ → EReal := fun n => (b n).toEReal
+   rw [UnsignedLebesgueIntegral, LowerUnsignedLebesgueIntegral]
+   apply sSup_le
+   intro R hR
+   rcases hR with ⟨g, hg, hg_le⟩
+   have hR_eq' : R = hg.integ := (hg_le 0).2
+   rw [hR_eq']
+   have hg' : UnsignedSimpleFunction g := hg
+   rcases hg' with ⟨k, c, E, hmes, heq⟩
+   have hinteg : hg.integ = ∑ i, c i * Lebesgue_measure (E i) :=
+     UnsignedSimpleFunction.integral_eq hg (k := k) (c := c) (E := E)
+       (hmes := fun i => (hmes i).1) (hnonneg := fun i => (hmes i).2) (heq := heq)
+   rw [hinteg]
+   exact sum_le_tsum_of_cells (b := B)
+     (fun n => EReal.coe_nonneg.mpr (hb n))
+     (fun i => (hmes i).2)
+     (fun i => measure_le_tsum_cells)
+     (cell_sum_le_b (b := b) hb (k := k) (c := c) (E := E) hmes (fun x => by
+       simpa [heq, Finset.sum_apply, Pi.smul_apply] using (hg_le x).1))
+
+/-- A finite partial sum of |b n| is at most the integral of b∘floor. -/
+lemma partial_sum_le_floor_integral_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n)
+    (h_f_meas : UnsignedMeasurable (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal)) (F : Finset ℤ) :
+    (∑ n ∈ F, (b n).toEReal) ≤ UnsignedLebesgueIntegral (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) := by
+  let f : EuclideanSpace' 1 → EReal := fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal
+  let term (n : ℤ) : EuclideanSpace' 1 → EReal := fun x => (b n).toEReal • EReal.indicator (cell n) x
+  have h_term_simple (n : ℤ) : UnsignedSimpleFunction (term n) := by
+    have h := UnsignedSimpleFunction.indicator (cell_measurable n)
+    simpa [term] using h.smul (EReal.coe_nonneg.mpr (hb n))
+  have h_term_meas (n : ℤ) : UnsignedMeasurable (term n) := by
+    apply UnsignedSimpleFunction.measurable (h_term_simple n)
+    intro x
+    simp only [term]
+    exact mul_nonneg (EReal.coe_nonneg.mpr (hb n)) (EReal.indicator_nonneg (cell n) x)
+  have h_sum_meas (s : Finset ℤ) : UnsignedMeasurable (∑ n ∈ s, term n) := by
+    classical
+    induction s using Finset.induction_on with
+    | empty =>
+        simpa using UnsignedMeasurable.zero
+    | insert n s his ih =>
+        rw [Finset.sum_insert his]
+        exact UnsignedMeasurable.add (h_term_meas n) ih
+  have h_add_meas (n : ℤ) (s : Finset ℤ) : UnsignedMeasurable (term n + ∑ m ∈ s, term m) := by
+    exact UnsignedMeasurable.add (h_term_meas n) (h_sum_meas s)
+  have h_term_integ (n : ℤ) : LowerUnsignedLebesgueIntegral (term n) = (b n).toEReal := by
+    have h_ind_meas : UnsignedMeasurable (EReal.indicator (cell n)) := by
+      exact UnsignedSimpleFunction.measurable (UnsignedSimpleFunction.indicator (cell_measurable n)) (by intro x; exact EReal.indicator_nonneg (cell n) x)
+    have h_ind_integ : LowerUnsignedLebesgueIntegral (EReal.indicator (cell n)) = 1 := by
+      have h : LowerUnsignedLebesgueIntegral (Real.toEReal ∘ (cell n).indicator') = 1 := by
+        rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral (UnsignedSimpleFunction.indicator (cell_measurable n))]
+        rw [UnsignedSimpleFunction.integral_indicator (cell_measurable n)]
+        exact cell_measure n
+      simpa [EReal.indicator, Real.EReal_fun, Function.comp_apply] using h
+    have h := LowerUnsignedLebesgueIntegral.hom h_ind_meas (hb n)
+    simpa [term, h_ind_integ] using h
+  have h_sum_integral : LowerUnsignedLebesgueIntegral (∑ n ∈ F, term n) = ∑ n ∈ F, (b n).toEReal := by
+    classical
+    induction F using Finset.induction_on with
+    | empty =>
+        simp [Finset.sum_empty]
+        rw [LowerUnsignedLebesgueIntegral.eq_simpleIntegral UnsignedSimpleFunction.zero]
+        have h_zero : (UnsignedSimpleFunction.zero : UnsignedSimpleFunction (0 : EuclideanSpace' 1 → EReal)).integ = 0 := by
+          have heq : (0 : EuclideanSpace' 1 → EReal) = ∑ i : Fin 0, (Fin.elim0 i : EReal) • EReal.indicator (Fin.elim0 i : Set (EuclideanSpace' 1)) := by
+            funext x; simp
+          rw [UnsignedSimpleFunction.integral_eq UnsignedSimpleFunction.zero (k := 0) (c := fun i => Fin.elim0 i) (E := fun i => Fin.elim0 i)
+            (hmes := fun i => Fin.elim0 i) (hnonneg := fun i => Fin.elim0 i) (heq := heq)]
+          simp
+        exact h_zero
+    | insert n F' hnin ih =>
+        rw [Finset.sum_insert hnin]
+        rw [LowerUnsignedLebesgueIntegral.add (h_term_meas n) (h_sum_meas F') (h_add_meas n F')]
+        rw [ih, h_term_integ]
+        rw [Finset.sum_insert hnin]
+  have h_le : ∀ x, (∑ n ∈ F, term n) x ≤ f x := by
+    intro x
+    let m : ℤ := ⌊EuclideanSpace'.equiv_Real x⌋
+    have h_term_val : ∀ n ∈ F, term n x = if n = m then (b m).toEReal else 0 := fun n hn => by
+      by_cases hnm : n = m
+      · subst hnm
+        have hxm : x ∈ cell m := by
+          show ⌊EuclideanSpace'.equiv_Real x⌋ = m
+          rfl
+        simp [term, EReal.indicator_of_mem hxm]
+      · have hx' : x ∉ cell n := by
+          intro hx
+          exact hnm (hx.symm.trans (by rfl : ⌊EuclideanSpace'.equiv_Real x⌋ = m))
+        simp [term, EReal.indicator_of_notMem hx', hnm]
+    have h_sum_le : (∑ n ∈ F, term n x) ≤ (b m).toEReal := by
+      rw [Finset.sum_congr rfl (fun n hn => h_term_val n hn)]
+      by_cases hm : m ∈ F
+      · simp [hm]
+      · simp [hm]
+        exact hb m
+    simpa [f, Finset.sum_apply] using h_sum_le
+  calc (∑ n ∈ F, (b n).toEReal) = LowerUnsignedLebesgueIntegral (∑ n ∈ F, term n) := h_sum_integral.symm
+    _ ≤ LowerUnsignedLebesgueIntegral f := by
+        apply LowerUnsignedLebesgueIntegral.mono (h_sum_meas F) h_f_meas
+        exact AlmostAlways.ofAlways h_le
+    _ = UnsignedLebesgueIntegral (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) := by
+        rw [show f = fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal from rfl]
+        rfl
+
+/-- The Lebesgue integral of b∘floor is at least the tsum of b n. -/
+lemma tsum_le_floor_integral_b {b : ℤ → ℝ} (hb : ∀ n, 0 ≤ b n)
+    (h_f_meas : UnsignedMeasurable (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal)) :
+    (∑' n, (b n).toEReal) ≤ UnsignedLebesgueIntegral (fun x => (b ⌊EuclideanSpace'.equiv_Real x⌋).toEReal) := by
+  let e : ℕ ≃ ℤ := Equiv.intEquivNat.symm
+  have h_reindex : (∑' n, (b n).toEReal) = ∑' m : ℕ, (b (e m)).toEReal := by
+    exact ((Equiv.intEquivNat.symm).tsum_eq (fun n : ℤ => (b n).toEReal)).symm
+  rw [h_reindex]
+  apply EReal.tsum_le_of_sum_range_le_of_nonneg
+  · intro m
+    exact EReal.coe_nonneg.mpr (hb _)
+  · intro N
+    have h_img : (∑ i ∈ Finset.range N, (b (e i)).toEReal) = ∑ n ∈ Finset.image e (Finset.range N), (b n).toEReal := by
+      symm
+      apply Finset.sum_image
+      intro x hx y hy hxy
+      exact e.injective hxy
+    rw [h_img]
+    exact partial_sum_le_floor_integral_b hb h_f_meas (Finset.image e (Finset.range N))
+
+/-- Exercise 1.3.21 (Absolute summability is a special case of absolute integrability)-/
+theorem AbsolutelySummable.realAbsolutelyIntegrable_iff {a: ℤ → ℝ} : ∑' n, |a n|.toEReal < ⊤ ↔ RealAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by
+  have hb : ∀ n, 0 ≤ |a n| := fun n => abs_nonneg _
+  have h_abs_meas : UnsignedMeasurable (fun x => (|a ⌊EuclideanSpace'.equiv_Real x⌋|).toEReal) := by
+    constructor
+    · intro x
+      exact EReal.coe_nonneg.mpr (abs_nonneg _)
+    · obtain ⟨g_seq, hg_simple, hg_conv⟩ := RealMeasurable.floor (a := a)
+      use fun n => EReal.abs_fun (g_seq n)
+      constructor
+      · intro n; exact (hg_simple n).abs
+      · intro x
+        simp only [EReal.abs_fun, Real.norm_eq_abs]
+        exact (continuous_coe_real_ereal.comp continuous_norm).continuousAt.tendsto.comp (hg_conv x)
+  constructor
+  · intro hsum
+    constructor
+    · exact RealMeasurable.floor
+    · exact lt_of_le_of_lt (by simpa [EReal.abs_fun, Real.norm_eq_abs] using floor_integral_le_tsum_b (b := fun n => |a n|) hb) hsum
+  · intro hf
+    exact lt_of_le_of_lt (tsum_le_floor_integral_b (b := fun n => |a n|) hb h_abs_meas)
+      (by simpa [EReal.abs_fun, Real.norm_eq_abs] using hf.2)
+
+theorem AbsolutelySummable.complexAbsolutelyIntegrable_iff {a: ℤ → ℂ} : ∑' n, ‖a n‖.toEReal < ⊤ ↔ ComplexAbsolutelyIntegrable (fun x ↦ a ⌊EuclideanSpace'.equiv_Real x⌋) := by
+  have hb : ∀ n, 0 ≤ ‖a n‖ := fun n => norm_nonneg _
+  have h_abs_meas : UnsignedMeasurable (fun x => (‖a ⌊EuclideanSpace'.equiv_Real x⌋‖).toEReal) := by
+    constructor
+    · intro x
+      exact EReal.coe_nonneg.mpr (norm_nonneg _)
+    · obtain ⟨g_seq, hg_simple, hg_conv⟩ := ComplexMeasurable.floor (a := a)
+      use fun n => EReal.abs_fun (g_seq n)
+      constructor
+      · intro n; exact (hg_simple n).abs
+      · intro x
+        simp only [EReal.abs_fun]
+        exact (continuous_coe_real_ereal.comp continuous_norm).continuousAt.tendsto.comp (hg_conv x)
+  constructor
+  · intro hsum
+    constructor
+    · exact ComplexMeasurable.floor
+    · exact lt_of_le_of_lt (by simpa [EReal.abs_fun] using floor_integral_le_tsum_b (b := fun n => ‖a n‖) hb) hsum
+  · intro hf
+    exact lt_of_le_of_lt (tsum_le_floor_integral_b (b := fun n => ‖a n‖) hb h_abs_meas)
+      (by simpa [EReal.abs_fun] using hf.2)
 
 /-- Lemma 1.3.19 (Triangle inequality) -/
 
