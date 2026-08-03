@@ -1278,14 +1278,14 @@ private lemma lift_image_BoundedInterval_measurable (J : BoundedInterval) :
   exact (IsElementary.box (J : Box 1)).measurable
 
 /-- The outer measure of the lifted image of a bounded interval equals its length. -/
-private lemma lift_interval_measure (J : BoundedInterval) :
+private lemma lift_interval_measure_134 (J : BoundedInterval) :
     Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (J : Set ℝ)) = (|J|ₗ : EReal) := by
   rw [← BoundedInterval.coe_of_box]
   rw [Lebesgue_outer_measure.elementary ((J : Box 1).toSet) (IsElementary.box (J : Box 1))]
   rw [IsElementary.measure_of_box]
   simp
 
-private lemma uniform_piece_inj {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
+private lemma uniform_piece_inj_134 {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
     Function.Injective (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) := by
   intro i j hij
   have hset : Set.Ico (P.x i.castSucc) (P.x i.succ) = Set.Ico (P.x j.castSucc) (P.x j.succ) := by
@@ -1307,7 +1307,7 @@ private lemma uniform_piece_inj {I : BoundedInterval} {n : ℕ} (P : TaggedParti
   simpa using congrArg Fin.val hcij
 
 /-- The pieces of a tagged partition are pairwise disjoint (as sets). -/
-private lemma uniform_pieces_disjoint {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
+private lemma uniform_pieces_disjoint_134 {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n) :
     (((Finset.image (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪
         ({Icc I.b I.b} : Finset BoundedInterval)) : Finset BoundedInterval) : Set BoundedInterval).PairwiseDisjoint
       BoundedInterval.toSet := by
@@ -1370,7 +1370,7 @@ private lemma uniform_pieces_disjoint {I : BoundedInterval} {n : ℕ} (P : Tagge
     simp at hne
 
 /-- The half-open pieces together with the singleton point cover I. -/
-private lemma uniform_pieces_cover {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n)
+private lemma uniform_pieces_cover_134 {I : BoundedInterval} {n : ℕ} (P : TaggedPartition I n)
     (hI : I = Icc I.a I.b) :
     I.toSet = ⋃ J ∈ ((Finset.image (fun i : Fin n => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪
         ({Icc I.b I.b} : Finset BoundedInterval)) : Finset BoundedInterval), J.toSet := by
@@ -1442,7 +1442,7 @@ private lemma uniform_pieces_cover {I : BoundedInterval} {n : ℕ} (P : TaggedPa
 
 /-- Approximate a Riemann integrable function from above and below by piecewise constant
     functions built from a fine partition, with integral bounds in terms of R and epsilon. -/
-private lemma upper_lower_step_approx {f : ℝ → ℝ} {I : BoundedInterval}
+private lemma upper_lower_step_approx_134 {f : ℝ → ℝ} {I : BoundedInterval}
     (hI : I = Icc I.a I.b) (hab : I.a < I.b)
     (hbound : ∃ M, ∀ x ∈ I.toSet, |f x| ≤ M) (R : ℝ) (ε : ℝ) (hε : 0 < ε)
     (hεδ : ∀ ε > 0, ∃ δ > 0, ∀ n, ∀ P : TaggedPartition I n, P.norm ≤ δ → |P.RiemannSum f - R| ≤ ε) :
@@ -1472,9 +1472,9 @@ private lemma upper_lower_step_approx {f : ℝ → ℝ} {I : BoundedInterval}
   let T : Finset BoundedInterval :=
     Finset.image (fun i : Fin N => Ico (P.x i.castSucc) (P.x i.succ)) Finset.univ ∪ ({Icc I.b I.b} : Finset BoundedInterval)
   have hdisj : (T : Set BoundedInterval).PairwiseDisjoint BoundedInterval.toSet := by
-    simpa [T] using (uniform_pieces_disjoint P)
+    simpa [T] using (uniform_pieces_disjoint_134 P)
   have hcover : I.toSet = ⋃ J ∈ T, J.toSet := by
-    simpa [T] using (uniform_pieces_cover P hI)
+    simpa [T] using (uniform_pieces_cover_134 P hI)
   let val_u : BoundedInterval → ℝ := fun J => sSup {f y | y ∈ (J : Set ℝ)}
   let val_l : BoundedInterval → ℝ := fun J => sInf {f y | y ∈ (J : Set ℝ)}
   let u : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T val_u hdisj hcover
@@ -1674,7 +1674,7 @@ private lemma upper_lower_step_approx {f : ℝ → ℝ} {I : BoundedInterval}
       · apply Finset.sum_congr rfl
         intro i hi
         rw [hdelta_len i]
-      · exact (uniform_piece_inj P).injOn
+      · exact (uniform_piece_inj_134 P).injOn
     have hsing_sum : (∑ J ∈ ({Icc I.b I.b} : Finset BoundedInterval), val_u J * |J|ₗ) = 0 := by
       simp
     rw [Finset.sum_union]
@@ -1695,7 +1695,7 @@ private lemma upper_lower_step_approx {f : ℝ → ℝ} {I : BoundedInterval}
       · apply Finset.sum_congr rfl
         intro i hi
         rw [hdelta_len i]
-      · exact (uniform_piece_inj P).injOn
+      · exact (uniform_piece_inj_134 P).injOn
     have hsing_sum : (∑ J ∈ ({Icc I.b I.b} : Finset BoundedInterval), val_l J * |J|ₗ) = 0 := by
       simp
     rw [Finset.sum_union]
@@ -2563,7 +2563,7 @@ theorem RiemannIntegrableOn.abs {I : BoundedInterval} {f : ℝ → ℝ} (hf : Ri
       intro ε hε
       let ε₁ := ε / 20
       have hε₁ : 0 < ε₁ := by positivity
-      rcases upper_lower_step_approx hI hab ⟨M, hM⟩ Rf ε₁ hε₁ hεδf with ⟨T, val_u, val_l, hdisj, hcover, hsq, hout, hbounds⟩
+      rcases upper_lower_step_approx_134 hI hab ⟨M, hM⟩ Rf ε₁ hε₁ hεδf with ⟨T, val_u, val_l, hdisj, hcover, hsq, hout, hbounds⟩
       let u : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T val_u hdisj hcover
       let l : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T val_l hdisj hcover
       let U : PiecewiseConstantFunction I := PiecewiseConstantFunction.mkPCF T (fun J => max (val_u J) (-(val_l J))) hdisj hcover
@@ -2955,7 +2955,7 @@ theorem RiemannIntegrableOn.realAbsolutelyIntegrable {I: BoundedInterval} {f: �
       exact lift_image_BoundedInterval_measurable I
     have hLset : Lebesgue_measure Eset = (|I|ₗ : EReal) := by
       rw [he_pre, Lebesgue_measure]
-      exact lift_interval_measure I
+      exact lift_interval_measure_134 I
     let T : EuclideanSpace' 1 → EReal := fun x => (M * (I.toSet.indicator' (e x))).toEReal
     have hT_simple : UnsignedSimpleFunction T := by
       refine ⟨1, fun _ => (M : EReal), fun _ => Eset, ?_, ?_⟩
@@ -3044,10 +3044,16 @@ theorem RiemannIntegral.eq_integ {I: BoundedInterval} {f: ℝ → ℝ} (hf: Riem
     · have hx' : x.ofLp 0 ∉ (↑I : Set ℝ) := hx
       simp [Set.indicator'_of_notMem hx']
   have hpos_int : UnsignedLebesgueIntegral (EReal.pos_fun g) = (riemannIntegral p I : EReal) := by
-    have hA := RiemannIntegral.eq_UnsignedLebesgueIntegral hp
+    have hA := RiemannIntegral.eq_UnsignedLebesgueIntegral hp (by
+      intro x hx
+      dsimp [p]
+      exact le_max_right (f x) 0)
     rw [hpos_eq, hA]
   have hneg_int : UnsignedLebesgueIntegral (EReal.neg_fun g) = (riemannIntegral n I : EReal) := by
-    have hA := RiemannIntegral.eq_UnsignedLebesgueIntegral hn
+    have hA := RiemannIntegral.eq_UnsignedLebesgueIntegral hn (by
+      intro x hx
+      dsimp [n]
+      exact le_max_right (-(f x)) 0)
     rw [hneg_eq, hA]
   have hpos_toReal : hf_test.pos.integ = riemannIntegral p I := by
     dsimp [RealAbsolutelyIntegrable.integ, UnsignedAbsolutelyIntegrable.integ]
