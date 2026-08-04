@@ -585,8 +585,60 @@ def DyadicCube'.partition (d n:ℕ) : IsPartition (fun (a: Fin d → ℤ) ↦ (D
 def DyadicCube'.boolean_algebra (d n:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
   (DyadicCube'.partition d n).to_ConcreteBooleanAlgebra
 
+/-- Every dyadic cube at the finer scale n is contained in some cube at the coarser scale m, when m is at most n. -/
+lemma dyadic_cube_subset {d m n : ℕ} (h : m ≤ n) (a : Fin d → ℤ) :
+    ∃ b : Fin d → ℤ, (DyadicCube' (n : ℤ) a).toSet ⊆ (DyadicCube' (m : ℤ) b).toSet := by
+  let k : ℕ := n - m
+  have hk : (n : ℤ) = (k : ℤ) + (m : ℤ) := by
+    rw [← Nat.cast_add]
+    congr 1
+    exact (Nat.sub_add_cancel h).symm
+  let b : Fin d → ℤ := fun i => Int.floor ((a i : ℝ) / (2 : ℝ)^(k : ℤ))
+  refine ⟨b, ?_⟩
+  intro x hx i
+  have h2pos : (0 : ℝ) < (2 : ℝ)^(k : ℤ) := by positivity
+  have h2m : (0 : ℝ) < (2 : ℝ)^(m : ℤ) := by positivity
+  have h2ne : (2 : ℝ) ≠ 0 := by norm_num
+  have hb1 : (b i : ℝ) ≤ (a i : ℝ) / (2 : ℝ)^(k : ℤ) := by
+    simpa [b] using Int.floor_le ((a i : ℝ) / (2 : ℝ)^(k : ℤ))
+  have hb2 : (a i : ℝ) / (2 : ℝ)^(k : ℤ) < (b i : ℝ) + 1 := by
+    simp [b]
+  have hb_le_a : (b i : ℤ) * (2 : ℤ)^k ≤ a i := by
+    have hb1' : (b i : ℝ) * (2 : ℝ)^(k : ℤ) ≤ (a i : ℝ) := by
+      exact (le_div_iff₀ h2pos).mp hb1
+    exact_mod_cast hb1'
+  have ha_le_b : a i + 1 ≤ (b i + 1) * (2 : ℤ)^k := by
+    have hb2' : (a i : ℝ) < ((b i : ℝ) + 1) * (2 : ℝ)^(k : ℤ) := by
+      exact (div_lt_iff₀ h2pos).mp hb2
+    have hlt : a i < (b i + 1) * (2 : ℤ)^k := by exact_mod_cast hb2'
+    omega
+  have hxi : (a i : ℝ) / (2 : ℝ)^(n : ℤ) ≤ x i ∧ x i < ((a i : ℝ) + 1) / (2 : ℝ)^(n : ℤ) := by
+    simpa [DyadicCube'] using hx i
+  have hlb_real : (b i : ℝ) / (2 : ℝ)^(m : ℤ) ≤ (a i : ℝ) / (2 : ℝ)^(n : ℤ) := by
+    rw [hk, zpow_add₀ h2ne (k : ℤ) (m : ℤ)]
+    have hb_le_a' : (b i : ℝ) * (2 : ℝ)^(k : ℤ) ≤ (a i : ℝ) := by
+      have h : (b i : ℝ) * (2 : ℝ)^k ≤ (a i : ℝ) := by exact_mod_cast hb_le_a
+      simpa [zpow_natCast] using h
+    field_simp [mul_comm, mul_left_comm, mul_assoc, hb_le_a', h2pos.ne', h2m.ne']
+    simpa using hb_le_a'
+  have hub_real : ((a i : ℝ) + 1) / (2 : ℝ)^(n : ℤ) ≤ ((b i : ℝ) + 1) / (2 : ℝ)^(m : ℤ) := by
+    rw [hk, zpow_add₀ h2ne (k : ℤ) (m : ℤ)]
+    have ha_le_b' : (a i : ℝ) + 1 ≤ ((b i : ℝ) + 1) * (2 : ℝ)^(k : ℤ) := by
+      have h : (a i : ℝ) + 1 ≤ ((b i : ℝ) + 1) * (2 : ℝ)^k := by exact_mod_cast ha_le_b
+      simpa [zpow_natCast] using h
+    field_simp [mul_comm, mul_left_comm, mul_assoc, ha_le_b', h2pos.ne', h2m.ne']
+    simpa [mul_comm] using ha_le_b'
+  have hlower : (b i : ℝ) / (2 : ℝ)^(m : ℤ) ≤ x i := by
+    exact le_trans hlb_real hxi.1
+  have hupper : x i < ((b i : ℝ) + 1) / (2 : ℝ)^(m : ℤ) := by
+    exact lt_of_lt_of_le hxi.2 hub_real
+  exact (by simpa [DyadicCube'] using ⟨hlower, hupper⟩)
+
 def DyadicCube'.boolean_algebra_mono (d:ℕ) {m n:ℕ} (h: m ≤ n) :
-  DyadicCube'.boolean_algebra d m ≤ DyadicCube'.boolean_algebra d n := by sorry
+  DyadicCube'.boolean_algebra d m ≤ DyadicCube'.boolean_algebra d n := by
+  apply IsPartition.mono (hI := DyadicCube'.partition d n) (hJ := DyadicCube'.partition d m)
+  intro a
+  exact dyadic_cube_subset (d := d) h a
 
 def IsPartition.relabels {I J X:Type*} {parts_I: I → Set X} (_: IsPartition parts_I) {parts_J : J → Set X} (_: IsPartition parts_J) : Prop := ∃ e : I ≃ J, ∀ i:I, parts_I i = parts_J (e i)
 
