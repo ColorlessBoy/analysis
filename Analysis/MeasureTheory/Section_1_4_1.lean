@@ -225,22 +225,68 @@ def ConcreteBooleanAlgebra.restrict_iff {X:Type*} {B: ConcreteBooleanAlgebra X} 
 @[implicit_reducible]
 def ConcreteBooleanAlgebra.toBooleanAlgebra {X:Type*} (B: ConcreteBooleanAlgebra X) : BooleanAlgebra (B.measurableSets) :=
 {
-   sup := sorry
-   le_sup_left := sorry
-   le_sup_right := sorry
-   sup_le := sorry
-   inf := sorry
-   inf_le_left := sorry
-   inf_le_right := sorry
-   le_inf := sorry
-   le_sup_inf := sorry
-   compl := sorry
-   top := sorry
-   bot := sorry
-   inf_compl_le_bot := sorry
-   top_le_sup_compl := sorry
-   le_top := sorry
-   bot_le := sorry
+   sup := fun E F => ⟨E.val ∪ F.val, B.union_mem E.val F.val E.property F.property⟩
+   le_sup_left := by
+     intro a b
+     change a.val ⊆ a.val ∪ b.val
+     exact Set.subset_union_left
+   le_sup_right := by
+     intro a b
+     change b.val ⊆ a.val ∪ b.val
+     exact Set.subset_union_right
+   sup_le := by
+     intro a b c hac hbc
+     change a.val ⊆ c.val at hac
+     change b.val ⊆ c.val at hbc
+     change (a.val ∪ b.val) ⊆ c.val
+     exact Set.union_subset hac hbc
+   inf := fun E F => ⟨E.val ∩ F.val, B.inter_mem (E := E.val) (F := F.val) E.property F.property⟩
+   inf_le_left := by
+     intro a b
+     change (a.val ∩ b.val) ⊆ a.val
+     exact Set.inter_subset_left
+   inf_le_right := by
+     intro a b
+     change (a.val ∩ b.val) ⊆ b.val
+     exact Set.inter_subset_right
+   le_inf := by
+     intro a b c hac hbc
+     change a.val ⊆ b.val at hac
+     change a.val ⊆ c.val at hbc
+     change a.val ⊆ (b.val ∩ c.val)
+     exact Set.subset_inter hac hbc
+   le_sup_inf := by
+     intro a b c
+     change ((a.val ∪ b.val) ∩ (a.val ∪ c.val)) ⊆ (a.val ∪ (b.val ∩ c.val))
+     intro x hx
+     rcases hx with ⟨hx1, hx2⟩
+     rcases hx1 with hx1 | hx1
+     · exact Or.inl hx1
+     · rcases hx2 with hx2 | hx2
+       · exact Or.inl hx2
+       · exact Or.inr ⟨hx1, hx2⟩
+   compl := fun E => ⟨E.valᶜ, B.compl_mem E.val E.property⟩
+   top := ⟨Set.univ, by simpa using B.compl_mem ∅ B.empty_mem⟩
+   bot := ⟨∅, B.empty_mem⟩
+   inf_compl_le_bot := by
+     intro a
+     change (a.val ∩ a.valᶜ) ⊆ ∅
+     simp
+   top_le_sup_compl := by
+     intro a
+     change Set.univ ⊆ (a.val ∪ a.valᶜ)
+     intro x hx
+     by_cases h : x ∈ a.val
+     · exact Or.inl h
+     · exact Or.inr h
+   le_top := by
+     intro a
+     change a.val ⊆ Set.univ
+     simp
+   bot_le := by
+     intro a
+     change ∅ ⊆ a.val
+     simp
 }
 
 def IsPartition {I X:Type*} (parts: I → Set X) : Prop := (Set.PairwiseDisjoint Set.univ parts) ∧ (⋃ i, parts i = Set.univ)
