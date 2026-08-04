@@ -1829,6 +1829,36 @@
       "start": "2026-08-04T01:14:06.473035",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 109,
+      "theorem": "simple_continuousOn_outside_small",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_lusin2.lean",
+      "goal": "Lusin core: simple function continuous on closed set outside small measure",
+      "start": "2026-08-04T11:46:55.327416",
+      "attempts": [
+        {
+          "edit": "final proof",
+          "errors_before": 5,
+          "errors_after": 0,
+          "excerpt": "0 errors, only other 2 sorries remain",
+          "time": "2026-08-04T12:04:15.906383"
+        }
+      ],
+      "status": "success",
+      "notes": "Lusin core: simple function continuous on closed set outside small measure",
+      "end": "2026-08-04T12:03:49.710019"
+    },
+    {
+      "id": 110,
+      "theorem": "box_lusin",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_lusin2.lean",
+      "goal": "Prove box_lusin: Lusin for complex measurable on finite-measure set",
+      "start": "2026-08-04T12:07:06.164054",
+      "attempts": [],
+      "status": "success",
+      "notes": "Full proof of box_lusin via egorov_on_finite_set + simple_continuousOn_outside_small + uniform-limit continuity",
+      "end": "2026-08-04T12:19:44.518685"
     }
   ]
 }

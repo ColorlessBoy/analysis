@@ -657,6 +657,20 @@
       "tactics": "hfin, rcases, set c'/h, hh_simple, hh_eq with hcoe_sum, hh_real, sub, pos_fun, h\u03c6minush \u25b8 measurable_pos",
       "description": "toRealSimple is private \u2014 replicated inline; final via RealMeasurable.measurable_pos",
       "time": "2026-08-04T00:29:01.014752"
+    },
+    {
+      "theorem": "simple_continuousOn_outside_small",
+      "file": "_temp_lusin2.lean",
+      "tactics": "TFAE compact cores; mem_iUnion/setOf; continuous_iff_isClosed",
+      "description": "Piecewise-constant simple function continuous on finite union of compact cores + compact L",
+      "time": "2026-08-04T12:03:49.738384"
+    },
+    {
+      "theorem": "box_lusin",
+      "file": "_temp_lusin2.lean",
+      "tactics": "choose/disjoint-rep/egorov/uniform-limit",
+      "description": "Lusin on finite-measure set: truncate by indicator, disjoint atoms finite, per-m simple-continuity, D=inter(Cm\u2229A), egorov, uniform-limit continuity, convert fA to f",
+      "time": "2026-08-04T12:19:50.144169"
     }
   ],
   "errors": [

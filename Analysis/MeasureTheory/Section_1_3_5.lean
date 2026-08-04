@@ -2297,6 +2297,558 @@ theorem PointwiseAeConvergesTo.uniformlyConverges_outside_small {d:ℕ} {f : ℕ
     UniformlyConvergesToOn f g (S \ E) := by
   exact egorov_on_finite_set hf (ComplexMeasurable.aeLimit_of_pointwiseAe hf hfg) hfg S hSm hS ε hε
 
+-- ============================================================
+-- Lusin's theorem (Theorem 1.3.28) machinery
+-- ============================================================
+
+/-- Multiplying a complex simple function by the indicator of a measurable set gives a simple function. -/
+private lemma ComplexSimpleFunction.mul_indicator' {d:ℕ} {s : EuclideanSpace' d → ℂ} (hs : ComplexSimpleFunction s)
+    {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    ComplexSimpleFunction (s * Complex.indicator E) := by
+  rcases hs with ⟨k, c, A, hA_meas, heq⟩
+  refine ⟨k, c, fun i => A i ∩ E, fun i => LebesgueMeasurable.inter (hA_meas i) hE, ?_⟩
+  ext x
+  rw [heq]
+  simp only [Pi.mul_apply, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  by_cases hx : x ∈ E
+  · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx, mul_one]
+    apply Finset.sum_congr rfl
+    intro i _
+    congr 1
+    by_cases hxi : x ∈ A i
+    · have hmem : x ∈ A i ∩ E := Set.mem_inter hxi hx
+      simp [Set.indicator'_of_mem hxi, Set.indicator'_of_mem hmem]
+    · have hnot : x ∉ A i ∩ E := by
+        intro h
+        exact hxi h.1
+      simp [Set.indicator'_of_notMem hxi, Set.indicator'_of_notMem hnot]
+  · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx, mul_zero]
+    symm
+    apply Finset.sum_eq_zero
+    intro i _
+    rw [show (A i ∩ E).indicator' x = 0 from Set.indicator'_of_notMem (by
+      intro h
+      have h2 : x ∈ E := h.2
+      exact hx h2)]
+    norm_num
+
+/-- A complex simple function is complex measurable. -/
+private lemma ComplexSimpleFunction.measurable {d:ℕ} {s : EuclideanSpace' d → ℂ} (hs : ComplexSimpleFunction s) :
+    ComplexMeasurable s := by
+  exact ⟨fun _ => s, fun _ => hs, fun x => tendsto_const_nhds⟩
+
+/-- Multiplying a pointwise-converging sequence by a fixed indicator preserves pointwise convergence. -/
+private lemma mul_indicator_pointwise_conv {d:ℕ} {s : ℕ → EuclideanSpace' d → ℂ} {f : EuclideanSpace' d → ℂ}
+    {A : Set (EuclideanSpace' d)} (hconv : PointwiseConvergesTo s f) :
+    PointwiseConvergesTo (fun m => s m * Complex.indicator A) (f * Complex.indicator A) := by
+  intro x
+  by_cases hx : x ∈ A
+  · have hχ : Complex.indicator A x = 1 := by
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx]
+    simpa [Pi.mul_apply, hχ] using hconv x
+  · have hχ : Complex.indicator A x = 0 := by
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx]
+    simp [Pi.mul_apply, hχ]
+
+/-- The same, but almost-always (pointwise implies pointwise ae). -/
+private lemma mul_indicator_ae_conv {d:ℕ} {s : ℕ → EuclideanSpace' d → ℂ} {f : EuclideanSpace' d → ℂ}
+    {A : Set (EuclideanSpace' d)} (hconv : PointwiseConvergesTo s f) :
+    PointwiseAeConvergesTo (fun m => s m * Complex.indicator A) (f * Complex.indicator A) := by
+  exact AlmostAlways.ofAlways (mul_indicator_pointwise_conv hconv)
+
+/-- A uniform limit on a set of functions continuous on that set is continuous on it. -/
+private lemma uniform_converges_continuousOn {X : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
+    (F : ℕ → X → Y) (f : X → Y) (S : Set X)
+    (hconv : UniformlyConvergesToOn F f S) (hcont : ∀ n, ContinuousOn (F n) S) :
+    ContinuousOn f S := by
+  have hT : TendstoUniformlyOn F f atTop S :=
+    (tendstoUniformlyOn_iff_uniformlyConvergesToOn F f S).mpr hconv
+  exact hT.continuousOn (Eventually.of_forall hcont).frequently
+
+/-- A simple function (with finite-measure atoms) is relatively continuous on a closed
+    set whose complement inside B has small measure. -/
+private lemma simple_continuousOn_outside_small {d:ℕ} {s : EuclideanSpace' d → ℂ} {n : ℕ}
+    {v : Fin n → ℂ} {A : Fin n → Set (EuclideanSpace' d)}
+    (hs_eq : s = ∑ i, v i • Complex.indicator (A i))
+    (hA_meas : ∀ i, LebesgueMeasurable (A i)) (hA_disj : Set.univ.PairwiseDisjoint A)
+    (hA_fin : ∀ i, v i ≠ 0 → Lebesgue_measure (A i) < ⊤)
+    {B : Set (EuclideanSpace' d)} (hB : LebesgueMeasurable B) (hBf : Lebesgue_measure B < ⊤)
+    (δ : ℝ) (hδ : 0 < δ) :
+    ∃ C : Set (EuclideanSpace' d), IsClosed C ∧ LebesgueMeasurable C ∧
+      Lebesgue_measure (B \ C) ≤ δ ∧ Continuous (fun x : C => s x.val) := by
+  classical
+  -- ε₀: the per-atom measure budget
+  set ε₀ : ℝ := δ / (2 * ((n : ℝ) + 1)) with hε₀_def
+  have hε₀_pos : 0 < ε₀ := by
+    rw [hε₀_def]
+    exact div_pos hδ (mul_pos two_pos (by positivity : 0 < (n : ℝ) + 1))
+  -- Step 1: compact cores K i inside the nonzero atoms
+  have hK_exists : ∀ i : Fin n, ∃ K : Set (EuclideanSpace' d), IsCompact K ∧ K ⊆ A i ∧
+      (v i ≠ 0 → Lebesgue_outer_measure (A i \ K) ≤ (ε₀ : EReal)) := by
+    intro i
+    by_cases hv : v i = 0
+    · refine ⟨∅, isCompact_empty, Set.empty_subset (A i), ?_⟩
+      intro hne
+      exact False.elim (hne hv)
+    · have h_tfae := (LebesgueMeasurable.finite_TFAE (A i)).out 0 3
+      obtain ⟨K, hKc, hKs, hKb⟩ :=
+        (h_tfae.mp ⟨hA_meas i, hA_fin i hv⟩ (↑ε₀) (EReal.coe_pos.mpr hε₀_pos))
+      exact ⟨K, hKc, hKs, fun _ => hKb⟩
+  choose K hK_comp hK_sub hK_bound using hK_exists
+  -- P i: the atom A i if v i ≠ 0, else empty
+  set P : Fin n → Set (EuclideanSpace' d) := fun i => if h : v i ≠ 0 then A i else ∅ with hP_def
+  -- Z: B minus all nonzero atoms (s = 0 on Z)
+  set Z : Set (EuclideanSpace' d) := B \ ⋃ i, P i with hZ_def
+  have hP_meas : ∀ i, LebesgueMeasurable (P i) := by
+    intro i
+    by_cases hv : v i = 0
+    · rw [hP_def]
+      simpa [hv] using LebesgueMeasurable.empty
+    · rw [hP_def]
+      simpa [hv] using hA_meas i
+  have hUP_meas : LebesgueMeasurable (⋃ i : Fin n, P i) := by
+    have hfs : LebesgueMeasurable (⋃ i ∈ (Finset.univ : Finset (Fin n)), P i) :=
+      LebesgueMeasurable.finset_union (E := P) (S := Finset.univ) (fun i _ => hP_meas i)
+    simpa using hfs
+  have hZ_meas : LebesgueMeasurable Z := by
+    rw [hZ_def]
+    exact LebesgueMeasurable.inter hB (LebesgueMeasurable.complement hUP_meas)
+  have hZ_fin : Lebesgue_measure Z < ⊤ := by
+    rw [hZ_def]
+    exact lt_of_le_of_lt (Lebesgue_outer_measure.mono Set.diff_subset) hBf
+  -- Step 2: compact core L inside Z
+  have hL_exists : ∃ L : Set (EuclideanSpace' d), IsCompact L ∧ L ⊆ Z ∧
+      Lebesgue_outer_measure (Z \ L) ≤ (↑(δ / 2) : EReal) := by
+    have h_tfae := (LebesgueMeasurable.finite_TFAE Z).out 0 3
+    obtain ⟨L, hLc, hLs, hLb⟩ :=
+      (h_tfae.mp ⟨hZ_meas, hZ_fin⟩ (↑(δ / 2)) (EReal.coe_pos.mpr (div_pos hδ (by norm_num))))
+    exact ⟨L, hLc, hLs, hLb⟩
+  obtain ⟨L, hL_comp, hL_sub, hL_bound⟩ := hL_exists
+  -- Step 3: C = (⋃ i, K i) ∪ L is closed and measurable
+  set C : Set (EuclideanSpace' d) := (⋃ i, K i) ∪ L with hC_def
+  have hC_isClosed : IsClosed C := by
+    rw [hC_def]
+    exact IsCompact.isClosed (IsCompact.union (isCompact_iUnion hK_comp) hL_comp)
+  have hC_meas : LebesgueMeasurable C := IsClosed.measurable hC_isClosed
+  -- Step 4: s is constant v i on each K i and 0 on L
+  have hs_on_K : ∀ i, ∀ x ∈ K i, s x = v i := by
+    intro i x hx
+    have hxAi : x ∈ A i := hK_sub i hx
+    rw [hs_eq]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    rw [Finset.sum_eq_single i]
+    · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxAi]
+    · intro j _ hij
+      have hx_notin : x ∉ A j := by
+        intro hxAj
+        have hdisj := hA_disj (Set.mem_univ i) (Set.mem_univ j) (Ne.symm hij)
+        exact (Set.disjoint_left.mp hdisj) hxAi hxAj
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx_notin]
+    · intro h; exact absurd (Finset.mem_univ i) h
+  have hs_on_L : ∀ x ∈ L, s x = 0 := by
+    intro x hxL
+    have hx_not_P : x ∉ ⋃ i, P i := (hL_sub hxL).2
+    rw [hs_eq]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    apply Finset.sum_eq_zero
+    intro j _
+    by_cases hvj : v j = 0
+    · simp [hvj]
+    · have hx_not_Aj : x ∉ A j := by
+        intro hxA
+        have hx_not_Pj : x ∉ P j := by
+          intro hxPj
+          exact hx_not_P (Set.mem_iUnion.mpr ⟨j, hxPj⟩)
+        rw [hP_def] at hx_not_Pj
+        simp [hvj] at hx_not_Pj
+        exact hx_not_Pj hxA
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx_not_Aj]
+  -- Step 5: measure bound
+  set G : Fin n → Set (EuclideanSpace' d) := fun i => if h : v i ≠ 0 then A i \ K i else ∅ with hG_def
+  set D : Set (EuclideanSpace' d) := ⋃ i, G i with hD_def
+  have hG_le : ∀ i, Lebesgue_outer_measure (G i) ≤ (ε₀ : EReal) := by
+    intro i
+    by_cases hv : v i = 0
+    · rw [hG_def]
+      simp [hv, Lebesgue_outer_measure.of_empty]
+      exact hε₀_pos.le
+    · rw [hG_def]
+      simpa [hv] using hK_bound i hv
+  have hD_le : Lebesgue_outer_measure D ≤ (↑(δ / 2) : EReal) := by
+    rw [hD_def]
+    calc Lebesgue_outer_measure (⋃ i, G i)
+        ≤ ∑ i, Lebesgue_outer_measure (G i) := Lebesgue_outer_measure.finite_union_le G
+      _ ≤ ∑ i, (ε₀ : EReal) := by
+          apply Finset.sum_le_sum
+          intro i _
+          exact hG_le i
+      _ = ((n : ℝ) * ε₀ : EReal) := by
+          rw [← EReal.coe_finset_sum (fun _ _ => le_of_lt hε₀_pos)]
+          congr 1
+          rw [Finset.sum_const]
+          rw [nsmul_eq_mul]
+          norm_num
+      _ ≤ (↑(δ / 2) : EReal) := by
+          rw [← EReal.coe_mul]
+          rw [EReal.coe_le_coe_iff]
+          rw [hε₀_def]
+          rw [← mul_div_assoc]
+          have hden : 0 < (2 : ℝ) * ((n : ℝ) + 1) := by positivity
+          have hc : (n : ℝ) + 1 ≠ 0 := ne_of_gt (by positivity)
+          calc (n : ℝ) * δ / (2 * ((n : ℝ) + 1))
+              ≤ ((n : ℝ) + 1) * δ / (2 * ((n : ℝ) + 1)) := by
+                  apply div_le_div_of_nonneg_right
+                  · exact mul_le_mul_of_nonneg_right (by linarith) hδ.le
+                  · exact hden.le
+            _ = δ / 2 := by
+                  rw [mul_comm ((n : ℝ) + 1) δ]
+                  rw [mul_div_mul_right δ 2 hc]
+  have hBC_sub : B \ ((⋃ i, K i) ∪ L) ⊆ D ∪ (Z \ L) := by
+    intro x hx
+    rcases hx with ⟨hxB, hxC⟩
+    by_cases hxU : x ∈ ⋃ i, P i
+    · left
+      simp only [hD_def, Set.mem_iUnion]
+      rw [Set.mem_iUnion] at hxU
+      rcases hxU with ⟨i, hxi⟩
+      refine ⟨i, ?_⟩
+      rw [hG_def]
+      have hvi : v i ≠ 0 := by
+        intro hv
+        have hPi : P i = ∅ := by
+          rw [hP_def]
+          simp [hv]
+        rw [hPi] at hxi
+        exact hxi
+      simp [hvi]
+      have hPi : P i = A i := by
+        rw [hP_def]
+        simp [hvi]
+      refine ⟨?_, ?_⟩
+      · rwa [← hPi]
+      · intro hxKi
+        exact hxC (Or.inl (Set.mem_iUnion.mpr ⟨i, hxKi⟩))
+    · right
+      exact ⟨⟨hxB, hxU⟩, fun hxL => hxC (Or.inr hxL)⟩
+  have hBC_bound : Lebesgue_outer_measure (B \ ((⋃ i, K i) ∪ L)) ≤ (δ : EReal) := by
+    calc Lebesgue_outer_measure (B \ ((⋃ i, K i) ∪ L))
+        ≤ Lebesgue_outer_measure (D ∪ (Z \ L)) := Lebesgue_outer_measure.mono hBC_sub
+      _ ≤ Lebesgue_outer_measure D + Lebesgue_outer_measure (Z \ L) := by
+          let S : Fin 2 → Set (EuclideanSpace' d) := ![D, Z \ L]
+          have h_union : ⋃ i : Fin 2, S i = D ∪ (Z \ L) := by
+            ext x; simp [S]
+          calc Lebesgue_outer_measure (D ∪ (Z \ L)) = Lebesgue_outer_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+            _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+            _ = Lebesgue_outer_measure D + Lebesgue_outer_measure (Z \ L) := by simp [S]
+      _ ≤ (↑(δ / 2) : EReal) + (↑(δ / 2) : EReal) := add_le_add hD_le hL_bound
+      _ = (δ : EReal) := by
+          rw [← EReal.coe_add]
+          congr 1
+          ring
+  -- Step 6: continuity of s on C
+  have hcont : Continuous (fun x : C => s x.val) := by
+    rw [continuous_iff_isClosed]
+    intro t ht
+    change IsClosed {x : C | s x.val ∈ t}
+    have h_piece_closed : ∀ i, IsClosed {x : C | x.val ∈ K i} := by
+      intro i
+      exact IsClosed.preimage continuous_subtype_val (IsCompact.isClosed (hK_comp i))
+    have h_L_closed : IsClosed {x : C | x.val ∈ L} :=
+      IsClosed.preimage continuous_subtype_val (IsCompact.isClosed hL_comp)
+    have h_eq : {x : C | s x.val ∈ t} =
+        (⋃ i, {x : C | x.val ∈ K i ∧ v i ∈ t}) ∪ {x : C | x.val ∈ L ∧ (0 : ℂ) ∈ t} := by
+      ext x
+      constructor
+      · intro hst
+        have hxC : x.val ∈ (⋃ i, K i) ∪ L := by
+          exact x.2
+        by_cases hxK : x.val ∈ ⋃ i, K i
+        · rw [Set.mem_iUnion] at hxK
+          rcases hxK with ⟨i, hxi⟩
+          left
+          rw [Set.mem_iUnion]
+          refine ⟨i, ?_⟩
+          rw [Set.mem_setOf_eq]
+          exact ⟨hxi, by simpa [hs_on_K i x.val hxi] using hst⟩
+        · right
+          have hxL : x.val ∈ L := by
+            rcases hxC with hxKU | hxL
+            · exact False.elim (hxK hxKU)
+            · exact hxL
+          rw [Set.mem_setOf_eq]
+          exact ⟨hxL, by simpa [hs_on_L x.val hxL] using hst⟩
+      · intro hst
+        rw [Set.mem_union] at hst
+        rcases hst with hstL | hstR
+        · rw [Set.mem_iUnion] at hstL
+          rcases hstL with ⟨i, hi⟩
+          rw [Set.mem_setOf_eq] at hi
+          rcases hi with ⟨hxi, hvit⟩
+          simpa [hs_on_K i x.val hxi] using hvit
+        · rw [Set.mem_setOf_eq] at hstR
+          rcases hstR with ⟨hxL, h0t⟩
+          simpa [hs_on_L x.val hxL] using h0t
+    rw [h_eq]
+    apply IsClosed.union
+    · apply isClosed_iUnion_of_finite
+      intro i
+      by_cases hvit : v i ∈ t
+      · convert h_piece_closed i using 1
+        ext x
+        simp [hvit]
+      · convert (isClosed_empty : IsClosed (∅ : Set C)) using 1
+        ext x
+        simp [hvit]
+    · by_cases h0t : (0 : ℂ) ∈ t
+      · convert h_L_closed using 1
+        ext x
+        simp [h0t]
+      · convert (isClosed_empty : IsClosed (∅ : Set C)) using 1
+        ext x
+        simp [h0t]
+  refine ⟨C, hC_isClosed, hC_meas, ?_, hcont⟩
+  change Lebesgue_outer_measure (B \ C) ≤ (δ : EReal)
+  rw [hC_def]
+  exact hBC_bound
+
+/-- Lusin's theorem on a bounded measurable set: a complex measurable function is continuous on
+    the complement of a small-measure subset of the set. -/
+private lemma box_lusin {d:ℕ} (A : Set (EuclideanSpace' d)) (hA : LebesgueMeasurable A)
+    (hAf : Lebesgue_measure A < ⊤) (f : EuclideanSpace' d → ℂ) (hf : ComplexMeasurable f)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ E ⊆ A ∧ Lebesgue_measure E ≤ ε ∧
+      Continuous (fun x : (A \ E : Set (EuclideanSpace' d)) => f x.val) := by
+  classical
+  let s0 : ℕ → EuclideanSpace' d → ℂ := Classical.choose hf
+  have hs0_simple : ∀ n, ComplexSimpleFunction (s0 n) := (Classical.choose_spec hf).1
+  have hs0_conv : PointwiseConvergesTo s0 f := (Classical.choose_spec hf).2
+  set sA : ℕ → EuclideanSpace' d → ℂ := fun m => s0 m * Complex.indicator A
+  set fA : EuclideanSpace' d → ℂ := f * Complex.indicator A
+  -- Each sA m is complex simple, hence measurable; fA is measurable
+  have hsm_simple : ∀ m, ComplexSimpleFunction (sA m) := by
+    intro m
+    simpa [sA] using ComplexSimpleFunction.mul_indicator' (hs0_simple m) hA
+  have hsA_meas : ∀ m, ComplexMeasurable (sA m) := fun m =>
+    ComplexSimpleFunction.measurable (hsm_simple m)
+  have hfA_meas : ComplexMeasurable fA := by
+    dsimp [fA]
+    exact ComplexMeasurable.mul hf (ComplexSimpleFunction.measurable (ComplexSimpleFunction.indicator hA))
+  -- sA converges pointwise (hence a.e.) to fA
+  have hConvAe : PointwiseAeConvergesTo sA fA := by
+    dsimp [sA, fA]
+    exact mul_indicator_ae_conv hs0_conv
+  -- Disjoint representation of each sA m
+  have hrep : ∀ m, ∃ (n : ℕ) (v : Fin n → ℂ) (A : Fin n → Set (EuclideanSpace' d)),
+      (∀ i, LebesgueMeasurable (A i)) ∧ Set.univ.PairwiseDisjoint A ∧
+      sA m = ∑ i, v i • Complex.indicator (A i) := fun m =>
+    (hsm_simple m).disjoint_representation
+  choose nm vm Am hAm_meas hAm_disj hsm_eq using hrep
+  -- On each atom the value is the coefficient; atoms with nonzero coefficient lie inside A
+  have hAm_value : ∀ m i, ∀ x ∈ Am m i, sA m x = vm m i := by
+    intro m i x hx
+    rw [hsm_eq m]
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    rw [Finset.sum_eq_single i]
+    · simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hx]
+    · intro j _ hij
+      have hdisj := hAm_disj m (Set.mem_univ i) (Set.mem_univ j) (Ne.symm hij)
+      have hx_notin : x ∉ Am m j := by
+        intro hxj
+        exact (Set.disjoint_left.mp hdisj) hx hxj
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hx_notin]
+    · intro h; exact absurd (Finset.mem_univ i) h
+  have hAm_sub_A : ∀ m i, vm m i ≠ 0 → Am m i ⊆ A := by
+    intro m i hvi x hx
+    have hv_eq : sA m x = vm m i := hAm_value m i x hx
+    have hsm_ne : sA m x ≠ 0 := by
+      rw [hv_eq]
+      exact hvi
+    have hχ : Complex.indicator A x ≠ 0 := by
+      intro hχ0
+      have : sA m x = 0 := by
+        simp [sA, hχ0]
+      exact hsm_ne this
+    by_contra hxnotA
+    have hχ0 : Complex.indicator A x = 0 := by
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_notMem hxnotA]
+    exact hχ hχ0
+  have hAm_fin : ∀ m i, vm m i ≠ 0 → Lebesgue_measure (Am m i) < ⊤ := by
+    intro m i hvi
+    exact lt_of_le_of_lt (Lebesgue_outer_measure.mono (hAm_sub_A m i hvi)) hAf
+  -- For each m, find a closed Cm inside A on which sA m is continuous and A \ Cm is small
+  have hchoose : ∀ m, ∃ C : Set (EuclideanSpace' d), IsClosed C ∧ LebesgueMeasurable C ∧
+      Lebesgue_measure (A \ C) ≤ (↑(ε / 2^(m+2) : ℝ) : EReal) ∧
+      Continuous (fun x : C => sA m x.val) := by
+    intro m
+    have hδ : 0 < (ε / 2^(m+2) : ℝ) := div_pos hε (pow_pos (by norm_num) (m + 2))
+    obtain ⟨C, hCcl, hCmeas, hCb, hCcont⟩ :=
+      simple_continuousOn_outside_small (s := sA m) (v := vm m) (A := Am m)
+        (hs_eq := hsm_eq m) (hA_meas := hAm_meas m) (hA_disj := hAm_disj m)
+        (hA_fin := hAm_fin m) (B := A) (hB := hA) (hBf := hAf)
+        (δ := ε / 2^(m+2)) (hδ := hδ)
+    exact ⟨C, hCcl, hCmeas, hCb, hCcont⟩
+  choose Cm _hCm_closed hCm_meas hCm_bound hCm_cont using hchoose
+  -- Cm' = Cm ∩ A, and D = ⋂ m Cm': measurable, D ⊆ A, finite measure
+  set Cm' : ℕ → Set (EuclideanSpace' d) := fun m => Cm m ∩ A
+  set D : Set (EuclideanSpace' d) := ⋂ m, Cm' m
+  have hCm'_meas : ∀ m, LebesgueMeasurable (Cm' m) := fun m =>
+    (hCm_meas m).inter hA
+  have hD_meas : LebesgueMeasurable D := by
+    dsimp [D]
+    exact LebesgueMeasurable.countable_inter hCm'_meas
+  have hD_sub_A : D ⊆ A := by
+    intro x hx
+    have hx0 : x ∈ Cm' 0 := Set.mem_iInter.mp hx 0
+    exact hx0.2
+  have hD_fin : Lebesgue_measure D < ⊤ :=
+    lt_of_le_of_lt (Lebesgue_outer_measure.mono hD_sub_A) hAf
+  -- Measure bound for A \ D
+  have hACm'_eq : ∀ m, A \ Cm' m = A \ Cm m := by
+    intro m
+    ext x
+    constructor
+    · intro hx
+      exact ⟨hx.1, fun hxCm => hx.2 ⟨hxCm, hx.1⟩⟩
+    · intro hx
+      exact ⟨hx.1, fun hxInt => hx.2 hxInt.1⟩
+  have hACm'_le : ∀ m, Lebesgue_measure (A \ Cm' m) ≤ (↑(ε / 2^(m+2) : ℝ) : EReal) := by
+    intro m
+    rw [hACm'_eq m]
+    exact hCm_bound m
+  have hAD_sub : A \ D ⊆ ⋃ m, (A \ Cm' m) := by
+    intro x hx
+    rcases hx with ⟨hxA, hxD⟩
+    rw [Set.mem_iUnion]
+    have hxexists : ∃ m, x ∉ Cm' m := by
+      by_contra hnone
+      push_neg at hnone
+      exact hxD (Set.mem_iInter.mpr hnone)
+    rcases hxexists with ⟨m, hm⟩
+    exact ⟨m, hxA, hm⟩
+  have hterm : ∀ m : ℕ, (ε / 2^(m+2) : ℝ) = (ε / 2) / 2^(m+1) := by
+    intro m
+    have hp : (2 : ℝ)^(m+2) = 2 * (2 : ℝ)^(m+1) := by
+      rw [pow_succ]
+      ring
+    rw [hp]
+    rw [← div_div]
+  have hconv_ereal : ∀ (X : ℝ) (k : ℕ), (X / 2^(k+1) : EReal) = (↑(X / 2^(k+1) : ℝ) : EReal) := by
+    intro X k
+    rw [EReal.coe_div, EReal.coe_pow]
+    rfl
+  have hnonneg : ∀ m, 0 ≤ (↑(ε / 2^(m+2) : ℝ) : EReal) := by
+    intro m
+    exact EReal.coe_nonneg.mpr (div_nonneg (le_of_lt hε) (le_of_lt (pow_pos (by norm_num) (m + 2))))
+  have hnn : ∀ m, 0 ≤ Lebesgue_measure (A \ Cm' m) := fun m => Lebesgue_outer_measure.nonneg _
+  have hsum_le : (∑' m : ℕ, Lebesgue_measure (A \ Cm' m)) ≤ (↑(ε / 2 : ℝ) : EReal) := by
+    calc
+      (∑' m : ℕ, Lebesgue_measure (A \ Cm' m)) ≤ ∑' m : ℕ, (↑(ε / 2^(m+2) : ℝ) : EReal) := by
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun m => Lebesgue_measure (A \ Cm' m)) hnn]
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun m => (↑(ε / 2^(m+2) : ℝ) : EReal)) hnonneg]
+        rw [EReal.coe_ennreal_le_coe_ennreal_iff]
+        apply ENNReal.tsum_le_tsum
+        intro m
+        exact EReal.toENNReal_le_toENNReal (hACm'_le m)
+      _ = ∑' m : ℕ, ((ε / 2) / 2^(m+1) : EReal) := by
+        apply tsum_congr
+        intro m
+        calc
+          (↑(ε / 2^(m+2) : ℝ) : EReal) = (↑((ε / 2) / 2^(m+1) : ℝ) : EReal) := by
+            congr 1
+            exact hterm m
+          _ = ((ε / 2) / 2^(m+1) : EReal) := (hconv_ereal (ε / 2) m).symm
+      _ ≤ (↑(ε / 2 : ℝ) : EReal) := by
+        have hg := egorov_tsum_geometric (half_pos hε)
+        simpa using hg
+  have hAD_le : Lebesgue_measure (A \ D) ≤ (↑(ε / 2 : ℝ) : EReal) := by
+    calc
+      Lebesgue_measure (A \ D) ≤ Lebesgue_measure (⋃ m, (A \ Cm' m)) :=
+        Lebesgue_outer_measure.mono hAD_sub
+      _ ≤ ∑' m : ℕ, Lebesgue_measure (A \ Cm' m) := Lebesgue_outer_measure.union_le _
+      _ ≤ (↑(ε / 2 : ℝ) : EReal) := hsum_le
+  -- Egorov on D: uniform convergence of sA to fA off a small E₀ ⊆ D
+  obtain ⟨E₀, hE₀_meas, hE₀_sub, hE₀_le, hE₀_uni⟩ :=
+    egorov_on_finite_set (f := sA) (g := fA) (hf := hsA_meas) (hg := hfA_meas)
+      (hfg := hConvAe) (A := D) (hA := hD_meas) (hAf := hD_fin)
+      (ε := ε / 2) (hε := half_pos hε)
+  -- F = D \ E₀: sA m continuous on F, uniform limit fA continuous on F
+  set F : Set (EuclideanSpace' d) := D \ E₀
+  have hF_sub_D : F ⊆ D := by
+    intro x hx
+    exact hx.1
+  have hF_sub_A : F ⊆ A := Set.Subset.trans hF_sub_D hD_sub_A
+  have hF_meas : LebesgueMeasurable F := by
+    dsimp [F]
+    exact hD_meas.inter (LebesgueMeasurable.complement hE₀_meas)
+  have hsA_contOn_D : ∀ m, ContinuousOn (sA m) D := by
+    intro m
+    have hcontOn_Cm : ContinuousOn (sA m) (Cm m) :=
+      (continuousOn_iff_continuous_restrict (f := sA m) (s := Cm m)).mpr (hCm_cont m)
+    have hcontOn_Cm' : ContinuousOn (sA m) (Cm' m) :=
+      hcontOn_Cm.mono (by intro x hx; exact hx.1)
+    exact hcontOn_Cm'.mono (Set.iInter_subset Cm' m)
+  have hsA_contOn_F : ∀ m, ContinuousOn (sA m) F := fun m =>
+    (hsA_contOn_D m).mono hF_sub_D
+  have hcontOnF_fA : ContinuousOn fA F :=
+    uniform_converges_continuousOn sA fA F hE₀_uni hsA_contOn_F
+  have hcontF_fA : Continuous (fun x : F => fA x.val) :=
+    (continuousOn_iff_continuous_restrict (f := fA) (s := F)).mp hcontOnF_fA
+  -- fA agrees with f on F (since F ⊆ A)
+  have hFA_eq : ∀ x : F, fA x.val = f x.val := by
+    intro x
+    have hxA : x.val ∈ A := hF_sub_A x.2
+    dsimp [fA]
+    simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxA, mul_one]
+  have hcontF_f : Continuous (fun x : F => f x.val) :=
+    hcontF_fA.congr hFA_eq
+  -- E = A \ F: measurable, inside A, small measure
+  set E : Set (EuclideanSpace' d) := A \ F
+  have hE_meas : LebesgueMeasurable E := by
+    dsimp [E]
+    exact hA.inter (LebesgueMeasurable.complement hF_meas)
+  have hE_sub : E ⊆ A := by
+    intro x hx
+    exact hx.1
+  have hE_le : Lebesgue_measure E ≤ ε := by
+    have hsub : E ⊆ (A \ D) ∪ E₀ := by
+      intro x hx
+      dsimp [E] at hx
+      have hxA : x ∈ A := hx.1
+      have hxnot : x ∉ D \ E₀ := hx.2
+      by_cases hxD : x ∈ D
+      · right
+        by_contra hxE0
+        exact hxnot ⟨hxD, hxE0⟩
+      · left
+        exact ⟨hxA, hxD⟩
+    calc
+      Lebesgue_measure E ≤ Lebesgue_measure ((A \ D) ∪ E₀) := Lebesgue_outer_measure.mono hsub
+      _ ≤ Lebesgue_measure (A \ D) + Lebesgue_measure E₀ := by
+        let S : Fin 2 → Set (EuclideanSpace' d) := ![A \ D, E₀]
+        have h_union : ⋃ i : Fin 2, S i = (A \ D) ∪ E₀ := by
+          ext x; simp [S]
+        calc
+          Lebesgue_measure ((A \ D) ∪ E₀) = Lebesgue_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+          _ = Lebesgue_measure (A \ D) + Lebesgue_measure E₀ := by simp [S]
+      _ ≤ (↑(ε / 2 : ℝ) : EReal) + (↑(ε / 2 : ℝ) : EReal) := add_le_add hAD_le hE₀_le
+      _ = (ε : EReal) := by
+        rw [← EReal.coe_add]
+        congr 1
+        norm_num
+  have hAE : (A \ E : Set (EuclideanSpace' d)) = F := by
+    dsimp [E]
+    ext x
+    constructor
+    · intro hx
+      by_contra hxn
+      exact hx.2 ⟨hx.1, hxn⟩
+    · intro hx
+      exact ⟨hF_sub_A hx, fun h => h.2 hx⟩
+  refine ⟨E, hE_meas, hE_sub, hE_le, ?_⟩
+  rw [hAE]
+  exact hcontF_f
+
 /-- Theorem 1.3.28 (Lusin's theorem) -/
 theorem ComplexAbsolutelyIntegrable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℂ}
   (hf: ComplexAbsolutelyIntegrable f)
