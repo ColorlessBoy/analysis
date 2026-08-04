@@ -517,9 +517,69 @@ def IsPartition.remove_empty_to_ConcreteBooleanAlgebra {I X:Type*} {parts: I →
 /-- A variant of {name}`DyadicCube` with {name}`BoundedInterval.Ico` intervals -/
 noncomputable def DyadicCube' {d:ℕ} (n:ℤ) (a: Fin d → ℤ) : Box d := { side := fun i ↦ BoundedInterval.Ico (a i/2^n) ((a i + 1)/2^n) }
 
+/-- Every real number lies in a unique dyadic interval at scale n. -/
+lemma dyadic_one_dim {n : ℤ} (_hn : 0 ≤ n) (x : ℝ) :
+    ∃! a : ℤ, (a : ℝ) / (2 : ℝ)^n ≤ x ∧ x < ((a : ℝ) + 1) / (2 : ℝ)^n := by
+  let a : ℤ := Int.floor (x * (2 : ℝ)^n)
+  refine ⟨a, ?_, ?_⟩
+  · constructor
+    · have hpos : (0 : ℝ) < (2 : ℝ)^n := by positivity
+      rw [div_le_iff₀ hpos]
+      exact_mod_cast Int.floor_le (x * (2 : ℝ)^n)
+    · have hpos : (0 : ℝ) < (2 : ℝ)^n := by positivity
+      rw [lt_div_iff₀ hpos]
+      exact_mod_cast Int.lt_floor_add_one (x * (2 : ℝ)^n)
+  · intro b hb
+    have hpos : (0 : ℝ) < (2 : ℝ)^n := by positivity
+    have ha_le_x : (a : ℝ) / (2 : ℝ)^n ≤ x := by
+      rw [div_le_iff₀ hpos]
+      exact_mod_cast Int.floor_le (x * (2 : ℝ)^n)
+    have hx_lt_a1 : x < ((a : ℝ) + 1) / (2 : ℝ)^n := by
+      rw [lt_div_iff₀ hpos]
+      exact_mod_cast Int.lt_floor_add_one (x * (2 : ℝ)^n)
+    have hb_le_x : (b : ℝ) ≤ x * (2 : ℝ)^n := (div_le_iff₀ hpos).mp hb.1
+    have hx_lt_b1 : x * (2 : ℝ)^n < (b : ℝ) + 1 := (lt_div_iff₀ hpos).mp hb.2
+    have ha_le_x2 : (a : ℝ) ≤ x * (2 : ℝ)^n := (div_le_iff₀ hpos).mp ha_le_x
+    have hx_lt_a12 : x * (2 : ℝ)^n < (a : ℝ) + 1 := (lt_div_iff₀ hpos).mp hx_lt_a1
+    have ha_le_b : a ≤ b := by
+      have h : (a : ℝ) < (b : ℝ) + 1 := by linarith
+      exact Int.lt_add_one_iff.mp (by exact_mod_cast h)
+    have hb_le_a : b ≤ a := by
+      have h : (b : ℝ) < (a : ℝ) + 1 := by linarith
+      exact Int.lt_add_one_iff.mp (by exact_mod_cast h)
+    exact le_antisymm hb_le_a ha_le_b
+
 /-- Example 1.4.8 -/
-def DyadicCube'.partition (d n:ℕ) : IsPartition (fun (a: Fin d → ℤ) ↦ (DyadicCube' n a).toSet) :=
-  by sorry
+def DyadicCube'.partition (d n:ℕ) : IsPartition (fun (a: Fin d → ℤ) ↦ (DyadicCube' n a).toSet) := by
+  constructor
+  · intro a ha b hb hab
+    change Disjoint (DyadicCube' (n : ℤ) a).toSet (DyadicCube' (n : ℤ) b).toSet
+    rw [Set.disjoint_iff]
+    intro x hx
+    rcases hx with ⟨hxa, hxb⟩
+    have hab' : a = b := by
+      funext i
+      have hn : 0 ≤ (n : ℤ) := by exact_mod_cast Nat.zero_le n
+      have h1 : (a i : ℝ) / (2 : ℝ)^(n : ℤ) ≤ x i ∧ x i < ((a i : ℝ) + 1) / (2 : ℝ)^(n : ℤ) := by
+        simpa [DyadicCube'] using hxa i
+      have h2 : (b i : ℝ) / (2 : ℝ)^(n : ℤ) ≤ x i ∧ x i < ((b i : ℝ) + 1) / (2 : ℝ)^(n : ℤ) := by
+        simpa [DyadicCube'] using hxb i
+      exact (dyadic_one_dim hn (x i)).unique h1 h2
+    exact hab hab'
+  · ext x
+    constructor
+    · intro hx
+      trivial
+    · intro hx
+      have hchoice : ∀ i : Fin d, ∃ a : ℤ,
+          (a : ℝ) / (2 : ℝ)^(n : ℤ) ≤ x i ∧ x i < ((a : ℝ) + 1) / (2 : ℝ)^(n : ℤ) := by
+        intro i
+        exact (dyadic_one_dim (by exact_mod_cast Nat.zero_le n) (x i)).exists
+      let a : Fin d → ℤ := fun i => (hchoice i).choose
+      rw [Set.mem_iUnion]
+      refine ⟨a, ?_⟩
+      intro i
+      simpa [a, DyadicCube'] using (hchoice i).choose_spec
 
 @[implicit_reducible]
 def DyadicCube'.boolean_algebra (d n:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
