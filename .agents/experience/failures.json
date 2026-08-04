@@ -1928,6 +1928,17 @@
       "status": "success",
       "notes": "Lusin closed sets + Tietze extension + Borel-Cantelli null set",
       "end": "2026-08-04T13:10:28.534841"
+    },
+    {
+      "id": 114,
+      "theorem": "s8_conv",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_s8.lean",
+      "goal": "unsigned_measurable_to_real: prove RealMeasurable \u03c6 via preimage-closed characterization + agreement via coe_toReal",
+      "start": "2026-08-04T13:24:59.354484",
+      "attempts": [],
+      "status": "success",
+      "notes": "proved unsigned_measurable_to_real: RealMeasurable via bounded-slice preimage-of-closed characterization (S n closed via compact image union) + agreement via coe_toReal",
+      "end": "2026-08-04T13:33:20.511136"
     }
   ]
 }

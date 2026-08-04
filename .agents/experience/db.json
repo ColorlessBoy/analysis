@@ -685,6 +685,13 @@
       "tactics": "closed_lusin; choose F_n; ContinuousMap.exists_restrict_eq; borel_cantelli_null; IsNull.subset; by_contra + push_neg; Filter.Tendsto.congr' + eventually_ge_atTop",
       "description": "Forward: closed sets with small complement via Lusin, Tietze-extend f, convergence off the limsup of complements which is null by Borel-Cantelli",
       "time": "2026-08-04T13:10:28.564600"
+    },
+    {
+      "theorem": "unsigned_measurable_to_real",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_s8.lean",
+      "tactics": "TFAE-closed-preimage, isCompact_Icc.inter_left, Real.toEReal image compact->closed, cases EReal set equality, exists_nat_gt+abs_lt bound, EReal.coe_toReal",
+      "description": "RealMeasurable \u03c6 via bounded slices: \u03c6\u207b\u00b9'K = \u22c3n f\u207b\u00b9'{y|y.toReal\u2208K\u2229[-n,n]}, each slice closed (image of compact + {\u22a4,\u22a5} singletons)",
+      "time": "2026-08-04T13:33:20.559044"
     }
   ],
   "errors": [

@@ -3332,13 +3332,163 @@ theorem ComplexMeasurable.iff_pointwiseae_of_continuous {d:ℕ} {f : EuclideanSp
   · exact iff_pointwiseae_forward
   · exact iff_pointwiseae_backward
 
+/-- An unsigned measurable EReal-valued function which is finite a.e. agrees on its
+    finite part with a real measurable function. -/
+lemma unsigned_measurable_to_real {d:ℕ} {f : EuclideanSpace' d → EReal}
+    (hf : UnsignedMeasurable f) :
+    ∃ φ : EuclideanSpace' d → ℝ, RealMeasurable φ ∧ (∀ x, f x < ⊤ → (φ x : EReal) = f x) := by
+  let φ : EuclideanSpace' d → ℝ := fun x => (f x).toReal
+  refine ⟨φ, ?_, ?_⟩
+  · classical
+    have h10 : ∀ K : Set EReal, IsClosed K → LebesgueMeasurable (f ⁻¹' K) :=
+      (((UnsignedMeasurable.TFAE hf.1).out 10 0
+        (a := ∀ K : Set EReal, IsClosed K → LebesgueMeasurable (f ⁻¹' K))
+        (b := _root_.UnsignedMeasurable f)).mpr hf)
+    apply ((RealMeasurable_TFAE_helpers.RealMeasurable.TFAE (f := φ)).out 4 0
+      (a := ∀ K : Set ℝ, IsClosed K → LebesgueMeasurable (φ ⁻¹' K))
+      (b := RealMeasurable φ)).mp
+    intro K hK
+    let C : ℕ → Set ℝ := fun n => K ∩ Set.Icc (-(n : ℝ)) (n : ℝ)
+    let S : ℕ → Set EReal := fun n => {y : EReal | y.toReal ∈ C n}
+    have hC_comp : ∀ n, IsCompact (C n) := by
+      intro n
+      exact (isCompact_Icc).inter_left hK
+    have hC_closed : ∀ n, IsClosed (C n) := fun n => (hC_comp n).isClosed
+    have himg_closed : ∀ n, IsClosed (Real.toEReal '' (C n)) :=
+      fun n => ((hC_comp n).image continuous_coe_real_ereal).isClosed
+    have hS_eq : ∀ n, S n = (Real.toEReal '' (C n)) ∪
+        (if (0 : ℝ) ∈ C n then ({⊤} : Set EReal) ∪ {⊥} else ∅) := by
+      intro n
+      ext y
+      cases y with
+      | bot =>
+          by_cases h0 : (0 : ℝ) ∈ C n
+          · simp [S, h0, EReal.toReal_bot]
+          · simp [S, h0, EReal.toReal_bot]
+      | top =>
+          by_cases h0 : (0 : ℝ) ∈ C n
+          · simp [S, h0, EReal.toReal_top]
+          · simp [S, h0, EReal.toReal_top]
+      | coe r =>
+          by_cases hrC : r ∈ C n
+          · simp [S, hrC, EReal.toReal_coe]
+          · simp [S, hrC, EReal.toReal_coe]
+    have hS_closed : ∀ n, IsClosed (S n) := by
+      intro n
+      by_cases h0 : (0 : ℝ) ∈ C n
+      · rw [hS_eq n, if_pos h0]
+        exact (himg_closed n).union
+          ((isClosed_singleton : IsClosed ({⊤} : Set EReal)).union (isClosed_singleton : IsClosed ({⊥} : Set EReal)))
+      · rw [hS_eq n, if_neg h0]
+        simpa using himg_closed n
+    have hmeas : ∀ n, LebesgueMeasurable (f ⁻¹' (S n)) := fun n => h10 (S n) (hS_closed n)
+    have hpre' : φ ⁻¹' K = ⋃ n : ℕ, f ⁻¹' (S n) := by
+      ext x
+      simp only [Set.mem_preimage, Set.mem_iUnion]
+      constructor
+      · intro hxK
+        simp [φ] at hxK
+        obtain ⟨n, hn⟩ := exists_nat_gt |(f x).toReal|
+        refine ⟨n, ?_⟩
+        have hlb : -(n : ℝ) ≤ (f x).toReal := le_of_lt (abs_lt.mp hn).1
+        have hub : (f x).toReal ≤ (n : ℝ) := le_of_lt (abs_lt.mp hn).2
+        simp [S, C, hxK, hlb, hub]
+      · rintro ⟨n, hxSn⟩
+        have hxK : (f x).toReal ∈ K := by
+          have hc := hxSn
+          simp [S, C] at hc
+          exact hc.1
+        simpa [φ] using hxK
+    rw [hpre']
+    exact LebesgueMeasurable.countable_union hmeas
+  · intro x hxlt
+    have hx_ne_top : f x ≠ ⊤ := ne_of_lt hxlt
+    have hx_ne_bot : f x ≠ ⊥ := ne_of_gt (lt_of_lt_of_le EReal.bot_lt_zero (hf.1 x))
+    simpa [φ] using (EReal.coe_toReal hx_ne_top hx_ne_bot)
+
 /-- Remark 1.3.29 -/
 theorem UnsignedMeasurable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → EReal}
   (hf: UnsignedMeasurable f) (hfin: AlmostAlways (fun x ↦ f x < ⊤))
   (ε : ℝ) (hε : 0 < ε) :
   ∃ (g : EuclideanSpace' d → ℝ) (E: Set (EuclideanSpace' d)), Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) ∧ LebesgueMeasurable E ∧
       Lebesgue_measure E ≤ ε ∧
-      ∀ x ∉ E, g x = f x := by sorry
+      ∀ x ∉ E, g x = f x := by
+  obtain ⟨φ, hφ_meas, hφ_eq⟩ := unsigned_measurable_to_real hf
+  have hφ_cm : ComplexMeasurable (Real.complex_fun φ) := (RealMeasurable.iff).mp hφ_meas
+  obtain ⟨g_c, E₁, hg_c_cont, hE₁_meas, hE₁_le, hg_c_eq⟩ :=
+    ComplexMeasurable.approx_by_continuous_outside_small hφ_cm (ε / 2) (half_pos hε)
+  let g : EuclideanSpace' d → ℝ := fun x => (g_c x).re
+  let N : Set (EuclideanSpace' d) := {x | f x = ⊤}
+  have hN_eq_ge : N = {x | f x ≥ ⊤} := by
+    ext x
+    simp [N]
+    constructor
+    · intro h; rw [h]
+    · intro h; exact (le_antisymm h le_top).symm
+  have hN_meas : LebesgueMeasurable N := by
+    have h10 : ∀ K : Set EReal, IsClosed K → LebesgueMeasurable (f ⁻¹' K) :=
+      (((UnsignedMeasurable.TFAE hf.1).out 10 0
+        (a := ∀ K : Set EReal, IsClosed K → LebesgueMeasurable (f ⁻¹' K))
+        (b := _root_.UnsignedMeasurable f)).mpr hf)
+    have hN_eq' : N = f ⁻¹' ({⊤} : Set EReal) := by
+      ext x
+      simp [N]
+    rw [hN_eq']
+    exact h10 {⊤} (isClosed_singleton)
+  have hN_null : Lebesgue_measure N = 0 := by
+    have hfin' : IsNull {x | ¬ f x < ⊤} := by
+      simpa [AlmostAlways] using hfin
+    have hN_eq : N = {x | ¬ f x < ⊤} := by
+      calc N = {x | f x ≥ ⊤} := hN_eq_ge
+        _ = {x | ¬ f x < ⊤} := by ext x; simp [not_lt]
+    rwa [hN_eq]
+  let E : Set (EuclideanSpace' d) := E₁ ∪ N
+  have hE_meas : LebesgueMeasurable E := hE₁_meas.union hN_meas
+  have hE_le : Lebesgue_measure E ≤ ε := by
+    calc
+      Lebesgue_measure E = Lebesgue_measure (E₁ ∪ N) := by rfl
+      _ ≤ Lebesgue_measure E₁ + Lebesgue_measure N := by
+        let S : Fin 2 → Set (EuclideanSpace' d) := ![E₁, N]
+        have h_union : ⋃ i : Fin 2, S i = E₁ ∪ N := by
+          ext x
+          simp [S]
+        calc
+          Lebesgue_measure (E₁ ∪ N) = Lebesgue_measure (⋃ i : Fin 2, S i) := by rw [h_union]
+          _ ≤ ∑ i : Fin 2, Lebesgue_measure (S i) := Lebesgue_outer_measure.finite_union_le S
+          _ = Lebesgue_measure E₁ + Lebesgue_measure N := by simp [S]
+      _ ≤ (↑(ε / 2) : EReal) + (0 : EReal) := add_le_add hE₁_le (by simp [hN_null])
+      _ = (↑(ε / 2) : EReal) := by simp
+      _ ≤ (ε : EReal) := EReal.coe_le_coe (by linarith)
+  have hg_cont : Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) := by
+    have hsub : Eᶜ ⊆ E₁ᶜ := by
+      intro x hx
+      exact fun h => hx (Or.inl h)
+    have hcontOn : ContinuousOn (fun x : EuclideanSpace' d => g_c x) E₁ᶜ :=
+      (continuousOn_iff_continuous_restrict (f := fun x => g_c x) (s := E₁ᶜ)).mpr hg_c_cont
+    have hcontOn' : ContinuousOn (fun x : EuclideanSpace' d => g_c x) Eᶜ := hcontOn.mono hsub
+    have hcontOn_g : ContinuousOn (fun x : EuclideanSpace' d => (g_c x).re) Eᶜ :=
+      Continuous.comp_continuousOn Complex.continuous_re hcontOn'
+    have hcont : Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => (g_c x.val).re) :=
+      (continuousOn_iff_continuous_restrict (f := fun x => (g_c x).re) (s := Eᶜ)).mp hcontOn_g
+    simpa [g] using hcont
+  refine ⟨g, E, hg_cont, hE_meas, hE_le, ?_⟩
+  intro x hx
+  have hxE₁ : x ∉ E₁ := fun h => hx (Or.inl h)
+  have hxN : x ∉ N := fun h => hx (Or.inr h)
+  have hg_c_eq' : g_c x = Real.complex_fun φ x := hg_c_eq x hxE₁
+  have hgre : (g_c x).re = φ x := by
+    rw [hg_c_eq']
+    simp [Real.complex_fun]
+  have hf_lt : f x < ⊤ := by
+    have hneq : f x ≠ ⊤ := by
+      simpa [N] using hxN
+    exact (lt_top_iff_ne_top).mpr hneq
+  have hφ_eq' : (φ x : EReal) = f x := hφ_eq x hf_lt
+  have hgx : (g x : EReal) = f x := by
+    dsimp [g]
+    rw [hgre]
+    exact hφ_eq'
+  exact hgx
 
 lemma ComplexAbsolutelyIntegrable.chebyshev {d:ℕ} {f : EuclideanSpace' d → ℂ} (hf : ComplexAbsolutelyIntegrable f)
     (η : ℝ) (hη : 0 < η) :
