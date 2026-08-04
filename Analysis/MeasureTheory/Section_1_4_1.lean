@@ -1158,21 +1158,587 @@ def card_of_finite {X : Type*} (B : ConcreteBooleanAlgebra X)
 end
 end ConcreteBooleanAlgebra
 
-/-- Exercise 1.4.5 (elementary algebra not atomic) -/
-def EuclideanSpace'.elementary_boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (EuclideanSpace'.elementary_boolean_algebra d).isAtomic :=
-  by sorry
+/-- A measurable set with no nonempty proper measurable subset. -/
+def ConcreteBooleanAlgebra.IsAtom {X : Type*} (B : ConcreteBooleanAlgebra X) (A : Set X) : Prop :=
+  B.measurable A ∧ A ≠ ∅ ∧ ∀ E, B.measurable E → E ⊆ A → E = ∅ ∨ E = A
 
-/-- Exercise 1.4.5 (Jordan algebra not atomic) -/
-def JordanMeasurable.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (JordanMeasurable.boolean_algebra d).isAtomic :=
-  by sorry
+lemma IsPartition.part_is_atom {I X : Type*} {parts : I → Set X}
+    (h : IsPartition parts) (i : I) (hne : parts i ≠ ∅) :
+    ConcreteBooleanAlgebra.IsAtom h.to_ConcreteBooleanAlgebra (parts i) := by
+  constructor
+  · exact ⟨{i}, by simp⟩
+  · constructor
+    · exact hne
+    · intro E hE hsub
+      rcases hE with ⟨J, rfl⟩
+      by_cases hEempty : (⋃ k ∈ J, parts k) = ∅
+      · left
+        exact hEempty
+      · right
+        exact h.subset_part_eq_of_measurable i hsub hEempty ⟨J, rfl⟩
 
-/-- Exercise 1.4.5 (Lebesgue algebra not atomic) -/
-def LebesgueMeasurable.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (LebesgueMeasurable.boolean_algebra d).isAtomic :=
-  by sorry
+lemma ConcreteBooleanAlgebra.atom_eq_of_inter {X : Type*} (B : ConcreteBooleanAlgebra X)
+    {A A' : Set X} (hA : B.IsAtom A) (hA' : B.IsAtom A') (hne : (A ∩ A') ≠ ∅) : A = A' := by
+  have hmeet : B.measurable (A ∩ A') := B.inter_mem hA.1 hA'.1
+  have h1 := hA.2.2 (A ∩ A') hmeet Set.inter_subset_left
+  have h2 := hA'.2.2 (A ∩ A') hmeet Set.inter_subset_right
+  rcases h1 with h1 | h1
+  · exact False.elim (hne h1)
+  · rcases h2 with h2 | h2
+    · exact False.elim (hne h2)
+    · exact h1.symm.trans h2
 
-/-- Exercise 1.4.5 (Null algebra not atomic) -/
-def IsNull.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (IsNull.boolean_algebra d).isAtomic :=
-  by sorry
+/-- An atomic algebra in which every singleton is measurable is the discrete algebra. -/
+lemma ConcreteBooleanAlgebra.isAtomic_imp_discrete_of_singleton {X : Type*} (B : ConcreteBooleanAlgebra X)
+    (hA : B.isAtomic) (hSing : ∀ x : X, B.measurable {x}) : ∀ E : Set X, B.measurable E := by
+  classical
+  rcases hA with ⟨I, parts, hI, hB⟩
+  have hsing_part : ∀ x : X, ∃ j : I, parts j = {x} := by
+    intro x
+    have hxmeas : hI.to_ConcreteBooleanAlgebra.measurable ({x} : Set X) := by
+      rw [hB] at hSing
+      exact hSing x
+    rcases hxmeas with ⟨J, hJ⟩
+    have hneJ : (⋃ j ∈ J, parts j) ≠ ∅ := by rw [← hJ]; simp
+    have hxmem : x ∈ ⋃ j ∈ J, parts j := by
+      rw [← hJ]
+      exact Set.mem_singleton x
+    simp only [Set.mem_iUnion] at hxmem
+    rcases hxmem with ⟨j₀, hj₀, hxj₀⟩
+    have hsub : parts j₀ ⊆ {x} := by
+      intro z hz
+      rw [hJ]
+      simp only [Set.mem_iUnion]
+      exact ⟨j₀, hj₀, hz⟩
+    have hparts_sing : parts j₀ = {x} := by
+      apply le_antisymm
+      · exact hsub
+      · intro z hz
+        rw [Set.mem_singleton_iff] at hz
+        subst z
+        exact hxj₀
+    exact ⟨j₀, hparts_sing⟩
+  let w : X → I := fun x => (hsing_part x).choose
+  have hw : ∀ x : X, parts (w x) = {x} := fun x => (hsing_part x).choose_spec
+  have hpart_sing : ∀ i : I, parts i ≠ ∅ → ∃ x : X, parts i = {x} := by
+    intro i hnei
+    rcases Set.nonempty_iff_ne_empty.mpr hnei with ⟨x, hx⟩
+    have hAi : hI.to_ConcreteBooleanAlgebra.IsAtom (parts i) := hI.part_is_atom i hnei
+    have hAx : hI.to_ConcreteBooleanAlgebra.IsAtom ({x} : Set X) := by
+      rw [← hw x]
+      exact hI.part_is_atom (w x) (by rw [hw x]; simp)
+    have hEq : parts i = {x} := hI.to_ConcreteBooleanAlgebra.atom_eq_of_inter hAi hAx (by
+      intro h
+      have hxmeet : x ∈ parts i ∩ {x} := ⟨hx, Set.mem_singleton x⟩
+      rw [h] at hxmeet
+      exact hxmeet)
+    exact ⟨x, hEq⟩
+  intro E
+  have hE : E = ⋃ x ∈ E, parts (w x) := by
+    ext y
+    constructor
+    · intro hy
+      simp only [Set.mem_iUnion]
+      exact ⟨y, hy, by rw [hw y]; exact Set.mem_singleton y⟩
+    · intro hy
+      simp only [Set.mem_iUnion] at hy
+      rcases hy with ⟨x, hxE, hyx⟩
+      rw [hw x] at hyx
+      rw [Set.mem_singleton_iff] at hyx
+      subst y
+      exact hxE
+  have hreindex : (⋃ x ∈ E, parts (w x)) = ⋃ i ∈ (w '' E), parts i := by
+    ext y
+    simp only [Set.mem_iUnion]
+    constructor
+    · rintro ⟨x, hxE, hy⟩
+      exact ⟨w x, ⟨x, hxE, rfl⟩, hy⟩
+    · rintro ⟨i, hi, hy⟩
+      rcases hi with ⟨x, hxE, hwi⟩
+      exact ⟨x, hxE, by rwa [hwi]⟩
+  have hE2 : E = ⋃ i ∈ (w '' E), parts i := by
+    calc
+      E = ⋃ x ∈ E, parts (w x) := hE
+      _ = ⋃ i ∈ (w '' E), parts i := hreindex
+  have hmeas : hI.to_ConcreteBooleanAlgebra.measurable E := ⟨w '' E, hE2⟩
+  rwa [← hB] at hmeas
+
+open scoped Pointwise
+
+namespace NotAtomic
+
+/-- A singleton set is an elementary set, via the box whose sides are all degenerate. -/
+lemma singleton_isElementary {d : ℕ} (x : EuclideanSpace' d) : IsElementary ({x} : Set (EuclideanSpace' d)) := by
+  let B : Box d := ⟨fun i => BoundedInterval.Icc (x i) (x i)⟩
+  have hB : ({x} : Set (EuclideanSpace' d)) = B.toSet := by
+    ext y
+    constructor
+    · intro hy
+      rw [Set.mem_singleton_iff] at hy
+      subst y
+      simp [B]
+    · intro hy
+      rw [Set.mem_singleton_iff]
+      ext i
+      have hyi : y i ∈ Set.Icc (x i) (x i) := by
+        have := hy i
+        simpa [B] using this
+      exact le_antisymm hyi.2 hyi.1
+  rw [hB]
+  exact IsElementary.box B
+
+/-- Norm of a vector with a single nonzero coordinate at a given slot. -/
+lemma coord_vector_norm {d : ℕ} (hd : 0 < d) (c : ℝ) :
+    ‖(.toLp 2 (fun j : Fin d => if j = ⟨0, hd⟩ then c else 0) : EuclideanSpace' d)‖ = |c| := by
+  rw [PiLp.norm_eq_of_L2]
+  have hsum : (∑ i : Fin d, ‖(if i = ⟨0, hd⟩ then c else 0 : ℝ)‖ ^ 2) = |c| ^ 2 := by
+    refine Finset.sum_eq_single (f := fun i => ‖(if i = ⟨0, hd⟩ then c else 0 : ℝ)‖ ^ 2)
+      (a := (⟨0, hd⟩ : Fin d)) ?_ ?_
+    · intro j _ hj
+      have : j ≠ ⟨0, hd⟩ := hj
+      simp [this]
+    · intro hmem
+      exact absurd (Finset.mem_univ (⟨0, hd⟩ : Fin d)) hmem
+  rw [hsum]
+  rw [Real.sqrt_sq_eq_abs (|c|)]
+  simp
+
+/-- A set containing points of arbitrarily large norm is unbounded. -/
+lemma not_bounded_of_unbounded_coord {d : ℕ} (E : Set (EuclideanSpace' d))
+    (hE : ∀ r : ℝ, ∃ x ∈ E, |r| < ‖x‖) : ¬ Bornology.IsBounded E := by
+  intro hbdd
+  rw [Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)] at hbdd
+  rcases hbdd with ⟨r, hsub⟩
+  rcases hE r with ⟨x, hxE, hnorm⟩
+  have hxball : x ∈ Metric.closedBall 0 r := hsub hxE
+  have hle : ‖x‖ ≤ |r| := by
+    rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at hxball
+    exact le_trans hxball (le_abs_self r)
+  linarith
+
+/-- The halfspace of points with nonnegative first coordinate is unbounded. -/
+lemma halfspace_unbounded {d : ℕ} (hd : 0 < d) :
+    ¬ Bornology.IsBounded ({x : EuclideanSpace' d | 0 ≤ x ⟨0, hd⟩} : Set (EuclideanSpace' d)) := by
+  apply not_bounded_of_unbounded_coord
+  intro r
+  let N : ℝ := |r| + 1
+  let x : EuclideanSpace' d := .toLp 2 (fun j : Fin d => if j = ⟨0, hd⟩ then N else 0)
+  refine ⟨x, ?_, ?_⟩
+  · change 0 ≤ x ⟨0, hd⟩
+    have : x ⟨0, hd⟩ = N := by simp [x]
+    rw [this]
+    have hN : 0 ≤ N := by dsimp [N]; linarith [abs_nonneg r]
+    exact hN
+  · have hnorm' := coord_vector_norm hd N
+    dsimp [x] at hnorm' ⊢
+    rw [hnorm']
+    have hN : 0 ≤ N := by dsimp [N]; linarith [abs_nonneg r]
+    rw [show |N| = N from abs_of_nonneg hN]
+    dsimp [N]
+    linarith [abs_nonneg r]
+
+/-- The complement of the halfspace of points with nonnegative first coordinate is unbounded. -/
+lemma halfspace_compl_unbounded {d : ℕ} (hd : 0 < d) :
+    ¬ Bornology.IsBounded ({x : EuclideanSpace' d | 0 ≤ x ⟨0, hd⟩}ᶜ : Set (EuclideanSpace' d)) := by
+  apply not_bounded_of_unbounded_coord
+  intro r
+  let N : ℝ := |r| + 1
+  let x : EuclideanSpace' d := .toLp 2 (fun j : Fin d => if j = ⟨0, hd⟩ then -N else 0)
+  refine ⟨x, ?_, ?_⟩
+  · change ¬ 0 ≤ x ⟨0, hd⟩
+    have : x ⟨0, hd⟩ = -N := by simp [x]
+    rw [this]
+    have hN : 0 < N := by dsimp [N]; linarith [abs_nonneg r]
+    linarith
+  · have hnorm' := coord_vector_norm hd (-N)
+    have hN : 0 ≤ N := by dsimp [N]; linarith [abs_nonneg r]
+    dsimp [x] at hnorm' ⊢
+    rw [hnorm']
+    rw [abs_neg]
+    rw [show |N| = N from abs_of_nonneg hN]
+    dsimp [N]
+    linarith [abs_nonneg r]
+
+/-- A set containing a box of positive volume is not null. -/
+lemma not_null_of_contains_box {d : ℕ} (E : Set (EuclideanSpace' d)) (B : Box d)
+    (hBvol : B.volume ≠ 0) (hsub : B.toSet ⊆ E) : ¬ IsNull E := by
+  intro hnull
+  unfold IsNull at hnull
+  have hmono : Lebesgue_outer_measure B.toSet ≤ Lebesgue_outer_measure E :=
+    Lebesgue_outer_measure.mono hsub
+  have hB : Lebesgue_outer_measure B.toSet = (B.volume : EReal) := by
+    rw [Lebesgue_outer_measure.elementary _ (IsElementary.box B)]
+    simp [IsElementary.measure_of_box]
+  rw [hnull] at hmono
+  have hle : (B.volume : EReal) ≤ (0 : EReal) := by simpa [hB] using hmono
+  have hpos : 0 < B.volume := by
+    exact lt_of_le_of_ne' (Box.volume_nonneg B) hBvol
+  have hposE : (0 : EReal) < (B.volume : EReal) := EReal.coe_pos.mpr hpos
+  exact not_le_of_gt hposE hle
+
+/-- The open unit cube. -/
+def unitCube (d : ℕ) : Box d := ⟨fun _ : Fin d => BoundedInterval.Ioc 0 1⟩
+
+/-- The box whose sides are all the open interval from -1 to 0. -/
+def negUnitCube (d : ℕ) : Box d := ⟨fun _ : Fin d => BoundedInterval.Ioc (-1) 0⟩
+
+lemma unitCube_volume {d : ℕ} : (unitCube d).volume = 1 := by
+  simp [unitCube, Box.volume]
+
+lemma negUnitCube_volume {d : ℕ} : (negUnitCube d).volume = 1 := by
+  simp [negUnitCube, Box.volume]
+
+/-- The Vitali cylinder in dimension d: first coordinate in the Vitali set, other coordinates in the closed unit interval. -/
+def vitaliCylinder {d : ℕ} (hd : 0 < d) : Set (EuclideanSpace' d) :=
+  {x | x ⟨0, hd⟩ ∈ VitaliSet ∧ ∀ j : Fin d, j ≠ ⟨0, hd⟩ → x j ∈ Set.Icc 0 1}
+
+/-- Translation vector with q in the first coordinate and 0 elsewhere. -/
+def shiftVec {d : ℕ} (hd : 0 < d) (q : ℝ) : EuclideanSpace' d :=
+  .toLp 2 (fun j : Fin d => if j = ⟨0, hd⟩ then q else 0)
+
+/-- Translating the Vitali cylinder by q in the first coordinate. -/
+lemma vitaliCylinder_translate {d : ℕ} (hd : 0 < d) (q : ℝ) :
+    (vitaliCylinder hd) + {shiftVec hd q} = {x : EuclideanSpace' d | x ⟨0, hd⟩ ∈ VitaliSet + {q} ∧
+      ∀ j : Fin d, j ≠ ⟨0, hd⟩ → x j ∈ Set.Icc 0 1} := by
+  ext x
+  constructor
+  · intro hx
+    rw [Set.mem_add] at hx
+    rcases hx with ⟨y, hy, r, hr, hx_eq⟩
+    rw [Set.mem_singleton_iff] at hr
+    subst r
+    constructor
+    · rw [Set.mem_add]
+      refine ⟨y ⟨0, hd⟩, hy.1, q, rfl, ?_⟩
+      have hc : x ⟨0, hd⟩ = (y + shiftVec hd q) ⟨0, hd⟩ := by
+        rw [hx_eq]
+      simpa [shiftVec] using hc.symm
+    · intro j hj
+      have hyj : y j ∈ Set.Icc 0 1 := hy.2 j hj
+      have hc : x j = (y + shiftVec hd q) j := by
+        rw [hx_eq]
+      have hc' : x j = y j := by
+        simpa [shiftVec, hj] using hc
+      rw [hc']
+      exact hyj
+  · intro hx
+    let y : EuclideanSpace' d := x - shiftVec hd q
+    refine ⟨y, ?_, ?_⟩
+    · constructor
+      · rcases hx with ⟨hx1, hx2⟩
+        rw [Set.mem_add] at hx1
+        rcases hx1 with ⟨v, hv, r, hr, hv_eq⟩
+        rw [Set.mem_singleton_iff] at hr
+        subst r
+        have hyc : y ⟨0, hd⟩ = v := by
+          dsimp [y]
+          have h1 : (shiftVec hd q) ⟨0, hd⟩ = q := by simp [shiftVec]
+          rw [h1, ← hv_eq]
+          ring
+        rw [hyc]
+        exact hv
+      · intro j hj
+        have hx2 : x j ∈ Set.Icc 0 1 := hx.2 j hj
+        have hyj : y j = x j := by
+          dsimp [y]
+          have h1 : (x - shiftVec hd q) j = x j - 0 := by simp [shiftVec, hj]
+          simpa using h1
+        rw [hyj]
+        exact hx2
+    · refine ⟨shiftVec hd q, rfl, ?_⟩
+      ext i
+      simp [y, shiftVec]
+
+/-- The closed unit cube. -/
+def closedUnitCube (d : ℕ) : Box d := ⟨fun _ : Fin d => BoundedInterval.Icc 0 1⟩
+
+/-- A box of measure 3: first side from -1 to 2, other sides from 0 to 1. -/
+def lebesgueBigBox (d : ℕ) (hd : 0 < d) : Box d :=
+  ⟨fun j => if j = ⟨0, hd⟩ then BoundedInterval.Icc (-1) 2 else BoundedInterval.Icc 0 1⟩
+
+/-- Translates of the Vitali set by distinct rationals are disjoint. -/
+lemma vitali_translates_disjoint {q₁ q₂ : ℚ} (h : q₁ ≠ q₂) :
+    Disjoint ((VitaliSet : Set ℝ) + {(q₁ : ℝ)}) ((VitaliSet : Set ℝ) + {(q₂ : ℝ)}) := by
+  rw [Set.disjoint_iff]
+  intro z hz
+  rcases hz with ⟨hz1, hz2⟩
+  rw [Set.mem_add] at hz1 hz2
+  obtain ⟨x1, hx1, r1, hr1, hz1_eq⟩ := hz1
+  obtain ⟨x2, hx2, r2, hr2, hz2_eq⟩ := hz2
+  rw [Set.mem_singleton_iff] at hr1 hr2
+  subst hr1 hr2
+  have hz_eq : x1 + (q₁ : ℝ) = x2 + (q₂ : ℝ) := by
+    calc
+      x1 + (q₁ : ℝ) = z := hz1_eq
+      _ = x2 + (q₂ : ℝ) := hz2_eq.symm
+  have h_same_coset : QuotientAddGroup.mk (s := Rat.addSubgroup) x1 =
+      QuotientAddGroup.mk (s := Rat.addSubgroup) x2 := by
+    rw [QuotientAddGroup.eq]
+    use q₁ - q₂
+    simp only [Rat.cast_sub]
+    linarith
+  obtain ⟨c1, hc1⟩ := hx1
+  obtain ⟨c2, hc2⟩ := hx2
+  have hc1_spec := (coset_intersects_unit_interval c1).choose_spec.2
+  have hc2_spec := (coset_intersects_unit_interval c2).choose_spec.2
+  have hc_eq : c1 = c2 := by
+    rw [← hc1, ← hc2] at h_same_coset
+    rw [← hc1_spec, ← hc2_spec]
+    exact h_same_coset
+  subst hc_eq
+  have hv_eq : x1 = x2 := hc1.symm.trans hc2
+  have hq_eq : (q₁ : ℝ) = q₂ := by linarith [hz_eq, hv_eq]
+  have hqi_eq : q₁ = q₂ := Rat.cast_injective hq_eq
+  exact h hqi_eq
+
+/-- Translates of the Vitali cylinder by distinct rationals are pairwise disjoint. -/
+lemma vitaliCylinder_translates_disjoint {d : ℕ} (hd : 0 < d) (f : ℕ → ℚ)
+    (hf_inj : Function.Injective f) :
+    Set.univ.PairwiseDisjoint (fun n : ℕ => (vitaliCylinder hd) + {shiftVec hd (f n : ℝ)}) := by
+  intro i _ j _ hij
+  change Disjoint ((vitaliCylinder hd) + {shiftVec hd (f i : ℝ)})
+    ((vitaliCylinder hd) + {shiftVec hd (f j : ℝ)})
+  rw [Set.disjoint_iff]
+  intro z hz
+  rcases hz with ⟨hz1, hz2⟩
+  rw [vitaliCylinder_translate] at hz1 hz2
+  have h1 : z ⟨0, hd⟩ ∈ (VitaliSet : Set ℝ) + {(f i : ℝ)} := hz1.1
+  have h2 : z ⟨0, hd⟩ ∈ (VitaliSet : Set ℝ) + {(f j : ℝ)} := hz2.1
+  have hne : (f i : ℚ) ≠ f j := by
+    intro h
+    exact hij (hf_inj h)
+  exact (Set.disjoint_iff.mp (vitali_translates_disjoint hne)) ⟨h1, h2⟩
+
+/-- The closed unit cube has Lebesgue measure 1. -/
+lemma closedUnitCube_measure (d : ℕ) : Lebesgue_measure (closedUnitCube d).toSet = (1 : EReal) := by
+  unfold Lebesgue_measure
+  rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (closedUnitCube d))]
+  simp [IsElementary.measure_of_box, closedUnitCube, Box.volume, BoundedInterval.length]
+
+/-- The box of measure 3 has volume 3. -/
+lemma lebesgueBigBox_volume {d : ℕ} (hd : 0 < d) : (lebesgueBigBox d hd).volume = 3 := by
+  rw [Box.volume]
+  have hprod : (∏ j : Fin d, |(lebesgueBigBox d hd).side j|ₗ) = |(lebesgueBigBox d hd).side ⟨0, hd⟩|ₗ := by
+    refine Finset.prod_eq_single (f := fun j : Fin d => |(lebesgueBigBox d hd).side j|ₗ)
+      (a := (⟨0, hd⟩ : Fin d)) ?_ ?_
+    · intro j _ hj
+      have : j ≠ ⟨0, hd⟩ := hj
+      have hside : (lebesgueBigBox d hd).side j = BoundedInterval.Icc 0 1 := by
+        simp [lebesgueBigBox, this]
+      change ((lebesgueBigBox d hd).side j).length = 1
+      rw [hside]
+      norm_num [BoundedInterval.length]
+    · intro hmem
+      exact absurd (Finset.mem_univ (⟨0, hd⟩ : Fin d)) hmem
+  rw [hprod]
+  have hside : (lebesgueBigBox d hd).side ⟨0, hd⟩ = BoundedInterval.Icc (-1) 2 := by
+    simp [lebesgueBigBox]
+  rw [hside]
+  norm_num [BoundedInterval.length]
+
+/-- The Vitali cylinder is not Lebesgue measurable. -/
+theorem not_lebesgue_measurable_cylinder {d : ℕ} (hd : 0 < d) :
+    ¬ LebesgueMeasurable (vitaliCylinder hd) := by
+  let C : Set (EuclideanSpace' d) := vitaliCylinder hd
+  intro hC_meas
+  have hQ_countable : Set.Countable {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} := rat_Icc_countable
+  have hQ_inf : Set.Infinite {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} :=
+    Set.Icc_infinite (by norm_num : (-1:ℚ) < 1)
+  haveI : Infinite {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} := hQ_inf.to_subtype
+  haveI : Countable {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} := hQ_countable.to_subtype
+  haveI denumQ : Denumerable {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} := (nonempty_denumerable _).some
+  let eqvQ : {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} ≃ ℕ := Denumerable.eqv _
+  let f : ℕ → ℚ := fun n => (eqvQ.symm n : ℚ)
+  have hf_inj : Function.Injective f := Subtype.val_injective.comp eqvQ.symm.injective
+  have hf_mem : ∀ n, f n ∈ Set.Icc (-1:ℚ) 1 := fun n => (eqvQ.symm n).2
+  have hf_range : {q | q ∈ Set.Icc (-1:ℚ) 1} = Set.range f := by
+    ext q
+    simp only [Set.mem_setOf_eq, Set.mem_range, f]
+    constructor
+    · intro hq
+      let q' : {q : ℚ | q ∈ Set.Icc (-1:ℚ) 1} := ⟨q, hq⟩
+      refine ⟨eqvQ q', ?_⟩
+      simp only [Equiv.symm_apply_apply]
+      rfl
+    · intro ⟨n, hn⟩
+      rw [← hn]
+      exact (eqvQ.symm n).2
+  let T : ℕ → Set (EuclideanSpace' d) := fun n => C + {shiftVec hd (f n : ℝ)}
+  have hmes : ∀ n, LebesgueMeasurable (T n) := fun n =>
+    (LebesgueMeasurable.translate C (shiftVec hd (f n : ℝ))).mp hC_meas
+  have hdisj : Set.univ.PairwiseDisjoint T := by
+    simpa [T, C] using (vitaliCylinder_translates_disjoint hd f hf_inj)
+  have h_union_measure : Lebesgue_measure (⋃ n, T n) = ∑' n, Lebesgue_measure (T n) :=
+    Lebesgue_measure.countable_union hmes hdisj
+  have h_translate_measure : ∀ n, Lebesgue_measure (T n) = Lebesgue_measure C := fun n =>
+    Lebesgue_measure.translate (shiftVec hd (f n : ℝ)) hC_meas
+  by_cases hC_zero : Lebesgue_measure C = 0
+  · have h_sum_zero : ∑' n, Lebesgue_measure (T n) = 0 := by
+      simp only [h_translate_measure, hC_zero]
+      exact tsum_zero
+    rw [h_sum_zero] at h_union_measure
+    have h_cover : (closedUnitCube d).toSet ⊆ ⋃ n, T n := by
+      intro z hz
+      have hz0 : z ⟨0, hd⟩ ∈ Set.Icc (0 : ℝ) 1 := by
+        have := hz ⟨0, hd⟩
+        simpa [closedUnitCube] using this
+      have hz_covered := unit_interval_covered_by_translates hz0
+      rw [Set.mem_iUnion] at hz_covered
+      rcases hz_covered with ⟨q, hq⟩
+      rw [Set.mem_iUnion] at hq
+      rcases hq with ⟨hq_bound, hz_mem⟩
+      have hq_in_range : q ∈ {r : ℚ | r ∈ Set.Icc (-1 : ℚ) 1} := hq_bound
+      rw [hf_range] at hq_in_range
+      rcases hq_in_range with ⟨n, rfl⟩
+      rw [Set.mem_iUnion]
+      refine ⟨n, ?_⟩
+      change z ∈ (vitaliCylinder hd) + {shiftVec hd (f n : ℝ)}
+      rw [vitaliCylinder_translate]
+      constructor
+      · exact hz_mem
+      · intro j hj
+        have := hz j
+        simpa [closedUnitCube] using this
+    have h_ge_one : (1 : EReal) ≤ Lebesgue_measure (⋃ n, T n) := by
+      calc
+        (1 : EReal) ≤ Lebesgue_measure (closedUnitCube d).toSet := by
+          rw [closedUnitCube_measure d]
+        _ ≤ Lebesgue_measure (⋃ n, T n) := Lebesgue_outer_measure.mono h_cover
+    rw [h_union_measure] at h_ge_one
+    exact absurd h_ge_one (by norm_num : ¬ (1 : EReal) ≤ 0)
+  · have hC_nonneg : 0 ≤ Lebesgue_measure C := Lebesgue_outer_measure.nonneg C
+    have hC_pos : 0 < Lebesgue_measure C := by
+      cases' (hC_nonneg.lt_or_eq) with h h
+      · exact h
+      · exact absurd h.symm hC_zero
+    have h_sum_top : ∑' n, Lebesgue_measure (T n) = ⊤ := by
+      simp only [h_translate_measure]
+      exact EReal.tsum_const_eq_top_of_pos hC_pos
+    rw [h_sum_top] at h_union_measure
+    have h_bounded : ⋃ n, T n ⊆ (lebesgueBigBox d hd).toSet := by
+      intro z hz
+      rw [Set.mem_iUnion] at hz
+      rcases hz with ⟨n, hz_n⟩
+      have hz_n' : z ∈ (vitaliCylinder hd) + {shiftVec hd (f n : ℝ)} := by
+        simpa [T, C] using hz_n
+      rw [vitaliCylinder_translate] at hz_n'
+      simp only [Box.mem_toSet, lebesgueBigBox]
+      intro j
+      by_cases hj : j = ⟨0, hd⟩
+      · subst hj
+        rcases hz_n'.1 with ⟨v, hv, r, hr, hv_eq⟩
+        rw [Set.mem_singleton_iff] at hr
+        subst r
+        have hv01 : v ∈ Set.Icc (0 : ℝ) 1 := VitaliSet_subset_unit_interval hv
+        have hq_bound : (f n : ℝ) ∈ Set.Icc (-1 : ℝ) 1 := by
+          constructor
+          · exact_mod_cast hf_mem n |>.1
+          · exact_mod_cast hf_mem n |>.2
+        rw [← hv_eq]
+        simp
+        constructor
+        · linarith [hv01.1, hq_bound.1]
+        · linarith [hv01.2, hq_bound.2]
+      · have : z j ∈ Set.Icc 0 1 := hz_n'.2 j hj
+        simpa [hj] using this
+    have h_le_three : Lebesgue_measure (⋃ n, T n) ≤ (3 : EReal) := by
+      calc
+        Lebesgue_measure (⋃ n, T n) ≤ Lebesgue_measure (lebesgueBigBox d hd).toSet :=
+          Lebesgue_outer_measure.mono h_bounded
+        _ = 3 := by
+          unfold Lebesgue_measure
+          rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (lebesgueBigBox d hd))]
+          rw [IsElementary.measure_of_box, lebesgueBigBox_volume hd]
+          rfl
+    rw [h_union_measure] at h_le_three
+    have h_three_ne_top : (3 : EReal) ≠ ⊤ := by decide
+    exact h_three_ne_top (le_antisymm le_top h_le_three)
+
+end NotAtomic
+
+def EuclideanSpace'.elementary_boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (EuclideanSpace'.elementary_boolean_algebra d).isAtomic := by
+  intro hA
+  have hd0 : 0 < d := by omega
+  have hsing : ∀ x : EuclideanSpace' d, (EuclideanSpace'.elementary_boolean_algebra d).measurable {x} := by
+    intro x
+    exact Or.inl (NotAtomic.singleton_isElementary x)
+  have hdisc := ConcreteBooleanAlgebra.isAtomic_imp_discrete_of_singleton
+    (EuclideanSpace'.elementary_boolean_algebra d) hA hsing
+  let E : Set (EuclideanSpace' d) := {x | 0 ≤ x ⟨0, hd0⟩}
+  have hE : ¬ (EuclideanSpace'.elementary_boolean_algebra d).measurable E := by
+    change ¬ (IsElementary E ∨ IsElementary Eᶜ)
+    rw [not_or]
+    constructor
+    · intro hElem
+      exact (NotAtomic.halfspace_unbounded hd0) (IsElementary.isBounded hElem)
+    · intro hElem
+      exact (NotAtomic.halfspace_compl_unbounded hd0) (IsElementary.isBounded hElem)
+  exact hE (hdisc E)
+
+def JordanMeasurable.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (JordanMeasurable.boolean_algebra d).isAtomic := by
+  intro hA
+  have hd0 : 0 < d := by omega
+  have hsing : ∀ x : EuclideanSpace' d, (JordanMeasurable.boolean_algebra d).measurable {x} := by
+    intro x
+    exact Or.inl (IsElementary.jordanMeasurable (NotAtomic.singleton_isElementary x))
+  have hdisc := ConcreteBooleanAlgebra.isAtomic_imp_discrete_of_singleton
+    (JordanMeasurable.boolean_algebra d) hA hsing
+  let E : Set (EuclideanSpace' d) := {x | 0 ≤ x ⟨0, hd0⟩}
+  have hE : ¬ (JordanMeasurable.boolean_algebra d).measurable E := by
+    change ¬ (JordanMeasurable E ∨ JordanMeasurable Eᶜ)
+    rw [not_or]
+    constructor
+    · intro hJ
+      exact (NotAtomic.halfspace_unbounded hd0) hJ.1
+    · intro hJ
+      exact (NotAtomic.halfspace_compl_unbounded hd0) hJ.1
+  exact hE (hdisc E)
+
+def LebesgueMeasurable.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (LebesgueMeasurable.boolean_algebra d).isAtomic := by
+  intro hA
+  have hd0 : 0 < d := by omega
+  have hsing : ∀ x : EuclideanSpace' d, (LebesgueMeasurable.boolean_algebra d).measurable {x} := by
+    intro x
+    exact IsNull.measurable (Lebesgue_outer_measure.singleton_zero (by omega : d ≠ 0) x)
+  have hdisc := ConcreteBooleanAlgebra.isAtomic_imp_discrete_of_singleton
+    (LebesgueMeasurable.boolean_algebra d) hA hsing
+  let E : Set (EuclideanSpace' d) := NotAtomic.vitaliCylinder hd0
+  have hE : ¬ (LebesgueMeasurable.boolean_algebra d).measurable E := by
+    change ¬ LebesgueMeasurable E
+    exact NotAtomic.not_lebesgue_measurable_cylinder hd0
+  exact hE (hdisc E)
+
+def IsNull.boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (IsNull.boolean_algebra d).isAtomic := by
+  intro hA
+  have hd0 : 0 < d := by omega
+  have hsing : ∀ x : EuclideanSpace' d, (IsNull.boolean_algebra d).measurable {x} := by
+    intro x
+    exact Or.inl (Lebesgue_outer_measure.singleton_zero (by omega : d ≠ 0) x)
+  have hdisc := ConcreteBooleanAlgebra.isAtomic_imp_discrete_of_singleton
+    (IsNull.boolean_algebra d) hA hsing
+  let E : Set (EuclideanSpace' d) := {x | 0 < x ⟨0, hd0⟩}
+  have hE : ¬ (IsNull.boolean_algebra d).measurable E := by
+    change ¬ (IsNull E ∨ IsNull Eᶜ)
+    rw [not_or]
+    constructor
+    · apply NotAtomic.not_null_of_contains_box E (NotAtomic.unitCube d)
+      · simp [NotAtomic.unitCube, Box.volume]
+      · intro x hx
+        change 0 < x ⟨0, hd0⟩
+        have hx0 : x ⟨0, hd0⟩ ∈ Set.Ioc (0 : ℝ) 1 := by
+          have := hx ⟨0, hd0⟩
+          simpa [NotAtomic.unitCube] using this
+        exact hx0.1
+    · apply NotAtomic.not_null_of_contains_box Eᶜ (NotAtomic.negUnitCube d)
+      · simp [NotAtomic.negUnitCube, Box.volume]
+      · intro x hx
+        change ¬ 0 < x ⟨0, hd0⟩
+        have hx0 : x ⟨0, hd0⟩ ∈ Set.Ioc (-1 : ℝ) 0 := by
+          have := hx ⟨0, hd0⟩
+          simpa [NotAtomic.negUnitCube] using this
+        exact not_lt_of_ge hx0.2
+  exact hE (hdisc E)
+
 
 /-- Exercise 1.4.6 (Intersection of algebras) -/
 instance ConcreteBooleanAlgebra.instInfSet {X:Type*} : InfSet (ConcreteBooleanAlgebra X) :=
