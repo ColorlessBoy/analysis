@@ -1968,6 +1968,59 @@
       "start": "2026-08-04T16:46:38.034792",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 118,
+      "theorem": "atomic_of_finite",
+      "file": "_temp_atomic.lean",
+      "goal": "Prove atomic_of_finite and card_of_finite via atom construction",
+      "start": "2026-08-04T17:25:41.600791",
+      "attempts": [
+        {
+          "edit": "chunk1: atom_set, atom, finset_inter_mem, atom_measurable, mem_atom_self, atom_subset",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "compiles, need docstring fix + chunk2",
+          "time": "2026-08-04T17:42:42.753798"
+        },
+        {
+          "edit": "chunk2: atom_eq_of_mem, Atoms, Atoms_finite, union_atoms_measurable, atom_partition",
+          "errors_before": 2,
+          "errors_after": 2,
+          "excerpt": "0 errors; used Set.mem_iInter/mp style, rw in goals; rw at hy under binders fails",
+          "time": "2026-08-04T17:44:28.641863"
+        },
+        {
+          "edit": "final: atomic_of_finite_proof (isAtomic.{u,u}) + card_of_finite_proof compile; plain B.isAtomic universe-blocked",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors 0 warnings",
+          "time": "2026-08-04T18:10:59.580422"
+        }
+      ],
+      "status": "success",
+      "notes": "atom construction via finite intersection; distinct-atom partition (comment's fun x=>atom x was WRONG - not a partition); card via ncard_congr bijection with powerset; universe caveat: B.isAtomic's \u2203I:Type* param blocks atom-type witness, need isAtomic.{u,u}",
+      "end": "2026-08-04T18:11:19.919783"
+    },
+    {
+      "id": 119,
+      "theorem": "not_atomic",
+      "file": "_temp_notatomic.lean",
+      "goal": "prove 4 non-atomicity defs for elementary/jordan/lebesgue/null algebras",
+      "start": "2026-08-04T18:38:38.548845",
+      "attempts": [],
+      "status": "success",
+      "notes": "all four non-atomicity proofs complete",
+      "end": "2026-08-04T19:06:31.170717"
+    },
+    {
+      "id": 120,
+      "theorem": "generated_by_eq_test",
+      "file": "_temp_gen.lean",
+      "goal": "prove generated_by_eq_test: generated algebra = union of iterates",
+      "start": "2026-08-04T19:12:51.477296",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }

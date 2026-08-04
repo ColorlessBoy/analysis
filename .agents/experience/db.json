@@ -699,6 +699,20 @@
       "tactics": "refine witness; of_Icc; congrArg (fun r => (r:EReal)) (by ring); EReal.coe_le_coe_iff; Set.not_subset; tendsto_const_nhds.congr'",
       "description": "d=1, f n = indicator of [n,n+1] interval; measure 1 vs epsilon 1/2 contradiction",
       "time": "2026-08-04T14:16:58.740109"
+    },
+    {
+      "theorem": "atomic_of_finite",
+      "file": "_temp_atomic.lean",
+      "tactics": "refine;AtomType;atom_partition;ext;measurable_iff_union_atoms;Set.ncard_congr;Set.ncard_powerset",
+      "description": "finite Boolean algebra atomic: atoms = finite intersection of measurable sets containing x; distinct-atom partition; measurableSets in bijection with powerset of atoms",
+      "time": "2026-08-04T18:11:19.950708"
+    },
+    {
+      "theorem": "not_atomic_4",
+      "file": "_temp_notatomic.lean",
+      "tactics": "isAtomic_imp_discrete_of_singleton + halfspace/cylinder non-measurable sets",
+      "description": "elementary+jordan via unbounded halfspace, null via non-null halfspace, lebesgue via Vitali cylinder translate argument",
+      "time": "2026-08-04T19:06:31.209225"
     }
   ],
   "errors": [
