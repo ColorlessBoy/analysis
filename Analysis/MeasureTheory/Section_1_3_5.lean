@@ -3203,11 +3203,28 @@ theorem ComplexAbsolutelyIntegrable.approx_by_continuous_outside_small {d:ℕ} {
       ∀ x ∉ E, g x = f x := by
   exact ComplexMeasurable.approx_by_continuous_outside_small hf.1 ε hε
 
-/-- Lusin's theorem does not make the original function continuous outside of E -/
-example : ∃ (d:ℕ) (f : EuclideanSpace' d → ℝ),
-    RealMeasurable f ∧
-    ∀ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E → Lebesgue_measure E ≤ 1 →
-      ¬ ∀ x ∈ Eᶜ, ContinuousAt f x := by sorry
+/-- Lusin's theorem makes the original function itself continuous on the complement of a small
+    set (subspace sense). The common remark that "Lusin's theorem does not make f continuous
+    outside of E" refers to {lit}`f` being different from the continuous approximation {lit}`g` on
+    {lit}`E`; but on {lit}`Eᶜ` we have {lit}`f = g`, so {lit}`f` restricted to {lit}`Eᶜ` is
+    continuous. -/
+theorem RealMeasurable.continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealMeasurable f)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ Lebesgue_measure E ≤ ε ∧ ContinuousOn f Eᶜ := by
+  have hf_cm : ComplexMeasurable (Real.complex_fun f) := (RealMeasurable.iff).mp hf
+  obtain ⟨g, E, hg_cont, hE_meas, hE_le, hg_eq⟩ :=
+    ComplexMeasurable.approx_by_continuous_outside_small hf_cm ε hε
+  refine ⟨E, hE_meas, hE_le, ?_⟩
+  have hcont_re : Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => (g x.val).re) :=
+    Complex.continuous_re.comp hg_cont
+  have hf_eq_re : ∀ x : (Eᶜ : Set (EuclideanSpace' d)), f x.val = (g x.val).re := by
+    intro x
+    have hgx : g x.val = Real.complex_fun f x.val := hg_eq x x.2
+    rw [hgx]
+    simp [Real.complex_fun]
+  have hf_cont : Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => f x.val) :=
+    hcont_re.congr (fun x => (hf_eq_re x).symm)
+  exact (continuousOn_iff_continuous_restrict (f := f) (s := Eᶜ)).mpr hf_cont
 
 def LocallyComplexAbsolutelyIntegrable {d:ℕ} (f: EuclideanSpace' d → ℂ) : Prop :=
   ∀ (S: Set (EuclideanSpace' d)), LebesgueMeasurable S ∧ Bornology.IsBounded S → ComplexAbsolutelyIntegrableOn f S
