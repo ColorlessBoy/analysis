@@ -844,11 +844,319 @@ def IsPartition.boolean_algebra_eq_iff' {I J X:Type*} {parts_I: I → Set X} {pa
 def ConcreteBooleanAlgebra.isAtomic {X:Type*} (B: ConcreteBooleanAlgebra X) : Prop :=
   ∃ (I:Type*) (parts: I → Set X) (hI:IsPartition parts), B = hI.to_ConcreteBooleanAlgebra
 
-/-- Exercise 1.4.4 (Finite boolean algebras are atomic) -/
-def ConcreteBooleanAlgebra.atomic_of_finite {X:Type*} (B: ConcreteBooleanAlgebra X) (h_fin: (B.measurableSets).Finite) : B.isAtomic :=
-  by sorry
+/-- Exercise 1.4.7 (Generation by boxes) -/
+theorem ConcreteBooleanAlgebra.finset_union_mem {X:Type*} {α : Type*} (B: ConcreteBooleanAlgebra X)
+    {S : Finset α} (t : α → Set X) (hS : ∀ E ∈ S, B.measurable (t E)) : B.measurable (⋃ E ∈ S, t E) := by
+  classical
+  induction S using Finset.induction_on with
+  | empty =>
+      simpa using B.empty_mem
+  | insert E S' hEnot ih =>
+      have hE : B.measurable (t E) := hS E (Finset.mem_insert_self E S')
+      have hS' : ∀ E' ∈ S', B.measurable (t E') := fun E' hE' => hS E' (Finset.mem_insert_of_mem hE')
+      convert B.union_mem (t E) (⋃ E' ∈ S', t E') hE (ih hS') using 1
+      ext x
+      simp [Finset.mem_insert]
 
-def ConcreteBooleanAlgebra.card_of_finite {X:Type*} (B: ConcreteBooleanAlgebra X) (h_fin: (B.measurableSets).Finite) : ∃ n:ℕ, (B.measurableSets).ncard = 2^n := by sorry
+open Set
+
+namespace ConcreteBooleanAlgebra
+
+universe u
+
+noncomputable section
+open Classical
+
+variable {X : Type*}
+
+/-- The finite set of measurable sets of B that contain x. -/
+def atom_set (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) (x : X) :
+    Finset (Set X) :=
+  (h_fin.subset (t := B.measurableSets ∩ {E : Set X | x ∈ E}) (by intro E hE; exact hE.1)).toFinset
+
+lemma atom_set_mem {B : ConcreteBooleanAlgebra X} {h_fin : (B.measurableSets).Finite} {x : X}
+    {E : Set X} : E ∈ atom_set B h_fin x ↔ E ∈ (B.measurableSets ∩ {E : Set X | x ∈ E}) := by
+  unfold atom_set
+  exact Set.Finite.mem_toFinset (h_fin.subset (t := B.measurableSets ∩ {E : Set X | x ∈ E}) (by intro E hE; exact hE.1))
+
+/-- The atom of a point: the intersection of all measurable sets containing it. -/
+def atom (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) (x : X) : Set X :=
+  ⋂ E ∈ atom_set B h_fin x, E
+
+/-- A finite intersection of measurable sets is measurable. -/
+lemma finset_inter_mem (B : ConcreteBooleanAlgebra X) (s : Finset (Set X))
+    (h : ∀ E ∈ s, B.measurable E) : B.measurable (⋂ E ∈ s, E) := by
+  induction s using Finset.induction_on with
+  | empty =>
+      simpa using (B.compl_mem ∅ B.empty_mem)
+  | insert E s' hEn ih =>
+      have hE : B.measurable E := h E (Finset.mem_insert_self E s')
+      have hS' : ∀ E' ∈ s', B.measurable E' := fun E' hE' => h E' (Finset.mem_insert_of_mem hE')
+      convert B.inter_mem hE (ih hS') using 1
+      ext y
+      simp [Finset.mem_insert]
+
+lemma atom_measurable (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) (x : X) :
+    B.measurable (atom B h_fin x) := by
+  unfold atom
+  apply finset_inter_mem
+  intro E hE
+  exact (atom_set_mem.mp hE).1
+
+lemma mem_atom_self (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) (x : X) :
+    x ∈ atom B h_fin x := by
+  unfold atom
+  rw [Set.mem_iInter]
+  intro E
+  rw [Set.mem_iInter]
+  intro hE
+  exact (atom_set_mem.mp hE).2
+
+lemma atom_subset (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) {x : X}
+    {E : Set X} (hE : B.measurable E) (hx : x ∈ E) : atom B h_fin x ⊆ E := by
+  intro y hy
+  exact (Set.mem_iInter.mp (Set.mem_iInter.mp hy E)) (atom_set_mem.mpr ⟨hE, hx⟩)
+
+/-- If z is in the atom of x, the two atoms are equal. -/
+lemma atom_eq_of_mem (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) {x z : X}
+    (hz : z ∈ atom B h_fin x) : atom B h_fin z = atom B h_fin x := by
+  apply le_antisymm
+  · exact atom_subset B h_fin (atom_measurable B h_fin x) hz
+  · apply atom_subset B h_fin (atom_measurable B h_fin z)
+    unfold atom
+    rw [Set.mem_iInter]
+    intro E
+    rw [Set.mem_iInter]
+    intro hE
+    by_contra hxE
+    have hEm : B.measurable E := (atom_set_mem.mp hE).1
+    have hEc : B.measurable Eᶜ := B.compl_mem E hEm
+    have hxEc : x ∈ Eᶜ := (Set.mem_compl_iff E x).mpr hxE
+    have hatomEc : atom B h_fin x ⊆ Eᶜ := atom_subset B h_fin hEc hxEc
+    have hzEc : z ∈ Eᶜ := hatomEc hz
+    exact (Set.mem_compl_iff E z).mp hzEc (atom_set_mem.mp hE).2
+
+/-- The set of all distinct atoms of B. -/
+def Atoms (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) : Set (Set X) :=
+  {E : Set X | B.measurable E ∧ ∃ x : X, E = atom B h_fin x}
+
+lemma Atoms_subset_measurableSets (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) :
+    Atoms B h_fin ⊆ B.measurableSets := by
+  intro E hE
+  exact hE.1
+
+lemma Atoms_finite (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) :
+    (Atoms B h_fin).Finite :=
+  h_fin.subset (Atoms_subset_measurableSets B h_fin)
+
+/-- A union of atoms is measurable (there are only finitely many distinct atoms). -/
+lemma union_atoms_measurable (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite)
+    {S : Set (Set X)} (hS : S ⊆ Atoms B h_fin) : B.measurable (⋃ E ∈ S, E) := by
+  have hSfin : S.Finite := (Atoms_finite B h_fin).subset hS
+  have hEq : (⋃ E ∈ S, E) = (⋃ E ∈ hSfin.toFinset, E) := by
+    ext y
+    constructor
+    · intro hy
+      rcases (Set.mem_iUnion.mp hy) with ⟨E, hyE⟩
+      rcases (Set.mem_iUnion.mp hyE) with ⟨hE, hyE⟩
+      rw [Set.mem_iUnion]
+      refine ⟨E, ?_⟩
+      rw [Set.mem_iUnion]
+      refine ⟨?_, hyE⟩
+      exact (Set.Finite.mem_toFinset hSfin).mpr hE
+    · intro hy
+      rcases (Set.mem_iUnion.mp hy) with ⟨E, hyE⟩
+      rcases (Set.mem_iUnion.mp hyE) with ⟨hE, hyE⟩
+      rw [Set.mem_iUnion]
+      refine ⟨E, ?_⟩
+      rw [Set.mem_iUnion]
+      refine ⟨?_, hyE⟩
+      exact (Set.Finite.mem_toFinset hSfin).mp hE
+  have hmeas : B.measurable (⋃ E ∈ hSfin.toFinset, E) := by
+    apply B.finset_union_mem (fun E : Set X => E)
+    intro E hE
+    exact (hS ((Set.Finite.mem_toFinset hSfin).mp hE)).1
+  rw [hEq]
+  exact hmeas
+
+/-- The type of distinct atoms of B. -/
+def AtomType {X : Type u} (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) : Type u :=
+  {A : Set X // A ∈ Atoms B h_fin}
+
+/-- The distinct atoms form a partition of X. -/
+lemma atom_partition (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite) :
+    IsPartition (fun A : AtomType B h_fin => A.1) := by
+  constructor
+  · intro A1 hA1 A2 hA2 hne
+    change Disjoint (A1.1 : Set X) (A2.1 : Set X)
+    rw [Set.disjoint_iff]
+    intro y hy
+    rcases hy with ⟨hy1, hy2⟩
+    rcases A1.2 with ⟨hA1m, x1, hx1⟩
+    rcases A2.2 with ⟨hA2m, x2, hx2⟩
+    have hy1' : y ∈ atom B h_fin x1 := by simpa [hx1] using hy1
+    have hy2' : y ∈ atom B h_fin x2 := by simpa [hx2] using hy2
+    have hatom12 : atom B h_fin x1 = atom B h_fin x2 := by
+      calc
+        atom B h_fin x1 = atom B h_fin y := (atom_eq_of_mem B h_fin hy1').symm
+        _ = atom B h_fin x2 := atom_eq_of_mem B h_fin hy2'
+    have hAeq : A1.1 = A2.1 := by
+      calc
+        A1.1 = atom B h_fin x1 := hx1
+        _ = atom B h_fin x2 := hatom12
+        _ = A2.1 := hx2.symm
+    exact hne (Subtype.ext hAeq)
+  · ext y
+    constructor
+    · intro hy
+      trivial
+    · intro hy
+      rw [Set.mem_iUnion]
+      refine ⟨⟨atom B h_fin y, ?_⟩, ?_⟩
+      · exact ⟨atom_measurable B h_fin y, ⟨y, rfl⟩⟩
+      · exact mem_atom_self B h_fin y
+
+/-- A set is measurable iff it is a union of atoms. -/
+lemma measurable_iff_union_atoms (B : ConcreteBooleanAlgebra X) (h_fin : (B.measurableSets).Finite)
+    (E : Set X) : B.measurable E ↔
+    ∃ J : Set (AtomType B h_fin), E = ⋃ A ∈ J, A.1 := by
+  constructor
+  · intro hE
+    refine ⟨{A : AtomType B h_fin | A.1 ⊆ E}, ?_⟩
+    ext y
+    constructor
+    · intro hyE
+      rw [Set.mem_iUnion]
+      refine ⟨⟨atom B h_fin y, ?_⟩, ?_⟩
+      · exact ⟨atom_measurable B h_fin y, ⟨y, rfl⟩⟩
+      · rw [Set.mem_iUnion]
+        refine ⟨?_, mem_atom_self B h_fin y⟩
+        exact atom_subset B h_fin hE hyE
+    · intro hy
+      rcases (Set.mem_iUnion.mp hy) with ⟨A, hyA⟩
+      rcases (Set.mem_iUnion.mp hyA) with ⟨hA, hyA⟩
+      exact hA hyA
+  · rintro ⟨J, hE⟩
+    let S : Set (Set X) := (fun A : AtomType B h_fin => A.1) '' J
+    have hSsub : S ⊆ Atoms B h_fin := by
+      intro A' hA'
+      rcases hA' with ⟨A, hA, hEq⟩
+      simpa [hEq] using A.2
+    have hEqS : (⋃ A' ∈ S, A') = ⋃ A ∈ J, A.1 := by
+      ext y
+      constructor
+      · intro hy
+        rcases (Set.mem_iUnion.mp hy) with ⟨A', hyA'⟩
+        rcases (Set.mem_iUnion.mp hyA') with ⟨hA', hyA'⟩
+        rcases hA' with ⟨A, hA, hEq⟩
+        rw [Set.mem_iUnion]
+        refine ⟨A, ?_⟩
+        rw [Set.mem_iUnion]
+        refine ⟨hA, ?_⟩
+        simpa [hEq] using hyA'
+      · intro hy
+        rcases (Set.mem_iUnion.mp hy) with ⟨A, hyA⟩
+        rcases (Set.mem_iUnion.mp hyA) with ⟨hA, hyA⟩
+        rw [Set.mem_iUnion]
+        refine ⟨(fun A : {A : Set X // A ∈ Atoms B h_fin} => A.1) A, ?_⟩
+        rw [Set.mem_iUnion]
+        refine ⟨⟨A, hA, rfl⟩, ?_⟩
+        simpa using hyA
+    have hmeas : B.measurable (⋃ A' ∈ S, A') := union_atoms_measurable B h_fin hSsub
+    rw [hE, ← hEqS]
+    exact hmeas
+
+/-- A finite Boolean algebra is atomic. -/
+def atomic_of_finite {X : Type u} (B : ConcreteBooleanAlgebra X)
+    (h_fin : (B.measurableSets).Finite) : ConcreteBooleanAlgebra.isAtomic.{u, u} B := by
+  refine ⟨AtomType B h_fin, fun A : AtomType B h_fin => A.1, ?_, ?_⟩
+  · exact atom_partition B h_fin
+  · apply ConcreteBooleanAlgebra.ext
+    intro E
+    exact measurable_iff_union_atoms B h_fin E
+
+/-- The number of measurable sets of a finite Boolean algebra is a power of two. -/
+def card_of_finite {X : Type*} (B : ConcreteBooleanAlgebra X)
+    (h_fin : (B.measurableSets).Finite) : ∃ n : ℕ, (B.measurableSets).ncard = 2^n := by
+  let A : Set (Set X) := Atoms B h_fin
+  have hAf : A.Finite := by simpa [A] using Atoms_finite B h_fin
+  have h1 : (B.measurableSets).ncard = (Set.powerset A).ncard := by
+    refine (Set.ncard_congr (s := Set.powerset A) (t := B.measurableSets)
+      (fun S _ => ⋃ E ∈ S, E) ?_ ?_ ?_).symm
+    · intro S hS
+      exact union_atoms_measurable B h_fin (by simpa [A] using hS)
+    · intro S1 S2 hS1 hS2 hUnion
+      have hS1sub : S1 ⊆ A := hS1
+      have hS2sub : S2 ⊆ A := hS2
+      ext E
+      constructor
+      · intro hE1
+        have hEAtoms : E ∈ Atoms B h_fin := hS1sub hE1
+        rcases hEAtoms with ⟨hEm, x, hEq⟩
+        have hxE : x ∈ E := by rw [hEq]; exact mem_atom_self B h_fin x
+        have hxS1 : x ∈ ⋃ E' ∈ S1, E' := by
+          rw [Set.mem_iUnion]
+          refine ⟨E, ?_⟩
+          rw [Set.mem_iUnion]
+          exact ⟨hE1, hxE⟩
+        have hxS2 : x ∈ ⋃ E' ∈ S2, E' := by simpa [hUnion] using hxS1
+        rcases (Set.mem_iUnion.mp hxS2) with ⟨F, hxFS2⟩
+        rcases (Set.mem_iUnion.mp hxFS2) with ⟨hF2, hxF⟩
+        have hFAtoms : F ∈ Atoms B h_fin := hS2sub hF2
+        rcases hFAtoms with ⟨hFm, y, hFq⟩
+        have hxFy : x ∈ atom B h_fin y := by simpa [hFq] using hxF
+        have hatom : atom B h_fin x = atom B h_fin y := atom_eq_of_mem B h_fin hxFy
+        have hEF : E = F := by
+          calc
+            E = atom B h_fin x := hEq
+            _ = atom B h_fin y := hatom
+            _ = F := hFq.symm
+        simpa [hEF] using hF2
+      · intro hE2
+        have hEAtoms : E ∈ Atoms B h_fin := hS2sub hE2
+        rcases hEAtoms with ⟨hEm, x, hEq⟩
+        have hxE : x ∈ E := by rw [hEq]; exact mem_atom_self B h_fin x
+        have hxS2 : x ∈ ⋃ E' ∈ S2, E' := by
+          rw [Set.mem_iUnion]
+          refine ⟨E, ?_⟩
+          rw [Set.mem_iUnion]
+          exact ⟨hE2, hxE⟩
+        have hxS1 : x ∈ ⋃ E' ∈ S1, E' := by simpa [← hUnion] using hxS2
+        rcases (Set.mem_iUnion.mp hxS1) with ⟨F, hxFS1⟩
+        rcases (Set.mem_iUnion.mp hxFS1) with ⟨hF1, hxF⟩
+        have hFAtoms : F ∈ Atoms B h_fin := hS1sub hF1
+        rcases hFAtoms with ⟨hFm, y, hFq⟩
+        have hxFy : x ∈ atom B h_fin y := by simpa [hFq] using hxF
+        have hatom : atom B h_fin x = atom B h_fin y := atom_eq_of_mem B h_fin hxFy
+        have hEF : E = F := by
+          calc
+            E = atom B h_fin x := hEq
+            _ = atom B h_fin y := hatom
+            _ = F := hFq.symm
+        simpa [hEF] using hF1
+    · intro E hE
+      refine ⟨{E' : Set X | E' ∈ A ∧ E' ⊆ E}, ?_, ?_⟩
+      · intro E' hE'
+        exact hE'.1
+      · ext y
+        constructor
+        · intro hy
+          rcases (Set.mem_iUnion.mp hy) with ⟨E', hyE'⟩
+          rcases (Set.mem_iUnion.mp hyE') with ⟨hE', hyE'⟩
+          exact hE'.2 hyE'
+        · intro hy
+          have hyAtoms : atom B h_fin y ∈ A := by
+            change atom B h_fin y ∈ Atoms B h_fin
+            exact ⟨atom_measurable B h_fin y, ⟨y, rfl⟩⟩
+          rw [Set.mem_iUnion]
+          refine ⟨atom B h_fin y, ?_⟩
+          rw [Set.mem_iUnion]
+          refine ⟨⟨hyAtoms, atom_subset B h_fin hE hy⟩, mem_atom_self B h_fin y⟩
+  have h2 : (Set.powerset A).ncard = 2 ^ A.ncard := Set.ncard_powerset A hAf
+  exact ⟨A.ncard, h1.trans h2⟩
+
+end
+end ConcreteBooleanAlgebra
 
 /-- Exercise 1.4.5 (elementary algebra not atomic) -/
 def EuclideanSpace'.elementary_boolean_algebra_not_atomic (d:ℕ) (hd: d ≥ 1) : ¬ (EuclideanSpace'.elementary_boolean_algebra d).isAtomic :=
@@ -992,19 +1300,6 @@ instance ConcreteBooleanAlgebra.eq_generated_by_iff {X:Type*} (F: Set (Set X)) :
   · intro hEq
     exact ⟨ConcreteBooleanAlgebra.generated_by F, hEq⟩
 
-/-- Exercise 1.4.7 (Generation by boxes) -/
-theorem ConcreteBooleanAlgebra.finset_union_mem {X:Type*} {α : Type*} (B: ConcreteBooleanAlgebra X)
-    {S : Finset α} (t : α → Set X) (hS : ∀ E ∈ S, B.measurable (t E)) : B.measurable (⋃ E ∈ S, t E) := by
-  classical
-  induction S using Finset.induction_on with
-  | empty =>
-      simpa using B.empty_mem
-  | insert E S' hEnot ih =>
-      have hE : B.measurable (t E) := hS E (Finset.mem_insert_self E S')
-      have hS' : ∀ E' ∈ S', B.measurable (t E') := fun E' hE' => hS E' (Finset.mem_insert_of_mem hE')
-      convert B.union_mem (t E) (⋃ E' ∈ S', t E') hE (ih hS') using 1
-      ext x
-      simp [Finset.mem_insert]
 
 instance EuclideanSpace'.elementary_boolean_algebra_generated_by_boxes (d:ℕ) : EuclideanSpace'.elementary_boolean_algebra d =
   ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ) := by
