@@ -642,14 +642,204 @@ def DyadicCube'.boolean_algebra_mono (d:ℕ) {m n:ℕ} (h: m ≤ n) :
 
 def IsPartition.relabels {I J X:Type*} {parts_I: I → Set X} (_: IsPartition parts_I) {parts_J : J → Set X} (_: IsPartition parts_J) : Prop := ∃ e : I ≃ J, ∀ i:I, parts_I i = parts_J (e i)
 
+lemma biUnion_image_eq {α β X : Type*} (e : α ≃ β) (S : Set α) (t : β → Set X) :
+    (⋃ i ∈ S, t (e i)) = ⋃ j ∈ (e '' S), t j := by
+  ext y
+  simp only [Set.mem_iUnion]
+  constructor
+  · rintro ⟨i, hi, hy⟩
+    exact ⟨e i, ⟨i, hi, rfl⟩, hy⟩
+  · rintro ⟨j, hj, hy⟩
+    rcases hj with ⟨i, hi, hji⟩
+    exact ⟨i, hi, by rwa [← hji] at hy⟩
+
+lemma IsPartition.eq_of_parts_eq {I X : Type*} {parts : I → Set X}
+    (h : IsPartition parts) {i i' : I} (hne : parts i ≠ ∅) (hEq : parts i = parts i') :
+    i = i' := by
+  rcases Set.nonempty_iff_ne_empty.mpr hne with ⟨x, hx⟩
+  by_contra hne'
+  have hdisj := h.1 (Set.mem_univ i) (Set.mem_univ i') hne'
+  exact (Set.disjoint_iff.mp hdisj) ⟨hx, by simpa [← hEq] using hx⟩
+
+/-- A nonempty measurable subset of a partition part equals the whole part. -/
+lemma IsPartition.subset_part_eq_of_measurable {I X : Type*} {parts : I → Set X}
+    (h : IsPartition parts) (i : I) {F : Set X} (hFsub : F ⊆ parts i) (hFne : F ≠ ∅)
+    (hFmeas : ∃ J : Set I, F = ⋃ k ∈ J, parts k) : F = parts i := by
+  rcases hFmeas with ⟨J, rfl⟩
+  rcases Set.nonempty_iff_ne_empty.mpr hFne with ⟨x, hxF⟩
+  simp only [Set.mem_iUnion] at hxF
+  rcases hxF with ⟨k₀, hk₀J, hx₀⟩
+  have hxi : x ∈ parts i := by
+    have : x ∈ ⋃ k ∈ J, parts k := by
+      simp only [Set.mem_iUnion]
+      exact ⟨k₀, hk₀J, hx₀⟩
+    exact hFsub this
+  have hki : k₀ = i := by
+    by_contra hne
+    have hdisj := h.1 (Set.mem_univ k₀) (Set.mem_univ i) hne
+    exact (Set.disjoint_iff.mp hdisj) ⟨hx₀, hxi⟩
+  subst hki
+  apply le_antisymm
+  · intro y hy
+    exact hFsub hy
+  · intro y hy
+    simp only [Set.mem_iUnion]
+    exact ⟨k₀, hk₀J, hy⟩
+
+lemma IsPartition.part_eq_part_of_eq {I J X : Type*} {parts_I : I → Set X} {parts_J : J → Set X}
+    (hI : IsPartition parts_I) (hJ : IsPartition parts_J)
+    (hEq : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra)
+    (i : I) (hne : parts_I i ≠ ∅) : ∃ j : J, parts_I i = parts_J j := by
+  have hImeas : hI.to_ConcreteBooleanAlgebra.measurable (parts_I i) := ⟨{i}, by simp⟩
+  have hJmeas : hJ.to_ConcreteBooleanAlgebra.measurable (parts_I i) := by
+    rwa [hEq] at hImeas
+  rcases hJmeas with ⟨J₀, hJ₀⟩
+  rcases Set.nonempty_iff_ne_empty.mpr hne with ⟨x, hx⟩
+  have hxJ : x ∈ ⋃ j ∈ J₀, parts_J j := by rw [← hJ₀]; exact hx
+  simp only [Set.mem_iUnion] at hxJ
+  rcases hxJ with ⟨j₀, hj₀J₀, hxj₀⟩
+  have hsub : parts_J j₀ ⊆ parts_I i := by
+    intro y hy
+    rw [hJ₀]
+    simp only [Set.mem_iUnion]
+    exact ⟨j₀, hj₀J₀, hy⟩
+  have hne' : parts_J j₀ ≠ ∅ := by
+    intro hp
+    simp [hp] at hxj₀
+  have hIm : hI.to_ConcreteBooleanAlgebra.measurable (parts_J j₀) := by
+    have : hJ.to_ConcreteBooleanAlgebra.measurable (parts_J j₀) := ⟨{j₀}, by simp⟩
+    rwa [← hEq] at this
+  have heq := hI.subset_part_eq_of_measurable i hsub hne' hIm
+  exact ⟨j₀, heq.symm⟩
+
+lemma IsPartition.relabels_of_eq {I J X : Type*} {parts_I : I → Set X} {parts_J : J → Set X}
+    (hI : IsPartition parts_I) (hJ : IsPartition parts_J)
+    (hEq : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra) :
+    hI.remove_empty.relabels hJ.remove_empty := by
+  classical
+  let f : {i : I // parts_I i ≠ ∅} → {j : J // parts_J j ≠ ∅} := fun i' =>
+    ⟨(hI.part_eq_part_of_eq hJ hEq i'.val i'.property).choose,
+     by rw [← (hI.part_eq_part_of_eq hJ hEq i'.val i'.property).choose_spec]; exact i'.property⟩
+  let g : {j : J // parts_J j ≠ ∅} → {i : I // parts_I i ≠ ∅} := fun j' =>
+    ⟨(hJ.part_eq_part_of_eq hI hEq.symm j'.val j'.property).choose,
+     by rw [← (hJ.part_eq_part_of_eq hI hEq.symm j'.val j'.property).choose_spec]; exact j'.property⟩
+  refine ⟨{ toFun := f, invFun := g, left_inv := ?_, right_inv := ?_ }, ?_⟩
+  · intro i'
+    exact Subtype.ext (hI.eq_of_parts_eq (i := (g (f i')).val) (i' := i'.val) (g (f i')).property (by
+      calc
+        parts_I (g (f i')).val = parts_J (f i').val := by
+          simpa [g] using (hJ.part_eq_part_of_eq hI hEq.symm (f i').val (f i').property).choose_spec.symm
+        _ = parts_I i'.val :=
+          (hI.part_eq_part_of_eq hJ hEq i'.val i'.property).choose_spec.symm))
+  · intro j'
+    exact Subtype.ext (hJ.eq_of_parts_eq (i := (f (g j')).val) (i' := j'.val) (f (g j')).property (by
+      calc
+        parts_J (f (g j')).val = parts_I (g j').val := by
+          simpa [f] using (hI.part_eq_part_of_eq hJ hEq (g j').val (g j').property).choose_spec.symm
+        _ = parts_J j'.val :=
+          (hJ.part_eq_part_of_eq hI hEq.symm j'.val j'.property).choose_spec.symm))
+  · intro i'
+    exact (hI.part_eq_part_of_eq hJ hEq i'.val i'.property).choose_spec
+
+lemma IsPartition.eq_of_relabels {I J X : Type*} {parts_I : I → Set X} {parts_J : J → Set X}
+    (hI : IsPartition parts_I) (hJ : IsPartition parts_J)
+    (hRel : hI.remove_empty.relabels hJ.remove_empty) :
+    hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra := by
+  rcases hRel with ⟨e, he⟩
+  have heβ : ∀ i' : {i : I // parts_I i ≠ ∅}, parts_I i'.val = parts_J (e i').val := by
+    intro i'
+    simpa using he i'
+  have heβ' : ∀ j' : {j : J // parts_J j ≠ ∅}, parts_J j'.val = parts_I (e.symm j').val := by
+    intro j'
+    simpa using (heβ (e.symm j')).symm
+  apply ConcreteBooleanAlgebra.ext
+  intro E
+  constructor
+  · intro hmeas
+    have hstep : hI.to_ConcreteBooleanAlgebra.measurable E ↔
+        hI.remove_empty.to_ConcreteBooleanAlgebra.measurable E := by
+      rw [IsPartition.remove_empty_to_ConcreteBooleanAlgebra hI]
+    rcases hstep.mp hmeas with ⟨J₀, rfl⟩
+    have hbicongr : (⋃ i' ∈ J₀, parts_I i'.val) = ⋃ i' ∈ J₀, parts_J (e i') := by
+      ext y
+      simp only [Set.mem_iUnion]
+      constructor
+      · rintro ⟨i', hi', hy⟩
+        rw [heβ i'] at hy
+        exact ⟨i', hi', hy⟩
+      · rintro ⟨i', hi', hy⟩
+        rw [← heβ i'] at hy
+        exact ⟨i', hi', hy⟩
+    have hE : (⋃ i' ∈ J₀, parts_I i'.val) = ⋃ j ∈ (e '' J₀), parts_J j.val := by
+      rw [hbicongr, biUnion_image_eq e J₀ (fun j : {j : J // parts_J j ≠ ∅} => parts_J j.val)]
+    have hJrem : hJ.remove_empty.to_ConcreteBooleanAlgebra.measurable (⋃ i' ∈ J₀, parts_I i'.val) := ⟨e '' J₀, hE⟩
+    rw [IsPartition.remove_empty_to_ConcreteBooleanAlgebra hJ]
+    exact hJrem
+  · intro hmeas
+    have hstep : hJ.to_ConcreteBooleanAlgebra.measurable E ↔
+        hJ.remove_empty.to_ConcreteBooleanAlgebra.measurable E := by
+      rw [IsPartition.remove_empty_to_ConcreteBooleanAlgebra hJ]
+    rcases hstep.mp hmeas with ⟨J₀, rfl⟩
+    have hbicongr : (⋃ j ∈ J₀, parts_J j.val) = ⋃ j ∈ J₀, parts_I (e.symm j).val := by
+      ext y
+      simp only [Set.mem_iUnion]
+      constructor
+      · rintro ⟨j, hj, hy⟩
+        rw [heβ' j] at hy
+        exact ⟨j, hj, hy⟩
+      · rintro ⟨j, hj, hy⟩
+        rw [← heβ' j] at hy
+        exact ⟨j, hj, hy⟩
+    have hE : (⋃ j ∈ J₀, parts_J j.val) = ⋃ i' ∈ (e.symm '' J₀), parts_I i'.val := by
+      rw [hbicongr, biUnion_image_eq e.symm J₀ (fun i' : {i : I // parts_I i ≠ ∅} => parts_I i'.val)]
+    have hIrem : hI.remove_empty.to_ConcreteBooleanAlgebra.measurable (⋃ j ∈ J₀, parts_J j.val) := ⟨e.symm '' J₀, hE⟩
+    rw [IsPartition.remove_empty_to_ConcreteBooleanAlgebra hI]
+    exact hIrem
+
 /-- Exercise 1.4.3 (Non-empty atoms of an atomic algebra determined up to relabeling) -/
 def IsPartition.boolean_algebra_eq_iff {I J X:Type*} {parts_I: I → Set X} {parts_J: J → Set X}
-  (hI: IsPartition parts_I) (hJ: IsPartition parts_J) : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra ↔ hI.remove_empty.relabels hJ.remove_empty := by sorry
+  (hI: IsPartition parts_I) (hJ: IsPartition parts_J) : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra ↔ hI.remove_empty.relabels hJ.remove_empty := by
+  constructor
+  · intro hEq
+    exact hI.relabels_of_eq hJ hEq
+  · intro hRel
+    exact hI.eq_of_relabels hJ hRel
 
 def IsPartition.no_empty {I X:Type*} {parts: I → Set X} (_: IsPartition parts) : Prop := ∀ i:I, parts i ≠ ∅
 
 def IsPartition.boolean_algebra_eq_iff' {I J X:Type*} {parts_I: I → Set X} {parts_J: J → Set X}
-  (hI: IsPartition parts_I) (hJ: IsPartition parts_J) (hIn: hI.no_empty) (hJn: hJ.no_empty) : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra ↔ hI.relabels hJ := by sorry
+  (hI: IsPartition parts_I) (hJ: IsPartition parts_J) (hIn: hI.no_empty) (hJn: hJ.no_empty) : hI.to_ConcreteBooleanAlgebra = hJ.to_ConcreteBooleanAlgebra ↔ hI.relabels hJ := by
+  let e0 : I ≃ {i : I // parts_I i ≠ ∅} :=
+    { toFun := fun i => ⟨i, hIn i⟩, invFun := fun i' => i'.val,
+      left_inv := by intro i; rfl, right_inv := by intro i'; apply Subtype.ext; rfl }
+  let e1 : J ≃ {j : J // parts_J j ≠ ∅} :=
+    { toFun := fun j => ⟨j, hJn j⟩, invFun := fun j' => j'.val,
+      left_inv := by intro j; rfl, right_inv := by intro j'; apply Subtype.ext; rfl }
+  constructor
+  · intro hEq
+    rcases (hI.boolean_algebra_eq_iff hJ).mp hEq with ⟨e', he'⟩
+    let e : I ≃ J := e0.trans (e'.trans e1.symm)
+    refine ⟨e, ?_⟩
+    intro i
+    have h1 := he' (e0 i)
+    have hval : e i = (e' (e0 i)).val := by
+      change e1.symm (e' (e0 i)) = (e' (e0 i)).val
+      rfl
+    calc
+      parts_I i = parts_J (e' (e0 i)).val := by simpa [e0] using h1
+      _ = parts_J (e i) := by rw [← hval]
+  · intro hRel
+    rcases hRel with ⟨e, he⟩
+    let e' : {i : I // parts_I i ≠ ∅} ≃ {j : J // parts_J j ≠ ∅} := (e0.symm.trans e).trans e1
+    refine (hI.boolean_algebra_eq_iff hJ).mpr ⟨e', ?_⟩
+    intro i'
+    have h1 := he (e0.symm i')
+    have hval : (e' i').val = e (e0.symm i') := by
+      change (e1 (e (e0.symm i'))).val = e (e0.symm i')
+      rfl
+    calc
+      parts_I i'.val = parts_J (e (e0.symm i')) := by simpa [e0] using h1
+      _ = parts_J (e' i').val := by rw [hval]
 
 def ConcreteBooleanAlgebra.isAtomic {X:Type*} (B: ConcreteBooleanAlgebra X) : Prop :=
   ∃ (I:Type*) (parts: I → Set X) (hI:IsPartition parts), B = hI.to_ConcreteBooleanAlgebra
