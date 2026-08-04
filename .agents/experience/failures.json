@@ -1959,6 +1959,15 @@
       "status": "success",
       "notes": "egorov_not_uniform_counterexample proved with interval indicator witness",
       "end": "2026-08-04T14:16:53.708193"
+    },
+    {
+      "id": 117,
+      "theorem": "dyadic_mono",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_mono.lean",
+      "goal": "dyadic_cube_subset + boolean_algebra_mono",
+      "start": "2026-08-04T16:46:38.034792",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }
