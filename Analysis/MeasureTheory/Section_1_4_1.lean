@@ -872,15 +872,31 @@ instance ConcreteBooleanAlgebra.instInfSet {X:Type*} : InfSet (ConcreteBooleanAl
       sInf S :=
         {
           measurable := fun E => ∀ B ∈ S, B.measurable E
-          empty_mem := by sorry
-          compl_mem := by sorry
-          union_mem := by sorry
+          empty_mem := by
+            intro B hB
+            exact B.empty_mem
+          compl_mem := by
+            intro E hE B hB
+            exact B.compl_mem E (hE B hB)
+          union_mem := by
+            intro E F hE hF B hB
+            exact B.union_mem E F (hE B hB) (hF B hB)
         }
   }
 
 @[implicit_reducible]
 def ConcreteBooleanAlgebra.generated_by {X:Type*} (F: Set (Set X)) : ConcreteBooleanAlgebra X :=
   sInf { B | ∀ E ∈ F, B.measurable E }
+
+lemma ConcreteBooleanAlgebra.generated_by_contains {X:Type*} {F : Set (Set X)} {E : Set X}
+    (hE : E ∈ F) : (ConcreteBooleanAlgebra.generated_by F).measurable E := by
+  intro B hB
+  exact hB E hE
+
+lemma ConcreteBooleanAlgebra.generated_by_le {X:Type*} {F : Set (Set X)} (B : ConcreteBooleanAlgebra X)
+    (hB : ∀ E ∈ F, B.measurable E) : ConcreteBooleanAlgebra.generated_by F ≤ B := by
+  intro E hE
+  exact hE B hB
 
 /-- Definition 1.4.10 (Generation of algebras) -/
 instance ConcreteBooleanAlgebra.instSupSet {X:Type*} : SupSet (ConcreteBooleanAlgebra X) :=
@@ -890,26 +906,131 @@ instance ConcreteBooleanAlgebra.instSupSet {X:Type*} : SupSet (ConcreteBooleanAl
 
 instance ConcreteBooleanAlgebra.instCompleteLattice {X:Type*} : CompleteLattice (ConcreteBooleanAlgebra X) :=
   {
-    sup := sorry
-    le_sup_left := sorry
-    le_sup_right := sorry
-    sup_le := sorry
-    inf := sorry
-    inf_le_left := sorry
-    inf_le_right := sorry
-    le_inf := sorry
-    le_top := sorry
-    bot_le := sorry
-    isLUB_sSup := sorry
-    isGLB_sInf := sorry
+    sup := fun B1 B2 => sSup ({B1, B2} : Set (ConcreteBooleanAlgebra X))
+    le_sup_left := by
+      intro B1 B2 E hE
+      apply ConcreteBooleanAlgebra.generated_by_contains
+      simp
+      exact Or.inl hE
+    le_sup_right := by
+      intro B1 B2 E hE
+      apply ConcreteBooleanAlgebra.generated_by_contains
+      simp
+      exact Or.inr hE
+    sup_le := by
+      intro B1 B2 C h1 h2
+      change ConcreteBooleanAlgebra.generated_by
+        (⋃ B ∈ ({B1, B2} : Set (ConcreteBooleanAlgebra X)), B.measurableSets) ≤ C
+      apply ConcreteBooleanAlgebra.generated_by_le C
+      intro E hE
+      simp at hE
+      rcases hE with hE | hE
+      · exact h1 E hE
+      · exact h2 E hE
+    inf := fun B1 B2 => sInf ({B1, B2} : Set (ConcreteBooleanAlgebra X))
+    inf_le_left := by
+      intro B1 B2 E hE
+      exact hE B1 (by simp)
+    inf_le_right := by
+      intro B1 B2 E hE
+      exact hE B2 (by simp)
+    le_inf := by
+      intro C B1 B2 h1 h2 E hE B hB
+      rcases hB with hB | hB
+      · subst hB
+        exact h1 E hE
+      · subst hB
+        exact h2 E hE
+    le_top := by
+      intro B E hE
+      trivial
+    bot_le := by
+      intro B E hE
+      rcases hE with hE | hE
+      · rw [hE]
+        exact B.empty_mem
+      · rw [hE]
+        simpa using B.compl_mem ∅ B.empty_mem
+    isLUB_sSup := by
+      intro S
+      constructor
+      · intro B hB E hE
+        apply ConcreteBooleanAlgebra.generated_by_contains
+        simp
+        exact ⟨B, hB, hE⟩
+      · intro C hC
+        apply ConcreteBooleanAlgebra.generated_by_le C
+        intro E hE
+        simp at hE
+        rcases hE with ⟨B, hB, hE'⟩
+        exact hC hB E hE'
+    isGLB_sInf := by
+      intro S
+      constructor
+      · intro B hB E hE
+        exact hE B hB
+      · intro C hC E hE B hB
+        exact hC hB E hE
   }
 
 /-- Example 1.4.11 -/
-instance ConcreteBooleanAlgebra.eq_generated_by_iff {X:Type*} (F: Set (Set X)) : (∃ (B : ConcreteBooleanAlgebra X), B.measurableSets = F) ↔ (ConcreteBooleanAlgebra.generated_by F).measurableSets = F := by sorry
+instance ConcreteBooleanAlgebra.eq_generated_by_iff {X:Type*} (F: Set (Set X)) : (∃ (B : ConcreteBooleanAlgebra X), B.measurableSets = F) ↔ (ConcreteBooleanAlgebra.generated_by F).measurableSets = F := by
+  constructor
+  · intro hB
+    rcases hB with ⟨B, hBF⟩
+    have hg : ConcreteBooleanAlgebra.generated_by F = B := by
+      apply le_antisymm
+      · apply ConcreteBooleanAlgebra.generated_by_le B
+        intro E hE
+        rw [← hBF] at hE
+        exact hE
+      · intro E hE
+        apply ConcreteBooleanAlgebra.generated_by_contains
+        rw [← hBF]
+        exact hE
+    rw [hg, hBF]
+  · intro hEq
+    exact ⟨ConcreteBooleanAlgebra.generated_by F, hEq⟩
 
 /-- Exercise 1.4.7 (Generation by boxes) -/
+theorem ConcreteBooleanAlgebra.finset_union_mem {X:Type*} {α : Type*} (B: ConcreteBooleanAlgebra X)
+    {S : Finset α} (t : α → Set X) (hS : ∀ E ∈ S, B.measurable (t E)) : B.measurable (⋃ E ∈ S, t E) := by
+  classical
+  induction S using Finset.induction_on with
+  | empty =>
+      simpa using B.empty_mem
+  | insert E S' hEnot ih =>
+      have hE : B.measurable (t E) := hS E (Finset.mem_insert_self E S')
+      have hS' : ∀ E' ∈ S', B.measurable (t E') := fun E' hE' => hS E' (Finset.mem_insert_of_mem hE')
+      convert B.union_mem (t E) (⋃ E' ∈ S', t E') hE (ih hS') using 1
+      ext x
+      simp [Finset.mem_insert]
+
 instance EuclideanSpace'.elementary_boolean_algebra_generated_by_boxes (d:ℕ) : EuclideanSpace'.elementary_boolean_algebra d =
-  ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ) := by sorry
+  ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ) := by
+  apply le_antisymm
+  · intro E hE
+    rcases hE with hE | hE
+    · rcases hE with ⟨S, rfl⟩
+      apply ConcreteBooleanAlgebra.finset_union_mem (ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ)) (fun B : Box d => (↑B : Set (EuclideanSpace' d)))
+      intro B hB
+      apply ConcreteBooleanAlgebra.generated_by_contains
+      change ∃ B' : Box d, B' ∈ Set.univ ∧ (B' : Set (EuclideanSpace' d)) = (↑B : Set (EuclideanSpace' d))
+      exact ⟨B, trivial, rfl⟩
+    · rcases hE with ⟨S, hE⟩
+      have hEc : (ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ)).measurable (⋃ B ∈ S, (↑B : Set (EuclideanSpace' d))) := by
+        apply ConcreteBooleanAlgebra.finset_union_mem (ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ)) (fun B : Box d => (↑B : Set (EuclideanSpace' d)))
+        intro B hB
+        apply ConcreteBooleanAlgebra.generated_by_contains
+        change ∃ B' : Box d, B' ∈ Set.univ ∧ (B' : Set (EuclideanSpace' d)) = (↑B : Set (EuclideanSpace' d))
+        exact ⟨B, trivial, rfl⟩
+      have hEcomp : (ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ)).measurable ((⋃ B ∈ S, (↑B : Set (EuclideanSpace' d)))ᶜ) :=
+        (ConcreteBooleanAlgebra.generated_by (Box.toSet '' Set.univ)).compl_mem (⋃ B ∈ S, (↑B : Set (EuclideanSpace' d))) hEc
+      simpa [hE.symm] using hEcomp
+  · apply ConcreteBooleanAlgebra.generated_by_le (EuclideanSpace'.elementary_boolean_algebra d)
+    intro E hE
+    rcases hE with ⟨B, _, rfl⟩
+    exact Or.inl (IsElementary.box B)
 
 /-- Exercise 1.4.9 (Recursive definition of generated Boolean algebra). -/
 def ConcreteBooleanAlgebra.generated_by_eq {X:Type*} (F: Set (Set X)) :
