@@ -2849,13 +2849,123 @@ private lemma box_lusin {d:ℕ} (A : Set (EuclideanSpace' d)) (hA : LebesgueMeas
   rw [hAE]
   exact hcontF_f
 
+/-- The global Lusin assembly: if f is continuous off a small set in every box of an
+    exhausting nested family, then f is continuous off a small set in the whole space. -/
+private lemma lusin_assembly {d:ℕ} (f : EuclideanSpace' d → ℂ)
+    (A : ℕ → Set (EuclideanSpace' d))
+    (_hA_meas : ∀ N, LebesgueMeasurable (A N))
+    (hA_int : ∀ N, A N ⊆ interior (A (N+1)))
+    (hA_cover : ∀ x, ∃ N, x ∈ A N)
+    (ε : ℝ) (hε : 0 < ε)
+    (hbox : ∀ N, ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ E ⊆ A N ∧
+      Lebesgue_measure E ≤ (↑(ε / 2^(N+1) : ℝ) : EReal) ∧
+      Continuous (fun x : (A N \ E : Set (EuclideanSpace' d)) => f x.val)) :
+    ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ Lebesgue_measure E ≤ ε ∧
+      Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => f x.val) := by
+  choose E_N hE_N_meas _ hE_N_le hE_N_cont using hbox
+  let E : Set (EuclideanSpace' d) := ⋃ N : ℕ, E_N N
+  have hE_meas : LebesgueMeasurable E := LebesgueMeasurable.countable_union (fun N => hE_N_meas N)
+  have hconv_ereal : ∀ (X : ℝ) (k : ℕ), (X / 2^(k+1) : EReal) = (↑(X / 2^(k+1) : ℝ) : EReal) := by
+    intro X k
+    rw [EReal.coe_div, EReal.coe_pow]
+    rfl
+  have hnonneg : ∀ N, 0 ≤ (↑(ε / 2^(N+1) : ℝ) : EReal) := by
+    intro N
+    exact EReal.coe_nonneg.mpr (div_nonneg (le_of_lt hε) (le_of_lt (pow_pos (by norm_num) (N + 1))))
+  have hE_le : Lebesgue_measure E ≤ (↑ε : EReal) := by
+    calc
+      Lebesgue_measure E ≤ ∑' N : ℕ, Lebesgue_measure (E_N N) :=
+        Lebesgue_outer_measure.union_le (fun N => E_N N)
+      _ ≤ ∑' N : ℕ, (↑(ε / 2^(N+1) : ℝ) : EReal) := by
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun N => Lebesgue_measure (E_N N))
+          (fun N => Lebesgue_outer_measure.nonneg (E_N N))]
+        rw [EReal.tsum_eq_ennreal_of_nonneg (f := fun N => (↑(ε / 2^(N+1) : ℝ) : EReal)) hnonneg]
+        rw [EReal.coe_ennreal_le_coe_ennreal_iff]
+        apply ENNReal.tsum_le_tsum
+        intro N
+        exact EReal.toENNReal_le_toENNReal (hE_N_le N)
+      _ ≤ (↑ε : EReal) := by
+        have hg := egorov_tsum_geometric hε
+        simpa [hconv_ereal] using hg
+  have hcontOn : ContinuousOn f Eᶜ := by
+    intro x hxEc
+    rcases hA_cover x with ⟨N₀, hxN₀⟩
+    have hxint : x ∈ interior (A (N₀ + 1)) := hA_int N₀ hxN₀
+    have hxnotEN : x ∉ E_N (N₀ + 1) := fun h => hxEc (Set.subset_iUnion (fun N => E_N N) (N₀ + 1) h)
+    have hcontOn_AN : ContinuousOn f (A (N₀ + 1) \ E_N (N₀ + 1)) :=
+      (continuousOn_iff_continuous_restrict (f := f) (s := A (N₀ + 1) \ E_N (N₀ + 1))).mpr (hE_N_cont (N₀ + 1))
+    have hxmem : x ∈ A (N₀ + 1) \ E_N (N₀ + 1) := ⟨interior_subset hxint, hxnotEN⟩
+    have hcont_at : ContinuousWithinAt f (A (N₀ + 1) \ E_N (N₀ + 1)) x :=
+      hcontOn_AN.continuousWithinAt hxmem
+    have hA_nhds : A (N₀ + 1) ∈ nhds x := mem_interior_iff_mem_nhds.mp hxint
+    have hmem : A (N₀ + 1) \ E_N (N₀ + 1) ∈ nhdsWithin x Eᶜ := by
+      apply mem_nhdsWithin_iff_exists_mem_nhds_inter.mpr
+      refine ⟨A (N₀ + 1), hA_nhds, ?_⟩
+      intro y hy
+      exact ⟨hy.1, fun h => hy.2 (Set.subset_iUnion (fun N => E_N N) (N₀ + 1) h)⟩
+    exact hcont_at.mono_of_mem_nhdsWithin hmem
+  have hcont : Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => f x.val) :=
+    (continuousOn_iff_continuous_restrict (f := f) (s := Eᶜ)).mp hcontOn
+  exact ⟨E, hE_meas, hE_le, hcont⟩
+
+/-- The box A N is contained in the interior of the next box. -/
+private lemma egorov_A_interior {d : ℕ} (N : ℕ) : egorov_A (d := d) N ⊆ interior (egorov_A (d := d) (N+1)) := by
+  intro x hx
+  rw [mem_interior]
+  refine ⟨Metric.ball x (1 / 2), ?_, Metric.isOpen_ball, Metric.mem_ball_self (by norm_num : (0 : ℝ) < 1 / 2)⟩
+  intro y hy
+  have hxcoord : ∀ i : Fin d, x i ∈ Set.Icc (-(N : ℝ)) (N : ℝ) := by
+    simpa [egorov_A, egorov_box, Box.mem_toSet, BoundedInterval.set_Icc] using hx
+  have hyle : ∀ i : Fin d, |y i - x i| < 1 / 2 := by
+    intro i
+    have hnorm : ‖y - x‖ < 1 / 2 := by
+      simpa [dist_eq_norm] using (Metric.mem_ball.mp hy)
+    exact lt_of_le_of_lt (EuclideanSpace'.coord_le_norm (y - x) i) hnorm
+  have hysub : ∀ i : Fin d, y i ∈ Set.Icc (-(N + 1 : ℝ)) (N + 1 : ℝ) := by
+    intro i
+    rcases hxcoord i with ⟨hlo, hhi⟩
+    constructor
+    · have hlt : -(1 / 2) < y i - x i := (abs_lt.mp (hyle i)).1
+      linarith [hlo, hlt]
+    · have hlt : y i - x i < 1 / 2 := (abs_lt.mp (hyle i)).2
+      linarith [hhi, hlt]
+  simpa [egorov_A, egorov_box, Box.mem_toSet, BoundedInterval.set_Icc] using hysub
+
+/-- Every point lies in some box A N. -/
+private lemma egorov_A_cover {d : ℕ} (x : EuclideanSpace' d) : ∃ N, x ∈ egorov_A (d := d) N := by
+  obtain ⟨N, hN⟩ := exists_nat_gt ‖x‖
+  refine ⟨N, ?_⟩
+  intro i
+  have hcoord : |x i| ≤ ‖x‖ := EuclideanSpace'.coord_le_norm x i
+  have hlt : |x i| < (N : ℝ) := lt_of_le_of_lt hcoord hN
+  exact Set.mem_Icc.mpr (abs_le.mp (le_of_lt hlt))
+
 /-- Theorem 1.3.28 (Lusin's theorem) -/
+theorem ComplexMeasurable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℂ}
+  (hf: ComplexMeasurable f)
+  (ε : ℝ) (hε : 0 < ε) :
+  ∃ (g : EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)), Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) ∧ LebesgueMeasurable E ∧
+      Lebesgue_measure E ≤ ε ∧
+      ∀ x ∉ E, g x = f x := by
+  have hbox : ∀ N : ℕ, ∃ E : Set (EuclideanSpace' d), LebesgueMeasurable E ∧ E ⊆ egorov_A (d := d) N ∧
+      Lebesgue_measure E ≤ (↑(ε / 2^(N+1) : ℝ) : EReal) ∧
+      Continuous (fun x : (egorov_A (d := d) N \ E : Set (EuclideanSpace' d)) => f x.val) := by
+    intro N
+    have hεN : 0 < ε / 2^(N+1) := div_pos hε (pow_pos (by norm_num) (N+1))
+    exact box_lusin (egorov_A (d := d) N) (egorov_A_meas N) (egorov_A_fin N) f hf (ε / 2^(N+1)) hεN
+  obtain ⟨E, hE_meas, hE_le, hcont⟩ :=
+    lusin_assembly f egorov_A egorov_A_meas egorov_A_interior egorov_A_cover ε hε hbox
+  refine ⟨f, E, hcont, hE_meas, hE_le, ?_⟩
+  intro x hx
+  rfl
+
 theorem ComplexAbsolutelyIntegrable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℂ}
   (hf: ComplexAbsolutelyIntegrable f)
   (ε : ℝ) (hε : 0 < ε) :
   ∃ (g : EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)), Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) ∧ LebesgueMeasurable E ∧
       Lebesgue_measure E ≤ ε ∧
-      ∀ x ∉ E, g x = f x := by sorry
+      ∀ x ∉ E, g x = f x := by
+  exact ComplexMeasurable.approx_by_continuous_outside_small hf.1 ε hε
 
 /-- Lusin's theorem does not make the original function continuous outside of E -/
 example : ∃ (d:ℕ) (f : EuclideanSpace' d → ℝ),
@@ -2872,14 +2982,26 @@ theorem LocallyComplexAbsolutelyIntegrable.approx_by_continuous_outside_small {d
   (ε : ℝ) (hε : 0 < ε) :
   ∃ (g : EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)), Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) ∧ LebesgueMeasurable E ∧
       Lebesgue_measure E ≤ ε ∧
-      ∀ x ∉ E, g x = f x := by sorry
-
-theorem ComplexMeasurable.approx_by_continuous_outside_small {d:ℕ} {f : EuclideanSpace' d → ℂ}
-  (hf: ComplexMeasurable f)
-  (ε : ℝ) (hε : 0 < ε) :
-  ∃ (g : EuclideanSpace' d → ℂ) (E: Set (EuclideanSpace' d)), Continuous (fun x : (Eᶜ : Set (EuclideanSpace' d)) => g x.val) ∧ LebesgueMeasurable E ∧
-      Lebesgue_measure E ≤ ε ∧
-      ∀ x ∉ E, g x = f x := by sorry
+      ∀ x ∉ E, g x = f x := by
+  have hfmeas : ComplexMeasurable f := by
+    have hseq : ∀ N : ℕ, ComplexMeasurable (fun x => f x * Complex.indicator (Metric.ball (0 : EuclideanSpace' d) (N : ℝ)) x) := by
+      intro N
+      have hAI : ComplexAbsolutelyIntegrableOn f (Metric.ball (0 : EuclideanSpace' d) (N : ℝ)) :=
+        hf (Metric.ball (0 : EuclideanSpace' d) (N : ℝ))
+          ⟨IsOpen.measurable (Metric.isOpen_ball : IsOpen (Metric.ball (0 : EuclideanSpace' d) (N : ℝ))), Metric.isBounded_ball⟩
+      exact hAI.1
+    exact ComplexMeasurable.aeLimit_of_pointwiseAe hseq (by
+      apply AlmostAlways.ofAlways
+      intro x
+      obtain ⟨N₀, hN₀⟩ := exists_nat_gt ‖x‖
+      have hconst : Tendsto (fun _ : ℕ => f x) atTop (nhds (f x)) := tendsto_const_nhds
+      refine hconst.congr' ?_
+      filter_upwards [eventually_ge_atTop N₀] with N hN
+      have hxN : x ∈ Metric.ball (0 : EuclideanSpace' d) (N : ℝ) := by
+        rw [Metric.mem_ball, dist_zero_right]
+        exact lt_of_lt_of_le hN₀ (Nat.cast_le.mpr hN)
+      simp [Complex.indicator, Real.complex_fun, Set.indicator'_of_mem hxN, mul_one])
+  exact ComplexMeasurable.approx_by_continuous_outside_small hfmeas ε hε
 
 /-- Exercise 1.3.24 -/
 theorem ComplexMeasurable.iff_pointwiseae_of_continuous {d:ℕ} {f : EuclideanSpace' d → ℂ} :

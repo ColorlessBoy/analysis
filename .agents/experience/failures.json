@@ -1859,6 +1859,25 @@
       "status": "success",
       "notes": "Full proof of box_lusin via egorov_on_finite_set + simple_continuousOn_outside_small + uniform-limit continuity",
       "end": "2026-08-04T12:19:44.518685"
+    },
+    {
+      "id": 111,
+      "theorem": "lusin_assembly",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_lusin3.lean",
+      "goal": "Global Lusin assembly: stitch box-Lusin results",
+      "start": "2026-08-04T12:29:06.813085",
+      "attempts": [
+        {
+          "edit": "final proof",
+          "errors_before": 2,
+          "errors_after": 0,
+          "excerpt": "0 errors 0 warnings",
+          "time": "2026-08-04T12:36:02.040108"
+        }
+      ],
+      "status": "success",
+      "notes": "measure via union_le + EReal tsum dance; continuity via ContinuousWithinAt.mono_of_mem_nhdsWithin",
+      "end": "2026-08-04T12:36:02.066756"
     }
   ]
 }

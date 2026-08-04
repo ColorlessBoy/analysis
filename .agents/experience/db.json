@@ -671,6 +671,13 @@
       "tactics": "choose/disjoint-rep/egorov/uniform-limit",
       "description": "Lusin on finite-measure set: truncate by indicator, disjoint atoms finite, per-m simple-continuity, D=inter(Cm\u2229A), egorov, uniform-limit continuity, convert fA to f",
       "time": "2026-08-04T12:19:50.144169"
+    },
+    {
+      "theorem": "lusin_assembly",
+      "file": "_temp_lusin3.lean",
+      "tactics": "choose/let/calc union_le + EReal tsum; ContinuousOn via ContinuousWithinAt.mono_of_mem_nhdsWithin + mem_interior_iff_mem_nhds; continuousOn_iff_continuous_restrict",
+      "description": "Global Lusin assembly: E=\u22c3E_N, measure \u2264 \u03b5 via egorov_tsum_geometric, continuity off E via local interior-neighborhood transfer",
+      "time": "2026-08-04T12:37:31.762219"
     }
   ],
   "errors": [
