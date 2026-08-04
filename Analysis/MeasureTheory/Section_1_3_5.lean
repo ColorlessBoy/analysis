@@ -2267,22 +2267,258 @@ theorem PointwiseAeConvergesTo.locallyUniformlyConverges_outside_small {d:ℕ} {
     exact hN₀ n hn ⟨x.val.val, ⟨hxA, hxnotEN⟩⟩
   exact ⟨E, hE_meas, hE_le, hLU⟩
 
-/-- The exceptional set in Egorov's theorem cannot be taken to be null -/
+/-- A real simple function is real measurable. -/
+lemma RealSimpleFunction.measurable {d:ℕ} {f : EuclideanSpace' d → ℝ} (hf : RealSimpleFunction f) : RealMeasurable f := by
+  exact ⟨fun _ => f, fun _ => hf, fun x => tendsto_const_nhds⟩
+
+/-- The interval {lit}`[n, n+1]` on the real line, embedded into EuclideanSpace' 1. -/
+private def counterA (n : ℕ) : Set (EuclideanSpace' 1) :=
+  EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (n : ℝ) ((n : ℝ) + 1)
+
+/-- Membership in counterA n is equivalent to coordinate bounds. -/
+private lemma counter_mem_A_iff (n : ℕ) (x : EuclideanSpace' 1) :
+    x ∈ counterA n ↔ (n : ℝ) ≤ x.toReal ∧ x.toReal ≤ (n + 1 : ℝ) := by
+  simp [counterA, EuclideanSpace'.toReal]
+
+/-- counterA n is Lebesgue measurable. -/
+private lemma counter_A_measurable (n : ℕ) : LebesgueMeasurable (counterA n) := by
+  have h_cont : Continuous (EuclideanSpace'.equiv_Real : EuclideanSpace' 1 → ℝ) :=
+    PiLp.continuous_apply 2 (fun _ : Fin 1 => ℝ) _
+  exact IsClosed.measurable (isClosed_Icc.preimage h_cont)
+
+/-- The interval {lit}`[1/(n+2), 1/(n+1)]` shrinking to 0, embedded into EuclideanSpace' 1. -/
+private def counterB (n : ℕ) : Set (EuclideanSpace' 1) :=
+  EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (1 / (n + 2 : ℝ)) (1 / (n + 1 : ℝ))
+
+/-- Membership in counterB n is equivalent to coordinate bounds. -/
+private lemma counter_mem_B_iff (n : ℕ) (x : EuclideanSpace' 1) :
+    x ∈ counterB n ↔ (1 / (n + 2 : ℝ)) ≤ x.toReal ∧ x.toReal ≤ (1 / (n + 1 : ℝ)) := by
+  simp [counterB, EuclideanSpace'.toReal]
+
+/-- counterB n is Lebesgue measurable. -/
+private lemma counter_B_measurable (n : ℕ) : LebesgueMeasurable (counterB n) := by
+  have h_cont : Continuous (EuclideanSpace'.equiv_Real : EuclideanSpace' 1 → ℝ) :=
+    PiLp.continuous_apply 2 (fun _ : Fin 1 => ℝ) _
+  exact IsClosed.measurable (isClosed_Icc.preimage h_cont)
+
+/-- Remark 1.3.27 counterexample: Egorov's local uniform convergence cannot be upgraded
+    to uniform convergence. -/
+lemma egorov_not_uniform_counterexample :
+  ∃ (d:ℕ) (f : ℕ → EuclideanSpace' d → ℝ) (g : EuclideanSpace' d → ℝ),
+    (∀ n, RealMeasurable (f n)) ∧ PointwiseAeConvergesTo f g ∧
+    ∃ (ε : ℝ) (_hε : 0 < ε),
+      ∀ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧ Lebesgue_measure E ≤ ε →
+        ¬ UniformlyConvergesToOn f g Eᶜ := by
+  let f : ℕ → EuclideanSpace' 1 → ℝ := fun n x => (counterA n).indicator' x
+  let g : EuclideanSpace' 1 → ℝ := fun _ => 0
+  refine ⟨1, f, g, ?_, ?_, ?_⟩
+  · intro n
+    exact RealSimpleFunction.measurable (RealSimpleFunction.indicator (counter_A_measurable n))
+  · apply AlmostAlways.ofAlways
+    intro x
+    have h_conv : atTop.Tendsto (fun n => f n x) (nhds (0 : ℝ)) := by
+      obtain ⟨N, hN⟩ := exists_nat_gt (x.toReal)
+      have hzero : ∀ n ≥ N, f n x = 0 := by
+        intro n hn
+        have hnot : x ∉ counterA n := by
+          intro hxA
+          have hle : (n : ℝ) ≤ x.toReal := (counter_mem_A_iff n x).mp hxA |>.1
+          have ht : x.toReal < (n : ℝ) := lt_of_lt_of_le hN (Nat.cast_le.mpr hn)
+          linarith
+        dsimp [f]
+        exact Set.indicator'_of_notMem hnot
+      exact (tendsto_const_nhds (x := (0 : ℝ)) (f := atTop)).congr'
+        (eventually_atTop.mpr ⟨N, fun n hn => (hzero n hn).symm⟩)
+    simpa [g] using h_conv
+  · refine ⟨(1 / 2 : ℝ), by norm_num, ?_⟩
+    intro E hE
+    rcases hE with ⟨_hE_meas, hE_le⟩
+    have hAn_measure : ∀ n, Lebesgue_measure (counterA n) = ((1 : ℝ) : EReal) := by
+      intro n
+      unfold counterA Lebesgue_measure
+      calc
+        Lebesgue_outer_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (↑n) (↑n + 1))
+            = ((↑n + 1 - ↑n : ℝ) : EReal) :=
+              Lebesgue_outer_measure.of_Icc (↑n) (↑n + 1) (by linarith)
+        _ = ((1 : ℝ) : EReal) := by
+          exact congrArg (fun r : ℝ => (r : EReal)) (by ring)
+    unfold UniformlyConvergesToOn UniformlyConvergesTo
+    push_neg
+    refine ⟨1 / 2, by norm_num, ?_⟩
+    intro N
+    refine ⟨N, le_rfl, ?_⟩
+    have hA_not_subset : ¬ counterA N ⊆ E := by
+      intro hsub
+      have hmeasure : ((1 : ℝ) : EReal) ≤ Lebesgue_measure E := by
+        calc
+          ((1 : ℝ) : EReal) = Lebesgue_measure (counterA N) := (hAn_measure N).symm
+          _ ≤ Lebesgue_measure E := Lebesgue_outer_measure.mono hsub
+      have hbad : ((1 : ℝ) : EReal) ≤ ((1 / 2 : ℝ) : EReal) := le_trans hmeasure hE_le
+      have : ¬ (((1 : ℝ) : EReal) ≤ ((1 / 2 : ℝ) : EReal)) := by
+        rw [EReal.coe_le_coe_iff]
+        norm_num
+      exact this hbad
+    rw [Set.not_subset] at hA_not_subset
+    rcases hA_not_subset with ⟨x, hxA, hxnotE⟩
+    let y : {x : EuclideanSpace' 1 // x ∈ Eᶜ} := ⟨x, hxnotE⟩
+    refine ⟨y, ?_⟩
+    have hfN : f N x = 1 := by
+      dsimp [f]
+      exact Set.indicator'_of_mem hxA
+    have hdist : dist (f N y.val) (g y.val) = 1 := by
+      simp [g, hfN, y, dist_eq_norm]
+    rw [hdist]
+    norm_num
+
+set_option maxHeartbeats 800000 in
+/-- The exceptional set in Egorov's theorem cannot be taken to be null. -/
+lemma egorov_exceptional_not_null_counterexample :
+  ∃ (d:ℕ) (f : ℕ → EuclideanSpace' d → ℝ) (g : EuclideanSpace' d → ℝ),
+    (∀ n, RealMeasurable (f n)) ∧ PointwiseAeConvergesTo f g ∧
+    ∀ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧ Lebesgue_measure E = 0 →
+      ¬ LocallyUniformlyConvergesToOn f g Eᶜ := by
+  let f : ℕ → EuclideanSpace' 1 → ℝ := fun n x => (counterB n).indicator' x
+  let g : EuclideanSpace' 1 → ℝ := fun _ => 0
+  refine ⟨1, f, g, ?_, ?_, ?_⟩
+  · intro n
+    exact RealSimpleFunction.measurable (RealSimpleFunction.indicator (counter_B_measurable n))
+  · apply AlmostAlways.ofAlways
+    intro x
+    have h_conv : atTop.Tendsto (fun n => f n x) (nhds (0 : ℝ)) := by
+      by_cases hr : 0 < x.toReal
+      · obtain ⟨N, hN⟩ := exists_nat_gt (1 / x.toReal)
+        have hzero : ∀ n ≥ N, f n x = 0 := by
+          intro n hn
+          have hnot : x ∉ counterB n := by
+            intro hxB
+            have hle : x.toReal ≤ (1 / (n + 1 : ℝ)) := (counter_mem_B_iff n x).mp hxB |>.2
+            have hN' : (N : ℝ) > 1 / x.toReal := hN
+            have hn' : (N : ℝ) ≤ (n : ℝ) := Nat.cast_le.mpr hn
+            have hbig : 1 < x.toReal * ((n + 1 : ℝ)) := by
+              have h1 : 1 < (N : ℝ) * x.toReal := (div_lt_iff₀ hr).mp hN'
+              nlinarith [h1, hn']
+            have hlt : (1 / (n + 1 : ℝ)) < x.toReal := by
+              field_simp [ne_of_gt (by positivity : 0 < (n + 1 : ℝ))]
+              nlinarith [hbig]
+            linarith
+          dsimp [f]
+          exact Set.indicator'_of_notMem hnot
+        exact (tendsto_const_nhds (x := (0 : ℝ)) (f := atTop)).congr'
+          (eventually_atTop.mpr ⟨N, fun n hn => (hzero n hn).symm⟩)
+      · have hzero : ∀ n, f n x = 0 := by
+          intro n
+          have hnot : x ∉ counterB n := by
+            intro hxB
+            have hlo : (1 / (n + 2 : ℝ)) ≤ x.toReal := (counter_mem_B_iff n x).mp hxB |>.1
+            have hpos : (0 : ℝ) < x.toReal := lt_of_lt_of_le (by positivity) hlo
+            linarith
+          dsimp [f]
+          exact Set.indicator'_of_notMem hnot
+        exact (tendsto_const_nhds (x := (0 : ℝ)) (f := atTop)).congr'
+          (eventually_atTop.mpr ⟨0, fun n _ => (hzero n).symm⟩)
+    simpa [g] using h_conv
+  · intro E hE
+    rcases hE with ⟨hE_meas, hE0⟩
+    have hBn_pos : ∀ n, (0 : EReal) < Lebesgue_measure (counterB n) := by
+      intro n
+      unfold counterB Lebesgue_measure
+      have hlt : (1 / (n + 2 : ℝ)) < (1 / (n + 1 : ℝ)) := by
+        field_simp [show (n + 1 : ℝ) ≠ 0 by positivity, show (n + 2 : ℝ) ≠ 0 by positivity]
+        nlinarith
+      have hμ : Lebesgue_outer_measure
+          (EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (1 / (n + 2 : ℝ)) (1 / (n + 1 : ℝ))) =
+          (↑(1 / (n + 1 : ℝ) - 1 / (n + 2 : ℝ)) : EReal) :=
+        Lebesgue_outer_measure.of_Icc (1 / (n + 2 : ℝ)) (1 / (n + 1 : ℝ)) (le_of_lt hlt)
+      rw [hμ]
+      exact EReal.coe_pos.mpr (by
+        field_simp [show (n + 1 : ℝ) ≠ 0 by positivity, show (n + 2 : ℝ) ≠ 0 by positivity]
+        linarith)
+    unfold LocallyUniformlyConvergesToOn LocallyUniformlyConvergesTo UniformlyConvergesToOn UniformlyConvergesTo
+    push_neg
+    have huniv_pos : (0 : EReal) < Lebesgue_measure (Set.univ : Set (EuclideanSpace' 1)) := by
+      have hint : Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (0 : ℝ) 1) = (1 : EReal) := by
+        unfold Lebesgue_measure
+        simpa using Lebesgue_outer_measure.of_Icc (0 : ℝ) 1 (by norm_num)
+      have hmono : Lebesgue_measure (EuclideanSpace'.equiv_Real ⁻¹' Set.Icc (0 : ℝ) 1) ≤ Lebesgue_measure Set.univ :=
+        Lebesgue_outer_measure.mono (Set.subset_univ _)
+      exact lt_of_lt_of_le (by rw [hint]; norm_num) hmono
+    have hE_ne_univ : E ≠ Set.univ := by
+      intro hEuniv
+      have : (0 : EReal) < Lebesgue_measure E := by
+        simpa [hEuniv] using huniv_pos
+      exact (ne_of_gt this) hE0
+    have hEc_nonempty : (Eᶜ : Set (EuclideanSpace' 1)).Nonempty := by
+      rw [Set.nonempty_compl]
+      exact hE_ne_univ
+    rcases hEc_nonempty with ⟨z, hz⟩
+    let K : Set {x : EuclideanSpace' 1 // x ∈ Eᶜ} := {x | x.val ∈ Metric.closedBall (0 : EuclideanSpace' 1) 1}
+    have hK_bounded : Bornology.IsBounded K := by
+      rw [Metric.isBounded_iff_subset_closedBall (⟨z, hz⟩ : {x : EuclideanSpace' 1 // x ∈ Eᶜ})]
+      refine ⟨1 + ‖z‖, ?_⟩
+      intro x hx
+      rw [Metric.mem_closedBall]
+      have hsub : dist x (⟨z, hz⟩) = dist x.val z := Subtype.dist_eq x ⟨z, hz⟩
+      rw [hsub]
+      have hxd : dist x.val 0 ≤ 1 := Metric.mem_closedBall.mp hx
+      have hzd : dist 0 z = ‖z‖ := by
+        simp [dist_eq_norm]
+      calc dist x.val z ≤ dist x.val 0 + dist 0 z := dist_triangle _ _ _
+        _ ≤ 1 + ‖z‖ := by rw [hzd]; linarith
+    refine ⟨K, hK_bounded, ?_⟩
+    refine ⟨1 / 2, by norm_num, ?_⟩
+    intro N
+    refine ⟨N, le_rfl, ?_⟩
+    have hB_not_subset : ¬ counterB N ⊆ E := by
+      intro hsub
+      have hle : (0 : EReal) < Lebesgue_measure E := lt_of_lt_of_le (hBn_pos N) (Lebesgue_outer_measure.mono hsub)
+      exact (ne_of_gt hle) hE0
+    rw [Set.not_subset] at hB_not_subset
+    rcases hB_not_subset with ⟨x, hxB, hxnotE⟩
+    have hx_in_ball : x ∈ Metric.closedBall (0 : EuclideanSpace' 1) 1 := by
+      rw [Metric.mem_closedBall, dist_eq_norm, sub_zero]
+      have hnorm_eq : ‖x‖ = |x.toReal| := by
+        rw [EuclideanSpace'.norm_eq, Fin.sum_univ_one]
+        simp [EuclideanSpace'.toReal, EuclideanSpace'.equiv_Real, Real.sqrt_sq_eq_abs]
+      have hxcoord : x.toReal ≤ 1 := by
+        have hb : x.toReal ≤ (1 / (N + 1 : ℝ)) := (counter_mem_B_iff N x).mp hxB |>.2
+        have h1 : (1 / (N + 1 : ℝ)) ≤ 1 := by
+          field_simp [show (N + 1 : ℝ) ≠ 0 by positivity]
+          linarith
+        linarith
+      have hxcoord2 : 0 ≤ x.toReal := by
+        have hlo : (1 / (N + 2 : ℝ)) ≤ x.toReal := (counter_mem_B_iff N x).mp hxB |>.1
+        have hpos : (0 : ℝ) < (1 / (N + 2 : ℝ)) := by positivity
+        linarith
+      rw [hnorm_eq]
+      rw [abs_of_nonneg hxcoord2]
+      exact hxcoord
+    let y : K := ⟨⟨x, hxnotE⟩, hx_in_ball⟩
+    refine ⟨y, ?_⟩
+    have hfN : f N x = 1 := by
+      dsimp [f]
+      exact Set.indicator'_of_mem hxB
+    have hdist : dist (f N y.val.val) (g y.val.val) = 1 := by
+      simp [g, hfN, y, dist_eq_norm]
+    rw [hdist]
+    norm_num
+
 example : ∃ (d:ℕ) (f : ℕ → EuclideanSpace' d → ℝ) (g : EuclideanSpace' d → ℝ),
     (∀ n, RealMeasurable (f n)) ∧
     PointwiseAeConvergesTo f g ∧
     ∀ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧
       Lebesgue_measure E = 0 →
-      ¬ LocallyUniformlyConvergesToOn f g Eᶜ := by sorry
+      ¬ LocallyUniformlyConvergesToOn f g Eᶜ := by
+  exact egorov_exceptional_not_null_counterexample
 
 /-- Remark 1.3.27: Local uniform convergence in Egorov's theorem cannot be upgraded to uniform convergence -/
 example : ∃ (d:ℕ) (f : ℕ → EuclideanSpace' d → ℝ) (g : EuclideanSpace' d → ℝ),
     (∀ n, RealMeasurable (f n)) ∧
     PointwiseAeConvergesTo f g ∧
-    ∃ (ε : ℝ) (hε : 0 < ε),
+    ∃ (ε : ℝ) (_hε : 0 < ε),
       ∀ (E: Set (EuclideanSpace' d)), LebesgueMeasurable E ∧
         Lebesgue_measure E ≤ ε →
-        ¬ UniformlyConvergesToOn f g Eᶜ := by sorry
+        ¬ UniformlyConvergesToOn f g Eᶜ := by
+  exact egorov_not_uniform_counterexample
 
 /-- But uniform convergence can be recovered on a fixed set of finite measure -/
 theorem PointwiseAeConvergesTo.uniformlyConverges_outside_small {d:ℕ} {f : ℕ → EuclideanSpace' d → ℂ} {g : EuclideanSpace' d → ℂ}

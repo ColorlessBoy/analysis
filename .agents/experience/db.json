@@ -692,6 +692,13 @@
       "tactics": "TFAE-closed-preimage, isCompact_Icc.inter_left, Real.toEReal image compact->closed, cases EReal set equality, exists_nat_gt+abs_lt bound, EReal.coe_toReal",
       "description": "RealMeasurable \u03c6 via bounded slices: \u03c6\u207b\u00b9'K = \u22c3n f\u207b\u00b9'{y|y.toReal\u2208K\u2229[-n,n]}, each slice closed (image of compact + {\u22a4,\u22a5} singletons)",
       "time": "2026-08-04T13:33:20.559044"
+    },
+    {
+      "theorem": "egorov_not_uniform_counterexample",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_counter.lean",
+      "tactics": "refine witness; of_Icc; congrArg (fun r => (r:EReal)) (by ring); EReal.coe_le_coe_iff; Set.not_subset; tendsto_const_nhds.congr'",
+      "description": "d=1, f n = indicator of [n,n+1] interval; measure 1 vs epsilon 1/2 contradiction",
+      "time": "2026-08-04T14:16:58.740109"
     }
   ],
   "errors": [

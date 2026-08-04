@@ -1939,6 +1939,26 @@
       "status": "success",
       "notes": "proved unsigned_measurable_to_real: RealMeasurable via bounded-slice preimage-of-closed characterization (S n closed via compact image union) + agreement via coe_toReal",
       "end": "2026-08-04T13:33:20.511136"
+    },
+    {
+      "id": 115,
+      "theorem": "egorov_counter",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_counter.lean",
+      "goal": "counterexamples: egorov_not_uniform_counterexample and egorov_exceptional_not_null_counterexample",
+      "start": "2026-08-04T13:49:08.578810",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 116,
+      "theorem": "egorov_s2",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_counter.lean",
+      "goal": "egorov_not_uniform_counterexample: build interval counterexample",
+      "start": "2026-08-04T13:55:06.911259",
+      "attempts": [],
+      "status": "success",
+      "notes": "egorov_not_uniform_counterexample proved with interval indicator witness",
+      "end": "2026-08-04T14:16:53.708193"
     }
   ]
 }
