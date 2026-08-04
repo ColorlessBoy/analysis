@@ -21,9 +21,15 @@ instance ConcreteBooleanAlgebra.instLE (X:Type*) : LE (ConcreteBooleanAlgebra X)
 
 instance ConcreteBooleanAlgebra.instPartialOrder (X:Type*) : PartialOrder (ConcreteBooleanAlgebra X) :=
   {
-    le_refl := sorry
-    le_trans := sorry
-    le_antisymm := sorry
+    le_refl := fun B E hE => hE
+    le_trans := fun B1 B2 B3 h12 h23 E hE => h23 E (h12 E hE)
+    le_antisymm := by
+      intro B1 B2 h12 h21
+      cases B1
+      cases B2
+      congr
+      funext E
+      exact propext ⟨h12 E, h21 E⟩
   }
 
 def ConcreteBooleanAlgebra.measurableSets {X:Type*} (B: ConcreteBooleanAlgebra X) : Set (Set X) :=
@@ -38,7 +44,7 @@ instance ConcreteBooleanAlgebra.instOrderTop {X:Type*} : OrderTop (ConcreteBoole
       compl_mem := fun _ _ => trivial
       union_mem := fun _ _ _ _ => trivial
     }
-    le_top := sorry
+    le_top := fun _ _ _ => trivial
   }
 
 /-- Example 1.4.3 -/
@@ -50,56 +56,121 @@ instance ConcreteBooleanAlgebra.instOrderBot {X:Type*} : OrderBot (ConcreteBoole
       compl_mem := fun E hE => by grind
       union_mem := fun E F hE hF => by grind
     }
-    bot_le := sorry
+    bot_le := by
+      intro B E hE
+      rcases hE with hE | hE
+      · rw [hE]
+        exact B.empty_mem
+      · rw [hE]
+        simpa using B.compl_mem ∅ B.empty_mem
   }
 
 /-- Exercise 1.4.1 (Elementary algebra) -/
 def EuclideanSpace'.elementary_boolean_algebra (d:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
   {
     measurable := fun E => IsElementary E ∨ IsElementary Eᶜ
-    empty_mem := by sorry
-    compl_mem := by sorry
-    union_mem := by sorry
+    empty_mem := Or.inl (IsElementary.empty d)
+    compl_mem := by
+      intro E hE
+      rcases hE with hE | hE
+      · exact Or.inr (by simpa using hE)
+      · exact Or.inl (by simpa using hE)
+    union_mem := by
+      intro E F hE hF
+      rcases hE with hE | hEc
+      · rcases hF with hF | hFc
+        · exact Or.inl (IsElementary.union hE hF)
+        · exact Or.inr (by rw [Set.compl_union, Set.inter_comm]; simpa using IsElementary.sdiff hFc hE)
+      · rcases hF with hF | hFc
+        · exact Or.inr (by rw [Set.compl_union]; simpa using IsElementary.sdiff hEc hF)
+        · exact Or.inr (by rw [Set.compl_union]; exact IsElementary.inter hEc hFc)
   }
 
 /-- Example 1.4.4 (Jordan algebra) -/
 def JordanMeasurable.boolean_algebra (d:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
   {
     measurable := fun E => JordanMeasurable E ∨ JordanMeasurable Eᶜ
-    empty_mem := by sorry
-    compl_mem := by sorry
-    union_mem := by sorry
+    empty_mem := Or.inl (JordanMeasurable.empty d)
+    compl_mem := by
+      intro E hE
+      rcases hE with hE | hE
+      · exact Or.inr (by simpa using hE)
+      · exact Or.inl (by simpa using hE)
+    union_mem := by
+      intro E F hE hF
+      rcases hE with hE | hEc
+      · rcases hF with hF | hFc
+        · exact Or.inl (JordanMeasurable.union hE hF)
+        · exact Or.inr (by rw [Set.compl_union, Set.inter_comm]; simpa using JordanMeasurable.sdiff hFc hE)
+      · rcases hF with hF | hFc
+        · exact Or.inr (by rw [Set.compl_union]; simpa using JordanMeasurable.sdiff hEc hF)
+        · exact Or.inr (by simpa [Set.compl_union] using JordanMeasurable.inter hEc hFc)
   }
 
 def JordanMeasurable.gt_elementary_boolean_algebra (d:ℕ) :
-  JordanMeasurable.boolean_algebra d ≥ EuclideanSpace'.elementary_boolean_algebra d :=
-  by sorry
+  JordanMeasurable.boolean_algebra d ≥ EuclideanSpace'.elementary_boolean_algebra d := by
+  intro E hE
+  rcases hE with hE | hE
+  · exact Or.inl (IsElementary.jordanMeasurable hE)
+  · exact Or.inr (IsElementary.jordanMeasurable hE)
 
 /-- Example 1.4.5 (Lebesgue algebra) -/
 def LebesgueMeasurable.boolean_algebra (d:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
   {
     measurable := fun E => LebesgueMeasurable E
-    empty_mem := by sorry
-    compl_mem := by sorry
-    union_mem := by sorry
+    empty_mem := LebesgueMeasurable.empty
+    compl_mem := fun _ hE => LebesgueMeasurable.complement hE
+    union_mem := fun _ _ hE hF => LebesgueMeasurable.union hE hF
   }
 
 def LebesgueMeasurable.gt_jordan_boolean_algebra (d:ℕ) :
-  LebesgueMeasurable.boolean_algebra d ≥ JordanMeasurable.boolean_algebra d :=
-  by sorry
+  LebesgueMeasurable.boolean_algebra d ≥ JordanMeasurable.boolean_algebra d := by
+  intro E hE
+  rcases hE with hE | hE
+  · exact Jordan_measurable.lebesgue hE
+  · simpa using LebesgueMeasurable.complement (Jordan_measurable.lebesgue hE)
 
 /-- Example 1.4.6 (Null algebra) -/
+theorem IsNull.union {d:ℕ} {E F : Set (EuclideanSpace' d)} (hE : IsNull E) (hF : IsNull F) : IsNull (E ∪ F) := by
+  unfold IsNull at *
+  apply le_antisymm
+  · have hle := Lebesgue_outer_measure.finite_union_le (n := 2)
+      (E := fun i : Fin 2 => if (i : ℕ) = 0 then E else F)
+    have hsum : (∑ i : Fin 2, Lebesgue_outer_measure (if (i : ℕ) = 0 then E else F)) = 0 := by
+      simp [hE, hF]
+    have hunion : (⋃ i : Fin 2, (if (i : ℕ) = 0 then E else F)) = E ∪ F := by
+      ext x
+      simp
+    rw [hunion, hsum] at hle
+    exact hle
+  · exact Lebesgue_outer_measure.nonneg (E ∪ F)
+
 def IsNull.boolean_algebra (d:ℕ) : ConcreteBooleanAlgebra (EuclideanSpace' d) :=
   {
     measurable := fun E => IsNull E ∨ IsNull Eᶜ
-    empty_mem := by sorry
-    compl_mem := by sorry
-    union_mem := by sorry
+    empty_mem := Or.inl (Lebesgue_outer_measure.of_empty d)
+    compl_mem := by
+      intro E hE
+      rcases hE with hE | hE
+      · exact Or.inr (by simpa using hE)
+      · exact Or.inl (by simpa using hE)
+    union_mem := by
+      intro E F hE hF
+      rcases hE with hE | hEc
+      · rcases hF with hF | hFc
+        · exact Or.inl (IsNull.union hE hF)
+        · exact Or.inr (by simpa [Set.compl_union] using IsNull.subset hFc (by intro x hx; exact hx.2))
+      · rcases hF with hF | hFc
+        · exact Or.inr (by simpa [Set.compl_union] using IsNull.subset hEc (by intro x hx; exact hx.1))
+        · exact Or.inr (by simpa [Set.compl_union] using IsNull.subset hEc (by intro x hx; exact hx.1))
   }
 
 def IsNull.lt_lebesgue_boolean_algebra (d:ℕ) :
-  IsNull.boolean_algebra d ≤ LebesgueMeasurable.boolean_algebra d :=
-  by sorry
+  IsNull.boolean_algebra d ≤ LebesgueMeasurable.boolean_algebra d := by
+  intro E hE
+  rcases hE with hE | hE
+  · exact IsNull.measurable hE
+  · exact IsNull.measurable hE
 
 /-- Exercise 1.4.2 (Restriction) -/
 def ConcreteBooleanAlgebra.restrict {X:Type*} (B: ConcreteBooleanAlgebra X) (A:Set X) : ConcreteBooleanAlgebra A :=
