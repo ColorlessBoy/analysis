@@ -1893,9 +1893,150 @@ instance EuclideanSpace'.elementary_boolean_algebra_generated_by_boxes (d:ℕ) :
     rcases hE with ⟨B, _, rfl⟩
     exact Or.inl (IsElementary.box B)
 
-/-- Exercise 1.4.9 (Recursive definition of generated Boolean algebra). -/
+/-- Exercise 1.4.9 (Recursive definition of generated Boolean algebra)-/
+def step {X} (G : Set (Set X)) : Set (Set X) :=
+  { E : Set X | (∃ S : Finset G, E = ⋃ (H:S), H) ∨ (∃ S : Finset G, E = (⋃ (H:S), H)ᶜ) }
+
+def iterate {X} (F : Set (Set X)) (n : ℕ) : Set (Set X) :=
+  Nat.rec (motive := fun _ => Set (Set X)) F (fun _ G => step G) n
+
+lemma singleton_union {X} {G : Set (Set X)} {E : Set X} (hE : E ∈ G) :
+    E = ⋃ H : ({⟨E, hE⟩} : Finset G), (H : Set X) := by
+  ext x
+  simp [Set.mem_iUnion]
+
+lemma pair_union {X} {G : Set (Set X)} {E E' : Set X} (hE : E ∈ G) (hE' : E' ∈ G) :
+    E ∪ E' = ⋃ H : ({⟨E, hE⟩, ⟨E', hE'⟩} : Finset G), (H : Set X) := by
+  ext x
+  simp [Set.mem_iUnion]
+
+lemma iterate_mono {X} (F : Set (Set X)) (n : ℕ) : iterate F n ⊆ iterate F (n + 1) := by
+  intro E hE
+  simp [iterate]
+  left
+  refine ⟨({⟨E, hE⟩} : Finset (iterate F n)), ?_⟩
+  exact singleton_union hE
+
+lemma iterate_mono_le {X} (F : Set (Set X)) {n m : ℕ} (h : n ≤ m) : iterate F n ⊆ iterate F m := by
+  induction m with
+  | zero =>
+      have hn : n = 0 := by omega
+      simp [hn]
+  | succ m ih =>
+      by_cases hnm : n ≤ m
+      · exact Subset.trans (ih hnm) (iterate_mono F m)
+      · have hn : n = m + 1 := by omega
+        simp [hn]
+
+lemma iterate_union {X} (F : Set (Set X)) {n : ℕ} {E E' : Set X}
+    (hE : E ∈ iterate F n) (hE' : E' ∈ iterate F n) : E ∪ E' ∈ iterate F (n + 1) := by
+  simp [iterate]
+  left
+  refine ⟨({⟨E, hE⟩, ⟨E', hE'⟩} : Finset (iterate F n)), ?_⟩
+  exact pair_union hE hE'
+
+lemma iterate_compl {X} (F : Set (Set X)) {n : ℕ} {E : Set X} (hE : E ∈ iterate F n) :
+    Eᶜ ∈ iterate F (n + 1) := by
+  cases n with
+  | zero =>
+      simp [iterate]
+      right
+      refine ⟨({⟨E, hE⟩} : Finset F), ?_⟩
+      ext x
+      simp
+  | succ m =>
+      simp [iterate] at hE
+      rcases hE with hE | hE
+      · rcases hE with ⟨S, hS⟩
+        have hc : Eᶜ ∈ iterate F (m + 1) := by
+          simp [iterate]
+          right
+          refine ⟨S, ?_⟩
+          rw [hS]
+        exact iterate_mono F (m + 1) hc
+      · rcases hE with ⟨S, hS⟩
+        have hc : Eᶜ ∈ iterate F (m + 1) := by
+          simp [iterate]
+          left
+          refine ⟨S, ?_⟩
+          rw [hS]
+          simp
+        exact iterate_mono F (m + 1) hc
+
+lemma finset_union_eq {X} {G : Set (Set X)} (S : Finset G) :
+    (⋃ (H : S), H) = ⋃ H ∈ S, (H : Set X) := by
+  ext x
+  simp [Set.mem_iUnion]
+
 def ConcreteBooleanAlgebra.generated_by_eq {X:Type*} (F: Set (Set X)) :
   (ConcreteBooleanAlgebra.generated_by F).measurableSets =
-  ⋃ n, Nat.rec (motive := fun _ ↦ Set (Set X)) F (fun n G ↦ { E: Set X | (∃ S: Finset G, E = ⋃ (H:S), H) ∨ (∃ S: Finset G, E = (⋃ (H:S), H))ᶜ }) n := by sorry
+  ⋃ n, Nat.rec (motive := fun _ ↦ Set (Set X)) F (fun _n G ↦ { E: Set X | (∃ S: Finset G, E = ⋃ (H:S), H) ∨ (∃ S: Finset G, E = (⋃ (H:S), H)ᶜ) }) n := by
+  let U : ConcreteBooleanAlgebra X := {
+    measurable := fun E => E ∈ ⋃ n, iterate F n
+    empty_mem := by
+      rw [Set.mem_iUnion]
+      refine ⟨1, ?_⟩
+      simp [iterate]
+      left
+      refine ⟨(∅ : Finset F), ?_⟩
+      simp
+    compl_mem := by
+      intro E hE
+      rw [Set.mem_iUnion] at hE
+      rcases hE with ⟨n, hn⟩
+      rw [Set.mem_iUnion]
+      exact ⟨n + 1, iterate_compl F hn⟩
+    union_mem := by
+      intro E E' hE hE'
+      rw [Set.mem_iUnion] at hE hE'
+      rcases hE with ⟨n, hn⟩
+      rcases hE' with ⟨m, hm⟩
+      let N : ℕ := max n m
+      have hnN : E ∈ iterate F N := iterate_mono_le F (le_max_left n m) hn
+      have hmN : E' ∈ iterate F N := iterate_mono_le F (le_max_right n m) hm
+      rw [Set.mem_iUnion]
+      exact ⟨N + 1, iterate_union F hnN hmN⟩
+  }
+  have hU_F : ∀ E ∈ F, U.measurable E := by
+    intro E hE
+    change E ∈ ⋃ n, iterate F n
+    rw [Set.mem_iUnion]
+    exact ⟨0, hE⟩
+  have h_iter_subset : ∀ n, iterate F n ⊆ (ConcreteBooleanAlgebra.generated_by F).measurableSets := by
+    intro n
+    induction n with
+    | zero =>
+        intro E hE
+        exact ConcreteBooleanAlgebra.generated_by_contains hE
+    | succ m ih =>
+        intro E hE
+        simp [iterate] at hE
+        rcases hE with hE | hE
+        · rcases hE with ⟨S, rfl⟩
+          rw [finset_union_eq S]
+          apply ConcreteBooleanAlgebra.finset_union_mem (ConcreteBooleanAlgebra.generated_by F)
+            (fun H : {H : Set X // H ∈ iterate F m} => H.1)
+          intro H hH
+          exact ih H.property
+        · rcases hE with ⟨S, rfl⟩
+          have hU : (ConcreteBooleanAlgebra.generated_by F).measurable (⋃ (H : S), H) := by
+            rw [finset_union_eq S]
+            apply ConcreteBooleanAlgebra.finset_union_mem (ConcreteBooleanAlgebra.generated_by F)
+              (fun H : {H : Set X // H ∈ iterate F m} => H.1)
+            intro H hH
+            exact ih H.property
+          exact (ConcreteBooleanAlgebra.generated_by F).compl_mem _ hU
+  have hgen_le_U : ConcreteBooleanAlgebra.generated_by F ≤ U := by
+    apply ConcreteBooleanAlgebra.generated_by_le U
+    exact hU_F
+  ext E
+  constructor
+  · intro hE
+    exact hgen_le_U E hE
+  · intro hE
+    rw [Set.mem_iUnion] at hE
+    rcases hE with ⟨n, hn⟩
+    exact h_iter_subset n hn
+
 
   
