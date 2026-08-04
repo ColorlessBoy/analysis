@@ -35,6 +35,15 @@ instance ConcreteBooleanAlgebra.instPartialOrder (X:Type*) : PartialOrder (Concr
 def ConcreteBooleanAlgebra.measurableSets {X:Type*} (B: ConcreteBooleanAlgebra X) : Set (Set X) :=
   { E | B.measurable E }
 
+@[ext]
+theorem ConcreteBooleanAlgebra.ext {X:Type*} {B1 B2 : ConcreteBooleanAlgebra X}
+    (h : ∀ E, B1.measurable E ↔ B2.measurable E) : B1 = B2 := by
+  cases B1
+  cases B2
+  congr
+  funext E
+  exact propext (h E)
+
 /-- Example 1.4.3 -/
 instance ConcreteBooleanAlgebra.instOrderTop {X:Type*} : OrderTop (ConcreteBooleanAlgebra X) :=
   {
@@ -296,18 +305,110 @@ def IsPartition {I X:Type*} (parts: I → Set X) : Prop := (Set.PairwiseDisjoint
 def IsPartition.to_ConcreteBooleanAlgebra {I X: Type*} {atoms: I → Set X} (h_part: IsPartition atoms) : ConcreteBooleanAlgebra X :=
   {
     measurable := fun E => ∃ J: Set I, E = ⋃ i ∈ J, atoms i
-    empty_mem := by sorry
-    compl_mem := by sorry
-    union_mem := by sorry
+    empty_mem := ⟨∅, by simp⟩
+    compl_mem := by
+      intro E hE
+      rcases hE with ⟨J, rfl⟩
+      refine ⟨Jᶜ, ?_⟩
+      ext x
+      constructor
+      · intro hx
+        have hxuniv : x ∈ ⋃ i, atoms i := by
+          rw [h_part.2]
+          trivial
+        rcases Set.mem_iUnion.mp hxuniv with ⟨i, hxi⟩
+        simp [Set.mem_iUnion]
+        refine ⟨i, ?_, hxi⟩
+        intro hiJ
+        have hmem : x ∈ ⋃ i ∈ J, atoms i := by
+          simp [Set.mem_iUnion]
+          exact ⟨i, hiJ, hxi⟩
+        exact hx hmem
+      · intro hx
+        simp [Set.mem_iUnion] at hx
+        rcases hx with ⟨i, hiJc, hxi⟩
+        intro hxJ
+        simp [Set.mem_iUnion] at hxJ
+        rcases hxJ with ⟨j, hjJ, hxj⟩
+        have hne : i ≠ j := by
+          intro h
+          subst h
+          exact hiJc hjJ
+        have hdisj := h_part.1 (Set.mem_univ i) (Set.mem_univ j) hne
+        exact (Set.disjoint_iff.mp hdisj) ⟨hxi, hxj⟩
+    union_mem := by
+      intro E F hE hF
+      rcases hE with ⟨J_E, rfl⟩
+      rcases hF with ⟨J_F, rfl⟩
+      refine ⟨J_E ∪ J_F, ?_⟩
+      rw [Set.biUnion_union]
   }
 
-def IsPartition.discrete (X:Type*) : IsPartition (fun x:X ↦ {x}) := by sorry
+def IsPartition.discrete (X:Type*) : IsPartition (fun x:X ↦ {x}) := by
+  constructor
+  · intro a ha b hb hab
+    change Disjoint ({a} : Set X) ({b} : Set X)
+    rw [Set.disjoint_iff]
+    intro x hx
+    rcases hx with ⟨hxa, hxb⟩
+    rw [Set.mem_singleton_iff] at hxa hxb
+    subst hxa
+    exact hab hxb
+  · ext y
+    constructor
+    · intro hy
+      trivial
+    · intro hy
+      simp [Set.mem_iUnion]
 
-def ConcreteBooleanAlgebra.top_atomic (X:Type*) : (IsPartition.discrete X).to_ConcreteBooleanAlgebra = ⊤ := by sorry
+def ConcreteBooleanAlgebra.top_atomic (X:Type*) : (IsPartition.discrete X).to_ConcreteBooleanAlgebra = ⊤ := by
+  apply ConcreteBooleanAlgebra.ext
+  intro E
+  constructor
+  · intro _
+    trivial
+  · intro _
+    refine ⟨E, ?_⟩
+    ext y
+    simp
 
-def IsPartition.trivial (X:Type*) : IsPartition (fun (x:Unit) ↦ (Set.univ: Set X)) := by sorry
+def IsPartition.trivial (X:Type*) : IsPartition (fun (_ : Unit) ↦ (Set.univ: Set X)) := by
+  constructor
+  · intro a ha b hb hab
+    exact False.elim (hab (Subsingleton.elim a b))
+  · ext y
+    simp
 
-def ConcreteBooleanAlgebra.bot_atomic (X:Type*) : (IsPartition.trivial X).to_ConcreteBooleanAlgebra = ⊥ := by sorry
+def ConcreteBooleanAlgebra.bot_atomic (X:Type*) : (IsPartition.trivial X).to_ConcreteBooleanAlgebra = ⊥ := by
+  apply ConcreteBooleanAlgebra.ext
+  intro E
+  constructor
+  · intro hE
+    rcases hE with ⟨J, hJ⟩
+    by_cases hJempty : J = ∅
+    · left
+      rw [hJ, hJempty]
+      simp
+    · right
+      rw [hJ]
+      have hnonempty : (J : Set Unit).Nonempty := Set.nonempty_iff_ne_empty.mpr hJempty
+      ext y
+      constructor
+      · intro hy
+        trivial
+      · intro hy
+        rcases hnonempty with ⟨x, hx⟩
+        simp [Set.mem_iUnion]
+        exact ⟨x, hx⟩
+  · intro hE
+    rcases hE with hE | hE
+    · refine ⟨∅, ?_⟩
+      rw [hE]
+      simp
+    · refine ⟨Set.univ, ?_⟩
+      rw [hE]
+      ext y
+      simp
 
 def IsPartition.finer_than {I J X:Type*} {parts_I: I → Set X} {parts_J: J → Set X}
   (_: IsPartition parts_I) (_: IsPartition parts_J) : Prop :=
@@ -316,16 +417,102 @@ def IsPartition.finer_than {I J X:Type*} {parts_I: I → Set X} {parts_J: J → 
 def IsPartition.mono {I J X:Type*} {parts_I: I → Set X} {parts_J: J → Set X}
   (hI: IsPartition parts_I) (hJ: IsPartition parts_J)
   (h_finer: hI.finer_than hJ) :
-  hI.to_ConcreteBooleanAlgebra ≤ hJ.to_ConcreteBooleanAlgebra :=
-  by sorry
+  hJ.to_ConcreteBooleanAlgebra ≤ hI.to_ConcreteBooleanAlgebra := by
+  intro E hE
+  rcases hE with ⟨J₀, rfl⟩
+  let I₀ : Set I := {i | ∃ j, j ∈ J₀ ∧ parts_I i ⊆ parts_J j}
+  refine ⟨I₀, ?_⟩
+  ext x
+  constructor
+  · intro hx
+    simp [Set.mem_iUnion] at hx
+    rcases hx with ⟨j, hjJ₀, hxj⟩
+    have hxuniv : x ∈ ⋃ i, parts_I i := by
+      rw [hI.2]
+      trivial
+    rcases Set.mem_iUnion.mp hxuniv with ⟨i, hxi⟩
+    rcases h_finer i with ⟨j', hj'_sub⟩
+    have hj_eq : j' = j := by
+      by_contra hne
+      have hdisj := hJ.1 (Set.mem_univ j') (Set.mem_univ j) hne
+      exact (Set.disjoint_iff.mp hdisj) ⟨hj'_sub hxi, hxj⟩
+    simp [Set.mem_iUnion]
+    refine ⟨i, ?_, hxi⟩
+    exact ⟨j, hjJ₀, by simpa [hj_eq] using hj'_sub⟩
+  · intro hx
+    simp [Set.mem_iUnion] at hx
+    rcases hx with ⟨i, hiI₀, hxi⟩
+    rcases hiI₀ with ⟨j, hjJ₀, hsub⟩
+    simp [Set.mem_iUnion]
+    exact ⟨j, hjJ₀, hsub hxi⟩
 
-def IsPartition.remove_empty {I X:Type*} {parts: I → Set X} (h_part: IsPartition parts) : IsPartition (fun (i:{i:I // parts i ≠ ∅}) ↦ parts i.val) :=
-  by sorry
+def IsPartition.remove_empty {I X:Type*} {parts: I → Set X} (h_part: IsPartition parts) : IsPartition (fun (i:{i:I // parts i ≠ ∅}) ↦ parts i.val) := by
+  constructor
+  · intro a ha b hb hab
+    have hne : a.val ≠ b.val := by
+      intro h
+      apply hab
+      exact Subtype.ext h
+    exact h_part.1 (Set.mem_univ a.val) (Set.mem_univ b.val) hne
+  · rw [← h_part.2]
+    ext x
+    constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hxi⟩
+      rw [Set.mem_iUnion]
+      exact ⟨i.val, hxi⟩
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hxi⟩
+      rw [Set.mem_iUnion]
+      refine ⟨⟨i, ?_⟩, hxi⟩
+      intro hp
+      simp [hp] at hxi
 
 def IsPartition.remove_empty_to_ConcreteBooleanAlgebra {I X:Type*} {parts: I → Set X} (h_part: IsPartition parts) :
   h_part.to_ConcreteBooleanAlgebra =
-  h_part.remove_empty.to_ConcreteBooleanAlgebra :=
-  by sorry
+  h_part.remove_empty.to_ConcreteBooleanAlgebra := by
+  apply ConcreteBooleanAlgebra.ext
+  intro E
+  constructor
+  · intro hE
+    rcases hE with ⟨J, rfl⟩
+    let J' : Set {i : I // parts i ≠ ∅} := {j | j.val ∈ J}
+    refine ⟨J', ?_⟩
+    ext x
+    constructor
+    · intro hx
+      simp [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hiJ, hxi⟩
+      simp [Set.mem_iUnion]
+      refine ⟨i, ?_, hxi⟩
+      refine ⟨?_, hiJ⟩
+      intro hp
+      simp [hp] at hxi
+    · intro hx
+      simp [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hmem, hxi⟩
+      rcases hmem with ⟨hne, hmem'⟩
+      simp [Set.mem_iUnion]
+      exact ⟨i, hmem', hxi⟩
+  · intro hE
+    rcases hE with ⟨J', rfl⟩
+    let J : Set I := {i | ∃ hi : parts i ≠ ∅, (⟨i, hi⟩ : {i : I // parts i ≠ ∅}) ∈ J'}
+    refine ⟨J, ?_⟩
+    ext x
+    constructor
+    · intro hx
+      simp [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hmem, hxi⟩
+      simp [Set.mem_iUnion]
+      exact ⟨i, hmem, hxi⟩
+    · intro hx
+      simp [Set.mem_iUnion] at hx
+      rcases hx with ⟨i, hiJ, hxi⟩
+      rcases hiJ with ⟨hne, hmem⟩
+      simp [Set.mem_iUnion]
+      exact ⟨i, ⟨hne, hmem⟩, hxi⟩
 
 /-- A variant of {name}`DyadicCube` with {name}`BoundedInterval.Ico` intervals -/
 noncomputable def DyadicCube' {d:ℕ} (n:ℤ) (a: Fin d → ℤ) : Box d := { side := fun i ↦ BoundedInterval.Ico (a i/2^n) ((a i + 1)/2^n) }
