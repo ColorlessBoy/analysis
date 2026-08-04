@@ -678,6 +678,13 @@
       "tactics": "choose/let/calc union_le + EReal tsum; ContinuousOn via ContinuousWithinAt.mono_of_mem_nhdsWithin + mem_interior_iff_mem_nhds; continuousOn_iff_continuous_restrict",
       "description": "Global Lusin assembly: E=\u22c3E_N, measure \u2264 \u03b5 via egorov_tsum_geometric, continuity off E via local interior-neighborhood transfer",
       "time": "2026-08-04T12:37:31.762219"
+    },
+    {
+      "theorem": "iff_pointwiseae_forward",
+      "file": "_temp_s7.lean",
+      "tactics": "closed_lusin; choose F_n; ContinuousMap.exists_restrict_eq; borel_cantelli_null; IsNull.subset; by_contra + push_neg; Filter.Tendsto.congr' + eventually_ge_atTop",
+      "description": "Forward: closed sets with small complement via Lusin, Tietze-extend f, convergence off the limsup of complements which is null by Borel-Cantelli",
+      "time": "2026-08-04T13:10:28.564600"
     }
   ],
   "errors": [

@@ -1878,6 +1878,56 @@
       "status": "success",
       "notes": "measure via union_le + EReal tsum dance; continuity via ContinuousWithinAt.mono_of_mem_nhdsWithin",
       "end": "2026-08-04T12:36:02.066756"
+    },
+    {
+      "id": 112,
+      "theorem": "s7",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_s7.lean",
+      "goal": "prove 5 lemmas: enlarge_open, closed_lusin, borel_cantelli_null, iff_pointwiseae_forward, iff_pointwiseae_backward",
+      "start": "2026-08-04T12:50:46.032019",
+      "attempts": [
+        {
+          "edit": "setup: read main file, planning",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "read infrastructure",
+          "time": "2026-08-04T12:53:33.887448"
+        },
+        {
+          "edit": "enlarge_open + closed_lusin done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "both compile",
+          "time": "2026-08-04T12:58:52.597218"
+        }
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": 113,
+      "theorem": "s7_dirs",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_s7.lean",
+      "goal": "Prove iff_pointwiseae_forward and iff_pointwiseae_backward",
+      "start": "2026-08-04T13:04:26.819922",
+      "attempts": [
+        {
+          "edit": "backward lemma done",
+          "errors_before": 2,
+          "errors_after": 1,
+          "excerpt": "lemma2 compiles; 1 warning left (forward sorry)",
+          "time": "2026-08-04T13:07:47.478296"
+        },
+        {
+          "edit": "final proof",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "both lemmas compile, 0 errors 0 warnings",
+          "time": "2026-08-04T13:10:28.506903"
+        }
+      ],
+      "status": "success",
+      "notes": "Lusin closed sets + Tietze extension + Borel-Cantelli null set",
+      "end": "2026-08-04T13:10:28.534841"
     }
   ]
 }
