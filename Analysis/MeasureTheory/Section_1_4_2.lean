@@ -1892,8 +1892,226 @@ theorem BorelSigmaAlgebra.card (d:ℕ) : Cardinal.mk (BorelSigmaAlgebra (Euclide
         _ = 2 ^ ℵ₀ := by rw [Cardinal.aleph0_mul_aleph0]
     exact le_trans hle1 hle2
 
+section not_borel_cantor
+open Cardinal
+
+/-- The n-th approximation of the middle-thirds Cantor set (from the project). -/
+def midThird_n (n : ℕ) : Set ℝ := CantorInterval n
+
+/-- The Cantor set. -/
+def midThird : Set ℝ := ⋂ n : ℕ, midThird_n n
+
+/-- Digit sequences of length {lit}`n` for the middle-thirds construction. -/
+abbrev CantorDigit (n : ℕ) := Fin n → ({0, 2} : Set ℕ)
+
+/-- Embed ℝ into {lit}`EuclideanSpace' d` via the first coordinate. -/
+def embedReal {d : ℕ} (hd : 0 < d) (x : ℝ) : EuclideanSpace' d :=
+  .toLp 2 (fun i : Fin d => if i = ⟨0, hd⟩ then x else 0)
+
+/-- The image of the Cantor set in {lit}`EuclideanSpace' d`. -/
+def cantorLift {d : ℕ} (hd : 0 < d) : Set (EuclideanSpace' d) :=
+  embedReal hd '' midThird
+
+/-- The box approximating the Cantor interval for digit sequence {lit}`a`. -/
+noncomputable def cantorBox {d : ℕ} (hd : 0 < d) (n : ℕ) (a : CantorDigit n) : Box d :=
+  ⟨fun j => if j = ⟨0, hd⟩ then
+      BoundedInterval.Icc (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1))
+        ((∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1)) + 1 / (3 : ℝ) ^ n)
+    else BoundedInterval.Icc 0 0⟩
+
+lemma embedReal_injective {d : ℕ} (hd : 0 < d) : Function.Injective (embedReal hd) := by
+  intro x y h
+  have h0 := congrArg (fun z : EuclideanSpace' d => z (⟨0, hd⟩ : Fin d)) h
+  simpa [embedReal, PiLp.toLp_apply] using h0
+
+lemma cantorLift_eq_midThird_card {d : ℕ} (hd : 0 < d) :
+    Cardinal.mk (cantorLift hd) = Cardinal.mk midThird := by
+  exact (Cardinal.mk_congr (Equiv.Set.image (embedReal hd) midThird (embedReal_injective hd))).symm
+
+/-- The Cantor set is contained in {lit}`[0, 1]`. -/
+lemma cantor_subset_unit : midThird ⊆ Set.Icc (0 : ℝ) 1 := by
+  intro x hx
+  have hx0 : x ∈ CantorInterval 0 := Set.mem_iInter.mp (by simpa [midThird, midThird_n] using hx) 0
+  have h_C0_eq : CantorInterval 0 = Set.Icc (0 : ℝ) 1 := by
+    unfold CantorInterval
+    haveI : Nonempty (Fin 0 → ({0, 2} : Set ℕ)) := ⟨fun i => i.elim0⟩
+    simp [Set.iUnion_const]
+  rwa [h_C0_eq] at hx0
+
+/-- The Cantor set is closed. -/
+lemma cantor_isClosed : IsClosed midThird := by
+  change IsClosed CantorSet
+  exact CantorSet.compact.isClosed
+
+/-- The Cantor set has cardinality continuum. -/
+lemma cantor_card : Cardinal.mk midThird = (2 : Cardinal) ^ ℵ₀ := by
+  have h_upper : Cardinal.mk midThird ≤ (2 : Cardinal) ^ ℵ₀ := by
+    have h_inj : Function.Injective (fun x : midThird => (x : ℝ)) := by
+      intro x y h
+      exact Subtype.ext h
+    calc
+      Cardinal.mk midThird ≤ Cardinal.mk ℝ := Cardinal.mk_le_of_injective h_inj
+      _ = (2 : Cardinal) ^ ℵ₀ := Cardinal.mk_real
+  have h_lower : (2 : Cardinal) ^ ℵ₀ ≤ Cardinal.mk midThird := by
+    have h_inj : Function.Injective (fun b : ℕ → Bool => (⟨cantorEmbedding b, cantorEmbedding_mem b⟩ : midThird)) := by
+      intro b c h
+      apply cantorEmbedding_injective
+      exact Subtype.ext_iff.mp h
+    calc
+      (2 : Cardinal) ^ ℵ₀ = Cardinal.mk (ℕ → Bool) := by
+        rw [Cardinal.mk_arrow]
+        simp
+      _ ≤ Cardinal.mk midThird := Cardinal.mk_le_of_injective h_inj
+  exact le_antisymm h_upper h_lower
+
+/-- The Cantor set is covered by the n-th approximation boxes. -/
+lemma cantorLift_subset_box_union {d : ℕ} (hd : 0 < d) (n : ℕ) :
+    cantorLift hd ⊆ ⋃ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).toSet := by
+  classical
+  intro y hy
+  rcases hy with ⟨x, hx, rfl⟩
+  have hxIn0 : x ∈ CantorInterval n := Set.mem_iInter.mp (by simpa [midThird, midThird_n] using hx) n
+  change x ∈ ⋃ a : CantorDigit n,
+      (BoundedInterval.Icc (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1))
+        (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1) + 1 / (3 : ℝ) ^ n)).toSet at hxIn0
+  choose a ha using (Set.mem_iUnion.mp hxIn0)
+  have hb : embedReal hd x ∈ (cantorBox hd n a).toSet := by
+    rw [Box.mem_toSet]
+    intro j
+    by_cases hj : j = ⟨0, hd⟩
+    · subst hj
+      simp [cantorBox, embedReal, PiLp.toLp_apply]
+      simpa using ha
+    · simp [cantorBox, hj, embedReal, PiLp.toLp_apply]
+  simpa [Set.mem_biUnion] using
+    (⟨a, Finset.mem_univ a, hb⟩ : ∃ a ∈ Finset.univ, embedReal hd x ∈ (cantorBox hd n a).toSet)
+/-- The volume of a Cantor approximation box is at most {lit}`(1/3)^n`. -/
+lemma cantorBox_volume_le {d : ℕ} (hd : 0 < d) (n : ℕ) (a : CantorDigit n) :
+    (cantorBox hd n a).volume ≤ (1 / 3 : ℝ) ^ n := by
+  unfold Box.volume
+  have hside0 : |(cantorBox hd n a).side ⟨0, hd⟩|ₗ = (1 / 3 : ℝ) ^ n := by
+    simp [cantorBox, BoundedInterval.length]
+  have hsidej : ∀ j : Fin d, j ≠ ⟨0, hd⟩ → |(cantorBox hd n a).side j|ₗ = 0 := by
+    intro j hj
+    simp [cantorBox, hj, BoundedInterval.length]
+  calc
+    (∏ j : Fin d, |(cantorBox hd n a).side j|ₗ)
+        = |(cantorBox hd n a).side ⟨0, hd⟩|ₗ * (∏ j ∈ (Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}, |(cantorBox hd n a).side j|ₗ) := by
+          exact Finset.prod_eq_mul_prod_diff_singleton_of_mem
+            (Finset.mem_univ (⟨0, hd⟩ : Fin d)) (fun j => |(cantorBox hd n a).side j|ₗ)
+    _ = (1 / 3 : ℝ) ^ n * (∏ j ∈ (Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}, (0 : ℝ)) := by
+          rw [hside0]
+          apply congrArg (fun x : ℝ => (1 / 3 : ℝ) ^ n * x)
+          apply Finset.prod_congr rfl
+          intro j hj
+          exact hsidej j (by simpa using (Finset.mem_sdiff.mp hj).2)
+    _ = (1 / 3 : ℝ) ^ n * (0 ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card) := by
+          simp [Finset.prod_const]
+    _ ≤ (1 / 3 : ℝ) ^ n := by
+          have hprod : (0 : ℝ) ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card ≤ 1 := by
+            exact pow_le_one₀ (by norm_num) (by norm_num)
+          have hzero : 0 ≤ (0 : ℝ) ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card := by positivity
+          have hpos : 0 ≤ (1 / 3 : ℝ) ^ n := by positivity
+          nlinarith
+
+/-- The sum of the volumes of the Cantor approximation boxes is at most {lit}`(2/3)^n`. -/
+lemma cantorBox_sum_volume_le {d : ℕ} (hd : 0 < d) (n : ℕ) :
+    (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).volume) ≤ (2 / 3 : ℝ) ^ n := by
+  classical
+  calc
+    (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).volume)
+        ≤ (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (1 / 3 : ℝ) ^ n) := by
+          apply Finset.sum_le_sum
+          intro a ha
+          exact cantorBox_volume_le hd n a
+    _ = (Fintype.card (CantorDigit n) : ℝ) * (1 / 3 : ℝ) ^ n := by simp
+    _ = (2 : ℝ) ^ n * (1 / 3 : ℝ) ^ n := by
+          have hcard : Fintype.card (CantorDigit n) = 2 ^ n := by
+            rw [Fintype.card_fun]
+            have hdgt : Fintype.card ({0, 2} : Set ℕ) = 2 := by norm_num
+            simp [hdgt]
+          rw [hcard, Nat.cast_pow]
+          norm_num
+    _ = (2 / 3 : ℝ) ^ n := by
+          rw [show (2 / 3 : ℝ) = 2 * (1 / 3) by norm_num, mul_pow]
+
+/-- The image of the Cantor set has Jordan outer measure 0. -/
+lemma cantor_jordan_outer_zero {d : ℕ} (hd : 0 < d) :
+    Jordan_outer_measure (cantorLift hd) = 0 := by
+  apply le_antisymm
+  · have hle_n : ∀ n : ℕ, Jordan_outer_measure (cantorLift hd) ≤ (2 / 3 : ℝ) ^ n := by
+      intro n
+      exact le_trans
+        (Jordan_outer_measure_mono_of_subset (cantorLift_subset_box_union hd n) (isBounded_biUnion_box Finset.univ (cantorBox hd n)))
+        (le_trans (Jordan_outer_measure_biUnion_box_le Finset.univ (cantorBox hd n)) (cantorBox_sum_volume_le hd n))
+    have htend : Filter.Tendsto (fun n : ℕ => (2 / 3 : ℝ) ^ n) Filter.atTop (nhds 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds htend ((by filter_upwards with n; exact hle_n n))
+  · exact Jordan_outer_measure_nonneg (cantorLift hd)
+
+/-- Not every subset of the Cantor set (in dimension d) is Borel. -/
+lemma cantor_has_nonBorel_subset {d : ℕ} (hd : 0 < d) :
+    ∃ N : Set (EuclideanSpace' d), N ⊆ cantorLift hd ∧
+      ¬ (BorelSigmaAlgebra (EuclideanSpace' d)).measurable N := by
+  classical
+  by_contra h
+  have hAll : ∀ N : Set (EuclideanSpace' d), N ⊆ cantorLift hd →
+      (BorelSigmaAlgebra (EuclideanSpace' d)).measurable N := by
+    intro N hN
+    by_contra hmeas
+    exact h ⟨N, hN, hmeas⟩
+  let subs : Set (Set (EuclideanSpace' d)) := {N | N ⊆ cantorLift hd}
+  have hsubs : subs ⊆ (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    intro N hN
+    exact hAll N hN
+  have hle : Cardinal.mk subs ≤ Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    exact Cardinal.mk_le_of_injective (f := fun N : subs => ⟨(N : Set (EuclideanSpace' d)), hsubs N.property⟩) (by
+      intro a b hab
+      have hval : (a : Set (EuclideanSpace' d)) = (b : Set (EuclideanSpace' d)) := by
+        exact congrArg (fun N : (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets => (N : Set (EuclideanSpace' d))) hab
+      exact Subtype.ext hval)
+  have hsubs_card : Cardinal.mk subs = (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := by
+    calc
+      Cardinal.mk subs = Cardinal.mk (Set.powerset (cantorLift hd)) := by
+        rfl
+      _ = (2 : Cardinal) ^ Cardinal.mk (cantorLift hd : Type) := Cardinal.mk_powerset (cantorLift hd)
+      _ = (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := by
+        rw [cantorLift_eq_midThird_card hd, cantor_card]
+  have hcard_le : (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) ≤
+      Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    simpa [hsubs_card] using hle
+  have hborel : Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ≤ (2 : Cardinal) ^ ℵ₀ := BorelSigmaAlgebra.card d
+  have hlt : ((2 : Cardinal) ^ ℵ₀) < (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := Cardinal.cantor ((2 : Cardinal) ^ ℵ₀)
+  exact (not_le_of_gt hlt) (le_trans hcard_le hborel)
+
+/-- A subset of the Cantor set is Jordan measurable. -/
+lemma subset_cantor_jordan {d : ℕ} (hd : 0 < d) {N : Set (EuclideanSpace' d)}
+    (hN : N ⊆ cantorLift hd) : JordanMeasurable N := by
+  have hbdd : Bornology.IsBounded N :=
+    (isBounded_biUnion_box Finset.univ (cantorBox hd 0)).subset (hN.trans (cantorLift_subset_box_union hd 0))
+  constructor
+  · exact hbdd
+  · apply le_antisymm
+    · exact Jordan_inner_le_outer hbdd
+    · have houter0 : Jordan_outer_measure N ≤ 0 := by
+        have hle_n : ∀ n : ℕ, Jordan_outer_measure N ≤ (2 / 3 : ℝ) ^ n := by
+          intro n
+          exact le_trans
+            (Jordan_outer_measure_mono_of_subset
+              (hN.trans (cantorLift_subset_box_union hd n)) (isBounded_biUnion_box Finset.univ (cantorBox hd n)))
+            (le_trans (Jordan_outer_measure_biUnion_box_le Finset.univ (cantorBox hd n)) (cantorBox_sum_volume_le hd n))
+        have htend : Filter.Tendsto (fun n : ℕ => (2 / 3 : ℝ) ^ n) Filter.atTop (nhds 0) :=
+          tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+        exact le_of_tendsto_of_tendsto tendsto_const_nhds htend (by filter_upwards with n; exact hle_n n)
+      exact le_trans houter0 (Jordan_inner_measure_nonneg N)
+
+end not_borel_cantor
+
 theorem JordanMeasurable.not_borel {d:ℕ} (hd: d ≥ 1) : ∃ E: Set (EuclideanSpace' d), JordanMeasurable E ∧ ¬ (BorelSigmaAlgebra (EuclideanSpace' d)).measurable E :=
-  by sorry
+  by
+  have hdpos : 0 < d := by omega
+  rcases cantor_has_nonBorel_subset hdpos with ⟨N, hNsub, hNnot⟩
+  exact ⟨N, subset_cantor_jordan hdpos hNsub, hNnot⟩
 
 /-- Exercise 1.4.17 -/
 private lemma prod_equiv_cont (d₁ d₂ : ℕ) : Continuous (EuclideanSpace'.prod_equiv d₁ d₂) := by
