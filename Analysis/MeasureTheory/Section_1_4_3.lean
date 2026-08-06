@@ -272,21 +272,129 @@ noncomputable def FinitelyAdditiveMeasure.counting (X:Type*) : FinitelyAdditiveM
   }
 
 /-- Exercise 1.4.20(i) -/
-theorem FinitelyAdditiveMeasure.mono {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {E F : Set X} (hE : B.measurable E) (hF : B.measurable F) (hsub : E ⊆ F) : μ.measure E ≤ μ.measure F :=
-by sorry
+theorem FinitelyAdditiveMeasure.mono {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {E F : Set X} (hE : B.measurable E) (hF : B.measurable F) (hsub : E ⊆ F) : μ.measure E ≤ μ.measure F := by
+  have hd : Disjoint E (F \ E) := by
+    rw [Set.disjoint_iff]
+    intro x hx
+    exact hx.2.2 hx.1
+  have hFd : B.measurable (F \ E) := by
+    simpa [Set.diff_eq] using B.inter_mem hF (B.compl_mem E hE)
+  have hEsub : F = E ∪ (F \ E) := by
+    ext x
+    constructor
+    · intro hxF
+      by_cases hxE : x ∈ E
+      · exact Or.inl hxE
+      · exact Or.inr ⟨hxF, hxE⟩
+    · intro hx
+      rcases hx with hx | hx
+      · exact hsub hx
+      · exact hx.1
+  rw [hEsub, μ.measure_finite_additive E (F \ E) hE hFd hd]
+  exact le_add_of_nonneg_right (μ.measure_nonneg (F \ E))
 
 /-- Exercise 1.4.20(ii) -/
-theorem FinitelyAdditiveMeasure.finite_additivity {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {J:Type*} {I: Finset J} {E: J → Set X} (hE: ∀ j:J, B.measurable (E j)) (hdisj: Set.univ.PairwiseDisjoint E) :
-  μ.measure (⋃ j ∈ I, E j) = ∑ j ∈ I, μ.measure (E j) := by sorry
+private lemma FinitelyAdditiveMeasure.measurable_finset_biUnion {X:Type*} {B: ConcreteBooleanAlgebra X} {J:Type*} {I: Finset J} {E: J → Set X}
+    (hE: ∀ j:J, B.measurable (E j)) : B.measurable (⋃ j ∈ I, E j) := by
+  classical
+  induction I using Finset.induction_on with
+  | empty => simpa using B.empty_mem
+  | insert j J hjnJ ih =>
+      rw [Finset.set_biUnion_insert]
+      exact B.union_mem (E j) (⋃ i ∈ J, E i) (hE j) ih
 
-/-- Exercise 1.4.20(iii) -/
-theorem FinitelyAdditiveMeasure.finite_subadditivity {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {J:Type*} {I: Finset J} {E: J → Set X} (hE: ∀ j:J, B.measurable (E j)) :
-  μ.measure (⋃ j ∈ I, E j) ≤ ∑ j ∈ I, μ.measure (E j) := by sorry
+theorem FinitelyAdditiveMeasure.finite_additivity {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {J:Type*} {I: Finset J} {E: J → Set X} (hE: ∀ j:J, B.measurable (E j)) (hdisj: Set.univ.PairwiseDisjoint E) :
+  μ.measure (⋃ j ∈ I, E j) = ∑ j ∈ I, μ.measure (E j) := by
+  classical
+  induction I using Finset.induction_on with
+  | empty => simp [μ.measure_empty]
+  | insert j J hjnJ ih =>
+      rw [Finset.sum_insert hjnJ]
+      rw [Finset.set_biUnion_insert]
+      have hUmeas : B.measurable (⋃ i ∈ J, E i) := measurable_finset_biUnion hE
+      have hdisj' : Disjoint (E j) (⋃ i ∈ J, E i) := by
+        rw [Set.disjoint_iff]
+        intro x hx
+        rcases hx with ⟨hxj, hxU⟩
+        rw [Set.mem_iUnion₂] at hxU
+        rcases hxU with ⟨i, hiJ, hxi⟩
+        have hne : j ≠ i := by
+          intro h
+          subst h
+          exact hjnJ hiJ
+        exact (Set.disjoint_iff.mp (hdisj (Set.mem_univ j) (Set.mem_univ i) hne)) ⟨hxj, hxi⟩
+      rw [μ.measure_finite_additive (E j) (⋃ i ∈ J, E i) (hE j) hUmeas hdisj']
+      rw [ih]
 
 /-- Exercise 1.4.20(iv) -/
 theorem FinitelyAdditiveMeasure.mes_union_add_mes_inter {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {E F : Set X}
     (hE: B.measurable E) (hF: B.measurable F) :
-  μ.measure (E ∪ F) + μ.measure (E ∩ F) = μ.measure E + μ.measure F := by sorry
+  μ.measure (E ∪ F) + μ.measure (E ∩ F) = μ.measure E + μ.measure F := by
+  have hFd : B.measurable (F \ E) := by
+    simpa [Set.diff_eq] using B.inter_mem hF (B.compl_mem E hE)
+  have hEd : B.measurable (E \ F) := by
+    simpa [Set.diff_eq] using B.inter_mem hE (B.compl_mem F hF)
+  have hEFd : B.measurable (E ∩ F) := B.inter_mem hE hF
+  have hd1 : Disjoint E (F \ E) := by
+    rw [Set.disjoint_iff]
+    intro x hx
+    exact hx.2.2 hx.1
+  have hd2 : Disjoint (E ∩ F) (F \ E) := by
+    rw [Set.disjoint_iff]
+    intro x hx
+    exact hx.2.2 hx.1.1
+  have hunion : E ∪ F = E ∪ (F \ E) := by
+    ext x
+    constructor
+    · intro hx
+      rcases hx with hxE | hxF
+      · exact Or.inl hxE
+      · by_cases hxE : x ∈ E
+        · exact Or.inl hxE
+        · exact Or.inr ⟨hxF, hxE⟩
+    · intro hx
+      rcases hx with hxE | hxF
+      · exact Or.inl hxE
+      · exact Or.inr hxF.1
+  have hF_eq : F = (E ∩ F) ∪ (F \ E) := by
+    ext x
+    constructor
+    · intro hx
+      by_cases hxE : x ∈ E
+      · exact Or.inl ⟨hxE, hx⟩
+      · exact Or.inr ⟨hx, hxE⟩
+    · intro hx
+      rcases hx with hx | hx
+      · exact hx.2
+      · exact hx.1
+  calc
+    μ.measure (E ∪ F) + μ.measure (E ∩ F)
+        = μ.measure (E ∪ (F \ E)) + μ.measure (E ∩ F) := by rw [hunion]
+    _ = (μ.measure E + μ.measure (F \ E)) + μ.measure (E ∩ F) := by
+        rw [μ.measure_finite_additive E (F \ E) hE hFd hd1]
+    _ = μ.measure E + (μ.measure (E ∩ F) + μ.measure (F \ E)) := by abel
+    _ = μ.measure E + μ.measure ((E ∩ F) ∪ (F \ E)) := by
+        rw [μ.measure_finite_additive (E ∩ F) (F \ E) hEFd hFd hd2]
+    _ = μ.measure E + μ.measure F := by rw [← hF_eq]
+
+/-- Exercise 1.4.20(iii) -/
+theorem FinitelyAdditiveMeasure.finite_subadditivity {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {J:Type*} {I: Finset J} {E: J → Set X} (hE: ∀ j:J, B.measurable (E j)) :
+  μ.measure (⋃ j ∈ I, E j) ≤ ∑ j ∈ I, μ.measure (E j) := by
+  classical
+  induction I using Finset.induction_on with
+  | empty => simp [μ.measure_empty]
+  | insert j J hjnJ ih =>
+      rw [Finset.sum_insert hjnJ]
+      rw [Finset.set_biUnion_insert]
+      have hUmeas : B.measurable (⋃ i ∈ J, E i) := measurable_finset_biUnion hE
+      have hle : μ.measure (E j ∪ (⋃ i ∈ J, E i)) ≤ μ.measure (E j) + μ.measure (⋃ i ∈ J, E i) := by
+        have h := μ.mes_union_add_mes_inter (hE j) hUmeas
+        calc
+          μ.measure (E j ∪ (⋃ i ∈ J, E i))
+              ≤ μ.measure (E j ∪ (⋃ i ∈ J, E i)) + μ.measure (E j ∩ (⋃ i ∈ J, E i)) :=
+                le_add_of_nonneg_right (μ.measure_nonneg (E j ∩ (⋃ i ∈ J, E i)))
+          _ = μ.measure (E j) + μ.measure (⋃ i ∈ J, E i) := by rw [h]
+      exact le_trans hle (add_le_add_right ih (μ.measure (E j)))
 
 open Classical in
 /-- Exercise 1.4.21 -/
@@ -301,10 +409,12 @@ def FinitelyAdditiveMeasure.isCountablyAdditive {X:Type*} {B: ConcreteBooleanAlg
   B.isSigmaAlgebra ∧ ∀ (E : ℕ → Set X), (∀ n, B.measurable (E n)) → Set.univ.PairwiseDisjoint E →
     μ.measure (⋃ n, E n) = ∑' n, (μ.measure (E n))
 
+@[implicit_reducible]
 def FinitelyAdditiveMeasure.isCountablyAdditive.toCountablyAdditive {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) (h: μ.isCountablyAdditive) : CountablyAdditiveMeasure h.1.toSigmaAlgebra :=
   {
     measure := μ.measure
     measure_pos := μ.measure_pos
+    measure_nonneg := μ.measure_nonneg
     measure_empty := μ.measure_empty
     measure_finite_additive := μ.measure_finite_additive
     measure_countable_additive := h.2
