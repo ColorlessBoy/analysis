@@ -1603,11 +1603,166 @@ def ConcreteSigmaAlgebra.generated_by_eq {X:Type*} (F: Set (Set X)) :
   Ordinal.limitRecOn (motive := fun _ ↦ Set (Set X)) α F (fun _n G ↦ { E: Set X | (∃ S: Set G, Countable S ∧ E = ⋃ (H:S), H) ∨ (∃ S: Set G, Countable S ∧ E = (⋃ (H:S), H)ᶜ) }) (fun α _ G ↦ ⋃ (β : Ordinal) (h : β < α), G β h) := by
   simpa [sigma_stage] using (ConcreteSigmaAlgebra.generated_by_eq_aux F)
 
+section generated_by_card
+open Cardinal
+open Ordinal
+
+private theorem stage_card_le_aux {X : Type u} (F : Set (Set X)) [Infinite F]
+    {α : Ordinal.{v}} (hα : α < ω₁) :
+    Cardinal.mk (sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  let κ : Cardinal := (Cardinal.mk F) ^ ℵ₀
+  have hF_ne0 : Cardinal.mk F ≠ 0 :=
+    ne_of_gt (lt_of_lt_of_le Cardinal.aleph0_pos (Cardinal.aleph0_le_mk F))
+  have h_base : Cardinal.mk F ≤ κ := by
+    simpa [κ, pow_one] using (Cardinal.power_le_power_left hF_ne0 Cardinal.one_le_aleph0)
+  have hκinf : ℵ₀ ≤ κ := le_trans (Cardinal.aleph0_le_mk F) h_base
+  have hκsq : κ * κ = κ := Cardinal.mul_eq_self hκinf
+  have h2_le_κ : (2 : Cardinal) ≤ κ := by
+    exact le_trans ((Cardinal.aleph0_le.mp (Cardinal.aleph0_le_mk F)) 2) h_base
+  have hκ_pow : κ ^ ℵ₀ = κ := by
+    dsimp [κ]
+    rw [← Cardinal.power_mul, Cardinal.aleph0_mul_aleph0]
+  have hmain : ∀ β : Ordinal.{v}, β < ω₁ → Cardinal.mk (sigma_stage F β) ≤ κ := by
+    intro β
+    induction β using Ordinal.limitRecOn with
+    | zero =>
+        intro _
+        rw [sigma_stage_zero]
+        exact h_base
+    | succ o ih =>
+        intro hsucc
+        have hoω : o < ω₁ := lt_trans (Order.lt_succ_iff.mpr le_rfl) hsucc
+        have hC : #{S : Set (sigma_stage F o) | S.Countable} ≤
+            (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ := by
+          simpa [Cardinal.le_aleph0_iff_set_countable] using
+            (Cardinal.mk_bounded_set_le (sigma_stage F o) ℵ₀)
+        have hmax : max (Cardinal.mk (sigma_stage F o)) ℵ₀ ≤ κ := max_le (ih hoω) hκinf
+        have hpow : (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ ≤ κ := by
+          exact (Cardinal.power_le_power_right hmax).trans (le_of_eq hκ_pow)
+        let U1 : Set (Set X) :=
+          {E : Set X | ∃ S : Set (sigma_stage F o), S.Countable ∧ E = ⋃ (H : S), (H : Set X)}
+        let U2 : Set (Set X) :=
+          {E : Set X | ∃ S : Set (sigma_stage F o), S.Countable ∧ E = (⋃ (H : S), (H : Set X))ᶜ}
+        have hU1 : #↑U1 ≤ #{S : Set (sigma_stage F o) | S.Countable} := by
+          have hEq : U1 = Set.range
+              (fun S : {S : Set (sigma_stage F o) | S.Countable} => ⋃ (H : S.1), (H : Set X)) := by
+            ext E
+            constructor
+            · rintro ⟨S, hS, rfl⟩
+              exact ⟨⟨S, hS⟩, rfl⟩
+            · rintro ⟨S, rfl⟩
+              exact ⟨S.1, S.2, rfl⟩
+          rw [hEq]
+          exact Cardinal.mk_range_le
+        have hU2 : #↑U2 ≤ #{S : Set (sigma_stage F o) | S.Countable} := by
+          have hEq : U2 = Set.range
+              (fun S : {S : Set (sigma_stage F o) | S.Countable} => (⋃ (H : S.1), (H : Set X))ᶜ) := by
+            ext E
+            constructor
+            · rintro ⟨S, hS, rfl⟩
+              exact ⟨⟨S, hS⟩, rfl⟩
+            · rintro ⟨S, rfl⟩
+              exact ⟨S.1, S.2, rfl⟩
+          rw [hEq]
+          exact Cardinal.mk_range_le
+        have hsucc_eq : sigma_stage F (Order.succ o) = U1 ∪ U2 := by
+          simpa [U1, U2] using (sigma_stage_succ F o)
+        calc
+          Cardinal.mk (sigma_stage F (Order.succ o)) = #↑(U1 ∪ U2) := by rw [hsucc_eq]
+          _ ≤ #↑U1 + #↑U2 := Cardinal.mk_union_le U1 U2
+          _ ≤ #{S : Set (sigma_stage F o) | S.Countable} + #{S : Set (sigma_stage F o) | S.Countable} :=
+            add_le_add hU1 hU2
+          _ = 2 * #{S : Set (sigma_stage F o) | S.Countable} := by rw [two_mul]
+          _ ≤ 2 * (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ := mul_le_mul_right hC 2
+          _ ≤ 2 * κ := mul_le_mul_right hpow 2
+          _ ≤ κ := by
+            calc 2 * κ ≤ κ * κ := mul_le_mul_left h2_le_κ κ
+                 _ = κ := hκsq
+    | limit o ho ih =>
+        intro hoω
+        have hIo_le : #↑(Set.Iio o) ≤ ℵ₀ := by
+          have hcard : o.card < Cardinal.aleph (1 : Ordinal.{v}) :=
+            Cardinal.lt_omega_iff_card_lt.mp hoω
+          have hsucc : o.card < Order.succ ℵ₀ := by
+            simpa [Cardinal.succ_aleph0] using hcard
+          have hle : o.card ≤ ℵ₀ := Order.lt_succ_iff.mp hsucc
+          rw [Ordinal.mk_Iio_ordinal]
+          simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{v+1, v}).mpr hle)
+        have hκinf' : ℵ₀ ≤ lift.{v+1, u} κ := by
+          simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{v+1, u}).mpr hκinf)
+        have hIo : lift.{u, v+1} #↑(Set.Iio o) ≤ lift.{v+1, u} κ := by
+          exact le_trans
+            (by simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{u, v+1}).mpr hIo_le)) hκinf'
+        haveI : Nonempty (Set.Iio o) := ⟨⟨(0 : Ordinal.{v}), ho.bot_lt⟩⟩
+        have hSup : (⨆ β : Set.Iio o, lift.{v+1, u} #↑(sigma_stage F β.1)) ≤ lift.{v+1, u} κ := by
+          refine ciSup_le ?_
+          intro β
+          exact (Cardinal.lift_le.{v+1, u}).mpr (ih β.1 β.2 (lt_trans β.2 hoω))
+        have hU : (⋃ (β : Ordinal.{v}) (_h : β < o), sigma_stage F β) =
+            ⋃ β : Set.Iio o, sigma_stage F β.1 := by
+          ext E
+          simp [Set.mem_iUnion]
+        rw [sigma_stage_limit F o ho, hU]
+        apply (Cardinal.lift_le.{v+1, u}).mp
+        refine (Cardinal.mk_iUnion_le_lift (α := Set X)
+          (f := fun β : Set.Iio o => sigma_stage F β.1)).trans ?_
+        refine (mul_le_mul' hIo hSup).trans ?_
+        exact le_of_eq (Cardinal.mul_eq_self hκinf')
+  exact hmain α hα
+
+-- |stage α| ≤ |F|^ℵ₀ for every α < ω₁
+theorem stage_card_le {X : Type u} (F : Set (Set X)) [Infinite F] {α : Ordinal} (hα : α < ω₁) :
+    Cardinal.mk (sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  exact stage_card_le_aux F hα
+
+-- The union over all stages below ω₁ has size ≤ |F|^ℵ₀
+theorem union_stages_card_le {X : Type u} (F : Set (Set X)) [Infinite F] :
+    Cardinal.mk (⋃ α < (ω₁ : Ordinal.{u}), sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  let κ : Cardinal := (Cardinal.mk F) ^ ℵ₀
+  have hF_ne0 : Cardinal.mk F ≠ 0 :=
+    ne_of_gt (lt_of_lt_of_le Cardinal.aleph0_pos (Cardinal.aleph0_le_mk F))
+  have h_base : Cardinal.mk F ≤ κ := by
+    simpa [κ, pow_one] using (Cardinal.power_le_power_left hF_ne0 Cardinal.one_le_aleph0)
+  have hκinf : ℵ₀ ≤ κ := le_trans (Cardinal.aleph0_le_mk F) h_base
+  have h2_le_F : (2 : Cardinal) ≤ Cardinal.mk F :=
+    (Cardinal.aleph0_le.mp (Cardinal.aleph0_le_mk F)) 2
+  have hℵ₁_le : ℵ₁ ≤ κ := by
+    calc ℵ₁ ≤ (2 : Cardinal) ^ ℵ₀ := by
+           rw [Cardinal.two_power_aleph0]
+           exact Cardinal.aleph_one_le_continuum
+         _ ≤ κ := Cardinal.power_le_power_right h2_le_F
+  have hκinf' : ℵ₀ ≤ lift.{u+1, u} κ := by
+    simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{u+1, u}).mpr hκinf)
+  have hIω₁ : lift.{u, u+1} #↑(Set.Iio (ω₁ : Ordinal.{u})) ≤ lift.{u+1, u} κ := by
+    rw [Ordinal.mk_Iio_ordinal, Ordinal.card_omega, Cardinal.lift_lift]
+    exact (Cardinal.lift_le.{u+1, u}).mpr hℵ₁_le
+  haveI : Nonempty (Set.Iio (ω₁ : Ordinal.{u})) :=
+    ⟨⟨(0 : Ordinal.{u}), (Cardinal.isSuccLimit_omega 1).bot_lt⟩⟩
+  have hSup : (⨆ α : Set.Iio (ω₁ : Ordinal.{u}), lift.{u+1, u} #↑(sigma_stage F α.1)) ≤
+      lift.{u+1, u} κ := by
+    refine ciSup_le ?_
+    intro α
+    exact (Cardinal.lift_le.{u+1, u}).mpr (stage_card_le F α.2)
+  have hU : (⋃ (α : Ordinal.{u}) (_h : α < ω₁), sigma_stage F α) =
+      ⋃ α : Set.Iio (ω₁ : Ordinal.{u}), sigma_stage F α.1 := by
+    ext E
+    simp [Set.mem_iUnion]
+  rw [hU]
+  apply (Cardinal.lift_le.{u+1, u}).mp
+  refine (Cardinal.mk_iUnion_le_lift (α := Set X)
+    (f := fun α : Set.Iio (ω₁ : Ordinal.{u}) => sigma_stage F α.1)).trans ?_
+  refine (mul_le_mul' hIω₁ hSup).trans ?_
+  exact le_of_eq (Cardinal.mul_eq_self hκinf')
+
+end generated_by_card
+
 open Cardinal in
 /-- Exercise 1.4.16 -/
 theorem ConcreteSigmaAlgebra.card_of_generated_by {X:Type*} {F: Set (Set X)} [Infinite F] :
   Cardinal.mk (ConcreteSigmaAlgebra.generated_by F).measurableSets ≤ (Cardinal.mk F) ^ ℵ₀ :=
-  by sorry
+  by
+  rw [ConcreteSigmaAlgebra.generated_by_eq]
+  simpa [sigma_stage] using union_stages_card_le F
 
 open Cardinal in
 theorem BorelSigmaAlgebra.card (d:ℕ) : Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ≤ 2 ^ ℵ₀ :=
