@@ -358,6 +358,12 @@ lemma ConcreteSigmaAlgebra.generated_by_le' {X:Type*} {F : Set (Set X)} (B : Con
   intro E hE
   exact hE B hB
 
+/-- The difference of two measurable sets is measurable. -/
+theorem ConcreteSigmaAlgebra.sdiff_mem {X : Type*} (B : ConcreteSigmaAlgebra X) {E F : Set X}
+    (hE : B.measurable E) (hF : B.measurable F) : B.measurable (E \ F) := by
+  have hU : B.measurable (Eᶜ ∪ F) := B.union_mem _ _ (B.compl_mem E hE) hF
+  simpa [Set.diff_eq] using B.compl_mem (Eᶜ ∪ F) hU
+
 /-- Definition 1.4.14 (Generation of σ-algebras) -/
 instance ConcreteSigmaAlgebra.instSupSet {X:Type*} : SupSet (ConcreteSigmaAlgebra X) :=
   {
@@ -1334,20 +1340,129 @@ theorem JordanMeasurable.not_borel {d:ℕ} (hd: d ≥ 1) : ∃ E: Set (Euclidean
   by sorry
 
 /-- Exercise 1.4.17 -/
+private lemma prod_equiv_cont (d₁ d₂ : ℕ) : Continuous (EuclideanSpace'.prod_equiv d₁ d₂) := by
+  have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_linear d₁ d₂)
+  simpa [prod_equiv_linear] using h
+
+private lemma prod_equiv_symm_cont (d₁ d₂ : ℕ) : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+  have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+  simpa [prod_equiv_symm_linear] using h
+
+private lemma prod_equiv_symm_image_eq_preimage (d₁ d₂ : ℕ) (S : Set (EuclideanSpace' d₁ × EuclideanSpace' d₂)) :
+    (EuclideanSpace'.prod_equiv d₁ d₂).symm '' S = (EuclideanSpace'.prod_equiv d₁ d₂) ⁻¹' S := by
+  exact Equiv.image_eq_preimage_symm (EuclideanSpace'.prod_equiv d₁ d₂).symm S
+
+private lemma prod_equiv_symm_image_open {d₁ d₂ : ℕ} {S : Set (EuclideanSpace' d₁ × EuclideanSpace' d₂)} (hS : IsOpen S) :
+    IsOpen ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' S) := by
+  rw [prod_equiv_symm_image_eq_preimage]
+  exact (prod_equiv_cont d₁ d₂).isOpen_preimage S hS
+
 theorem BorelSigmaAlgebra.prod {d₁ d₂:ℕ} {E : Set (EuclideanSpace' d₁)} {F : Set (EuclideanSpace' d₂)}
   (hE: (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable E)
   (hF: (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F) :
   (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (E ×ˢ F))
   :=
-  by sorry
+  by
+  let φ : (EuclideanSpace' d₁ × EuclideanSpace' d₂) ≃ EuclideanSpace' (d₁ + d₂) := (EuclideanSpace'.prod_equiv d₁ d₂).symm
+  have h_second : ∀ U : Set (EuclideanSpace' d₁), IsOpen U → ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+      (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)) := by
+    intro U hU
+    have h_ind : ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)) := by
+      apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' d₂)
+        (F := {V : Set (EuclideanSpace' d₂) | IsOpen V})
+        (P := fun F => (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)))
+      · have h_empty : φ '' (U ×ˢ (∅ : Set (EuclideanSpace' d₂))) = ∅ := by simp [Set.prod_empty]
+        rw [h_empty]
+        exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).empty_mem
+      · intro V hV
+        rw [Set.mem_setOf_eq] at hV
+        apply ConcreteSigmaAlgebra.generated_by_contains
+        exact prod_equiv_symm_image_open (IsOpen.prod hU hV)
+      · intro F hF
+        have h1 : φ '' (U ×ˢ Fᶜ) = (φ '' (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂)))) \ (φ '' (U ×ˢ F)) := by
+          rw [show U ×ˢ Fᶜ = (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂))) \ (U ×ˢ F) by ext p; aesop]
+          rw [Set.image_diff φ.injective]
+        rw [h1]
+        have hUu : (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂)))) := by
+          apply ConcreteSigmaAlgebra.generated_by_contains
+          exact prod_equiv_symm_image_open (IsOpen.prod hU isOpen_univ)
+        exact (ConcreteSigmaAlgebra.sdiff_mem (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂)))) hUu hF
+      · intro Fn hFn
+        have hpre : φ '' (U ×ˢ (⋃ n, Fn n)) = ⋃ n, φ '' (U ×ˢ Fn n) := by
+          rw [show U ×ˢ (⋃ n, Fn n) = ⋃ n, (U ×ˢ Fn n) by ext p; aesop]
+          rw [Set.image_iUnion]
+        rw [hpre]
+        exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).countable_union_mem _ hFn
+    intro F hF
+    exact h_ind F hF
+  have h_main : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable E →
+      ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (E ×ˢ F)) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' d₁)
+      (F := {U : Set (EuclideanSpace' d₁) | IsOpen U})
+      (P := fun E => ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (E ×ˢ F)))
+    · intro F hF
+      have h_empty : φ '' ((∅ : Set (EuclideanSpace' d₁)) ×ˢ F) = ∅ := by simp [Set.empty_prod]
+      rw [h_empty]
+      exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      exact h_second U hU
+    · intro E hE F hF
+      have h1 : φ '' (Eᶜ ×ˢ F) = (φ '' ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F)) \ (φ '' (E ×ˢ F)) := by
+        rw [show Eᶜ ×ˢ F = ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F) \ (E ×ˢ F) by ext p; aesop]
+        rw [Set.image_diff φ.injective]
+      rw [h1]
+      have hUu : (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F)) :=
+        h_second (Set.univ : Set (EuclideanSpace' d₁)) isOpen_univ F hF
+      exact (ConcreteSigmaAlgebra.sdiff_mem (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂)))) hUu (hE F hF)
+    · intro En hEn F hF
+      have hpre : φ '' ((⋃ n, En n) ×ˢ F) = ⋃ n, φ '' (En n ×ˢ F) := by
+        rw [show (⋃ n, En n) ×ˢ F = ⋃ n, (En n ×ˢ F) by ext p; aesop]
+        rw [Set.image_iUnion]
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).countable_union_mem _ (fun n => hEn n F hF)
+  exact h_main E hE F hF
 
-/-- Exercise 1.4.18(i) (slice along first factor). -/
+/-- Exercise 1.4.18(i) -/
+private noncomputable def sliceMap (d₁ d₂ : ℕ) (x₂ : EuclideanSpace' d₂) : EuclideanSpace' d₁ → EuclideanSpace' (d₁ + d₂) :=
+  fun x₁ => (EuclideanSpace'.prod_equiv d₁ d₂).symm (x₁, x₂)
+
+private lemma sliceMap_continuous (d₁ d₂ : ℕ) (x₂ : EuclideanSpace' d₂) : Continuous (sliceMap d₁ d₂ x₂) := by
+  have hsymm : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+    have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+    simpa [prod_equiv_symm_linear] using h
+  have hpair : Continuous (fun x₁ : EuclideanSpace' d₁ => (x₁, x₂)) := Continuous.prodMk continuous_id continuous_const
+  exact hsymm.comp hpair
+
 theorem BorelSigmaAlgebra.slice_fst {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d₁+d₂))}
   (hE: (BorelSigmaAlgebra (EuclideanSpace' (d₁+d₂))).measurable E)
   (x₂ : EuclideanSpace' d₂ ) :
   (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E }
   :=
-  by sorry
+  by
+  rw [show { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } = sliceMap d₁ d₂ x₂ ⁻¹' E by rfl]
+  have h_ind : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable E →
+      (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable (sliceMap d₁ d₂ x₂ ⁻¹' E) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' (d₁ + d₂))
+      (F := {U : Set (EuclideanSpace' (d₁ + d₂)) | IsOpen U})
+      (P := fun E => (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable (sliceMap d₁ d₂ x₂ ⁻¹' E))
+    · simpa using (BorelSigmaAlgebra (EuclideanSpace' d₁)).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact (sliceMap_continuous d₁ d₂ x₂).isOpen_preimage U hU
+    · intro E hE
+      have hpre : sliceMap d₁ d₂ x₂ ⁻¹' Eᶜ = (sliceMap d₁ d₂ x₂ ⁻¹' E)ᶜ := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₁)).compl_mem _ hE
+    · intro E hE
+      have hpre : sliceMap d₁ d₂ x₂ ⁻¹' (⋃ n, E n) = ⋃ n, (sliceMap d₁ d₂ x₂ ⁻¹' E n) := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₁)).countable_union_mem _ hE
+  exact h_ind E hE
 
 /-- Exercise 1.4.18(i) (slice along second factor). -/
 theorem BorelSigmaAlgebra.slice_snd {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d₁+d₂))}
@@ -1355,7 +1470,34 @@ theorem BorelSigmaAlgebra.slice_snd {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d
   (x₁ : EuclideanSpace' d₁ ) :
   (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable { x₂ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E }
   :=
-  by sorry
+  by
+  let π₂ : EuclideanSpace' d₂ → EuclideanSpace' (d₁ + d₂) := fun x₂ => (EuclideanSpace'.prod_equiv d₁ d₂).symm (x₁, x₂)
+  have hcont : Continuous π₂ := by
+    have hsymm : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+      have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+      simpa [prod_equiv_symm_linear] using h
+    have hpair : Continuous (fun x₂ : EuclideanSpace' d₂ => (x₁, x₂)) := Continuous.prodMk continuous_const continuous_id
+    exact hsymm.comp hpair
+  rw [show { x₂ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } = π₂ ⁻¹' E by rfl]
+  have h_ind : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable E →
+      (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable (π₂ ⁻¹' E) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' (d₁ + d₂))
+      (F := {U : Set (EuclideanSpace' (d₁ + d₂)) | IsOpen U})
+      (P := fun E => (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable (π₂ ⁻¹' E))
+    · simpa using (BorelSigmaAlgebra (EuclideanSpace' d₂)).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact hcont.isOpen_preimage U hU
+    · intro E hE
+      have hpre : π₂ ⁻¹' Eᶜ = (π₂ ⁻¹' E)ᶜ := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₂)).compl_mem _ hE
+    · intro E hE
+      have hpre : π₂ ⁻¹' (⋃ n, E n) = ⋃ n, (π₂ ⁻¹' E n) := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₂)).countable_union_mem _ hE
+  exact h_ind E hE
 
 /-- Exercise 1.4.18(ii) -/
 example : ∃ (d₁ d₂ : ℕ) (E : Set (EuclideanSpace' (d₁+d₂))) (x₂ : EuclideanSpace' d₂),
@@ -1408,4 +1550,9 @@ def MeasurableSpace.sigmaAlgebra {X: Type*} (M: MeasurableSpace X) : ConcreteSig
   countable_union_mem := M.measurableSet_iUnion
 }
 
-theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by sorry
+theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by
+  unfold BorelSigmaAlgebra
+  apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
+  intro E hE
+  rw [Set.mem_setOf_eq] at hE
+  exact IsOpen.measurable hE
