@@ -13,117 +13,262 @@ to solve using the Mathlib library for measure theory than the custom results de
 class FinitelyAdditiveMeasure {X:Type*} (B: ConcreteBooleanAlgebra X) where
   measure : Set X → EReal
   measure_pos : ∀ A : Set X, B.measurable A → 0 ≤ measure A
+  measure_nonneg : ∀ A : Set X, 0 ≤ measure A
   measure_empty : measure ∅ = 0
   measure_finite_additive : ∀ E F : Set X, B.measurable E → B.measurable F → Disjoint E F →
     measure (E ∪ F) = measure E + measure F
 
 /-- Example 1.4.21 -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.lebesgue (d:ℕ) : FinitelyAdditiveMeasure (LebesgueMeasurable.boolean_algebra d) :=
   {
     measure A := Lebesgue_measure A
-    measure_pos := by sorry
-    measure_empty := by sorry
-    measure_finite_additive := by sorry
+    measure_pos := by
+      intro A hA
+      exact Lebesgue_outer_measure.nonneg A
+    measure_nonneg := by
+      intro A
+      exact Lebesgue_outer_measure.nonneg A
+    measure_empty := Lebesgue_measure.empty
+    measure_finite_additive := by
+      intro E F hE hF hdisj
+      exact Lebesgue_measure.union hE hF (Set.disjoint_iff_inter_eq_empty.mp hdisj)
   }
 
 /-- Example 1.4.21 -/
+@[implicit_reducible]
 def FinitelyAdditiveMeasure.restrict_alg {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {B':ConcreteBooleanAlgebra X} (hBB': B' ≤ B) : FinitelyAdditiveMeasure B' :=
   {
     measure := μ.measure
-    measure_pos := by sorry
-    measure_empty := by sorry
-    measure_finite_additive := by sorry
+    measure_pos := by
+      intro A hA
+      exact μ.measure_pos A (hBB' A hA)
+    measure_nonneg := by
+      intro A
+      exact μ.measure_nonneg A
+    measure_empty := μ.measure_empty
+    measure_finite_additive := by
+      intro E F hE hF hdisj
+      exact μ.measure_finite_additive E F (hBB' E hE) (hBB' F hF) hdisj
   }
 
 /-- Example 1.4.21 -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.jordan (d:ℕ) : FinitelyAdditiveMeasure (JordanMeasurable.boolean_algebra d) :=
 (FinitelyAdditiveMeasure.lebesgue d).restrict_alg (LebesgueMeasurable.gt_jordan_boolean_algebra d)
 
 /-- Example 1.4.21 -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.null (d:ℕ) : FinitelyAdditiveMeasure (IsNull.boolean_algebra d) :=
 (FinitelyAdditiveMeasure.lebesgue d).restrict_alg (IsNull.lt_lebesgue_boolean_algebra d)
 
 /-- Example 1.4.21 -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.elem (d:ℕ) : FinitelyAdditiveMeasure (EuclideanSpace'.elementary_boolean_algebra d) :=
-(FinitelyAdditiveMeasure.lebesgue d).restrict_alg (by sorry)
+(FinitelyAdditiveMeasure.lebesgue d).restrict_alg
+  (le_trans (JordanMeasurable.gt_elementary_boolean_algebra d) (LebesgueMeasurable.gt_jordan_boolean_algebra d))
 
 open Classical in
 /-- Example 1.4.22 (Dirac measure) -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.dirac {X:Type*} (x₀:X) (B: ConcreteBooleanAlgebra X) : FinitelyAdditiveMeasure B :=
   {
     measure := fun A => if x₀ ∈ A then 1 else 0
-    measure_pos := by sorry
-    measure_empty := by sorry
-    measure_finite_additive := by sorry
+    measure_pos := by
+      intro A hA
+      by_cases h : x₀ ∈ A
+      · simp [h]
+      · simp [h]
+    measure_nonneg := by
+      intro A
+      by_cases h : x₀ ∈ A
+      · simp [h]
+      · simp [h]
+    measure_empty := by
+      simp
+    measure_finite_additive := by
+      intro E F hE hF hdisj
+      by_cases hE₀ : x₀ ∈ E
+      · have hF₀ : x₀ ∉ F := by
+          intro hF₀
+          have : x₀ ∈ E ∩ F := ⟨hE₀, hF₀⟩
+          exact (Set.disjoint_iff.mp hdisj) this
+        simp [hE₀, hF₀]
+      · by_cases hF₀ : x₀ ∈ F
+        · simp [hE₀, hF₀]
+        · simp [hE₀, hF₀]
   }
 
 /-- Example 1.4.23 (Zero measure) -/
+@[implicit_reducible]
 noncomputable instance FinitelyAdditiveMeasure.instZero {X:Type*} (B: ConcreteBooleanAlgebra X) : Zero (FinitelyAdditiveMeasure B) :=
   {
     zero := {
       measure := fun A => 0
-      measure_pos := by sorry
-      measure_empty := by sorry
-      measure_finite_additive := by sorry
+      measure_pos := by
+        intro A hA
+        simp
+      measure_nonneg := by
+        intro A
+        simp
+      measure_empty := by
+        simp
+      measure_finite_additive := by
+        intro E F hE hF hdisj
+        simp
     }
   }
 
 /-- Example 1.4.24 (linear combinations of measures) -/
+@[implicit_reducible]
 noncomputable instance FinitelyAdditiveMeasure.instAdd {X:Type*} {B: ConcreteBooleanAlgebra X} : Add (FinitelyAdditiveMeasure B) :=
   {
     add := fun μ ν =>
       {
         measure := fun A => μ.measure A + ν.measure A
-        measure_pos := by sorry
-        measure_empty := by sorry
-        measure_finite_additive := by sorry
+        measure_pos := by
+          intro A hA
+          exact add_nonneg (μ.measure_pos A hA) (ν.measure_pos A hA)
+        measure_nonneg := by
+          intro A
+          exact add_nonneg (μ.measure_nonneg A) (ν.measure_nonneg A)
+        measure_empty := by
+          simp [μ.measure_empty, ν.measure_empty]
+        measure_finite_additive := by
+          intro E F hE hF hdisj
+          rw [μ.measure_finite_additive E F hE hF hdisj, ν.measure_finite_additive E F hE hF hdisj]
+          abel
       }
   }
 
+@[implicit_reducible]
 noncomputable instance FinitelyAdditiveMeasure.instSmul {X:Type*} {B: ConcreteBooleanAlgebra X} : SMul ENNReal (FinitelyAdditiveMeasure B) :=
 {
     smul := fun c μ =>
         {
         measure := fun A => c * μ.measure A
-        measure_pos := by sorry
-        measure_empty := by sorry
-        measure_finite_additive := by sorry
+        measure_pos := by
+          intro A hA
+          exact mul_nonneg (EReal.coe_ennreal_nonneg c) (μ.measure_pos A hA)
+        measure_nonneg := by
+          intro A
+          exact mul_nonneg (EReal.coe_ennreal_nonneg c) (μ.measure_nonneg A)
+        measure_empty := by
+          simp [μ.measure_empty]
+        measure_finite_additive := by
+          intro E F hE hF hdisj
+          rw [μ.measure_finite_additive E F hE hF hdisj]
+          exact EReal.left_distrib_of_nonneg (a := μ.measure E) (b := μ.measure F)
+            (μ.measure_nonneg E) (μ.measure_nonneg F)
         }
 }
 
+@[ext]
+theorem FinitelyAdditiveMeasure.ext {X:Type*} {B: ConcreteBooleanAlgebra X} {μ ν : FinitelyAdditiveMeasure B}
+    (h : ∀ A : Set X, μ.measure A = ν.measure A) : μ = ν := by
+  cases μ with
+  | mk μ_measure μ_pos μ_empty μ_fadd =>
+    cases ν with
+    | mk ν_measure ν_pos ν_empty ν_fadd =>
+      congr
+      funext A
+      exact h A
+
 noncomputable instance FinitelyAdditiveMeasure.instAddCommMonoid {X:Type*} {B: ConcreteBooleanAlgebra X} : AddCommMonoid (FinitelyAdditiveMeasure B) :=
 {
-  add_assoc := by sorry,
-  zero_add := by sorry,
-  add_zero := by sorry,
-  add_comm := by sorry
+  add_assoc := by
+    intro μ ν τ
+    ext A
+    change (μ.measure A + ν.measure A) + τ.measure A = μ.measure A + (ν.measure A + τ.measure A)
+    abel
+  zero_add := by
+    intro μ
+    ext A
+    change (0 : EReal) + μ.measure A = μ.measure A
+    simp
+  add_zero := by
+    intro μ
+    ext A
+    change μ.measure A + 0 = μ.measure A
+    simp
+  add_comm := by
+    intro μ ν
+    ext A
+    change μ.measure A + ν.measure A = ν.measure A + μ.measure A
+    rw [add_comm]
   nsmul := nsmulRec
 }
 
 noncomputable instance FinitelyAdditiveMeasure.instDistribMulAction {X:Type*} {B: ConcreteBooleanAlgebra X} : DistribMulAction ENNReal (FinitelyAdditiveMeasure B) :=
 {
-  smul_zero := by sorry,
-  smul_add := by sorry,
-  one_smul := by sorry,
-  mul_smul := by sorry
+  smul_zero := by
+    intro c
+    ext A
+    change (c : EReal) * 0 = 0
+    simp
+  smul_add := by
+    intro c μ ν
+    ext A
+    change (c : EReal) * (μ.measure A + ν.measure A) = (c : EReal) * μ.measure A + (c : EReal) * ν.measure A
+    exact EReal.left_distrib_of_nonneg (a := μ.measure A) (b := ν.measure A)
+      (μ.measure_nonneg A) (ν.measure_nonneg A)
+  one_smul := by
+    intro μ
+    ext A
+    change (1 : EReal) * μ.measure A = μ.measure A
+    simp
+  mul_smul := by
+    intro c d μ
+    ext A
+    change ((c * d : ENNReal) : EReal) * μ.measure A = (c : EReal) * ((d : EReal) * μ.measure A)
+    rw [EReal.coe_ennreal_mul, mul_assoc]
 }
 
 /-- Example 1.4.25 (Restriction of a measure) -/
+@[implicit_reducible]
 def FinitelyAdditiveMeasure.restrict {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) (A:Set X) (hA:B.measurable A) : FinitelyAdditiveMeasure (B.restrict A) :=
   {
     measure := fun E => μ.measure E
-    measure_pos := by sorry
-    measure_empty := by sorry
-    measure_finite_additive := by sorry
+    measure_pos := by
+      intro E hE
+      exact μ.measure_pos (E : Set X) ((ConcreteBooleanAlgebra.restrict_iff hA E).mp hE)
+    measure_nonneg := by
+      intro E
+      exact μ.measure_nonneg (E : Set X)
+    measure_empty := by
+      simpa using μ.measure_empty
+    measure_finite_additive := by
+      intro E F hE hF hdisj
+      have hE' : B.measurable (E : Set X) := (ConcreteBooleanAlgebra.restrict_iff hA E).mp hE
+      have hF' : B.measurable (F : Set X) := (ConcreteBooleanAlgebra.restrict_iff hA F).mp hF
+      have hdisj' : Disjoint (E : Set X) (F : Set X) := by
+        rw [Set.disjoint_iff]
+        intro x hx
+        rcases hx with ⟨⟨e, he, rfl⟩, ⟨f, hf, hxf⟩⟩
+        have hef : f = e := Subtype.val_injective hxf
+        exact (Set.disjoint_iff.mp hdisj) ⟨by simpa [hef] using he, hf⟩
+      have hunion : Subtype.val '' (E ∪ F) = Subtype.val '' E ∪ Subtype.val '' F := by
+        exact Set.image_union Subtype.val E F
+      rw [hunion]
+      exact μ.measure_finite_additive (E : Set X) (F : Set X) hE' hF' hdisj'
   }
 
 /-- Example 1.4.26 (Counting a measure) -/
+@[implicit_reducible]
 noncomputable def FinitelyAdditiveMeasure.counting (X:Type*) : FinitelyAdditiveMeasure (⊤  : ConcreteBooleanAlgebra X) :=
   {
     measure := fun E => ENat.card E
-    measure_pos := by sorry
-    measure_empty := by sorry
-    measure_finite_additive := by sorry
+    measure_pos := by
+      intro A hA
+      exact EReal.coe_ennreal_nonneg (ENat.card A)
+    measure_nonneg := by
+      intro A
+      exact EReal.coe_ennreal_nonneg (ENat.card A)
+    measure_empty := by
+      simp
+    measure_finite_additive := by
+      intro E F hE hF hdisj
+      exact_mod_cast (Set.encard_union_eq hdisj)
   }
 
 /-- Exercise 1.4.20(i) -/
