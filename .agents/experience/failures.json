@@ -2021,6 +2021,78 @@
       "start": "2026-08-04T19:12:51.477296",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 121,
+      "theorem": "generated_by_eq",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp_generated.lean",
+      "goal": "Exercise 1.4.15",
+      "start": "2026-08-06T15:05:31.430424",
+      "attempts": [
+        {
+          "edit": "helpers + succ/limit stage lemmas",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "all helper lemmas compile",
+          "time": "2026-08-06T15:17:41.235655"
+        }
+      ],
+      "status": "success",
+      "notes": "all 8 sorries filled; 0 errors 0 warnings",
+      "end": "2026-08-06T15:32:06.921162"
+    },
+    {
+      "id": 122,
+      "theorem": "stage_card_le",
+      "file": "_temp_card.lean",
+      "goal": "prove |sigma_stage F \u03b1| \u2264 |F|^\u2135\u2080 and union bound",
+      "start": "2026-08-06T18:37:04.976774",
+      "attempts": [
+        {
+          "edit": "probes done, writing proof",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "found: mk_iUnion_le_lift, lift_le, lift_aleph0, mk_Iio_ordinal, card_ord, lt_omega_iff_card_lt, Order.lt_succ_iff, succ_aleph0, mul_eq_self, power_le_power_left/right, mk_bounded_set_le, aleph0_le, aleph0_lt_iff_aleph_one_le, aleph_one_le_continuum, two_power_aleph0, IsSuccLimit.bot_lt, isSuccLimit_",
+          "time": "2026-08-06T18:51:16.731491"
+        },
+        {
+          "edit": "stage_card_le done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "aux with Ordinal.{v}, open Ordinal at top (\u03c9\u2081 was auto-bound variable otherwise), limitRecOn induction, succ via mk_bounded_set_le, limit via mk_iUnion_le_lift + ciSup_le + lift_le explicit universes",
+          "time": "2026-08-06T19:06:50.267263"
+        },
+        {
+          "edit": "union_stages done",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "0 errors 0 warnings",
+          "time": "2026-08-06T19:07:32.696925"
+        }
+      ],
+      "status": "success",
+      "notes": "stage_card_le via limitRecOn aux (base: power_le_power_left; succ: mk_bounded_set_le + union/complement images + mul_eq_self; limit: mk_Iio_ordinal + lt_omega_iff_card_lt + Order.lt_succ_iff + succ_aleph0 + mk_iUnion_le_lift + ciSup_le + mul_eq_self); union_stages via card_omega + aleph_one_le_continuum + two_power_aleph0; key fix: open Ordinal needed at top (\u03c9\u2081 is a scoped notation, was auto-bound as variable)",
+      "end": "2026-08-06T19:09:52.963308"
+    },
+    {
+      "id": 123,
+      "theorem": "BorelSigmaAlgebra.card_test",
+      "file": "_temp_borelcard.lean",
+      "goal": "Prove ratBall_infinite and card_test (Borel sigma algebra card \u2264 2^aleph0)",
+      "start": "2026-08-06T19:23:04.609853",
+      "attempts": [],
+      "status": "success",
+      "notes": "ratBall_infinite via balls ball 0 n (coordinate-vector witness for strict containment); card_test via by_cases: d=0 countability+mk_set, d>0 card_of_generated_by + aleph0^aleph0 = 2^aleph0",
+      "end": "2026-08-06T19:31:17.013199"
+    },
+    {
+      "id": 124,
+      "theorem": "cantor_all",
+      "file": "_temp_cantor.lean",
+      "goal": "Prove 7 sorries: Cantor set in R, Jordan measurable non-Borel subset",
+      "start": "2026-08-06T19:42:43.262885",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }

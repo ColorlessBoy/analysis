@@ -713,6 +713,34 @@
       "tactics": "isAtomic_imp_discrete_of_singleton + halfspace/cylinder non-measurable sets",
       "description": "elementary+jordan via unbounded halfspace, null via non-null halfspace, lebesgue via Vitali cylinder translate argument",
       "time": "2026-08-04T19:06:31.209225"
+    },
+    {
+      "theorem": "generated_by_eq_test",
+      "file": "_temp_generated.lean",
+      "tactics": "limitRecOn+rw sigma_stage_succ/limit; Ordinal.le_induction-style mono; countable reindex via exists_eq_range; iSup_sequence_lt_omega_one; Cardinal.isSuccLimit_omega; generated_by_le'",
+      "description": "transfinite \u03c3-algebra stages over \u03c9\u2081 equal generated_by F",
+      "time": "2026-08-06T15:32:06.957855"
+    },
+    {
+      "theorem": "stage_card_le",
+      "file": "_temp_card.lean",
+      "tactics": "limitRecOn+mk_bounded_set_le+mk_iUnion_le_lift+ciSup_le",
+      "description": "|stage \u03b1|\u2264|F|^\u2135\u2080 and |\u22c3\u03b1<\u03c9\u2081 stage \u03b1|\u2264|F|^\u2135\u2080 for infinite F",
+      "time": "2026-08-06T19:09:53.074901"
+    },
+    {
+      "theorem": "BorelSigmaAlgebra.card_test",
+      "file": "_temp_borelcard.lean",
+      "tactics": "by_cases hd; subst; mk_le_of_injective, mk_set, mk_le_aleph0, power_le_power_left; rw borel_eq_generated_by_ratBall, card_of_generated_by, mk_eq_aleph0, power_le_power_right cantor, power_mul, aleph0_mul_aleph0; ratBall_infinite: set.infinite_range_of_injective, EuclideanSpace'.norm_eq, Finset sum via simp, Metric.mem_ball",
+      "description": "Borel sigma algebra on R^d has cardinal \u2264 2^aleph0: d=0 countable ambient, d>0 ratBall infinite+countable so mk=aleph0",
+      "time": "2026-08-06T19:31:17.045687"
+    },
+    {
+      "theorem": "Section_1_4_2_all",
+      "file": "Analysis/MeasureTheory/Section_1_4_2.lean",
+      "tactics": "lim, transfinite-induction, cardinal-arithmetic, Cantor-set",
+      "description": "Section_1_4_2.lean fully proved (0 sorries/0 warnings): Borel equalities via Box.borel_measurable; prod/slices via ConcreteSigmaAlgebra.induction; generated_by_eq via Ordinal.limitRecOn + iSup_sequence_lt_omega_one; card via stage cardinality; not_borel via middle-thirds Cantor set + cardinality",
+      "time": "2026-08-06T21:53:33.251230"
     }
   ],
   "errors": [
