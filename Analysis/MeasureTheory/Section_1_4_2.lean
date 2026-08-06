@@ -364,6 +364,18 @@ theorem ConcreteSigmaAlgebra.sdiff_mem {X : Type*} (B : ConcreteSigmaAlgebra X) 
   have hU : B.measurable (Eᶜ ∪ F) := B.union_mem _ _ (B.compl_mem E hE) hF
   simpa [Set.diff_eq] using B.compl_mem (Eᶜ ∪ F) hU
 
+/-- A countable intersection of measurable sets is measurable. -/
+theorem ConcreteSigmaAlgebra.iInter_mem {X : Type*} (B : ConcreteSigmaAlgebra X) {A : ℕ → Set X}
+    (hA : ∀ n, B.measurable (A n)) : B.measurable (⋂ n, A n) := by
+  have hpre : (⋂ n, A n) = (⋃ n, (A n)ᶜ)ᶜ := by
+    ext x
+    simp [Set.mem_iInter]
+  rw [hpre]
+  apply B.compl_mem
+  apply B.countable_union_mem
+  intro n
+  exact B.compl_mem (A n) (hA n)
+
 /-- Definition 1.4.14 (Generation of σ-algebras) -/
 instance ConcreteSigmaAlgebra.instSupSet {X:Type*} : SupSet (ConcreteSigmaAlgebra X) :=
   {
@@ -1502,12 +1514,151 @@ theorem BorelSigmaAlgebra.slice_snd {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d
 /-- Exercise 1.4.18(ii) -/
 example : ∃ (d₁ d₂ : ℕ) (E : Set (EuclideanSpace' (d₁+d₂))) (x₂ : EuclideanSpace' d₂),
   LebesgueMeasurable E ∧
-  ¬ LebesgueMeasurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } := by sorry
+  ¬ LebesgueMeasurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } := by
+  let E' : Set (EuclideanSpace' 2) := {z | (EuclideanSpace'.prod_equiv 1 1 z).1 ⟨0, by norm_num⟩ ∈ VitaliSet ∧ (EuclideanSpace'.prod_equiv 1 1 z).2 = 0}
+  refine ⟨1, 1, E', (0 : EuclideanSpace' 1), ?_, ?_⟩
+  · let B : Box 2 := { side := ![BoundedInterval.Icc 0 1, BoundedInterval.Icc 0 0] }
+    have hsub : E' ⊆ B.toSet := by
+      intro z hz
+      rw [Box.mem_toSet]
+      intro i
+      fin_cases i <;> simp [B, E'] at hz ⊢
+      · exact VitaliSet_subset_unit_interval hz.1
+      · have hz2 : z.ofLp 1 = 0 := by
+          have hc := congrArg (fun v : EuclideanSpace' 1 => v ⟨0, by norm_num⟩) hz.2
+          simpa [EuclideanSpace'.prod_equiv] using hc
+        simpa using hz2
+    have hvol : Box.volume B = 0 := by
+      rw [Box.volume]
+      apply Finset.prod_eq_zero (Finset.mem_univ (1 : Fin 2))
+      simp [B, BoundedInterval.length]
+    have hB_null : IsNull B.toSet := by
+      change Lebesgue_outer_measure B.toSet = 0
+      rw [Lebesgue_outer_measure.elementary _ (IsElementary.box B), IsElementary.measure_of_box]
+      simp [hvol]
+    have hE_null : IsNull E' := IsNull.subset hB_null hsub
+    exact IsNull.measurable (E := E') hE_null
+  · have hslice : { x₁ : EuclideanSpace' 1 | (EuclideanSpace'.prod_equiv 1 1).symm ⟨ x₁, (0 : EuclideanSpace' 1) ⟩ ∈ E' } =
+      NotAtomic.vitaliCylinder (by norm_num : 0 < 1) := by
+      ext x
+      constructor
+      · intro hx
+        rw [NotAtomic.vitaliCylinder]
+        simp [E'] at hx ⊢
+        exact hx
+      · intro hx
+        rw [NotAtomic.vitaliCylinder] at hx
+        simp [E'] at hx ⊢
+        exact hx
+    rw [hslice]
+    exact NotAtomic.not_lebesgue_measurable_cylinder (by norm_num : 0 < 1)
 
-/-- Exercise 1.4.19 -/
+/-- The Borel σ-algebra is contained in the Lebesgue σ-algebra. -/
+theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by
+  unfold BorelSigmaAlgebra
+  apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
+  intro E hE
+  rw [Set.mem_setOf_eq] at hE
+  exact IsOpen.measurable hE
+
+/-- Every Lebesgue-measurable set is the difference of a Borel set and a null set. -/
+lemma lebesgue_measurable_eq_borel_sdiff_null {d : ℕ} {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    ∃ B : Set (EuclideanSpace' d), (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B ∧
+      ∃ N : Set (EuclideanSpace' d), IsNull N ∧ E = B \ N := by
+  classical
+  have happrox : ∀ n : ℕ, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_outer_measure (U \ E) ≤ (1 : ℝ) / (n + 1) := by
+    intro n
+    have hpos : 0 < ((1 : ℝ) / (n + 1) : EReal) := by
+      exact EReal.coe_strictMono (div_pos zero_lt_one (by positivity))
+    exact hE ((1 : ℝ) / (n + 1)) hpos
+  let U : ℕ → Set (EuclideanSpace' d) := fun n => (happrox n).choose
+  have hU_open : ∀ n, IsOpen (U n) := fun n => (happrox n).choose_spec.1
+  have hE_U : ∀ n, E ⊆ U n := fun n => (happrox n).choose_spec.2.1
+  have hU_n : ∀ n, Lebesgue_outer_measure (U n \ E) ≤ (1 : ℝ) / (n + 1) := fun n => (happrox n).choose_spec.2.2
+  let B : Set (EuclideanSpace' d) := ⋂ n, U n
+  have hB_meas : (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B := by
+    dsimp [B]
+    apply ConcreteSigmaAlgebra.iInter_mem
+    intro n
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    exact hU_open n
+  have hE_sub_B : E ⊆ B := by
+    intro x hx
+    rw [Set.mem_iInter]
+    intro n
+    exact hE_U n hx
+  have hN_null : IsNull (B \ E) := by
+    unfold IsNull
+    let m : EReal := Lebesgue_outer_measure (B \ E)
+    apply le_antisymm
+    · apply le_of_not_gt
+      intro hgt
+      have hgt' : 0 < m := by simpa [m] using hgt
+      have hle1 : ∀ n : ℕ, m ≤ ((1 : ℝ) / (n + 1) : EReal) := by
+        intro n
+        have hsub : B \ E ⊆ U n \ E := by
+          intro x hx
+          constructor
+          · exact (Set.mem_iInter.mp (by simpa [B] using hx.1)) n
+          · exact hx.2
+        simpa [m] using (le_trans (Lebesgue_outer_measure.mono hsub) (hU_n n))
+      have hm_bot : m ≠ ⊥ := ne_of_gt (lt_of_le_of_lt bot_le hgt')
+      have hm_top : m ≠ ⊤ := by
+        have hle0 : m ≤ (1 : ℝ) := by simpa using hle1 0
+        exact ne_of_lt (lt_of_le_of_lt hle0 (EReal.coe_lt_top 1))
+      have hm_gt0 : 0 < m.toReal := EReal.toReal_pos hgt' hm_top
+      have hle_real : ∀ n : ℕ, m.toReal ≤ (1 : ℝ) / (n + 1) := by
+        intro n
+        exact EReal.toReal_le_toReal (hle1 n) hm_bot (EReal.coe_ne_top ((1 : ℝ) / (n + 1)))
+      rcases exists_nat_gt (1 / m.toReal) with ⟨N, hN⟩
+      have hN_gt0 : (0 : ℝ) < (N : ℝ) := lt_trans (div_pos zero_lt_one hm_gt0) hN
+      have hN_ge1 : 1 ≤ N := by exact_mod_cast hN_gt0
+      have hleN : m.toReal ≤ (1 : ℝ) / (N : ℝ) := by
+        have h := hle_real (N - 1)
+        have hcast : ((N - 1 : ℕ) : ℝ) + 1 = (N : ℝ) := by
+          exact_mod_cast (Nat.sub_add_cancel hN_ge1)
+        simpa [hcast] using h
+      have hlt : (1 : ℝ) / (N : ℝ) < m.toReal := (one_div_lt hN_gt0 hm_gt0).mpr hN
+      exact (not_lt_of_ge hleN) hlt
+    · exact Lebesgue_outer_measure.nonneg (B \ E)
+  refine ⟨B, hB_meas, B \ E, hN_null, ?_⟩
+  ext x
+  constructor
+  · intro hx
+    constructor
+    · exact hE_sub_B hx
+    · intro hxNE
+      exact hxNE.2 hx
+  · intro hx
+    rcases hx with ⟨hxB, hxNE⟩
+    by_contra hxE
+    exact hxNE ⟨hxB, hxE⟩
+
 theorem LebesgueMeasurable.sigmaAlgebra_generated_by {d:ℕ} :
   LebesgueMeasurable.sigmaAlgebra d = ConcreteSigmaAlgebra.generated_by ( (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ∪ (IsNull.sigmaAlgebra d).measurableSets) :=
-  by sorry
+  by
+  apply le_antisymm
+  · let G : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
+      ConcreteSigmaAlgebra.generated_by ((BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ∪ (IsNull.sigmaAlgebra d).measurableSets)
+    intro E hE
+    rcases lebesgue_measurable_eq_borel_sdiff_null hE with ⟨B, hB, N, hN, hEq⟩
+    have hB_meas_G : G.measurable B := by
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      simp
+      exact Or.inl hB
+    have hN_meas_G : G.measurable N := by
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact Or.inr (Or.inl hN)
+    rw [hEq]
+    exact ConcreteSigmaAlgebra.sdiff_mem G hB_meas_G hN_meas_G
+  · apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
+    intro E hE
+    rcases hE with hE | hE
+    · have hle := BorelSigmaAlgebra.le_LebesgueSigmaAlgebra d
+      exact hle E hE
+    · rcases hE with hE | hEc
+      · exact IsNull.measurable hE
+      · simpa using LebesgueMeasurable.complement (IsNull.measurable hEc)
 
 @[implicit_reducible]
 def ConcreteSigmaAlgebra.measurableSpace {X: Type*} (B: ConcreteSigmaAlgebra X) : MeasurableSpace X := {
@@ -1549,10 +1700,3 @@ def MeasurableSpace.sigmaAlgebra {X: Type*} (M: MeasurableSpace X) : ConcreteSig
     exact M.measurableSet_iUnion T hT
   countable_union_mem := M.measurableSet_iUnion
 }
-
-theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by
-  unfold BorelSigmaAlgebra
-  apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
-  intro E hE
-  rw [Set.mem_setOf_eq] at hE
-  exact IsOpen.measurable hE
