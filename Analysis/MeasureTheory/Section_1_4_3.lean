@@ -1472,6 +1472,29 @@ private lemma lebesgue_measure_on_measurable {d : ℕ} {E : Set (EuclideanSpace'
   rw [Measure.ofMeasurable_apply E hE]
   rfl
 
+private lemma borel_measurable_iff_mathlib {d : ℕ} (s : Set (EuclideanSpace' d)) :
+    (BorelSigmaAlgebra (EuclideanSpace' d)).measurable s ↔ MeasurableSet s := by
+  have hborel : (inferInstance : MeasurableSpace (EuclideanSpace' d)) = borel (EuclideanSpace' d) :=
+    BorelSpace.measurable_eq
+  change (BorelSigmaAlgebra (EuclideanSpace' d)).measurable s ↔
+    (inferInstance : MeasurableSpace (EuclideanSpace' d)).MeasurableSet' s
+  rw [hborel]
+  constructor
+  · intro h
+    let B : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
+      MeasurableSpace.sigmaAlgebra (MeasurableSpace.generateFrom (setOf (fun U : Set (EuclideanSpace' d) => IsOpen U)))
+    have hle : ConcreteSigmaAlgebra.generated_by { U : Set (EuclideanSpace' d) | IsOpen U } ≤ B := by
+      apply ConcreteSigmaAlgebra.generated_by_le'
+      intro U hU
+      exact MeasurableSpace.measurableSet_generateFrom hU
+    exact hle s h
+  · intro h
+    exact (MeasurableSpace.generateFrom_le (s := {U : Set (EuclideanSpace' d) | IsOpen U})
+      (m := (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSpace) (by
+        intro U hU
+        exact (ConcreteSigmaAlgebra.generated_by_contains (F := {U : Set (EuclideanSpace' d) | IsOpen U}) hU :
+          (BorelSigmaAlgebra (EuclideanSpace' d)).measurable U))) s h
+
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
   Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
