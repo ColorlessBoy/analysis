@@ -399,8 +399,123 @@ theorem FinitelyAdditiveMeasure.finite_subadditivity {X:Type*} {B: ConcreteBoole
       exact le_trans hle (add_le_add_right ih (μ.measure (E j)))
 
 open Classical in
+/-- A measurable set in the atomic algebra is the union of the atoms it contains. -/
+private lemma atomic_union_eq {I X : Type*} [Fintype I] {atoms : I → Set X} (h_part : IsPartition atoms)
+    (E : Set X) (hE : h_part.to_ConcreteBooleanAlgebra.measurable E) :
+    E = ⋃ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), atoms i := by
+  rcases hE with ⟨J, rfl⟩
+  ext x
+  constructor
+  · intro hx
+    simp [Set.mem_iUnion] at hx
+    rcases hx with ⟨j, hjJ, hxj⟩
+    simp [Set.mem_iUnion]
+    refine ⟨j, ?_, hxj⟩
+    show atoms j ⊆ ⋃ i ∈ J, atoms i
+    intro y hy
+    simp [Set.mem_iUnion]
+    exact ⟨j, hjJ, hy⟩
+  · intro hx
+    simp [Set.mem_iUnion] at hx
+    rcases hx with ⟨i, hi, hxi⟩
+    exact hi hxi
+
+open Classical in
+/-- Each atom is measurable in the atomic algebra. -/
+private lemma atomic_measurable {I X : Type*} [Fintype I] {atoms : I → Set X} (h_part : IsPartition atoms)
+    (i : I) : h_part.to_ConcreteBooleanAlgebra.measurable (atoms i) := by
+  refine ⟨{i}, ?_⟩
+  ext x
+  simp
+
+open Classical in
+/-- The {lit}`ENNReal` finite sum coerces to the corresponding {lit}`EReal` sum. -/
+private lemma finset_sum_coe_ereal {I : Type*} (s : Finset I) (c : I → ENNReal) :
+    ((∑ i ∈ s, c i : ENNReal) : EReal) = ∑ i ∈ s, (c i : EReal) := by
+  let f : ENNReal →+ EReal :=
+    { toFun := (↑·), map_zero' := rfl, map_add' := EReal.coe_ennreal_add }
+  exact map_sum f (fun i => c i) s
+
+open Classical in
+/-- In a partition, a nonempty atom contained in another atom is that atom. -/
+private lemma atomic_subset_empty {I X : Type*} {atoms : I → Set X} (h_part : IsPartition atoms)
+    {i j : I} (hsub : atoms j ⊆ atoms i) (hne : j ≠ i) : atoms j = ∅ := by
+  have hdisj := h_part.1 (Set.mem_univ j) (Set.mem_univ i) hne
+  apply Set.Subset.antisymm
+  · intro x hx
+    have hxi : x ∈ atoms i := hsub hx
+    exact False.elim ((Set.disjoint_iff.mp hdisj) ⟨hx, hxi⟩)
+  · intro x hx
+    simp at hx
+
+open Classical in
+/-- Summing the coefficients of the atoms contained in {lit}`atoms i` recovers {lit}`c i`
+  when the empty atoms have coefficient zero. -/
+private lemma atomic_filter_sum {I X : Type*} [Fintype I] {atoms : I → Set X} (h_part : IsPartition atoms)
+    (i : I) (c : I → ENNReal) (hzero : ∀ j, atoms j = ∅ → c j = 0) :
+    (∑ j ∈ Finset.univ.filter (fun j => atoms j ⊆ atoms i), c j) = c i := by
+  have hif : ∀ j, (if atoms j ⊆ atoms i then c j else 0) = (if j = i then c i else 0) := by
+    intro j
+    by_cases hji : j = i
+    · subst hji
+      simp
+    · by_cases hsub : atoms j ⊆ atoms i
+      · have hempty : atoms j = ∅ := atomic_subset_empty h_part hsub hji
+        simp [hji, hsub, hzero j hempty]
+      · simp [hji, hsub]
+  calc
+    (∑ j ∈ Finset.univ.filter (fun j => atoms j ⊆ atoms i), c j)
+        = ∑ j ∈ Finset.univ, (if atoms j ⊆ atoms i then c j else 0) := by
+            rw [Finset.sum_filter]
+    _ = ∑ j ∈ Finset.univ, (if j = i then c i else 0) := by
+            apply Finset.sum_congr rfl
+            intro j hj
+            exact hif j
+    _ = c i := by simp
+
+open Classical in
 /-- Exercise 1.4.21 -/
-theorem FinitelyAdditiveMeasure.finite_atomic_eq {I X: Type*} [Fintype I] {atoms: I → Set X} (h_part: IsPartition atoms) (μ : FinitelyAdditiveMeasure h_part.to_ConcreteBooleanAlgebra) : ∃! c : I → ENNReal, ∀ E, h_part.to_ConcreteBooleanAlgebra.measurable E → μ.measure E = ∑ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), c i := by sorry
+theorem FinitelyAdditiveMeasure.finite_atomic_eq {I X: Type*} [Fintype I] {atoms: I → Set X} (h_part: IsPartition atoms) (μ : FinitelyAdditiveMeasure h_part.to_ConcreteBooleanAlgebra) : ∃! c : I → ENNReal, ∀ E, h_part.to_ConcreteBooleanAlgebra.measurable E → μ.measure E = ∑ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), c i := by
+  -- Existence: c i = (μ.measure (atoms i)).toENNReal
+  refine ⟨fun i => (μ.measure (atoms i)).toENNReal, ?_, ?_⟩
+  · intro E hE
+    have hEq : E = ⋃ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), atoms i := atomic_union_eq h_part E hE
+    calc
+      μ.measure E = μ.measure (⋃ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), atoms i) := by exact congrArg μ.measure hEq
+      _ = ∑ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), μ.measure (atoms i) := by
+        exact μ.finite_additivity (fun i => atomic_measurable h_part i) h_part.1
+      _ = ((∑ i ∈ Finset.univ.filter (fun i => atoms i ⊆ E), (μ.measure (atoms i)).toENNReal : ENNReal) : EReal) := by
+        rw [finset_sum_coe_ereal]
+        apply Finset.sum_congr rfl
+        intro i hi
+        exact (EReal.coe_toENNReal (μ.measure_nonneg (atoms i))).symm
+  · intro c hc
+    funext i
+    have hc0 : ∀ j, atoms j = ∅ → c j = 0 := by
+      intro j hj
+      classical
+      have hEempty : h_part.to_ConcreteBooleanAlgebra.measurable (∅ : Set X) := h_part.to_ConcreteBooleanAlgebra.empty_mem
+      have hsum := hc ∅ hEempty
+      have hzero : (∑ k ∈ Finset.univ.filter (fun k => atoms k ⊆ (∅ : Set X)), c k) = 0 := by
+        have hEreal : ((∑ k ∈ Finset.univ.filter (fun k => atoms k ⊆ (∅ : Set X)), c k : ENNReal) : EReal) = 0 := by
+          rw [← hsum, μ.measure_empty]
+        exact_mod_cast hEreal
+      have hjmem : j ∈ Finset.univ.filter (fun k => atoms k ⊆ (∅ : Set X)) := by
+        rw [Finset.mem_filter]
+        exact ⟨Finset.mem_univ j, by simp [hj]⟩
+      have hle : c j ≤ (∑ k ∈ Finset.univ.filter (fun k => atoms k ⊆ (∅ : Set X)), c k) := by
+        exact Finset.single_le_sum (fun k hk => zero_le (c k)) hjmem
+      rw [hzero] at hle
+      exact le_antisymm hle (zero_le (c j))
+    have hEi : h_part.to_ConcreteBooleanAlgebra.measurable (atoms i) := atomic_measurable h_part i
+    have hsum := hc (atoms i) hEi
+    have hfilter : (∑ j ∈ Finset.univ.filter (fun j => atoms j ⊆ atoms i), c j) = c i :=
+      atomic_filter_sum h_part i c hc0
+    have hcoerced : (c i : EReal) = μ.measure (atoms i) := by
+      rw [← hfilter]
+      rw [← hsum]
+    have htoennreal := congrArg EReal.toENNReal hcoerced
+    simpa [EReal.toENNReal_coe] using htoennreal
 
 /-- Definition 1.4.27 (Countably additive measure) -/
 class CountablyAdditiveMeasure {X:Type*} (B: ConcreteSigmaAlgebra X) extends FinitelyAdditiveMeasure B.toConcreteBooleanAlgebra where
