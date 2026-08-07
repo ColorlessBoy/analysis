@@ -1355,7 +1355,83 @@ theorem Measure.on_countable {X:Type*} [Countable X] [M: MeasurableSpace X] (hM:
 /-- Exercise 1.4.26 (Completion) -/
 theorem Measure.completion_lt {X:Type*} [M : MeasurableSpace X] (μ: Measure X) (M' : MeasurableSpace X) (μ' : @Measure X M')
   (hcomplete : μ'.IsComplete) (hMM' : M ≤ M') (hμ : ∀ E, M.MeasurableSet' E → μ E = μ' E) : ∀ E : Set X, @NullMeasurableSet X M E μ → (M'.MeasurableSet' E ∧ μ' E = μ.completion E)
-   := by sorry
+   := by
+  intro E hE
+  rcases NullMeasurableSet.exists_measurable_superset_ae_eq hE with ⟨B, hEB, hBmeasM, hBE⟩
+  have hμsd : μ (symmDiff E B) = 0 := by
+    exact MeasureTheory.measure_symmDiff_eq_zero_iff.mpr (ae_eq_symm hBE)
+  let D : Set X := symmDiff E B
+  let N : Set X := @toMeasurable X M μ D
+  have hDsubN : D ⊆ N := by
+    dsimp [N]
+    exact @subset_toMeasurable X M μ D
+  have hNmeasM : M.MeasurableSet' N := by
+    dsimp [N]
+    exact @measurableSet_toMeasurable X M μ D
+  have hNμ0 : μ N = 0 := by
+    dsimp [N]
+    rw [@measure_toMeasurable X M μ D]
+    exact hμsd
+  have hNmeasM' : M'.MeasurableSet' N := hMM' N hNmeasM
+  have hNμ'0 : μ' N = 0 := by
+    exact (hμ N hNmeasM).symm.trans hNμ0
+  have hDμ'0 : μ' D = 0 := by
+    apply le_antisymm
+    · have hle : μ' D ≤ μ' N := @measure_mono X (@Measure X M') _ _ μ' D N hDsubN
+      rwa [hNμ'0] at hle
+    · exact zero_le (μ' D)
+  have hDmeasM' : M'.MeasurableSet' D := by
+    exact (@Measure.isComplete_iff X M' μ').mp hcomplete D hDμ'0
+  have hBmeasM' : M'.MeasurableSet' B := hMM' B hBmeasM
+  have hEeq : E = symmDiff B D := by
+    unfold D
+    ext x
+    simp [Set.mem_symmDiff]
+    by_cases hx : x ∈ E
+    · by_cases hb : x ∈ B
+      · simp [hx, hb]
+      · simp [hx, hb]
+    · by_cases hb : x ∈ B
+      · simp [hx, hb]
+      · simp [hx, hb]
+  have hEmeasM' : M'.MeasurableSet' E := by
+    rw [hEeq]
+    rw [Set.symmDiff_def]
+    have hBm : @MeasurableSet X M' B := hBmeasM'
+    have hDm : @MeasurableSet X M' D := hDmeasM'
+    exact @MeasurableSet.union X M' (B \ D) (D \ B) (hBm.diff hDm) (hDm.diff hBm)
+  have hμ'E : μ' E = μ' B := by
+    have hEBsub : E \ B ⊆ D := by
+      unfold D
+      intro x hx
+      rw [Set.mem_symmDiff]
+      exact Or.inl hx
+    have hBEsub : B \ E ⊆ D := by
+      unfold D
+      intro x hx
+      rw [Set.mem_symmDiff]
+      exact Or.inr hx
+    have hE_B0 : μ' (E \ B) = 0 := @measure_mono_null X (@Measure X M') _ _ μ' (E \ B) D hEBsub hDμ'0
+    have hB_E0 : μ' (B \ E) = 0 := @measure_mono_null X (@Measure X M') _ _ μ' (B \ E) D hBEsub hDμ'0
+    have h1 : μ' (E ∩ B) + μ' (E \ B) = μ' E := by
+      rw [← @MeasureTheory.measure_inter_add_diff X M' μ' B E hBmeasM']
+    have h2 : μ' (B ∩ E) + μ' (B \ E) = μ' B := by
+      rw [← @MeasureTheory.measure_inter_add_diff X M' μ' E B hEmeasM']
+    have h1' : μ' E = μ' (E ∩ B) := by
+      rw [← h1, hE_B0]
+      simp
+    have h2' : μ' B = μ' (B ∩ E) := by
+      rw [← h2, hB_E0]
+      simp
+    have hinter : μ' (E ∩ B) = μ' (B ∩ E) := by
+      congr 1
+      ext x
+      simp [and_comm]
+    exact h1'.trans (hinter.trans h2'.symm)
+  have hμ'B : μ' B = μ B := (hμ B hBmeasM).symm
+  have hμBE : μ B = μ E := MeasureTheory.measure_congr hBE
+  have hμcomp : μ E = μ.completion E := (@Measure.completion_apply X M μ E).symm
+  exact ⟨hEmeasM', (hμ'E.trans hμ'B).trans (hμBE.trans hμcomp)⟩
 
 noncomputable def EuclideanSpace'.lebesgueMeasure (d:ℕ) := (FinitelyAdditiveMeasure.lebesgue_isCountablyAdditive d).toMeasure
 
