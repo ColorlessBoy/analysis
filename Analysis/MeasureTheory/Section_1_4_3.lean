@@ -1532,6 +1532,58 @@ private lemma borelMeasure_of_null {d : ℕ} {N : Set (EuclideanSpace' d)} (hN :
     · simp
   · exact zero_le _
 
+local instance borelMeasurableSpace' (d : ℕ) : MeasurableSpace (EuclideanSpace' d) :=
+  (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSpace
+
+private lemma borelNullMeasurable_iff_lebesgue {d : ℕ} (s : Set (EuclideanSpace' d)) :
+    NullMeasurableSet s (EuclideanSpace'.borelMeasure d) ↔ LebesgueMeasurable s := by
+  letI : MeasurableSpace (EuclideanSpace' d) := (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSpace
+  constructor
+  · intro h
+    rcases NullMeasurableSet.exists_measurable_subset_ae_eq h with ⟨B, hBsub, hBmeas, hBeq⟩
+    have hμdiff : (EuclideanSpace'.borelMeasure d) (s \ B) = 0 :=
+      measure_diff_zero_of_ae_eq (EuclideanSpace'.borelMeasure d) hBeq
+    have hLebB : LebesgueMeasurable B :=
+      (BorelSigmaAlgebra.le_LebesgueSigmaAlgebra d) B hBmeas
+    have hT0 : (EuclideanSpace'.borelMeasure d) (toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B)) = 0 := by
+      rw [measure_toMeasurable]
+      exact hμdiff
+    have hTmeas : (BorelSigmaAlgebra (EuclideanSpace' d)).measurable
+        (toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B)) :=
+      measurableSet_toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B)
+    have hL0 : (Lebesgue_outer_measure (toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B))).toENNReal = 0 := by
+      rw [← borel_measure_on_borel hTmeas]
+      exact hT0
+    have hle0 : Lebesgue_outer_measure (toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B)) ≤ 0 :=
+      EReal.toENNReal_eq_zero_iff.mp hL0
+    have hnull : IsNull (s \ B) := by
+      unfold IsNull
+      exact le_antisymm
+        (le_trans (Lebesgue_outer_measure.mono (subset_toMeasurable (EuclideanSpace'.borelMeasure d) (s \ B))) hle0)
+        (Lebesgue_outer_measure.nonneg _)
+    have hLebT : LebesgueMeasurable (s \ B) := IsNull.measurable hnull
+    have hEq : s = B ∪ (s \ B) := by
+      ext x
+      constructor
+      · intro hx
+        by_cases hxB : x ∈ B
+        · exact Or.inl hxB
+        · exact Or.inr ⟨hx, hxB⟩
+      · intro hx
+        rcases hx with hxB | hx
+        · exact hBsub hxB
+        · exact hx.1
+    rw [hEq]
+    exact LebesgueMeasurable.union hLebB hLebT
+  · intro hLeb
+    rcases lebesgue_measurable_eq_borel_sdiff_null hLeb with ⟨B, hB, N, hN, hEq⟩
+    have hBm : MeasurableSet B := hB
+    have hNμ : (EuclideanSpace'.borelMeasure d) N = 0 := borelMeasure_of_null hN
+    have hNn : NullMeasurableSet N (EuclideanSpace'.borelMeasure d) := NullMeasurableSet.of_null hNμ
+    have hEn : NullMeasurableSet (B \ N) (EuclideanSpace'.borelMeasure d) :=
+      NullMeasurableSet.diff hBm.nullMeasurableSet hNn
+    simpa [hEq] using hEn
+
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
   Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
