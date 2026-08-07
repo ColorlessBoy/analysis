@@ -912,8 +912,118 @@ def SetConvergesTo {X:Type*} (E : ℕ → Set X) (E' : Set X) : Prop :=
   ∀ x : X, ∀ᶠ n in Filter.atTop, x ∈ E n ↔ x ∈ E'
 
 /-- Exercise 1.4.24 (i) (Dominated convergence for sets) -/
-theorem Measure.measurable_of_lim {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  {E' : Set X} (hlim : SetConvergesTo E E') : Measurable E' := by sorry
+theorem Measure.measurable_of_lim {X:Type*} [MeasurableSpace X] (_μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
+  {E' : Set X} (hlim : SetConvergesTo E E') : Measurable E' := by
+  -- Convert hE : ∀ n, Measurable (E n) to MeasurableSet (E n)
+  have hEmeas : ∀ n : ℕ, MeasurableSet (E n) := by
+    intro n
+    have h := hE n (by trivial : MeasurableSet ({True} : Set Prop))
+    have heq : E n ⁻¹' ({True} : Set Prop) = E n := by
+      ext x
+      rw [Set.mem_preimage]
+      simp
+      rfl
+    rwa [heq] at h
+  -- Step 1: E' = {x | ∀ᶠ n, x ∈ E n}
+  have hE' : E' = {x : X | ∀ᶠ n in Filter.atTop, x ∈ E n} := by
+    ext x
+    constructor
+    · intro hx
+      filter_upwards [hlim x] with n hn
+      exact hn.mpr hx
+    · intro hx
+      by_contra hx'
+      change ∀ᶠ n in Filter.atTop, x ∈ E n at hx
+      rcases Filter.eventually_atTop.mp (hx.and (hlim x)) with ⟨N, hN⟩
+      have hboth : x ∈ E N ∧ (x ∈ E N ↔ x ∈ E') := hN N (le_refl N)
+      exact hx' (hboth.2.mp hboth.1)
+  -- Step 2: {x | ∀ᶠ n, x ∈ E n} is measurable
+  have hmeaslim : MeasurableSet {x : X | ∀ᶠ n in Filter.atTop, x ∈ E n} := by
+    have hEq : {x : X | ∀ᶠ n in Filter.atTop, x ∈ E n} = ⋃ N : ℕ, ⋂ n : {n : ℕ // N ≤ n}, E n.1 := by
+      ext x
+      constructor
+      · intro hx
+        change ∀ᶠ n in Filter.atTop, x ∈ E n at hx
+        rcases Filter.eventually_atTop.mp hx with ⟨N, hN⟩
+        rw [Set.mem_iUnion]
+        refine ⟨N, ?_⟩
+        rw [Set.mem_iInter]
+        intro n
+        exact hN n.1 n.2
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨N, hN⟩
+        change ∀ᶠ n in Filter.atTop, x ∈ E n
+        rw [Filter.eventually_atTop]
+        refine ⟨N, ?_⟩
+        intro n hn
+        rw [Set.mem_iInter] at hN
+        exact hN ⟨n, hn⟩
+    rw [hEq]
+    apply MeasurableSet.iUnion
+    intro N
+    apply MeasurableSet.iInter
+    intro n
+    exact hEmeas n.1
+  -- Step 3: MeasurableSet E' → Measurable E'
+  have hE'meas : MeasurableSet E' := by
+    rw [hE']
+    exact hmeaslim
+  intro s hs
+  by_cases hT : True ∈ s
+  · by_cases hF : False ∈ s
+    · have hpre : E' ⁻¹' s = Set.univ := by
+        ext x
+        constructor
+        · intro _; trivial
+        · intro _; by_cases hx' : E' x
+          · have hEqT : E' x = True := propext (Iff.intro (fun _ => trivial) (fun _ => hx'))
+            simp [Set.preimage, hEqT, hT]
+          · have hEqF : E' x = False := propext (Iff.intro (fun h : E' x => False.elim (hx' h)) (fun f => False.elim f))
+            simp [Set.preimage, hEqF, hF]
+      rw [hpre]
+      exact MeasurableSet.univ
+    · have hpre : E' ⁻¹' s = E' := by
+        ext x
+        constructor
+        · intro hx
+          by_contra hx'
+          have hEqF : E' x = False := propext (Iff.intro (fun h : E' x => False.elim (hx' h)) (fun f => False.elim f))
+          simp [Set.preimage, hEqF] at hx
+          exact hF hx
+        · intro hx
+          have hEqT : E' x = True := propext (Iff.intro (fun _ => trivial) (fun _ => hx))
+          simp [Set.preimage, hEqT, hT]
+      rw [hpre]
+      exact hE'meas
+  · by_cases hF : False ∈ s
+    · have hpre : E' ⁻¹' s = E'ᶜ := by
+        ext x
+        constructor
+        · intro hx hx'
+          have hEqT : E' x = True := propext (Iff.intro (fun _ => trivial) (fun _ => hx'))
+          simp [Set.preimage, hEqT] at hx
+          exact hT hx
+        · intro hx
+          have hEqF : E' x = False := propext (Iff.intro (fun h : E' x => False.elim (hx h)) (fun f => False.elim f))
+          simp [Set.preimage, hEqF, hF]
+      rw [hpre]
+      exact MeasurableSet.compl hE'meas
+    · have hpre : E' ⁻¹' s = ∅ := by
+        ext x
+        constructor
+        · intro hx
+          by_cases hx' : E' x
+          · have hEqT : E' x = True := propext (Iff.intro (fun _ => trivial) (fun _ => hx'))
+            simp [Set.preimage, hEqT] at hx
+            exact hT hx
+          · have hEqF : E' x = False := propext (Iff.intro (fun h : E' x => False.elim (hx' h)) (fun f => False.elim f))
+            simp [Set.preimage, hEqF] at hx
+            exact hF hx
+        · intro hx
+          exact False.elim hx
+      rw [hpre]
+      exact MeasurableSet.empty
 
 /-- Exercise 1.4.24 (ii) (Dominated convergence for sets) -/
 theorem Measure.measure_of_lim {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
