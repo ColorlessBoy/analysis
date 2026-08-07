@@ -859,22 +859,106 @@ theorem Measure.downwards_mono {X:Type*} [MeasurableSpace X] (μ: Measure X) {E 
     rwa [heq] at h
   exact hmono.measure_iInter (hsm := fun i => (hmeasSet i).nullMeasurableSet) (hfin := hfin.imp (fun n hn => ne_of_lt hn))
 
-theorem Measure.downwards_mono_counter : ∃ (X:Type) (M: MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (hE: ∀ n, Measurable (E n))
-  (hmono : Antitone E), μ (⋂ n, E n) ≠ ⨅ n, μ.measureOf (E n) := by sorry
+theorem Measure.downwards_mono_counter : ∃ (X:Type) (_M: MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (_hE: ∀ n, Measurable (E n))
+  (_hmono : Antitone E), μ (⋂ n, E n) ≠ ⨅ n, μ.measureOf (E n) := by
+  refine ⟨ℕ, ⊤, Measure.count, fun n => {m : ℕ | n ≤ m}, ?_, ?_, ?_⟩
+  · intro n s hs
+    trivial
+  · intro a b hab m hm
+    simp at hm ⊢
+    omega
+  · change Measure.count (⋂ n, {m : ℕ | n ≤ m}) ≠ ⨅ n, Measure.count.measureOf {m : ℕ | n ≤ m}
+    have hinter : (⋂ n, {m : ℕ | n ≤ m}) = ∅ := by
+      ext m
+      constructor
+      · intro hm
+        rw [Set.mem_iInter] at hm
+        have hmm : m + 1 ≤ m := hm (m + 1)
+        omega
+      · intro hm
+        exact False.elim hm
+    have hcount0 : Measure.count (⋂ n, {m : ℕ | n ≤ m}) = 0 := by
+      rw [hinter]
+      simp
+    have hinf : ∀ n, Measure.count.measureOf {m : ℕ | n ≤ m} = (⊤ : ENNReal) := by
+      intro n
+      change Measure.count {m : ℕ | n ≤ m} = (⊤ : ENNReal)
+      rw [Measure.count_apply_eq_top]
+      have hrange : {m : ℕ | n ≤ m} = Set.range (fun k : ℕ => n + k) := by
+        ext m
+        constructor
+        · intro hm
+          rw [Set.mem_range]
+          refine ⟨m - n, ?_⟩
+          have hnle : n ≤ m := by simpa using hm
+          omega
+        · intro hm
+          rw [Set.mem_range] at hm
+          rcases hm with ⟨k, hk⟩
+          simp
+          omega
+      rw [hrange]
+      exact Set.infinite_range_of_injective (f := fun k : ℕ => n + k) (by intro a b h; exact Nat.add_left_cancel h)
+    have hiinf : (⨅ n, Measure.count.measureOf {m : ℕ | n ≤ m}) = (⊤ : ENNReal) := by
+      rw [iInf_eq_top]
+      exact hinf
+    rw [hcount0, hiinf]
+    exact ENNReal.zero_ne_top
+
+/-- Genuine pointwise convergence of sets: the indicators converge at each point.
+  Unlike the general PointwiseConvergesTo, this requires both directions
+  (the Sierpinski topology on Prop makes the general notion one-sided). -/
+def SetConvergesTo {X:Type*} (E : ℕ → Set X) (E' : Set X) : Prop :=
+  ∀ x : X, ∀ᶠ n in Filter.atTop, x ∈ E n ↔ x ∈ E'
 
 /-- Exercise 1.4.24 (i) (Dominated convergence for sets) -/
 theorem Measure.measurable_of_lim {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  {E' : Set X} (hlim : PointwiseConvergesTo E E') : Measurable E' := by sorry
+  {E' : Set X} (hlim : SetConvergesTo E E') : Measurable E' := by sorry
 
 /-- Exercise 1.4.24 (ii) (Dominated convergence for sets) -/
 theorem Measure.measure_of_lim {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  {E' F : Set X} (hlim : PointwiseConvergesTo E E') (hF : Measurable F) (hfin : μ F < ⊤) (hcon : ∀ n, E n ⊆ F) :
+  {E' F : Set X} (hlim : SetConvergesTo E E') (hF : Measurable F) (hfin : μ F < ⊤) (hcon : ∀ n, E n ⊆ F) :
   Filter.atTop.Tendsto (fun n ↦ μ (E n)) (nhds (μ E')) := by sorry
 
 /-- Exercise 1.4.24 (iii) (Dominated convergence for sets) -/
-theorem Measure.measure_of_lim_counter : ∃ (X:Type) (M:MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (hE: ∀ n, Measurable (E n))
-  (E' F : Set X) (hlim : PointwiseConvergesTo E E') (hF : Measurable F) (hcon : ∀ n, E n ⊆ F),
-  ¬ Filter.atTop.Tendsto (fun n ↦ μ (E n)) (nhds (μ E')) := by sorry
+theorem Measure.measure_of_lim_counter : ∃ (X:Type) (_M:MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (_hE: ∀ n, Measurable (E n))
+  (E' F : Set X) (_hlim : SetConvergesTo E E') (_hF : Measurable F) (_hcon : ∀ n, E n ⊆ F),
+  ¬ Filter.atTop.Tendsto (fun n ↦ μ (E n)) (nhds (μ E')) := by
+  refine ⟨ℕ, ⊤, Measure.count, fun n => {m : ℕ | n ≤ m}, ?hE, ∅, Set.univ, ?hlim, ?hF, ?hcon, ?hnot⟩
+  · intro n s _hs
+    trivial
+  · intro x
+    filter_upwards [Filter.eventually_ge_atTop (x + 1)] with n hn
+    constructor <;> intro hx
+    · have hlt : x < n := by omega
+      exact (not_le_of_gt hlt) hx
+    · exact False.elim hx
+  · intro s _hs
+    trivial
+  · intro n m _hm
+    trivial
+  · intro ht
+    have hconst : ∀ n, Measure.count ({m : ℕ | n ≤ m}) = (⊤ : ENNReal) := by
+      intro n
+      rw [Measure.count_apply_eq_top]
+      have hinf : ({m : ℕ | n ≤ m}).Infinite := by
+        intro hfin
+        rcases hfin.bddAbove with ⟨M, hM⟩
+        have hnM : n ≤ M := hM (show n ∈ ({m : ℕ | n ≤ m}) from by simp)
+        have hM1 : M + 1 ∈ ({m : ℕ | n ≤ m}) := by
+          simp
+          omega
+        have hle : M + 1 ≤ M := hM hM1
+        omega
+      exact hinf
+    have hseq : (fun n : ℕ => Measure.count ({m : ℕ | n ≤ m})) = fun _ : ℕ => (⊤ : ENNReal) := by
+      funext n
+      exact hconst n
+    have hzero : Measure.count (∅ : Set ℕ) = (0 : ENNReal) := by simp
+    dsimp at ht
+    rw [hseq, hzero] at ht
+    have htop_eq_zero : (⊤ : ENNReal) = 0 := tendsto_const_nhds_iff.mp ht
+    exact ENNReal.top_ne_zero htop_eq_zero
 
 /-- Exercise 1.4.25 -/
 theorem Measure.on_countable {X:Type*} [Countable X] [M: MeasurableSpace X] (hM: M = ⊤) (μ: Measure X) :
