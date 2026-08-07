@@ -2093,6 +2093,91 @@
       "start": "2026-08-06T19:42:43.262885",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 125,
+      "theorem": "Section_1_4_3_line881",
+      "file": "/Users/bilibili/Documents/lean/analysis/Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "Exercise 1.4.24(iii): counterexample to dominated convergence for sets (counting measure on \u2115, tail sets)",
+      "start": "2026-08-07T11:55:17.610234",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 126,
+      "theorem": "measure_of_lim_counter",
+      "file": "Section_1_4_3",
+      "goal": "Counterexample: X=Nat, top space, count measure, tail sets E n={m|m>=n}, E'=empty, limit is inf vs 0",
+      "start": "2026-08-07T11:56:34.259965",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 127,
+      "theorem": "measure_of_lim_counter",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "counterexample: X=Nat, count measure, E n = {m | n <= m}, E'=empty; show tendsto fails",
+      "start": "2026-08-07T12:01:16.568776",
+      "attempts": [],
+      "status": "success",
+      "notes": "counting measure on \u2115, tail sets; count_apply_eq_top + tendsto_const_nhds_iff + ENNReal.top_ne_zero",
+      "end": "2026-08-07T12:09:52.217276"
+    },
+    {
+      "id": 128,
+      "theorem": "Measure.downwards_mono_counter",
+      "file": "_temp_Section_1_4_3_line862.lean",
+      "goal": "Counterexample: X=Nat, top space, count measure, tail sets E n = {m | n \u2264 m}",
+      "start": "2026-08-07T12:13:39.618491",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 129,
+      "theorem": "Section_1_4_3_completion_lt",
+      "file": "/Users/bilibili/Documents/lean/analysis/Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "Exercise 1.4.26: completion is the minimal complete extension",
+      "start": "2026-08-07T14:05:58.899845",
+      "attempts": [],
+      "status": "fail",
+      "notes": "starting fresh",
+      "end": "2026-08-07T14:06:22.556377"
+    },
+    {
+      "id": 130,
+      "theorem": "Section_1_4_3_approx_finite",
+      "file": "/Users/bilibili/Documents/lean/analysis/Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "Exercise 1.4.28(i): approximation by algebra in finite measure case",
+      "start": "2026-08-07T15:00:14.532068",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 131,
+      "theorem": "BooleanAlgebra.approx_finite",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "approx finite measure by algebra sets",
+      "start": "2026-08-07T15:02:32.715280",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 132,
+      "theorem": "Section_1_4_3_borel_completion",
+      "file": "/Users/bilibili/Documents/lean/analysis/Analysis/MeasureTheory/Section_1_4_3.lean",
+      "goal": "Exercise 1.4.27: Borel completion = Lebesgue measure",
+      "start": "2026-08-07T18:19:52.515638",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 133,
+      "theorem": "borel_completion_eq_lebesgue",
+      "file": "Section_1_4_3",
+      "goal": "prove Measure.equiv of completion of borelMeasure and lebesgueMeasure",
+      "start": "2026-08-07T18:20:22.905363",
+      "attempts": [],
+      "status": "in_progress"
     }
   ]
 }

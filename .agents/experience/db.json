@@ -741,6 +741,76 @@
       "tactics": "lim, transfinite-induction, cardinal-arithmetic, Cantor-set",
       "description": "Section_1_4_2.lean fully proved (0 sorries/0 warnings): Borel equalities via Box.borel_measurable; prod/slices via ConcreteSigmaAlgebra.induction; generated_by_eq via Ordinal.limitRecOn + iSup_sequence_lt_omega_one; card via stage cardinality; not_borel via middle-thirds Cantor set + cardinality",
       "time": "2026-08-06T21:53:33.251230"
+    },
+    {
+      "theorem": "measure_of_lim_counter",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "refine, filter_upwards, rw [Measure.count_apply_eq_top], hfin.bddAbove, dsimp, rw, tendsto_const_nhds_iff.mp, ENNReal.top_ne_zero",
+      "description": "counterexample to dominated convergence for sets: count measure on Nat with E n = Ici n converging to empty",
+      "time": "2026-08-07T12:09:13.864597"
+    },
+    {
+      "theorem": "Measure.measure_of_lim_counter",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "refine \u27e8\u2115,\u22a4,count,{m|n\u2264m},\u2205,univ,...\u27e9; count_apply_eq_top for \u22a4; tendsto_const_nhds_iff",
+      "description": "Counterexample via counting measure on \u2115 tail sets. Unused binders renamed _M,_hE,...",
+      "time": "2026-08-07T12:09:52.243901"
+    },
+    {
+      "theorem": "Measure.downwards_mono_counter",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "refine \u27e8\u2115,\u22a4,count,{m|n\u2264m},...\u27e9; iInter=\u2205; count_apply_eq_top + infinite_range_of_injective + iInf_eq_top",
+      "description": "Counterexample via counting measure on \u2115 tail sets",
+      "time": "2026-08-07T12:17:12.324758"
+    },
+    {
+      "theorem": "Measure.measurable_of_lim",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "E' = {x | \u2200\u1da0 n, x \u2208 E n} = \u22c3N \u22c2(n|N\u2264n) E n; MeasurableSet via iUnion/iInter; 4-case preimage conversion to Measurable",
+      "description": "Pointwise limit of measurable sets is measurable, via liminf characterization",
+      "time": "2026-08-07T12:29:32.908003"
+    },
+    {
+      "theorem": "Measure.measure_of_lim",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "liminf/limsup tails L_N/U_N; E'=\u22c3L=\u22c2U; tendsto_measure_iUnion_atTop/iInter_atTop; squeeze tendsto_of_tendsto_of_tendsto_of_le_of_le",
+      "description": "Dominated convergence for sets via liminf/limsup squeeze",
+      "time": "2026-08-07T12:39:09.356707"
+    },
+    {
+      "theorem": "Measure.on_countable",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "c x = \u03bc {x}; E = \u22c3 x:E {x} disjoint; measure_iUnion + tsum_subtype + tsum_eq_single",
+      "description": "Measure on countable discrete space is determined by point masses",
+      "time": "2026-08-07T12:47:37.293811"
+    },
+    {
+      "theorem": "FinitelyAdditiveMeasure.finite_atomic_eq",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "c i = (\u03bc.measure (atoms i)).toENNReal; E = \u22c3 atoms in filter; finite_additivity + finset_sum_coe_ereal; uniqueness via E=atoms i and empty-atom c=0",
+      "description": "Finite atomic measure decomposition: existence + uniqueness",
+      "time": "2026-08-07T14:02:36.539877"
+    },
+    {
+      "theorem": "Measure.completion_lt",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "NullMeasurableSet.exists_measurable_superset_ae_eq + measure_symmDiff_eq_zero_iff; toMeasurable null superset; completeness -> D M'-measurable; E=B\u25b3D; measure chain \u03bc' E=\u03bc' B=\u03bc B=\u03bc E=completion",
+      "description": "Completion is the minimal complete extension: null-measurable sets are measurable in any complete extension with agreeing measure",
+      "time": "2026-08-07T14:55:57.544459"
+    },
+    {
+      "theorem": "BooleanAlgebra.approx_finite",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "Approx sigma-algebra containing B; symmDiff_compl/iUnion_symmDiff_subset/tail_union_measure/geo_sum helpers; generated_by_le'",
+      "description": "Exercise 1.4.28(i): finite measure approximation by algebra via sigma-algebra closure + tail truncation",
+      "time": "2026-08-07T16:27:22.366904"
+    },
+    {
+      "theorem": "BooleanAlgebra.approx_sigma_finite",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "approx_finite on \u03bc.restrict (A n); F = G \u2229 A n \u2286 A n; Measure.restrict_apply (ht := hsG) on h\u03bcG; symmDiff subset",
+      "description": "Exercise 1.4.28(ii): local approximation within each sigma-finite piece (statement fixed: original global conclusion false via count measure counterexample)",
+      "time": "2026-08-07T18:11:49.504013"
     }
   ],
   "errors": [
