@@ -1186,7 +1186,49 @@ theorem Measure.measure_of_lim_counter : ∃ (X:Type) (_M:MeasurableSpace X) (μ
 
 /-- Exercise 1.4.25 -/
 theorem Measure.on_countable {X:Type*} [Countable X] [M: MeasurableSpace X] (hM: M = ⊤) (μ: Measure X) :
-  ∃! c : X → ENNReal, ∀ E : Set X, μ E = ∑' x : E, c x := by sorry
+  ∃! c : X → ENNReal, ∀ E : Set X, μ E = ∑' x : E, c x := by
+  -- Existence: c x = μ {x}
+  refine ⟨fun x => μ ({x} : Set X), ?_, ?_⟩
+  · intro E
+    have hdisj : Pairwise (Function.onFun Disjoint (fun x : E => ({x.1} : Set X))) := by
+      intro a b hab
+      rw [Function.onFun]
+      rw [Set.disjoint_iff]
+      intro x hx
+      rcases hx with ⟨hxa, hxb⟩
+      simp at hxa hxb
+      have hab' : a.1 = b.1 := hxa.symm ▸ hxb
+      exact hab (Subtype.ext hab')
+    have hmeas : ∀ x : E, MeasurableSet ({x.1} : Set X) := by
+      intro x
+      rw [hM]
+      trivial
+    have hEq : E = ⋃ x : E, ({x.1} : Set X) := by
+      ext x
+      constructor
+      · intro hx
+        rw [Set.mem_iUnion]
+        refine ⟨⟨x, hx⟩, ?_⟩
+        simp
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨y, hy⟩
+        simp at hy
+        exact hy ▸ y.2
+    calc
+      μ E = μ (⋃ x : E, ({x.1} : Set X)) := by exact congrArg μ hEq
+      _ = ∑' x : E, μ ({x.1} : Set X) := by
+        exact measure_iUnion hdisj hmeas
+  · intro c hc
+    funext x
+    have h := hc ({x} : Set X)
+    have htsum : (∑' y : ({x} : Set X), c y) = c x := by
+      rw [tsum_subtype]
+      rw [tsum_eq_single x]
+      · simp
+      · intro y hy
+        simp [hy]
+    rw [h, htsum]
 
 -- Definition 1.4.31
 #check Measure.IsComplete
