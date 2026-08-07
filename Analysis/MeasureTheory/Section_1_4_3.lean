@@ -1439,6 +1439,39 @@ noncomputable def EuclideanSpace'.borelMeasure (d:ℕ) := ((FinitelyAdditiveMeas
 
 def Measure.equiv {X:Type*} {M M' : MeasurableSpace X} (μ: @Measure X M) (μ': @Measure X M') : Prop := M = M' ∧ ∀ E, M.MeasurableSet' E → μ E = μ' E
 
+private lemma ereal_toENNReal_mono {a b : EReal} (h : a ≤ b) : a.toENNReal ≤ b.toENNReal := by
+  by_cases hb : b ≤ 0
+  · rw [EReal.toENNReal_of_nonpos hb, EReal.toENNReal_of_nonpos (le_trans h hb)]
+  · have hb' : 0 < b := lt_of_not_ge hb
+    by_cases ha : a ≤ 0
+    · rw [EReal.toENNReal_of_nonpos ha]
+      exact (EReal.toENNReal_pos_iff.mpr hb').le
+    · have ha' : 0 < a := lt_of_not_ge ha
+      rw [← EReal.coe_ennreal_le_coe_ennreal_iff]
+      rw [EReal.coe_toENNReal (le_of_lt ha'), EReal.coe_toENNReal (le_of_lt hb')]
+      exact h
+
+private lemma measure_diff_zero_of_ae_eq {α : Type*} [MeasurableSpace α] (μ : Measure α) {s t : Set α}
+    (h : t =ᶠ[ae μ] s) : μ (s \ t) = 0 := by
+  have hsymm : μ (symmDiff s t) = 0 := measure_symmDiff_eq_zero_iff.mpr h.symm
+  exact le_antisymm (by
+    apply le_trans (measure_mono (by intro x hx; rw [Set.mem_symmDiff]; exact Or.inl hx))
+    simp [hsymm]) (zero_le _)
+
+private lemma borel_measure_on_borel {d : ℕ} {B : Set (EuclideanSpace' d)} (hB : (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B) :
+    (EuclideanSpace'.borelMeasure d) B = (Lebesgue_outer_measure B).toENNReal := by
+  letI : MeasurableSpace (EuclideanSpace' d) := (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSpace
+  unfold EuclideanSpace'.borelMeasure CountablyAdditiveMeasure.toMeasure
+  rw [Measure.ofMeasurable_apply B hB]
+  rfl
+
+private lemma lebesgue_measure_on_measurable {d : ℕ} {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    (EuclideanSpace'.lebesgueMeasure d) E = (Lebesgue_outer_measure E).toENNReal := by
+  letI : MeasurableSpace (EuclideanSpace' d) := (LebesgueMeasurable.sigmaAlgebra d).measurableSpace
+  unfold EuclideanSpace'.lebesgueMeasure FinitelyAdditiveMeasure.isCountablyAdditive.toMeasure CountablyAdditiveMeasure.toMeasure
+  rw [Measure.ofMeasurable_apply E hE]
+  rfl
+
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
   Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
