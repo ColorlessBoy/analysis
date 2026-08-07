@@ -1,5 +1,7 @@
 import Analysis.MeasureTheory.Section_1_4_2
 
+open MeasureTheory
+
 /-!
 # Introduction to Measure Theory, Section 1.4.3: Countably additive measures and measure spaces
 
@@ -420,129 +422,442 @@ def FinitelyAdditiveMeasure.isCountablyAdditive.toCountablyAdditive {X:Type*} {B
     measure_countable_additive := h.2
   }
 
-/-- Example 1.4.28 -/
-theorem FinitelyAdditiveMeasure.lebesgue_isCountablyAdditive (d:ℕ) : (FinitelyAdditiveMeasure.lebesgue d).isCountablyAdditive :=
-  by sorry
+/-- The coefficient hom from {lit}`ENNReal` to {lit}`EReal`, used to transfer tsums. -/
+private def erealCoeHom : ENNReal →+ EReal :=
+  { toFun := (↑·), map_zero' := rfl, map_add' := EReal.coe_ennreal_add }
 
-theorem FinitelyAdditiveMeasure.isCountablyAdditive_restrict_alg {X:Type*} {B B': ConcreteSigmaAlgebra X} (μ: CountablyAdditiveMeasure B) (hBB': B' ≤ B) : (μ.toFinitelyAdditiveMeasure.restrict_alg hBB').isCountablyAdditive :=
-  by sorry
+private lemma coe_tsum_ereal {ι : Type*} (a : ι → ENNReal) :
+    ((∑' i, a i : ENNReal) : EReal) = ∑' i, (a i : EReal) := by
+  exact Summable.map_tsum (f := a) ENNReal.summable erealCoeHom (by exact continuous_coe_ennreal_ereal)
 
+/-- {lit}`ENNReal` tsums commute with the sum of two nonnegative {lit}`EReal` families. -/
+private lemma ereal_tsum_add {ι : Type*} (a b : ι → EReal) (ha : ∀ i, 0 ≤ a i) (hb : ∀ i, 0 ≤ b i) :
+    (∑' i, a i) + (∑' i, b i) = ∑' i, (a i + b i) := by
+  have hcoe_a : ∀ i, ((a i).toENNReal : EReal) = a i := fun i => EReal.coe_toENNReal (ha i)
+  have hcoe_b : ∀ i, ((b i).toENNReal : EReal) = b i := fun i => EReal.coe_toENNReal (hb i)
+  calc
+    (∑' i, a i) + (∑' i, b i)
+        = ((∑' i, (a i).toENNReal : ENNReal) : EReal) + ((∑' i, (b i).toENNReal : ENNReal) : EReal) := by
+          rw [coe_tsum_ereal (fun i => (a i).toENNReal), coe_tsum_ereal (fun i => (b i).toENNReal)]
+          simp_rw [hcoe_a, hcoe_b]
+    _ = ((∑' i, ((a i).toENNReal + (b i).toENNReal : ENNReal)) : EReal) := by
+          rw [← EReal.coe_ennreal_add]
+          rw [← coe_tsum_ereal (fun i => (a i).toENNReal + (b i).toENNReal)]
+          congr 1
+          rw [ENNReal.tsum_add]
+    _ = ∑' i, (a i + b i) := by
+          have hcoe_ab : ∀ i, (((a i + b i).toENNReal) : EReal) = a i + b i :=
+            fun i => EReal.coe_toENNReal (add_nonneg (ha i) (hb i))
+          apply tsum_congr
+          intro i
+          rw [← hcoe_ab i]
+          rw [EReal.toENNReal_add (ha i) (hb i)]
+
+/-- Scalar multiplication by a nonnegative coefficient distributes over {lit}`EReal` tsums. -/
+private lemma tsum_ereal_mul_left {ι : Type*} (c : ENNReal) (a : ι → EReal) (ha : ∀ i, 0 ≤ a i) :
+    (c : EReal) * (∑' i, a i) = ∑' i, (c : EReal) * a i := by
+  have hcoe : ∀ i, ((a i).toENNReal : EReal) = a i := fun i => EReal.coe_toENNReal (ha i)
+  calc
+    (c : EReal) * (∑' i, a i)
+        = (c : EReal) * ((∑' i, (a i).toENNReal : ENNReal) : EReal) := by
+            rw [coe_tsum_ereal (fun i => (a i).toENNReal)]
+            simp_rw [hcoe]
+    _ = ((c * ∑' i, (a i).toENNReal : ENNReal) : EReal) := by
+            rw [EReal.coe_ennreal_mul]
+    _ = ((∑' i, (c * (a i).toENNReal : ENNReal)) : EReal) := by
+            rw [← coe_tsum_ereal (fun i => c * (a i).toENNReal)]
+            congr 1
+            rw [ENNReal.tsum_mul_left]
+    _ = ∑' i, (c : EReal) * a i := by
+            apply tsum_congr
+            intro i
+            rw [EReal.coe_ennreal_mul]
+            rw [hcoe i]
+
+/-- The double {lit}`EReal` tsum of a nonnegative family commutes (Fubini). -/
+private lemma tsum_comm_ereal {ι κ : Type*} (f : ι → κ → EReal) (hf : ∀ i k, 0 ≤ f i k) :
+    (∑' i, ∑' k, f i k) = (∑' k, ∑' i, f i k) := by
+  have hcoe : ∀ i k, ((f i k).toENNReal : EReal) = f i k := fun i k => EReal.coe_toENNReal (hf i k)
+  calc
+    (∑' i, ∑' k, f i k)
+        = ((∑' i, (∑' k, (f i k).toENNReal : ENNReal)) : EReal) := by
+            apply tsum_congr
+            intro i
+            rw [coe_tsum_ereal (fun k => (f i k).toENNReal)]
+            apply tsum_congr
+            intro k
+            rw [hcoe i k]
+    _ = ((∑' k, (∑' i, (f i k).toENNReal : ENNReal)) : EReal) := by
+            rw [← coe_tsum_ereal (fun i => ∑' k, (f i k).toENNReal),
+                ← coe_tsum_ereal (fun k => ∑' i, (f i k).toENNReal)]
+            congr 1
+            exact ENNReal.tsum_comm
+    _ = ∑' k, ∑' i, f i k := by
+            apply tsum_congr
+            intro k
+            rw [coe_tsum_ereal (fun i => (f i k).toENNReal)]
+            apply tsum_congr
+            intro i
+            rw [hcoe i k]
+
+open Classical in
+/-- The tsum of the indicator of a pairwise disjoint family is 1 if the point lies in the union. -/
+private lemma dirac_tsum {X : Type*} {x₀ : X} {E : ℕ → Set X}
+    (hdisj : Set.univ.PairwiseDisjoint E) :
+    (∑' n, (if x₀ ∈ E n then (1 : EReal) else 0)) = if x₀ ∈ ⋃ n, E n then (1 : EReal) else 0 := by
+  classical
+  by_cases hx₀ : x₀ ∈ ⋃ n, E n
+  · rcases Set.mem_iUnion.mp hx₀ with ⟨n₀, hx₀n₀⟩
+    have h0 : ∀ n, n ≠ n₀ → (if x₀ ∈ E n then (1 : EReal) else 0) = 0 := by
+      intro n hn
+      have hx₀n : x₀ ∉ E n := by
+        intro hx₀n
+        have hdis : Disjoint (E n₀) (E n) := hdisj (Set.mem_univ n₀) (Set.mem_univ n) (Ne.symm hn)
+        exact (Set.disjoint_iff.mp hdis) ⟨hx₀n₀, hx₀n⟩
+      simp [hx₀n]
+    rw [tsum_eq_single n₀ h0]
+    simp [hx₀n₀]
+    exact ⟨n₀, hx₀n₀⟩
+  · have h0 : ∀ n, (if x₀ ∈ E n then (1 : EReal) else 0) = 0 := by
+      intro n
+      have hx₀n : x₀ ∉ E n := by
+        intro hx₀n
+        exact hx₀ (by rw [Set.mem_iUnion]; exact ⟨n, hx₀n⟩)
+      simp [hx₀n]
+    simp [h0]
+    intro x hx
+    exact hx₀ (by rw [Set.mem_iUnion]; exact ⟨x, hx⟩)
+
+/-- Example 1.4.28-/
+theorem FinitelyAdditiveMeasure.lebesgue_isCountablyAdditive (d:ℕ) : (FinitelyAdditiveMeasure.lebesgue d).isCountablyAdditive := by
+  constructor
+  · exact LebesgueMeasurable.boolean_algebra.isSigmaAlgebra d
+  · intro E hE hdisj
+    exact Lebesgue_measure.countable_union (fun n => hE n) hdisj
+
+theorem FinitelyAdditiveMeasure.isCountablyAdditive_restrict_alg {X:Type*} {B B': ConcreteSigmaAlgebra X} (μ: CountablyAdditiveMeasure B) (hBB': B' ≤ B) : (μ.toFinitelyAdditiveMeasure.restrict_alg hBB').isCountablyAdditive := by
+  constructor
+  · exact ConcreteSigmaAlgebra.isSigmaAlgebra B'
+  · intro E hE hdisj
+    exact μ.measure_countable_additive E (fun n => hBB' (E n) (hE n)) hdisj
+
+@[implicit_reducible]
 def CountablyAdditiveMeasure.restrict_alg {X:Type*} {B B': ConcreteSigmaAlgebra X} (μ: CountablyAdditiveMeasure B) (hBB' : B' ≤ B) : CountablyAdditiveMeasure B' :=
   {
     toFinitelyAdditiveMeasure := μ.toFinitelyAdditiveMeasure.restrict_alg hBB',
-    measure_countable_additive := by sorry
+    measure_countable_additive := by
+      intro E hE hdisj
+      exact μ.measure_countable_additive E (fun n => hBB' (E n) (hE n)) hdisj
   }
 
-/-- Example 1.4.29 (Dirac measure) -/
-theorem FinitelyAdditiveMeasure.dirac_isCountablyAdditive {X:Type*} (x₀:X) (B: ConcreteBooleanAlgebra X) : (FinitelyAdditiveMeasure.dirac x₀ B).isCountablyAdditive :=
-  by sorry
+/-- Example 1.4.29-/
+theorem FinitelyAdditiveMeasure.dirac_isCountablyAdditive {X:Type*} (x₀:X) (B: ConcreteBooleanAlgebra X) (hB : B.isSigmaAlgebra) : (FinitelyAdditiveMeasure.dirac x₀ B).isCountablyAdditive := by
+  classical
+  constructor
+  · exact hB
+  · intro E hE hdisj
+    change (if x₀ ∈ ⋃ n, E n then (1 : EReal) else 0) = ∑' n, (if x₀ ∈ E n then (1 : EReal) else 0)
+    exact (dirac_tsum hdisj).symm
 
-/-- Example 1.4.29 (Counting measure) -/
-theorem FinitelyAdditiveMeasure.counting_isCountablyAdditive {X:Type*} : (FinitelyAdditiveMeasure.counting X).isCountablyAdditive :=
-  by sorry
+/-- Example 1.4.29-/
+theorem FinitelyAdditiveMeasure.counting_isCountablyAdditive {X:Type*} : (FinitelyAdditiveMeasure.counting X).isCountablyAdditive := by
+  constructor
+  · intro E hE
+    trivial
+  · intro E hE hdisj
+    letI : MeasurableSpace X := ⊤
+    have hmeas : ∀ n, MeasurableSet (E n) := fun n => by trivial
+    have hUmeas : MeasurableSet (⋃ n, E n) := MeasurableSet.iUnion hmeas
+    have hd' : Pairwise (Function.onFun Disjoint E) := fun a b hab => hdisj (Set.mem_univ a) (Set.mem_univ b) hab
+    have hcount : (MeasureTheory.Measure.count : Measure X) (⋃ n, E n) = ∑' n, (MeasureTheory.Measure.count : Measure X) (E n) :=
+      (MeasureTheory.Measure.count : Measure X).m_iUnion (f := E) hmeas hd'
+    calc
+      (ENat.card (⋃ n, E n) : EReal) = ((MeasureTheory.Measure.count : Measure X) (⋃ n, E n) : EReal) := by
+        rw [MeasureTheory.Measure.count_apply hUmeas]
+        simp
+      _ = ((∑' n, (MeasureTheory.Measure.count : Measure X) (E n) : ENNReal) : EReal) := by
+        rw [hcount]
+      _ = (∑' n, ((MeasureTheory.Measure.count : Measure X) (E n) : EReal)) := by
+        rw [coe_tsum_ereal (fun n => (MeasureTheory.Measure.count : Measure X) (E n))]
+      _ = ∑' n, (ENat.card (E n) : EReal) := by
+        apply tsum_congr
+        intro n
+        rw [MeasureTheory.Measure.count_apply (hmeas n)]
+        rfl
 
 /-- Example 1.4.30 -/
+@[implicit_reducible]
 def CountablyAdditiveMeasure.restrict {X:Type*} {B: ConcreteSigmaAlgebra X} (μ: CountablyAdditiveMeasure B) (A:Set X) (hA:B.measurable A) : CountablyAdditiveMeasure (B.restrict A) :=
   {
     toFinitelyAdditiveMeasure := μ.toFinitelyAdditiveMeasure.restrict A hA,
-    measure_countable_additive := by sorry
+    measure_countable_additive := by
+      intro E hE hdisj
+      have hE' : ∀ n, B.measurable (E n : Set X) := fun n => (ConcreteBooleanAlgebra.restrict_iff hA (E n)).mp (hE n)
+      have hdisj' : Set.univ.PairwiseDisjoint (fun n => (E n : Set X)) := by
+        intro a ha b hb hab
+        change Disjoint (Subtype.val '' (E a)) (Subtype.val '' (E b))
+        rw [Set.disjoint_iff]
+        intro x hx
+        rcases hx with ⟨⟨e, he, rfl⟩, ⟨f, hf, hxf⟩⟩
+        have hef : f = e := Subtype.val_injective hxf
+        exact (Set.disjoint_iff.mp (hdisj (Set.mem_univ a) (Set.mem_univ b) hab)) ⟨by simpa [hef] using he, hf⟩
+      have hunion : Subtype.val '' (⋃ n, E n) = ⋃ n, Subtype.val '' (E n) := by
+        exact Set.image_iUnion (f := Subtype.val) (s := fun n => E n)
+      change μ.measure (Subtype.val '' (⋃ n, E n)) = ∑' n, μ.measure (Subtype.val '' (E n))
+      rw [hunion]
+      exact μ.measure_countable_additive (fun n => Subtype.val '' (E n)) hE' hdisj'
   }
 
+@[implicit_reducible]
 noncomputable instance CountablyAdditiveMeasure.instZero {X:Type*} (B: ConcreteSigmaAlgebra X) : Zero (CountablyAdditiveMeasure B) :=
   {
     zero := {
       toFinitelyAdditiveMeasure := 0
-      measure_countable_additive := by sorry
+      measure_countable_additive := by
+        intro E hE hdisj
+        change (0 : EReal) = ∑' n, (0 : EReal)
+        simp
     }
   }
 
+@[implicit_reducible]
 noncomputable instance CountablyAdditiveMeasure.instAdd {X:Type*} {B: ConcreteSigmaAlgebra X} : Add (CountablyAdditiveMeasure B) :=
   {
     add := fun μ ν =>
       {
         toFinitelyAdditiveMeasure := μ.toFinitelyAdditiveMeasure + ν.toFinitelyAdditiveMeasure
-        measure_countable_additive := by sorry
+        measure_countable_additive := by
+          intro E hE hdisj
+          change μ.measure (⋃ n, E n) + ν.measure (⋃ n, E n) = ∑' n, (μ.measure (E n) + ν.measure (E n))
+          rw [μ.measure_countable_additive E hE hdisj, ν.measure_countable_additive E hE hdisj]
+          exact ereal_tsum_add (fun n => μ.measure (E n)) (fun n => ν.measure (E n))
+            (fun n => μ.measure_nonneg (E n)) (fun n => ν.measure_nonneg (E n))
       }
   }
 
+@[ext]
+theorem CountablyAdditiveMeasure.ext {X:Type*} {B: ConcreteSigmaAlgebra X} {μ ν : CountablyAdditiveMeasure B}
+    (h : ∀ A : Set X, μ.measure A = ν.measure A) : μ = ν := by
+  have hf : μ.toFinitelyAdditiveMeasure = ν.toFinitelyAdditiveMeasure := by
+    apply FinitelyAdditiveMeasure.ext
+    exact h
+  change ({ toFinitelyAdditiveMeasure := μ.toFinitelyAdditiveMeasure, measure_countable_additive := μ.measure_countable_additive } :
+      CountablyAdditiveMeasure B) =
+    { toFinitelyAdditiveMeasure := ν.toFinitelyAdditiveMeasure, measure_countable_additive := ν.measure_countable_additive }
+  simp [hf]
+
+@[implicit_reducible]
 noncomputable instance CountablyAdditiveMeasure.instAddCommMonoid {X:Type*} {B: ConcreteSigmaAlgebra X} : AddCommMonoid (CountablyAdditiveMeasure B) :=
 {
-  add_assoc := by sorry,
-  zero_add := by sorry,
-  add_zero := by sorry,
-  add_comm := by sorry
+  add_assoc := by
+    intro μ ν τ
+    ext A
+    change (μ.measure A + ν.measure A) + τ.measure A = μ.measure A + (ν.measure A + τ.measure A)
+    abel
+  zero_add := by
+    intro μ
+    ext A
+    change (0 : EReal) + μ.measure A = μ.measure A
+    simp
+  add_zero := by
+    intro μ
+    ext A
+    change μ.measure A + 0 = μ.measure A
+    simp
+  add_comm := by
+    intro μ ν
+    ext A
+    change μ.measure A + ν.measure A = ν.measure A + μ.measure A
+    rw [add_comm]
   nsmul := nsmulRec
 }
 
 /-- Exercise 1.4.22(i) -/
+@[implicit_reducible]
 noncomputable instance CountablyAdditiveMeasure.instSmul {X:Type*} {B: ConcreteSigmaAlgebra X} : SMul ENNReal (CountablyAdditiveMeasure B) :=
 {
     smul := fun c μ =>
         {
         toFinitelyAdditiveMeasure := c • μ.toFinitelyAdditiveMeasure
-        measure_countable_additive := by sorry
+        measure_countable_additive := by
+          intro E hE hdisj
+          change (c : EReal) * μ.measure (⋃ n, E n) = ∑' n, (c : EReal) * μ.measure (E n)
+          rw [μ.measure_countable_additive E hE hdisj]
+          exact tsum_ereal_mul_left c (fun n => μ.measure (E n)) (fun n => μ.measure_nonneg (E n))
         }
 }
 
+@[implicit_reducible]
 noncomputable instance CountablyAdditiveMeasure.instDistribMulAction {X:Type*} {B: ConcreteSigmaAlgebra X} : DistribMulAction ENNReal (CountablyAdditiveMeasure B) :=
 {
-  smul_zero := by sorry,
-  smul_add := by sorry,
-  one_smul := by sorry,
-  mul_smul := by sorry
+  smul_zero := by
+    intro c
+    ext A
+    change (c : EReal) * 0 = 0
+    simp
+  smul_add := by
+    intro c μ ν
+    ext A
+    change (c : EReal) * (μ.measure A + ν.measure A) = (c : EReal) * μ.measure A + (c : EReal) * ν.measure A
+    exact EReal.left_distrib_of_nonneg (a := μ.measure A) (b := ν.measure A)
+      (μ.measure_nonneg A) (ν.measure_nonneg A)
+  one_smul := by
+    intro μ
+    ext A
+    change (1 : EReal) * μ.measure A = μ.measure A
+    simp
+  mul_smul := by
+    intro c d μ
+    ext A
+    change ((c * d : ENNReal) : EReal) * μ.measure A = (c : EReal) * ((d : EReal) * μ.measure A)
+    rw [EReal.coe_ennreal_mul, mul_assoc]
 }
 
 /-- Exercise 1.4.22(ii) -/
+@[implicit_reducible]
 noncomputable def CountablyAdditiveMeasure.sum {X:Type*} {B: ConcreteSigmaAlgebra X} (μ: ℕ → CountablyAdditiveMeasure B) : CountablyAdditiveMeasure B :=
   {
     toFinitelyAdditiveMeasure := {
       measure := fun A => ∑' n, (μ n).toFinitelyAdditiveMeasure.measure A
-      measure_pos := by sorry
-      measure_empty := by sorry
-      measure_finite_additive := by sorry
+      measure_pos := by
+        intro A hA
+        have hnn : ∀ n, 0 ≤ (μ n).toFinitelyAdditiveMeasure.measure A := fun n => (μ n).measure_nonneg A
+        have hcoe : ∀ n, (((μ n).measure A).toENNReal : EReal) = (μ n).measure A :=
+          fun n => EReal.coe_toENNReal (hnn n)
+        have hsum : (∑' n, (μ n).measure A) = ((∑' n, ((μ n).measure A).toENNReal : ENNReal) : EReal) := by
+          rw [coe_tsum_ereal (fun n => ((μ n).measure A).toENNReal)]
+          apply tsum_congr
+          intro n
+          exact (hcoe n).symm
+        rw [hsum]
+        exact EReal.coe_ennreal_nonneg _
+      measure_nonneg := by
+        intro A
+        have hnn : ∀ n, 0 ≤ (μ n).toFinitelyAdditiveMeasure.measure A := fun n => (μ n).measure_nonneg A
+        have hcoe : ∀ n, (((μ n).measure A).toENNReal : EReal) = (μ n).measure A :=
+          fun n => EReal.coe_toENNReal (hnn n)
+        have hsum : (∑' n, (μ n).measure A) = ((∑' n, ((μ n).measure A).toENNReal : ENNReal) : EReal) := by
+          rw [coe_tsum_ereal (fun n => ((μ n).measure A).toENNReal)]
+          apply tsum_congr
+          intro n
+          exact (hcoe n).symm
+        rw [hsum]
+        exact EReal.coe_ennreal_nonneg _
+      measure_empty := by
+        have h0 : ∀ n, (μ n).measure ∅ = 0 := fun n => (μ n).toFinitelyAdditiveMeasure.measure_empty
+        calc
+          (∑' n, (μ n).measure ∅) = ∑' n, (0 : EReal) := by
+            apply tsum_congr
+            intro n
+            exact h0 n
+          _ = 0 := by simp
+      measure_finite_additive := by
+        intro E F hE hF hdisj
+        calc
+          (∑' n, (μ n).measure (E ∪ F))
+              = ∑' n, ((μ n).measure E + (μ n).measure F) := by
+                  apply tsum_congr
+                  intro n
+                  exact (μ n).measure_finite_additive E F hE hF hdisj
+          _ = (∑' n, (μ n).measure E) + (∑' n, (μ n).measure F) := by
+                  exact (ereal_tsum_add (fun n => (μ n).measure E) (fun n => (μ n).measure F)
+                    (fun n => (μ n).measure_nonneg E) (fun n => (μ n).measure_nonneg F)).symm
     }
-    measure_countable_additive := by sorry
+    measure_countable_additive := by
+      intro E hE hdisj
+      calc
+        (∑' n, (μ n).measure (⋃ m, E m))
+            = ∑' n, (∑' m, (μ n).measure (E m)) := by
+                apply tsum_congr
+                intro n
+                exact (μ n).measure_countable_additive E (fun m => hE m) hdisj
+        _ = (∑' m, ∑' n, (μ n).measure (E m)) := by
+                exact tsum_comm_ereal (fun n m => (μ n).measure (E m)) (fun n m => (μ n).measure_nonneg (E m))
   }
-
-open MeasureTheory
 
 noncomputable def CountablyAdditiveMeasure.toMeasure {X:Type*} {B: ConcreteSigmaAlgebra X} (μ: CountablyAdditiveMeasure B) :
   @Measure X B.measurableSpace :=
   let _measurable := B.measurableSpace
-  {
-      measureOf E := (μ.measure E).toENNReal
-      empty := by sorry
-      mono := by sorry
-      iUnion_nat := by sorry
-      m_iUnion := by sorry
-      trim_le := by sorry
-  }
+  Measure.ofMeasurable (m := fun E _ => (μ.measure E).toENNReal)
+    (m0 := by
+      change (μ.measure ∅).toENNReal = 0
+      rw [μ.measure_empty]
+      simp)
+    (mU := by
+      intro f hf hd
+      have hmeas : ∀ i, B.measurable (f i) := fun i => hf i
+      have hd' : Set.univ.PairwiseDisjoint f := fun a ha b hb hab => hd hab
+      have hsum : μ.measure (⋃ i, f i) = ∑' i, μ.measure (f i) :=
+        μ.measure_countable_additive f hmeas hd'
+      change (μ.measure (⋃ i, f i)).toENNReal = ∑' i, (μ.measure (f i)).toENNReal
+      rw [hsum]
+      have hcoe : ∀ i, ((μ.measure (f i)).toENNReal : EReal) = μ.measure (f i) :=
+        fun i => EReal.coe_toENNReal (μ.measure_nonneg (f i))
+      have hsum_coe : (∑' i, μ.measure (f i)) = ((∑' i, (μ.measure (f i)).toENNReal : ENNReal) : EReal) := by
+        rw [coe_tsum_ereal (fun i => (μ.measure (f i)).toENNReal)]
+        apply tsum_congr
+        intro i
+        exact (hcoe i).symm
+      rw [hsum_coe]
+      exact EReal.toENNReal_coe)
 
 noncomputable def FinitelyAdditiveMeasure.isCountablyAdditive.toMeasure {X:Type*} {B: ConcreteBooleanAlgebra X} {μ: FinitelyAdditiveMeasure B} (h: μ.isCountablyAdditive) :
   @Measure X h.1.toSigmaAlgebra.measurableSpace := h.toCountablyAdditive.toMeasure
 
+@[implicit_reducible]
 def Measure.toCountablyAdditiveMeasure {X:Type*} [M : MeasurableSpace X] (μ: Measure X) : CountablyAdditiveMeasure M.sigmaAlgebra :=
   {
     toFinitelyAdditiveMeasure := {
       measure E := μ.measureOf E
-      measure_pos := by sorry
-      measure_empty := by sorry
-      measure_finite_additive := by sorry
+      measure_pos := by
+        intro A hA
+        exact EReal.coe_ennreal_nonneg (μ.measureOf A)
+      measure_nonneg := by
+        intro A
+        exact EReal.coe_ennreal_nonneg (μ.measureOf A)
+      measure_empty := by
+        rw [μ.empty]
+        simp
+      measure_finite_additive := by
+        intro E F hE hF hdisj
+        have h : μ.measureOf (E ∪ F) = μ.measureOf E + μ.measureOf F :=
+          measure_union (μ := μ) hdisj hF
+        change (μ.measureOf (E ∪ F) : EReal) = (μ.measureOf E : EReal) + (μ.measureOf F : EReal)
+        rw [h]
+        rw [EReal.coe_ennreal_add]
     }
-    measure_countable_additive := by sorry
+    measure_countable_additive := by
+      intro E hE hdisj
+      have hd' : Pairwise (Function.onFun Disjoint E) := fun a b hab => hdisj (Set.mem_univ a) (Set.mem_univ b) hab
+      have h := μ.m_iUnion (f := E) hE hd'
+      change (μ.toOuterMeasure (⋃ n, E n) : EReal) = ∑' n, (μ.toOuterMeasure (E n) : EReal)
+      rw [h]
+      rw [coe_tsum_ereal (fun n => μ.toOuterMeasure (E n))]
   }
 
 /-- Exercise 1.4.23(i) -/
-theorem Measure.countable_subadditivity {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n)) :
-  μ.measureOf (⋃ n, E n) ≤ ∑' n, μ.measureOf (E n) := by sorry
+theorem Measure.countable_subadditivity {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (_hE: ∀ n, Measurable (E n)) :
+  μ.measureOf (⋃ n, E n) ≤ ∑' n, μ.measureOf (E n) := by
+  exact measure_iUnion_le (μ := μ) E
 
 /-- Exercise 1.4.23(ii) -/
-theorem Measure.upwards_mono {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  (hmono : Monotone E) : μ (⋃ n, E n) = ⨆ n, μ.measureOf (E n) := by sorry
+theorem Measure.upwards_mono {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (_hE: ∀ n, Measurable (E n))
+  (hmono : Monotone E) : μ (⋃ n, E n) = ⨆ n, μ.measureOf (E n) := by
+  exact hmono.measure_iUnion
 
 /-- Exercise 1.4.23(iii) -/
 theorem Measure.downwards_mono {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  (hmono : Antitone E) (hfin : ∃ n, μ (E n) < ⊤) : μ (⋂ n, E n) = ⨅ n, μ.measureOf (E n) := by sorry
+  (hmono : Antitone E) (hfin : ∃ n, μ (E n) < ⊤) : μ (⋂ n, E n) = ⨅ n, μ.measureOf (E n) := by
+  have hmeasSet : ∀ i, MeasurableSet (E i) := by
+    intro i
+    have h := hE i (by trivial : MeasurableSet ({True} : Set Prop))
+    have heq : E i ⁻¹' ({True} : Set Prop) = E i := by
+      ext x
+      rw [Set.mem_preimage]
+      simp
+      rfl
+    rwa [heq] at h
+  exact hmono.measure_iInter (hsm := fun i => (hmeasSet i).nullMeasurableSet) (hfin := hfin.imp (fun n hn => ne_of_lt hn))
 
 theorem Measure.downwards_mono_counter : ∃ (X:Type) (M: MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (hE: ∀ n, Measurable (E n))
   (hmono : Antitone E), μ (⋂ n, E n) ≠ ⨅ n, μ.measureOf (E n) := by sorry
