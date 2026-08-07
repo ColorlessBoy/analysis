@@ -1025,10 +1025,124 @@ theorem Measure.measurable_of_lim {X:Type*} [MeasurableSpace X] (_μ: Measure X)
       rw [hpre]
       exact MeasurableSet.empty
 
+/-- The liminf of a SetConvergesTo-convergent sequence is the limit set. -/
+private lemma set_converges_eq_liminf {X : Type*} {E : ℕ → Set X} {E' : Set X}
+    (hlim : SetConvergesTo E E') :
+    E' = (⋃ N : ℕ, ⋂ n : {n : ℕ // N ≤ n}, E n.1) := by
+  apply le_antisymm
+  · intro x hx
+    rw [Set.mem_iUnion]
+    rcases Filter.eventually_atTop.mp (hlim x) with ⟨N, hN⟩
+    refine ⟨N, ?_⟩
+    rw [Set.mem_iInter]
+    intro n
+    exact (hN n.1 n.2).mpr hx
+  · intro x hx
+    by_contra hx'
+    rcases Filter.eventually_atTop.mp (hlim x) with ⟨N, hN⟩
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨M, hM⟩
+    rw [Set.mem_iInter] at hM
+    have hxEM : x ∈ E (max N M) := hM ⟨max N M, le_max_right N M⟩
+    have hiff : x ∈ E (max N M) ↔ x ∈ E' := hN (max N M) (le_max_left N M)
+    exact hx' (hiff.mp hxEM)
+
+/-- The limsup of a SetConvergesTo-convergent sequence is the limit set. -/
+private lemma set_converges_eq_limsup {X : Type*} {E : ℕ → Set X} {E' : Set X}
+    (hlim : SetConvergesTo E E') :
+    E' = (⋂ N : ℕ, ⋃ n : {n : ℕ // N ≤ n}, E n.1) := by
+  apply le_antisymm
+  · intro x hx
+    rw [Set.mem_iInter]
+    intro N
+    rw [Set.mem_iUnion]
+    rcases Filter.eventually_atTop.mp (hlim x) with ⟨M, hM⟩
+    let n₀ := max N M
+    refine ⟨⟨n₀, le_max_left N M⟩, ?_⟩
+    exact (hM n₀ (le_max_right N M)).mpr hx
+  · intro x hx
+    by_contra hx'
+    rcases Filter.eventually_atTop.mp (hlim x) with ⟨N, hN⟩
+    rw [Set.mem_iInter] at hx
+    rcases Set.mem_iUnion.mp (hx N) with ⟨n, hn⟩
+    exact hx' ((hN n.1 n.2).mp hn)
+
 /-- Exercise 1.4.24 (ii) (Dominated convergence for sets) -/
 theorem Measure.measure_of_lim {X:Type*} [MeasurableSpace X] (μ: Measure X) {E : ℕ → Set X} (hE: ∀ n, Measurable (E n))
-  {E' F : Set X} (hlim : SetConvergesTo E E') (hF : Measurable F) (hfin : μ F < ⊤) (hcon : ∀ n, E n ⊆ F) :
-  Filter.atTop.Tendsto (fun n ↦ μ (E n)) (nhds (μ E')) := by sorry
+  {E' F : Set X} (hlim : SetConvergesTo E E') (_hF : Measurable F) (hfin : μ F < ⊤) (hcon : ∀ n, E n ⊆ F) :
+  Filter.atTop.Tendsto (fun n ↦ μ (E n)) (nhds (μ E')) := by
+  -- Define liminf and limsup tails
+  let L : ℕ → Set X := fun N => ⋂ n : {n : ℕ // N ≤ n}, E n.1
+  let U : ℕ → Set X := fun N => ⋃ n : {n : ℕ // N ≤ n}, E n.1
+  -- L is monotone, U is antitone
+  have hLmono : Monotone L := by
+    intro a b hab x hx
+    dsimp [L] at hx ⊢
+    rw [Set.mem_iInter] at hx ⊢
+    intro n
+    exact hx ⟨n.1, le_trans hab n.2⟩
+  have hUanti : Antitone U := by
+    intro a b hab x hx
+    dsimp [U] at hx
+    rw [Set.mem_iUnion] at hx ⊢
+    rcases hx with ⟨n, hn⟩
+    exact ⟨⟨n.1, le_trans hab n.2⟩, hn⟩
+  -- E' = ⋃ L = ⋂ U
+  have hE'L : E' = ⋃ N, L N := by
+    rw [← set_converges_eq_liminf hlim]
+  have hE'U : E' = ⋂ N, U N := by
+    rw [← set_converges_eq_limsup hlim]
+  -- μ (L N) → μ E'
+  have hLtendsto : Filter.atTop.Tendsto (fun N => μ (L N)) (nhds (μ E')) := by
+    have ht : Filter.atTop.Tendsto (fun N => μ (L N)) (nhds (μ (⋃ N, L N))) := by
+      exact tendsto_measure_iUnion_atTop hLmono
+    rw [← hE'L] at ht
+    exact ht
+  -- μ (U N) → μ E'
+  have hUtendsto : Filter.atTop.Tendsto (fun N => μ (U N)) (nhds (μ E')) := by
+    have hfin' : ∃ N, μ (U N) ≠ ⊤ := by
+      refine ⟨0, ?_⟩
+      have hU0F : U 0 ⊆ F := by
+        intro x hx
+        dsimp [U] at hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        exact hcon n.1 hn
+      exact ne_top_of_le_ne_top (ne_of_lt hfin) (measure_mono hU0F)
+    have hnull : ∀ N, NullMeasurableSet (U N) μ := by
+      intro N
+      have hUmeas : MeasurableSet (U N) := by
+        dsimp [U]
+        apply MeasurableSet.iUnion
+        intro n
+        have h := hE n.1 (by trivial : MeasurableSet ({True} : Set Prop))
+        have heq : E n.1 ⁻¹' ({True} : Set Prop) = E n.1 := by
+          ext x
+          rw [Set.mem_preimage]
+          simp
+          rfl
+        rwa [heq] at h
+      exact hUmeas.nullMeasurableSet
+    have ht : Filter.atTop.Tendsto (fun N => μ (U N)) (nhds (μ (⋂ N, U N))) := by
+      exact tendsto_measure_iInter_atTop hnull hUanti hfin'
+    rw [← hE'U] at ht
+    exact ht
+  -- Squeeze: μ (L N) ≤ μ (E N) ≤ μ (U N)
+  have hLE : ∀ N, μ (L N) ≤ μ (E N) := by
+    intro N
+    apply measure_mono
+    intro x hx
+    dsimp [L] at hx
+    rw [Set.mem_iInter] at hx
+    exact hx ⟨N, le_refl N⟩
+  have hEU : ∀ N, μ (E N) ≤ μ (U N) := by
+    intro N
+    apply measure_mono
+    intro x hx
+    dsimp [U]
+    rw [Set.mem_iUnion]
+    exact ⟨⟨N, le_refl N⟩, hx⟩
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le hLtendsto hUtendsto hLE hEU
 
 /-- Exercise 1.4.24 (iii) (Dominated convergence for sets) -/
 theorem Measure.measure_of_lim_counter : ∃ (X:Type) (_M:MeasurableSpace X) (μ: Measure X) (E : ℕ → Set X) (_hE: ∀ n, Measurable (E n))
