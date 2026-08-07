@@ -1649,7 +1649,16 @@ private lemma borel_eq_lebesgue_on_measurable {d : ℕ} {E : Set (EuclideanSpace
 
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
-  Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
+  Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by
+  constructor
+  · apply MeasurableSpace.ext
+    intro s
+    simpa using borelNullMeasurable_iff_lebesgue s
+  · intro E hE
+    have hLeb : LebesgueMeasurable E := (borelNullMeasurable_iff_lebesgue E).mp (by
+      simpa using hE)
+    rw [Measure.completion_apply]
+    exact borel_eq_lebesgue_on_measurable hLeb
 
 open MeasureTheory
 

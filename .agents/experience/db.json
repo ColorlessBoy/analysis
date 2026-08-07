@@ -811,6 +811,41 @@
       "tactics": "approx_finite on \u03bc.restrict (A n); F = G \u2229 A n \u2286 A n; Measure.restrict_apply (ht := hsG) on h\u03bcG; symmDiff subset",
       "description": "Exercise 1.4.28(ii): local approximation within each sigma-finite piece (statement fixed: original global conclusion false via count measure counterexample)",
       "time": "2026-08-07T18:11:49.504013"
+    },
+    {
+      "theorem": "borel_measurable_iff_mathlib",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_borel_bridge.lean",
+      "tactics": "change, rw, constructor, let B := MeasurableSpace.sigmaAlgebra (generateFrom), generated_by_le', measurableSet_generateFrom, generateFrom_le",
+      "description": "bridge custom BorelSigmaAlgebra to ambient mathlib MeasurableSpace via double inclusion of generated sigma-algebras",
+      "time": "2026-08-07T22:53:50.699519"
+    },
+    {
+      "theorem": "borelMeasure_of_null",
+      "file": "Analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "le_antisymm, ENNReal.le_of_forall_pos_le_add, sInf_lt_iff, measure_mono, measure_iUnion_le, tsum_congr, EReal.toENNReal_tsum_of_nonneg, ereal_toENNReal_mono",
+      "description": "IsNull is Lebesgue_outer_measure=0; epsilon-cover via sInf and boxes, measure on boxes = volume via borel_measure_on_borel + elementary",
+      "time": "2026-08-07T23:15:40.087679"
+    },
+    {
+      "theorem": "borelNullMeasurable_iff_lebesgue",
+      "file": "_temp_borel_iff.lean",
+      "tactics": "rcases exists_measurable_subset_ae_eq; toMeasurable trick for IsNull; rw [hEq]; rcases lebesgue_measurable_eq_borel_sdiff_null; NullMeasurableSet.diff",
+      "description": "Borel-null-measurable iff Lebesgue-measurable; needs local BorelSigma MeasurableSpace instance since WithLp TC instance clashes with borelMeasure's pinned instance",
+      "time": "2026-08-07T23:41:38.557473"
+    },
+    {
+      "theorem": "borel_measure_sdiff_eq/lebesgue_measure_sdiff_eq/borel_eq_lebesgue_on_measurable",
+      "file": "_temp_borel_part2.lean",
+      "tactics": "letI + measure_mono/measure_union_le (\u03bc := ...) + measure_union + le_antisymm + calc bridge via outer measure",
+      "description": "Borel measure of sdiff-null sets equal; bridge via Lebesgue_outer_measure.toENNReal",
+      "time": "2026-08-08T00:06:28.886823"
+    },
+    {
+      "theorem": "borel_completion_eq_lebesgue",
+      "file": "_temp_borel_assembly.lean",
+      "tactics": "constructor; MeasurableSpace.ext; simpa using borelNullMeasurable_iff_lebesgue; rw [Measure.completion_apply]; borel_eq_lebesgue_on_measurable",
+      "description": "Measure.equiv of completion equals Lebesgue: space ext via null-measurable iff, measures agree via completion_apply",
+      "time": "2026-08-08T05:03:33.252298"
     }
   ],
   "errors": [

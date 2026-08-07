@@ -2178,6 +2178,86 @@
       "start": "2026-08-07T18:20:22.905363",
       "attempts": [],
       "status": "in_progress"
+    },
+    {
+      "id": 134,
+      "theorem": "borel_bridge",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_borel_bridge.lean",
+      "goal": "custom Borel sigma-algebra equals ambient mathlib MeasurableSpace",
+      "start": "2026-08-07T22:44:47.752077",
+      "attempts": [],
+      "status": "success",
+      "notes": "change to expose inferInstance, rw [BorelSpace.measurable_eq], double inclusion via generated_by_le'/generateFrom_le; generateFrom_le returns plain function (no .le field); mathlib v4.29 MeasurableSet[m] notation; imported Section_1_4_2 instead of stale Section_1_4_3",
+      "end": "2026-08-07T22:53:50.669829"
+    },
+    {
+      "id": 135,
+      "theorem": "borelMeasure_of_null",
+      "file": "/Users/penglingwei/Documents/lean/analysis/_temp_borel_null.lean",
+      "goal": "IsNull N implies borelMeasure N = 0 via epsilon box covers",
+      "start": "2026-08-07T22:56:26.021472",
+      "attempts": [],
+      "status": "in_progress"
+    },
+    {
+      "id": 136,
+      "theorem": "borelMeasure_of_null",
+      "file": "_temp_borel_null.lean",
+      "goal": "prove borelMeasure_of_null: IsNull N -> borelMeasure d N = 0",
+      "start": "2026-08-07T23:09:07.555778",
+      "attempts": [],
+      "status": "success",
+      "notes": "proved via ENNReal.le_of_forall_pos_le_add + sInf_lt_iff cover + measure_iUnion_le chain + EReal.toENNReal_tsum_of_nonneg",
+      "end": "2026-08-07T23:15:40.058111"
+    },
+    {
+      "id": 137,
+      "theorem": "borelNullMeasurable_iff",
+      "file": "_temp_borel_iff.lean",
+      "goal": "NullMeasurableSet s (borelMeasure d) \u2194 LebesgueMeasurable s",
+      "start": "2026-08-07T23:18:22.945352",
+      "attempts": [],
+      "status": "success",
+      "notes": "proved borelNullMeasurable_iff_lebesgue via toMeasurable trick + local BorelSigma MeasurableSpace instance",
+      "end": "2026-08-07T23:41:33.156927"
+    },
+    {
+      "id": 138,
+      "theorem": "borel_eq_lebesgue_part2",
+      "file": "_temp_borel_part2.lean",
+      "goal": "prove 3 lemmas: borel_measure_sdiff_eq, lebesgue_measure_sdiff_eq, borel_eq_lebesgue_on_measurable",
+      "start": "2026-08-07T23:47:36.462113",
+      "attempts": [
+        {
+          "edit": "helpers + lemma1",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "import stale fixed via olean rebuild; measure_union_le needs (\u03bc := ...)",
+          "time": "2026-08-08T00:03:16.176715"
+        }
+      ],
+      "status": "success",
+      "notes": "proved all 3 lemmas; copied 4 private helpers; fixed measure_union_le implicit \u03bc with (\u03bc := ...); added simp after rw [hN]",
+      "end": "2026-08-08T00:06:28.856148"
+    },
+    {
+      "id": 139,
+      "theorem": "borel_completion_eq_lebesgue",
+      "file": "_temp_borel_assembly.lean",
+      "goal": "Prove Measure.equiv (borelMeasure d).completion (lebesgueMeasure d)",
+      "start": "2026-08-08T00:10:52.320050",
+      "attempts": [
+        {
+          "edit": "imports fixed; renamed temp theorem; goal: Measure.equiv",
+          "errors_before": 0,
+          "errors_after": 0,
+          "excerpt": "build env repaired via explicit lake build of Section_1_4_1..3",
+          "time": "2026-08-08T04:54:07.881441"
+        }
+      ],
+      "status": "success",
+      "notes": "constructor + MeasurableSpace.ext + simpa using borelNullMeasurable_iff_lebesgue + rw [Measure.completion_apply]; build env fixed via explicit lake build of Section_1_4_1..3 (not in default closure)",
+      "end": "2026-08-08T05:03:33.221870"
     }
   ]
 }
