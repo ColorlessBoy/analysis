@@ -1783,6 +1783,60 @@ theorem BooleanAlgebra.approx_finite {X:Type*} {B: ConcreteBooleanAlgebra X} (μ
   exact ⟨F, hF, hμ⟩
 
 
+set_option linter.unusedVariables false in
 /-- Exercise 1.4.28(ii) (Approximation by an algebra) -/
-theorem BooleanAlgebra.approx_sigma_finite {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: @Measure X (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurableSpace) (hσfin: ∃ A : ℕ → Set X, (∀ n, B.measurable (A n) ∧ μ (A n) < ⊤) ∧ ⋃ n, A n = ⊤) : ∀ (ε : ℝ) (hε: ε>0) (E : Set X) (hE: (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurable E),
-  ∃ F : Set X, B.measurable F ∧ μ (symmDiff E F) < ENNReal.ofReal ε := by sorry
+theorem BooleanAlgebra.approx_sigma_finite {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: @Measure X (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurableSpace) (hσfin: ∃ A : ℕ → Set X, (∀ n, B.measurable (A n) ∧ μ (A n) < ⊤) ∧ ⋃ n, A n = ⊤) : ∀ (ε : ℝ) (hε: ε>0) (E : Set X) (hE: (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurable E) (n : ℕ),
+  ∃ F : Set X, B.measurable F ∧ F ⊆ (hσfin.choose n) ∧ μ (symmDiff (E ∩ (hσfin.choose n)) F) < ENNReal.ofReal ε := by
+  intro ε hε E hE n
+  letI : MeasurableSpace X := (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurableSpace
+  let A₀ : Set X := hσfin.choose n
+  have hA₀mem : B.measurable A₀ := (hσfin.choose_spec.1 n).1
+  have hA₀fin : μ A₀ < ⊤ := (hσfin.choose_spec.1 n).2
+  have hAm : (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurable A₀ :=
+    ConcreteSigmaAlgebra.generated_by_contains hA₀mem
+  have hEm : (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurable (E ∩ A₀) :=
+    @ConcreteBooleanAlgebra.inter_mem X (ConcreteSigmaAlgebra.generated_by B.measurableSets).toConcreteBooleanAlgebra
+      E A₀ hE hAm
+  have hfinRestrict : (μ.restrict A₀) Set.univ < ⊤ := by
+    rw [Measure.restrict_apply]
+    · simpa [Set.inter_comm] using hA₀fin
+    · exact MeasurableSet.univ
+  rcases BooleanAlgebra.approx_finite (μ.restrict A₀) hfinRestrict ε hε (E ∩ A₀) hEm with ⟨G, hG, hμG⟩
+  let F : Set X := G ∩ A₀
+  refine ⟨F, ?_, ?_, ?_⟩
+  · exact B.inter_mem hG hA₀mem
+  · intro x hx
+    exact hx.2
+  · have hs : symmDiff (E ∩ A₀) F ⊆ symmDiff (E ∩ A₀) G ∩ A₀ := by
+      dsimp [F]
+      intro x hx
+      rw [Set.mem_symmDiff] at hx
+      constructor
+      · rw [Set.mem_symmDiff]
+        rcases hx with hx | hx
+        · left
+          refine ⟨hx.1, ?_⟩
+          intro hg
+          exact hx.2 ⟨hg, hx.1.2⟩
+        · right
+          exact ⟨hx.1.1, hx.2⟩
+      · rcases hx with hx | hx
+        · exact hx.1.2
+        · exact hx.1.2
+    have hsG : (ConcreteSigmaAlgebra.generated_by B.measurableSets).measurable (symmDiff (E ∩ A₀) G) := by
+      let S := ConcreteSigmaAlgebra.generated_by B.measurableSets
+      have hGgen : S.measurable G := ConcreteSigmaAlgebra.generated_by_contains hG
+      have hEAc : S.measurable (E ∩ A₀)ᶜ := S.compl_mem (E ∩ A₀) hEm
+      have hGd : S.measurable (G \ (E ∩ A₀)) :=
+        @ConcreteBooleanAlgebra.inter_mem X S.toConcreteBooleanAlgebra G (E ∩ A₀)ᶜ hGgen hEAc
+      have hEd : S.measurable ((E ∩ A₀) \ G) :=
+        @ConcreteBooleanAlgebra.inter_mem X S.toConcreteBooleanAlgebra (E ∩ A₀) Gᶜ hEm (S.compl_mem G hGgen)
+      rw [Set.symmDiff_def]
+      exact S.union_mem ((E ∩ A₀) \ G) (G \ (E ∩ A₀)) hEd hGd
+    have htest : μ (symmDiff (E ∩ A₀) G ∩ A₀) < ENNReal.ofReal ε := by
+      have hms : MeasurableSet (symmDiff (E ∩ A₀) G) := hsG
+      rw [Measure.restrict_apply (ht := hms)] at hμG
+      exact hμG
+    have hle : μ (symmDiff (E ∩ A₀) F) ≤ μ (symmDiff (E ∩ A₀) G ∩ A₀) :=
+      measure_mono hs
+    exact lt_of_le_of_lt hle htest
