@@ -1584,6 +1584,69 @@ private lemma borelNullMeasurable_iff_lebesgue {d : ℕ} (s : Set (EuclideanSpac
       NullMeasurableSet.diff hBm.nullMeasurableSet hNn
     simpa [hEq] using hEn
 
+/-- For E ⊆ B with B \ E ⊆ N (N null), the Borel measure of E equals that of B. -/
+private lemma borel_measure_sdiff_eq {d : ℕ} {E B N : Set (EuclideanSpace' d)}
+    (hN : IsNull N) (hEB : E ⊆ B) (hBE : B \ E ⊆ N) :
+    (EuclideanSpace'.borelMeasure d) E = (EuclideanSpace'.borelMeasure d) B := by
+  letI : MeasurableSpace (EuclideanSpace' d) := (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSpace
+  have hN0 : (EuclideanSpace'.borelMeasure d) N = 0 := borelMeasure_of_null hN
+  have hBE0 : (EuclideanSpace'.borelMeasure d) (B \ E) = 0 := by
+    exact le_antisymm (by rw [← hN0]; exact measure_mono hBE) (zero_le _)
+  have h1 : (EuclideanSpace'.borelMeasure d) E ≤ (EuclideanSpace'.borelMeasure d) B := measure_mono hEB
+  have hunion : B = E ∪ (B \ E) := by
+    ext x; constructor
+    · intro hxB; by_cases hxE : x ∈ E; exact Or.inl hxE; exact Or.inr ⟨hxB, hxE⟩
+    · intro hx; rcases hx with hx | hx; exact hEB hx; exact hx.1
+  have h2 : (EuclideanSpace'.borelMeasure d) B ≤ (EuclideanSpace'.borelMeasure d) E := by
+    rw [hunion]
+    simpa [hBE0] using (measure_union_le (μ := (EuclideanSpace'.borelMeasure d)) E (B \ E))
+  exact le_antisymm h1 h2
+
+/-- For E ⊆ B with B \ E ⊆ N (N null), the Lebesgue measure of E equals that of B. -/
+private lemma lebesgue_measure_sdiff_eq {d : ℕ} {E B N : Set (EuclideanSpace' d)}
+    (hE : LebesgueMeasurable E) (hB : (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B)
+    (hN : IsNull N) (hEB : E ⊆ B) (hBE : B \ E ⊆ N) :
+    (EuclideanSpace'.lebesgueMeasure d) E = (EuclideanSpace'.lebesgueMeasure d) B := by
+  letI : MeasurableSpace (EuclideanSpace' d) := (LebesgueMeasurable.sigmaAlgebra d).measurableSpace
+  have hBleb : LebesgueMeasurable B := (BorelSigmaAlgebra.le_LebesgueSigmaAlgebra d) B hB
+  have hBEleb : LebesgueMeasurable (B \ E) := LebesgueMeasurable.inter hBleb (LebesgueMeasurable.complement hE)
+  have hN0 : (EuclideanSpace'.lebesgueMeasure d) N = 0 := by
+    have hNleb : LebesgueMeasurable N := IsNull.measurable hN
+    rw [lebesgue_measure_on_measurable hNleb]
+    change (Lebesgue_outer_measure N).toENNReal = 0
+    unfold IsNull at hN
+    rw [hN]
+    simp
+  have hBE0 : (EuclideanSpace'.lebesgueMeasure d) (B \ E) = 0 := by
+    exact le_antisymm (by rw [← hN0]; exact measure_mono hBE) (zero_le _)
+  have hunion : B = E ∪ (B \ E) := by
+    ext x; constructor
+    · intro hxB; by_cases hxE : x ∈ E; exact Or.inl hxE; exact Or.inr ⟨hxB, hxE⟩
+    · intro hx; rcases hx with hx | hx; exact hEB hx; exact hx.1
+  have hEq : (EuclideanSpace'.lebesgueMeasure d) B = (EuclideanSpace'.lebesgueMeasure d) E := by
+    rw [hunion]
+    rw [measure_union (μ := (EuclideanSpace'.lebesgueMeasure d)) (Set.disjoint_left.mpr (by
+      intro x hxE hxB; exact hxB.2 hxE)) hBEleb]
+    rw [hBE0]
+    simp
+  exact hEq.symm
+
+/-- On Lebesgue-measurable sets the Borel and Lebesgue measures agree. -/
+private lemma borel_eq_lebesgue_on_measurable {d : ℕ} {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    (EuclideanSpace'.borelMeasure d) E = (EuclideanSpace'.lebesgueMeasure d) E := by
+  rcases lebesgue_measurable_eq_borel_sdiff_null hE with ⟨B, hB, N, hN, hEq⟩
+  have hEB : E ⊆ B := by intro x hx; rw [hEq] at hx; exact hx.1
+  have hBE : B \ E ⊆ N := by
+    intro x hx
+    by_contra hxN
+    rw [hEq] at hx
+    exact hx.2 ⟨hx.1, hxN⟩
+  calc
+    (EuclideanSpace'.borelMeasure d) E = (EuclideanSpace'.borelMeasure d) B := borel_measure_sdiff_eq hN hEB hBE
+    _ = (Lebesgue_outer_measure B).toENNReal := borel_measure_on_borel hB
+    _ = (EuclideanSpace'.lebesgueMeasure d) B := (lebesgue_measure_on_measurable ((BorelSigmaAlgebra.le_LebesgueSigmaAlgebra d) B hB)).symm
+    _ = (EuclideanSpace'.lebesgueMeasure d) E := (lebesgue_measure_sdiff_eq hE hB hN hEB hBE).symm
+
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
   Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
