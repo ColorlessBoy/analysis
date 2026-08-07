@@ -1495,6 +1495,43 @@ private lemma borel_measurable_iff_mathlib {d : ℕ} (s : Set (EuclideanSpace' d
         exact (ConcreteSigmaAlgebra.generated_by_contains (F := {U : Set (EuclideanSpace' d) | IsOpen U}) hU :
           (BorelSigmaAlgebra (EuclideanSpace' d)).measurable U))) s h
 
+private lemma borelMeasure_of_null {d : ℕ} {N : Set (EuclideanSpace' d)} (hN : IsNull N) :
+    (EuclideanSpace'.borelMeasure d) N = 0 := by
+  apply le_antisymm
+  · apply ENNReal.le_of_forall_pos_le_add
+    intro δ hδ _
+    have hδℝ : (0 : ℝ) < (δ : ℝ) := by exact_mod_cast hδ
+    have hlt : sInf {V : EReal | ∃ (X : Set ℕ) (S : X → Box d),
+        N ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal} < ((δ : ℝ) : EReal) := by
+      change Lebesgue_outer_measure N < ((δ : ℝ) : EReal)
+      rw [hN]
+      exact EReal.coe_strictMono hδℝ
+    have hcover : ∃ a ∈ {V : EReal | ∃ (X : Set ℕ) (S : X → Box d),
+        N ⊆ ⋃ n, (S n).toSet ∧ V = ∑' n, (S n).volume.toEReal}, a < ((δ : ℝ) : EReal) := by
+      exact sInf_lt_iff.mp hlt
+    rcases hcover with ⟨V, hV, hVlt⟩
+    rcases hV with ⟨X, S, hsub, rfl⟩
+    calc
+      (EuclideanSpace'.borelMeasure d) N ≤ (EuclideanSpace'.borelMeasure d) (⋃ n : X, (S n).toSet) :=
+        measure_mono hsub
+      _ ≤ ∑' n : X, (EuclideanSpace'.borelMeasure d) ((S n).toSet) :=
+        measure_iUnion_le (fun n : X => (S n).toSet)
+      _ = ∑' n : X, (((S n).volume : ℝ) : EReal).toENNReal := by
+        apply tsum_congr
+        intro n
+        rw [borel_measure_on_borel (Box.borel_measurable (S n))]
+        rw [Lebesgue_outer_measure.elementary (S n).toSet (IsElementary.box (S n))]
+        rw [IsElementary.measure_of_box (S n)]
+      _ = (∑' n : X, (((S n).volume : ℝ) : EReal)).toENNReal := by
+        exact (EReal.toENNReal_tsum_of_nonneg (by
+          intro n
+          exact EReal.coe_nonneg.mpr (Box.volume_nonneg (S n)))).symm
+      _ ≤ ((δ : ℝ) : EReal).toENNReal := ereal_toENNReal_mono (le_of_lt hVlt)
+      _ = (δ : ENNReal) := by
+        simp
+    · simp
+  · exact zero_le _
+
 /-- Exercise 1.4.27 -/
 theorem EuclideanSpace'.borel_completion_eq_lebesgue {d:ℕ} :
   Measure.equiv (EuclideanSpace'.borelMeasure d).completion (EuclideanSpace'.lebesgueMeasure d) := by sorry
