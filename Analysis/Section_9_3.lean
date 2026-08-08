@@ -440,9 +440,6 @@ open Classical in
 /-- Example 9.3.21 -/
 noncomputable abbrev f_9_3_21 : ℝ → ℝ := fun x ↦ if x ∈ (fun q:ℚ ↦ (q:ℝ)) '' .univ then 1 else 0
 
-<<<<<<< HEAD
-example : Filter.atTop.Tendsto (fun (n:ℕ) ↦ f_9_3_21 (1/(n:ℝ))) (nhds 1) := by sorry
-=======
 example : Filter.atTop.Tendsto (fun (n:ℕ) ↦ f_9_3_21 (1/n:ℝ)) (nhds 1) := by
   have h (n : ℕ) : f_9_3_21 (1/((n:ℝ))) = 1 := by
     dsimp [f_9_3_21]
@@ -453,7 +450,6 @@ example : Filter.atTop.Tendsto (fun (n:ℕ) ↦ f_9_3_21 (1/n:ℝ)) (nhds 1) := 
   have : (fun (n : ℕ) ↦ f_9_3_21 (1/((n:ℝ)))) = fun _ : ℕ ↦ (1 : ℝ) := by
     ext n; exact h n
   rw [this]; exact tendsto_const_nhds
->>>>>>> 565c245 (stage: Section_9_3.lean)
 
 example : Filter.atTop.Tendsto (fun (n:ℕ) ↦ f_9_3_21 ((Real.sqrt 2)/n:ℝ)) (nhds 0) := by
   have h_eventually : (fun (n : ℕ) ↦ f_9_3_21 ((Real.sqrt 2)/((n:ℝ)))) =ᶠ[Filter.atTop] fun _ : ℕ ↦ (0 : ℝ) := by
