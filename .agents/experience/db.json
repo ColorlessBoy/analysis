@@ -846,6 +846,13 @@
       "tactics": "constructor; MeasurableSpace.ext; simpa using borelNullMeasurable_iff_lebesgue; rw [Measure.completion_apply]; borel_eq_lebesgue_on_measurable",
       "description": "Measure.equiv of completion equals Lebesgue: space ext via null-measurable iff, measures agree via completion_apply",
       "time": "2026-08-08T05:03:33.252298"
+    },
+    {
+      "theorem": "EuclideanSpace'.borel_completion_eq_lebesgue",
+      "file": "analysis/MeasureTheory/Section_1_4_3.lean",
+      "tactics": "completion_apply + borelNullMeasurable_iff_lebesgue + borel_eq_lebesgue_on_measurable + MeasurableSpace.ext",
+      "description": "Exercise 1.4.27: Borel completion = Lebesgue. Decomposition: (1) local instance pins custom Borel MeasurableSpace (completion's NullMeasurableSpace uses borelMeasure's bundled space, not WithLp); (2) bridge custom Borel <-> mathlib Borel via generated_by_le'/generateFrom_le; (3) IsNull -> borelMeasure=0 via sInf_lt_iff epsilon box covers + EReal.toENNReal_tsum_of_nonneg; (4) LebesgueMeasurable iff Borel-null-measurable via exists_measurable_subset_ae_eq + toMeasurable null trick; (5) measure equality via Borel-minus-null decomposition with sdiff sub-lemmas (separate letI scopes for Borel vs Lebesgue ambient since Measure \u03b1 depends on ambient instance)",
+      "time": "2026-08-08T05:08:15.852863"
     }
   ],
   "errors": [
