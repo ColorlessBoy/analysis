@@ -1,0 +1,22 @@
+{
+  "questions": [
+    {
+      "id": "q-001",
+      "question": "证明到底是什么？1+1=2 怎么证明？",
+      "chapter": "Lean4 入门 01",
+      "date": "2026-08-08",
+      "answer_type": "socratic_first",
+      "knowledge_ids": ["k-001"],
+      "confusion": true
+    },
+    {
+      "id": "q-002",
+      "question": "实分析竟然不是用的勒贝格积分？勒贝格从哪一章开始？",
+      "chapter": "全书结构",
+      "date": "2026-08-08",
+      "answer_type": "direct",
+      "knowledge_ids": ["k-005"],
+      "confusion": true
+    }
+  ]
+}
