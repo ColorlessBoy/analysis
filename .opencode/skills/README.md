@@ -13,7 +13,11 @@ author's written permission.
 
 ## What was installed
 
-- `.opencode/skills/` — 35 skills (each `<name>/SKILL.md` + templates/examples)
+- `.opencode/skills/` — 42 skills: 35 core PM + 7 Market Intelligence Suite
+  (intel-discipline-advisor, intelligence-collection-disciplines,
+  autonomous-investigation, competitive-intel-watch, company-intel,
+  company-research, pestel-delta-monitor) + 1 custom `social-listening`
+  (X/YouTube/Bilibili/Douyin/Weibo, China-platform specifics)
 - `.opencode/command/` — 5 workflows: `discover`, `strategy`, `plan-roadmap`,
   `prioritize`, `write-prd` (frontmatter cleaned to opencode-compatible fields)
 
