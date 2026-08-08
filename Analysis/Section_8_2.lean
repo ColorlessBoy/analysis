@@ -606,36 +606,8 @@ theorem Sum'.of_countable_supp {X:Type} {f:X → ℝ} {A: Set X} (hA: CountablyI
     _ = ∑ n, f (ι n) := sum_congr rfl (by grind)
     _ = _ := hι.sum_comp (g := fun x ↦ f x)
 
-/-- Connection with Mathlib's {name}`Summable` property. Some version of this might be suitable
-    for Mathlib? -/
-theorem AbsConvergent'.iff_Summable {X:Type} (f:X → ℝ) : AbsConvergent' f ↔ Summable f := by
-  simp [←summable_abs_iff, AbsConvergent']
-  simp [summable_iff_vanishing_norm]
-  classical
-  constructor
-  . intro h ε hε
-    set s := Set.range fun A ↦ ∑ x ∈ A, |f x|
-    have hnon : s.Nonempty := by simp [s]; use 0, ∅; simp
-    have : (sSup s)-ε < sSup s := by linarith
-    simp [lt_csSup_iff h hnon,s] at this; choose S hS using this
-    use S; intro T hT
-    rw [abs_of_nonneg (by positivity)]
-    have : ∑ x ∈ T, |f x| + ∑ x ∈ S, |f x| ≤ sSup s := by
-      apply le_csSup h
-      simp [s]; exact ⟨ T ∪ S, sum_union hT ⟩
-    linarith
-  intro h; choose S hS using h 1 (by norm_num)
-  rw [bddAbove_def]
-  use ∑ x ∈ S, |f x| + 1; simp; intro T
-  calc
-    _ = ∑ x ∈ (T ∩ S), |f x| + ∑ x ∈ (T \ S), |f x| := (sum_inter_add_sum_diff _ _ _).symm
-    _ ≤ _ := by
-      gcongr
-      . exact inter_subset_right
-      apply le_of_lt (lt_of_abs_lt (hS _ disjoint_sdiff_self_left))
+/-- Maybe suitable for porting to Mathlib?-/
 
-/-- Maybe suitable for porting to Mathlib? -/
-/-- Maybe suitable for porting to Mathlib? -/
 theorem Filter.Eventually.int_natCast_atTop (p: ℤ → Prop) :
   (∀ᶠ n in .atTop, p n) ↔ ∀ᶠ n:ℕ in .atTop, p ↑n := by
   refine ⟨ Eventually.natCast_atTop, ?_ ⟩

@@ -1911,8 +1911,6 @@ theorem IntegrableOn.eq {I J: BoundedInterval} (hIJ: J ⊆ I)
 
 /-- Theorem 11.4.3 (Max and min preserve integrability)-/
 
-/-- Theorem 11.4.3 (Max and min preserve integrability). -/
-
 theorem IntegrableOn.max {I: BoundedInterval} {f g:ℝ → ℝ} (hf: IntegrableOn f I) (hg: IntegrableOn g I) :
   IntegrableOn (f ⊔ g) I  := by
   -- This proof is written to follow the structure of the original text.
