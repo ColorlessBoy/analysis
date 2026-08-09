@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>测度论 · 四幕动画</title>
+<style>
+  :root {
+    --bg: #f7f5f0; --ink: #222; --muted: #888; --accent: #c0392b; --blue: #1f6feb;
+    --green: #2e8b57; --panel: #fff; --border: #ddd; --gold: #d4a017;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif; padding: 24px 20px 60px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  nav button {
+    border: 1px solid var(--border); background: var(--panel); padding: 8px 14px;
+    border-radius: 8px; font-size: 14px; cursor: pointer; color: var(--ink);
+  }
+  nav button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .stage { display: none; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; max-width: 980px; }
+  .stage.on { display: block; }
+  .title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .desc { color: var(--muted); font-size: 13px; margin-bottom: 12px; max-width: 900px; line-height: 1.6; }
+  canvas { width: 100%; height: auto; background: #fff; border: 1px solid var(--border); border-radius: 8px; display: block; }
+  .controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .controls button {
+    border: 1px solid var(--border); background: #fff; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; font-size: 13px;
+  }
+  .controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .controls input[type=range] { flex: 1; min-width: 120px; }
+  .readout { font-size: 13px; font-family: "SF Mono",Menlo,monospace; color: var(--ink); background:#fafafa; border:1px solid var(--border); padding: 4px 8px; border-radius: 6px; }
+  .badge { display:inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+  .badge.green { background:#e6f4ea; color: var(--green); }
+  .badge.red { background:#fdecea; color: var(--accent); }
+  .badge.gold { background:#fdf6e3; color: var(--gold); }
+</style>
+</head>
+<body>
+<h1>测度论 · 四幕动画</h1>
+<div class="sub">每一幕都可以播放 / 暂停 / 拖动时间轴。控制台数字实时更新。</div>
+
+<nav id="tabs">
+  <button data-t="cantor" class="on">① Cantor 集：删着删着就没长度了</button>
+  <button data-t="split">② 黎曼竖切 vs Lebesgue 横切</button>
+  <button data-t="swap">③ 换序悖论：尖峰搬家</button>
+  <button data-t="mono">④ 单调收敛：楼梯逼近</button>
+</nav>
+
+<!-- ① Cantor -->
+<div class="stage on" id="st-cantor">
+  <div class="title">Cantor 三分集</div>
+  <div class="desc">每步删掉每段的中间 1/3。第 n 步剩下 2ⁿ 段，总长度 (2/3)ⁿ → <b>0</b>。但段数是 2ⁿ 个——和实数的"多少"一样多。<span class="badge gold">长度 ≠ 多少</span></div>
+  <canvas id="cv-cantor" width="940" height="430"></canvas>
+  <div class="controls">
+    <button class="primary" id="btn-cantor-play">▶ 播放</button>
+    <button id="btn-cantor-reset">重置</button>
+    <input type="range" id="sl-cantor" min="0" max="9" step="0.01" value="0">
+    <span class="readout" id="ro-cantor">n = 0 · 长度 1.000</span>
+  </div>
+</div>
+
+<!-- ② 切法对比 -->
+<div class="stage" id="st-split">
+  <div class="title">黎曼竖切 vs Lebesgue 横切</div>
+  <div class="desc">同一堆"点"（有理点高度 1，无理点高度 0）。左：黎曼按 <b>x 轴竖切</b>，每根细条里既有 0 又有 1，上下积分永远差 1 → 不可积。右：Lebesgue 按 <b>y 轴横切</b>，只有两层——高层的底集合测度 0，积分 = 0。<span class="badge green">换把尺子，积分就出来了</span></div>
+  <canvas id="cv-split" width="940" height="430"></canvas>
+  <div class="controls">
+    <button class="primary" id="btn-split-play">▶ 播放</button>
+    <button id="btn-split-reset">重置</button>
+    <input type="range" id="sl-split" min="0" max="100" step="1" value="0">
+    <span class="readout" id="ro-split">黎曼上积分 = 1 · 下积分 = 0 → 不可积</span>
+  </div>
+</div>
+
+<!-- ③ 换序 -->
+<div class="stage" id="st-swap">
+  <div class="title">换序悖论：搬山的尖峰</div>
+  <div class="desc">fₙ 是 (0, 1/n) 上的高度 n 的尖峰。每个 fₙ 的面积都是 n·(1/n) = <b>1</b>（下面绿色填充面积恒定）。但每个点的极限都是 0（峰越收越窄）。<span class="badge red">lim∫ = 1，∫lim = 0</span>——大学微积分里偷偷换序的地方，在黎曼框架下不成立。</div>
+  <canvas id="cv-swap" width="940" height="430"></canvas>
+  <div class="controls">
+    <button class="primary" id="btn-swap-play">▶ 播放</button>
+    <button id="btn-swap-reset">重置</button>
+    <input type="range" id="sl-swap" min="1" max="200" step="1" value="1">
+    <span class="readout" id="ro-swap">n = 1 · 面积 = 1.000</span>
+  </div>
+</div>
+
+<!-- ④ 单调收敛 -->
+<div class="stage" id="st-mono">
+  <div class="title">单调收敛定理：楼梯逼近</div>
+  <div class="desc">f(x) = x²（灰线）。fₙ 取"左端点值"的阶梯函数（绿），单调上升逼向 f。楼梯的积分（绿色填充）从下往上爬，收敛到 ∫₀¹x² = 1/3。<span class="badge green">单调上升 ⟹ 极限与积分可以换序</span></div>
+  <canvas id="cv-mono" width="940" height="430"></canvas>
+  <div class="controls">
+    <button class="primary" id="btn-mono-play">▶ 播放</button>
+    <button id="btn-mono-reset">重置</button>
+    <input type="range" id="sl-mono" min="1" max="80" step="1" value="1">
+    <span class="readout" id="ro-mono">n = 1 · ∫fₙ = 0.000</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DPR = window.devicePixelRatio || 1;
+
+  function setupCanvas(id) {
+    const cv = document.getElementById(id);
+    const ctx = cv.getContext("2d");
+    const w = cv.width, h = cv.height;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.scale(cv.width / DPR / (cv.width / DPR), cv.height / DPR / (cv.height / DPR));
+    // simpler: just set transform by dpr
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { cv, ctx, w, h };
+  }
+
+  /* ---------- 通用动画循环器 ---------- */
+  function makeRunner({ cv, render, min, max, initial, stepPerFrame, readout, onEnd }) {
+    const sl = document.createElement("input"); // not used; we hook external sliders
+    let t = initial, playing = false, raf = null;
+    function frame() {
+      if (!playing) return;
+      t += stepPerFrame;
+      if (t > max) { t = max; playing = false; if (onEnd) onEnd(); }
+      sync();
+      raf = requestAnimationFrame(frame);
+    }
+    function sync() {
+      render(t);
+      if (readout) readout(t);
+    }
+    return {
+      get t() { return t; },
+      set t(v) { t = Math.min(Math.max(v, min), max); sync(); },
+      play() { if (t >= max) t = min; playing = true; raf = requestAnimationFrame(frame); },
+      pause() { playing = false; if (raf) cancelAnimationFrame(raf); },
+      reset() { t = initial; sync(); },
+      isPlaying() { return playing; },
+      bindSlider(slId) {
+        const el = document.getElementById(slId);
+        el.addEventListener("input", () => { this.pause(); this.t = parseFloat(el.value); });
+        sync();
+      },
+      syncSlider(slId) {
+        const el = document.getElementById(slId);
+        el.value = String(t);
+      }
+    };
+  }
+
+  /* ============ ① Cantor ============ */
+  (function cantor() {
+    const { cv, ctx, w, h } = setupCanvas("cv-cantor");
+    const M = { l: 40, r: 40, t: 60, b: 60 };
+    const barY = 150, barH = 46;
+    const grad = h - M.b;
+
+    function drawLevel(n, x0, x1, y, alpha) {
+      // recursive-ish: draw all 2^n intervals of length (1/3)^n
+      const len = (x1 - x0) / Math.pow(3, n);
+      if (n === 0) {
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "#222";
+        ctx.fillRect(x0, y, x1 - x0, barH);
+        ctx.globalAlpha = 1;
+        return;
+      }
+      const seg = (x1 - x0) / 3;
+      drawLevel(n - 1, x0, x0 + seg, y, alpha);
+      drawLevel(n - 1, x0 + 2 * seg, x1, y, alpha);
+    }
+
+    function render(t) {
+      const n = Math.floor(t);
+      const frac = t - n;
+      ctx.clearRect(0, 0, w, h);
+      // title-ish scale line
+      const scaleY = 46;
+      ctx.strokeStyle = "#999"; ctx.fillStyle = "#999";
+      ctx.beginPath(); ctx.moveTo(M.l, scaleY); ctx.lineTo(w - M.r, scaleY); ctx.stroke();
+      ctx.fillText("0", M.l - 8, scaleY + 4);
+      ctx.fillText("1", w - M.r + 6, scaleY + 4);
+      ctx.fillStyle = "#888";
+      ctx.fillRect(M.l, scaleY - 2, 2, 4);
+
+      // bar for current level (with interpolation when moving)
+      if (frac > 0.001 && n < 9) {
+        // both levels: old fades, new appears
+        drawLevel(n, M.l, w - M.r, barY, 1 - frac);
+        drawLevel(n + 1, M.l, w - M.r, barY, frac);
+      } else {
+        drawLevel(Math.min(n, 9), M.l, w - M.r, barY, 1);
+      }
+
+      // length curve (log)
+      const curveY0 = grad - 150, curveY1 = grad - 10;
+      const curveL = M.l + 40, curveR = w - M.r - 20;
+      ctx.strokeStyle = "#ccc";
+      ctx.beginPath(); ctx.moveTo(curveL, curveY1); ctx.lineTo(curveR, curveY1); ctx.stroke();
+      ctx.fillStyle = "#888"; ctx.font = "12px sans-serif";
+      ctx.fillText("总长度 = (2/3)ⁿ", curveL, curveY1 + 16);
+      // polyline
+      ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let k = 0; k <= 9; k++) {
+        const x = curveL + (k / 9) * (curveR - curveL);
+        const y = curveY1 - Math.pow(2 / 3, k) * (curveY1 - curveY0);
+        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // point count bars (log-ish, capped)
+      const nF = Math.min(t, 9);
+      const bx = curveL + (nF / 9) * (curveR - curveL);
+      const by = curveY1 - Math.pow(2 / 3, nF) * (curveY1 - curveY0);
+      ctx.fillStyle = "#c0392b";
+      ctx.beginPath(); ctx.arc(bx, by, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#c0392b";
+      ctx.fillText("(2/3)ⁿ = " + Math.pow(2 / 3, nF).toFixed(3), bx + 8, by - 8);
+
+      // count text
+      ctx.fillStyle = "#888";
+      ctx.fillText("段数 = 2ⁿ · 每段长 (1/3)ⁿ", curveL, curveY0 - 6);
+    }
+
+    const r = makeRunner({
+      cv, render,
+      min: 0, max: 9, initial: 0, stepPerFrame: 0.02,
+      readout: (t) => {
+        const n = Math.floor(t);
+        const len = Math.pow(2 / 3, n);
+        document.getElementById("ro-cantor").textContent =
+          `n = ${n} · 长度 ${len.toFixed(3)} · 段数 ${Math.pow(2, n)}`;
+      }
+    });
+    document.getElementById("btn-cantor-play").onclick = () => {
+      if (r.isPlaying()) { r.pause(); this.textContent = "▶ 播放"; }
+      else { r.play(); this.textContent = "⏸ 暂停"; }
+    };
+    document.getElementById("btn-cantor-reset").onclick = () => { r.reset(); document.getElementById("btn-cantor-play").textContent = "▶ 播放"; };
+    r.bindSlider("sl-cantor");
+    r.syncSlider("sl-cantor");
+    r.render(0);
+  })();
+
+  /* ============ ② 切法对比 ============ */
+  (function split() {
+    const { cv, ctx, w, h } = setupCanvas("cv-split");
+    const LW = 460, LH = 300;
+    const LX = 14, RX = LW + 30, TY = 60;
+    const fw = (x) => LX + 30 + x * (LW - 70);       // x in [0,1] -> px
+    const fh = (v) => TY + LH - 10 - v * (LH - 40);  // v in [0,1] -> px
+
+    // rational points at depth k: sample many "rational-ish" points
+    const rationals = [];
+    const denomMax = 60;
+    for (let d = 2; d <= denomMax; d++) {
+      for (let a = 0; a <= d; a++) {
+        const x = a / d;
+        if (rationals.some(p => Math.abs(p - x) < 1e-9)) continue;
+        rationals.push(x);
+      }
+    }
+
+    function drawLeft(x0, x1) {
+      // axis
+      ctx.strokeStyle = "#aaa";
+      ctx.beginPath(); ctx.moveTo(fw(0), fh(0)); ctx.lineTo(fw(1), fh(0)); ctx.stroke();
+      // irrational baseline: height 0 dots everywhere (draw faint horizontal)
+      ctx.fillStyle = "#ddd";
+      ctx.fillRect(fw(0), fh(0) - 1, fw(1) - fw(0), 2);
+      // rational points: vertical bars to height 1
+      ctx.fillStyle = "#1f6feb";
+      for (const x of rationals) {
+        ctx.fillRect(fw(x) - 1, fh(1), 2, fh(0) - fh(1));
+      }
+      // slider cut strip
+      const s = x0;
+      ctx.fillStyle = "rgba(192,57,43,0.25)";
+      ctx.fillRect(fw(s) - 0.5, fh(0) + 4, 8, fh(1) - fh(0) - 8);
+      ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fw(s) + 4, fh(0) + 4); ctx.lineTo(fw(s) + 4, fh(1) - 4); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#c0392b";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("竖条里：有 0 有 1", fw(s) + 10, fh(0) + 18);
+      ctx.fillStyle = "#222"; ctx.font = "bold 14px sans-serif";
+      ctx.fillText("黎曼：切 x 轴", LX, TY - 18);
+      ctx.fillStyle = "#888";
+      ctx.fillText("上积分 = 1 · 下积分 = 0", LX, TY - 4);
+    }
+
+    function drawRight(y0, y1) {
+      // axis
+      ctx.strokeStyle = "#aaa";
+      ctx.beginPath(); ctx.moveTo(fw(0), fh(0)); ctx.lineTo(fw(1), fh(0)); ctx.stroke();
+      // bottom layer: whole [0,1] at 0 (green)
+      ctx.fillStyle = "rgba(46,139,87,0.5)";
+      ctx.fillRect(fw(0), fh(0) - 2, fw(1) - fw(0), 4);
+      // top layer at 1: "rational points" — draw as a thin line because measure 0
+      ctx.strokeStyle = "rgba(46,139,87,0.9)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(fw(0), fh(1));
+      ctx.lineTo(fw(1), fh(1));
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // swept horizontal line
+      ctx.fillStyle = "rgba(46,139,87,0.15)";
+      ctx.fillRect(fw(0), fh(0), fw(1) - fw(0), fh(1) - fh(0));
+      ctx.strokeStyle = "#2e8b57"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fw(0), fh(1)); ctx.lineTo(fw(1), fh(1)); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#222"; ctx.font = "bold 14px sans-serif";
+      ctx.fillText("Lebesgue：切 y 轴", RX, TY - 18);
+      ctx.fillStyle = "#2e8b57";
+      ctx.fillText("只有两层：0 层底集测度 1 · 1 层底集测度 0", RX, TY - 4);
+      ctx.fillText("∫ f = 1·0 + 0·1 = 0", RX, TY + 12);
+    }
+
+    function render(t) {
+      ctx.clearRect(0, 0, w, h);
+      drawLeft(0, 1);
+      drawRight(0, 1);
+      // sweeping cut on left
+      const s = (t / 100);
+      drawLeft(s, Math.min(1, s + 0.01));
+      ctx.fillStyle = "#c0392b";
+      ctx.fillRect(fw(s) - 0.5, fh(0) + 4, 8, fh(1) - fh(0) - 8);
+    }
+
+    const r = makeRunner({
+      cv, render, min: 0, max: 100, initial: 0, stepPerFrame: 1.2,
+      readout: (t) => {
+        const s = (t / 100).toFixed(2);
+        document.getElementById("ro-split").textContent =
+          `扫描 x = ${s} · 黎曼上积分 = 1 · 下积分 = 0 → 不可积 · Lebesgue ∫ = 0`;
+      }
+    });
+    document.getElementById("btn-split-play").onclick = function () {
+      if (r.isPlaying()) { r.pause(); this.textContent = "▶ 播放"; }
+      else { r.play(); this.textContent = "⏸ 暂停"; }
+    };
+    document.getElementById("btn-split-reset").onclick = () => { r.reset(); document.getElementById("btn-split-play").textContent = "▶ 播放"; };
+    r.bindSlider("sl-split");
+    r.render(0);
+  })();
+
+  /* ============ ③ 换序悖论 ============ */
+  (function swap() {
+    const { cv, ctx, w, h } = setupCanvas("cv-swap");
+    const M = { l: 60, r: 30, t: 50, b: 60 };
+    const fw = (x) => M.l + x * (w - M.l - M.r);
+    const fhMax = h - M.b - M.t;
+    // y scale: show up to 8 units, then cap with annotation
+    const yScale = 8;
+    const fh = (v) => h - M.b - Math.min(v, yScale) / yScale * fhMax;
+
+    function render(t) {
+      const n = Math.round(t);
+      const hgt = n;
+      const wid = 1 / n;
+      ctx.clearRect(0, 0, w, h);
+      // axes
+      ctx.strokeStyle = "#aaa";
+      ctx.beginPath(); ctx.moveTo(M.l, h - M.b); ctx.lineTo(w - M.r, h - M.b); ctx.stroke();
+      ctx.fillStyle = "#999"; ctx.fillText("0", M.l - 8, h - M.b + 4); ctx.fillText("1", w - M.r + 4, h - M.b + 4);
+      // y tick marks up to 8
+      ctx.fillStyle = "#bbb"; ctx.font = "11px sans-serif";
+      for (let k = 0; k <= yScale; k += 2) {
+        const y = fh(k);
+        ctx.strokeStyle = "#eee";
+        ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(w - M.r, y); ctx.stroke();
+        ctx.fillText(String(k), M.l - 26, y + 4);
+      }
+      // spike
+      const x0 = fw(0), xw = Math.max(2, fw(wid) - fw(0));
+      const y0 = h - M.b;
+      const ytop = fh(hgt);
+      ctx.fillStyle = "rgba(46,139,87,0.55)";
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0, ytop);
+      ctx.lineTo(x0 + xw, ytop);
+      ctx.lineTo(x0 + xw, y0);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#2e8b57"; ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // annotations
+      ctx.fillStyle = "#2e8b57";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText(`面积 = n · 1/n = 1`, x0 + xw + 12, ytop + 14);
+      ctx.fillStyle = "#c0392b";
+      ctx.fillText(`高度 = n`, x0 + xw + 12, ytop - 4);
+      // pointwise limit line at 0
+      ctx.strokeStyle = "#c0392b"; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(M.l, h - M.b); ctx.lineTo(w - M.r, h - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#c0392b";
+      ctx.fillText("逐点极限 = 0（虚线，每个点都塌下来）", M.l + 10, h - M.b - 8);
+      // bottom readout panel
+      ctx.fillStyle = "#222";
+      ctx.font = "14px sans-serif";
+      ctx.fillText(`lim ∫ fₙ = 1      ∫ (lim fₙ) = 0      ⟹  换序不合法`, M.l, M.t - 16);
+    }
+
+    const r = makeRunner({
+      cv, render, min: 1, max: 200, initial: 1, stepPerFrame: 1,
+      readout: (t) => {
+        const n = Math.round(t);
+        document.getElementById("ro-swap").textContent =
+          `n = ${n} · 面积 = ${(n * 1 / n).toFixed(3)}`;
+      }
+    });
+    document.getElementById("btn-swap-play").onclick = function () {
+      if (r.isPlaying()) { r.pause(); this.textContent = "▶ 播放"; }
+      else { r.play(); this.textContent = "⏸ 暂停"; }
+    };
+    document.getElementById("btn-swap-reset").onclick = () => { r.reset(); document.getElementById("btn-swap-play").textContent = "▶ 播放"; };
+    r.bindSlider("sl-swap");
+    r.render(1);
+  })();
+
+  /* ============ ④ 单调收敛 ============ */
+  (function mono() {
+    const { cv, ctx, w, h } = setupCanvas("cv-mono");
+    const M = { l: 60, r: 40, t: 50, b: 60 };
+    const fw = (x) => M.l + x * (w - M.l - M.r);
+    const fh = (v) => h - M.b - v * (h - M.b - M.t);
+    const f = (x) => x * x;
+
+    function render(t) {
+      const n = Math.max(1, Math.round(t));
+      ctx.clearRect(0, 0, w, h);
+      // axes
+      ctx.strokeStyle = "#aaa";
+      ctx.beginPath(); ctx.moveTo(M.l, h - M.b); ctx.lineTo(w - M.r, h - M.b); ctx.stroke();
+      ctx.fillStyle = "#999"; ctx.fillText("0", M.l - 8, h - M.b + 4); ctx.fillText("1", w - M.r + 4, h - M.b + 4);
+      ctx.fillStyle = "#999"; ctx.fillText("1", M.l - 26, fh(1) + 4);
+      // curve f = x²
+      ctx.strokeStyle = "#999"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const x = i / 200;
+        i === 0 ? ctx.moveTo(fw(x), fh(f(x))) : ctx.lineTo(fw(x), fh(f(x)));
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // staircase
+      const step = 1 / n;
+      ctx.fillStyle = "rgba(46,139,87,0.4)";
+      ctx.strokeStyle = "#2e8b57";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(fw(0), h - M.b);
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        const x0 = k * step, x1 = (k + 1) * step;
+        const v = f(x0);
+        sum += v * step;
+        ctx.lineTo(fw(x0), fh(v));
+        ctx.lineTo(fw(x1), fh(v));
+      }
+      ctx.lineTo(fw(1), h - M.b);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 1;
+      // readouts
+      const target = 1 / 3;
+      ctx.fillStyle = "#222";
+      ctx.font = "14px sans-serif";
+      ctx.fillText(`∫₀¹ fₙ = ${sum.toFixed(3)}   →   ∫₀¹ x² = ${target.toFixed(3)}`, M.l, M.t - 16);
+      ctx.fillStyle = "#2e8b57";
+      ctx.fillText(`n = ${n} 段阶梯（取左端点值，单调上升）`, M.l, M.t);
+    }
+
+    const r = makeRunner({
+      cv, render, min: 1, max: 80, initial: 1, stepPerFrame: 0.7,
+      readout: (t) => {
+        const n = Math.max(1, Math.round(t));
+        let sum = 0;
+        for (let k = 0; k < n; k++) sum += (k / n) * (k / n) * (1 / n);
+        document.getElementById("ro-mono").textContent =
+          `n = ${n} · ∫fₙ = ${sum.toFixed(4)} · 极限 0.3333`;
+      }
+    });
+    document.getElementById("btn-mono-play").onclick = function () {
+      if (r.isPlaying()) { r.pause(); this.textContent = "▶ 播放"; }
+      else { r.play(); this.textContent = "⏸ 暂停"; }
+    };
+    document.getElementById("btn-mono-reset").onclick = () => { r.reset(); document.getElementById("btn-mono-play").textContent = "▶ 播放"; };
+    r.bindSlider("sl-mono");
+    r.render(1);
+  })();
+
+  /* ---------- tab switching ---------- */
+  const tabs = document.getElementById("tabs");
+  tabs.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    document.querySelectorAll(".stage").forEach(s => s.classList.remove("on"));
+    document.getElementById("st-" + btn.dataset.t).classList.add("on");
+  });
+})();
+</script>
+</body>
+</html>

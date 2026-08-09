@@ -154,3 +154,28 @@ Stuck >5 attempts on the same sorry? Question the STATEMENT, not the proof:
 1. Try proving the negation — if easy, the statement is wrong.
 2. Diff against the textbook PDF — missing hypothesis? wrong quantifier order?
 3. Try a simplified version first.
+
+## Notes writing pipeline (deep math notes)
+
+For `notes/` chapter docs (NOT Lean proofs — different pipeline from the workflow above).
+
+```
+WRITE (notes-writer subagent, writes the target .md directly)
+  → prompt: python3 .agents/scripts/notes_writer.py <type> <title> <target> --sources <lean files...>
+  → agent reads .opencode/skills/deep-math-notes/SKILL.md + classics-crossref
+  → returns short status report (DONE/NEEDS_HELP) — never the body in chat
+STUDENT LOOP (teacher–student, max 2 rounds)
+  → notes-writer dispatches notes-student (read-only naive learner) → gets QUESTIONS list
+  → answers/edits note for every question (or 不采纳+理由) → re-runs self-check
+REVIEW (notes-reviewer subagent, read-only: edit denied)
+  → verifies every analysis/*.lean:NNN by grep, recomputes ≥2 example numbers,
+    runs prose checks → VERDICT PASS / PASS-with-notes / FAIL + fix list
+MAIN THREAD: apply fixes (or re-dispatch on FAIL) → re-read note once → git commit.
+```
+
+Rules that differ from the Lean workflow:
+- Skills (not prompt text) carry the full standard — prompts stay ≤ ~2600 chars.
+- Subagents write the note INTO the target file (there's no LSP edit-loop for markdown).
+- `file:line` citations MUST be grep-verified twice (writer self-check + reviewer audit).
+- Style rule: no AI-summary prose; ≥1200 chars; ≥2 worked examples; ≥1 counterexample.
+- pacing: 1 subagent at a time (MCP single-connection applies to Lean LSP usage).
