@@ -29,6 +29,9 @@ open BigOperators
 We do not attempt to replicate the full API for {name}`Finset.sum` here, but in subsequent sections we
 shall make liberal use of this API.
 
+学习指南（三层定位、核心概念 List/Multiset/Finset、Set↔Finset 桥梁、分工表、
+发现工具箱、常见错误）：见 `notes/Section_7_1-Finset有限和.md`。
+
 -/
 
 -- This is a technical device to avoid Mathlib's insistence on decidable equality for finite sets.
@@ -47,6 +50,10 @@ theorem sum_of_empty {n m:ℤ} (h: n < m) (a: ℤ → ℝ) : ∑ i ∈ Icc m n, 
 /--
   Definition 7.1.1. This is similar to Mathlib's {name}`Finset.sum_Icc_succ_top` except that the
   latter involves summation over the natural numbers rather than integers.
+
+  **使用的 Mathlib 定理**：`Finset.sum_insert`
+  - 如果 `a ∉ s`，则 `∑ x ∈ insert a s, f x = f a + ∑ x ∈ s, f x`
+  - 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
 -/
 theorem sum_of_nonempty {n m:ℤ} (h: n ≥ m-1) (a: ℤ → ℝ) :
     ∑ i ∈ Icc m (n+1), a i = ∑ i ∈ Icc m n, a i + a (n+1) := by
@@ -64,6 +71,10 @@ example (a: ℤ → ℝ) (m:ℤ) : ∑ i ∈ Icc m (m-1), a i = 0 := by
   have h : (m-1) < m := by omega
   exact sum_of_empty h a
 
+
+#check Finset.sum_singleton
+#check Finset.Icc_self
+-- 有点隐藏太多东西了，Icc m m --(Finset.Icc_self)--> {m} --(sum_singleton)--> a m
 example (a: ℤ → ℝ) (m:ℤ) : ∑ i ∈ Icc m m, a i = a m := by
   simp
 
@@ -86,7 +97,13 @@ example (a: ℤ → ℝ) (m:ℤ) : ∑ i ∈ Icc m (m+2), a i = a m + a (m+1) + 
 /-- Remark 7.1.3 -/
 example (a: ℤ → ℝ) (m n:ℤ) : ∑ i ∈ Icc m n, a i = ∑ j ∈ Icc m n, a j := rfl
 
-/-- Lemma 7.1.4(a) / Exercise 7.1.1 -/
+/-- Lemma 7.1.4(a) / Exercise 7.1.1
+
+**使用的 Mathlib 定理**：`Finset.sum_union`
+- 如果 `Disjoint s₁ s₂`，则 `∑ x ∈ s₁ ∪ s₂, f x = (∑ x ∈ s₁, f x) + (∑ x ∈ s₂, f x)`
+- 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
+- 本定理中先证明 `Disjoint (Icc m n) (Icc (n+1) p)`，再用 `sum_union` 组合
+-/
 theorem concat_finite_series {m n p:ℤ} (hmn: m ≤ n+1) (hpn : n ≤ p) (a: ℤ → ℝ) :
   ∑ i ∈ Icc m n, a i + ∑ i ∈ Icc (n+1) p, a i = ∑ i ∈ Icc m p, a i := by
   have h_disjoint : Disjoint (Icc m n) (Icc (n+1) p) := by
@@ -123,7 +140,13 @@ theorem concat_finite_series {m n p:ℤ} (hmn: m ≤ n+1) (hpn : n ≤ p) (a: �
       rw [Finset.sum_union h_disjoint]
     _ = ∑ i ∈ Icc m p, a i := by rw [h_union]
 
-/-- Lemma 7.1.4(b) / Exercise 7.1.1 -/
+/-- Lemma 7.1.4(b) / Exercise 7.1.1
+
+**使用的 Mathlib 定理**：`Finset.sum_bij`
+- Mathlib **没有** `sum_Icc_shift`（验证过，不存在），所以区间平移必须自己证；
+  用 `sum_bij` 给出双射 `i ↦ i + k` 即可。
+- 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
+-/
 theorem shift_finite_series {m n k:ℤ} (a: ℤ → ℝ) :
   ∑ i ∈ Icc m n, a i = ∑ i ∈ Icc (m+k) (n+k), a (i-k) := by
   apply Finset.sum_bij (λ i hi => i + k)
@@ -140,12 +163,21 @@ theorem shift_finite_series {m n k:ℤ} (a: ℤ → ℝ) :
   · intro i hi
     simp
 
-/-- Lemma 7.1.4(c) / Exercise 7.1.1 -/
+/-- Lemma 7.1.4(d) / Exercise 7.1.1
+
+**使用的 Mathlib 定理**：`Finset.sum_add_distrib`
+- `∑ x ∈ s, (f x + g x) = (∑ x ∈ s, f x) + (∑ x ∈ s, g x)`
+- 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
+-/
 theorem finite_series_add {m n:ℤ} (a b: ℤ → ℝ) :
   ∑ i ∈ Icc m n, (a i + b i) = ∑ i ∈ Icc m n, a i + ∑ i ∈ Icc m n, b i := by
   simp [Finset.sum_add_distrib]
 
-/-- Lemma 7.1.4(d) / Exercise 7.1.1 -/
+/-- Lemma 7.1.4(e) / Exercise 7.1.1
+
+**使用的 Mathlib 定理**：`Finset.mul_sum`
+- `c * ∑ x ∈ s, f x = ∑ x ∈ s, c * f x`（相加版本是 `sum_add_distrib`）
+-/
 theorem finite_series_const_mul {m n:ℤ} (a: ℤ → ℝ) (c:ℝ) :
   ∑ i ∈ Icc m n, c * a i = c * ∑ i ∈ Icc m n, a i := by
   simp [Finset.mul_sum]
@@ -155,7 +187,11 @@ theorem abs_finite_series_le {m n:ℤ} (a: ℤ → ℝ) :
   |∑ i ∈ Icc m n, a i| ≤ ∑ i ∈ Icc m n, |a i| :=
   Finset.abs_sum_le_sum_abs a (Icc m n)
 
-/-- Lemma 7.1.4(f) / Exercise 7.1.1 -/
+/-- Lemma 7.1.4(f) / Exercise 7.1.1
+
+**使用的 Mathlib 定理**：`Finset.sum_le_sum`
+- `(∀ x ∈ s, f x ≤ g x) → ∑ x ∈ s, f x ≤ ∑ x ∈ s, g x`（单调性）
+-/
 theorem finite_series_of_le {m n:ℤ}  {a b: ℤ → ℝ} (h: ∀ i, m ≤ i → i ≤ n → a i ≤ b i) :
   ∑ i ∈ Icc m n, a i ≤ ∑ i ∈ Icc m n, b i :=
   Finset.sum_le_sum fun i hi => by
@@ -167,6 +203,14 @@ theorem finite_series_of_le {m n:ℤ}  {a b: ℤ → ℝ} (h: ∀ i, m ≤ i →
 set_option maxHeartbeats 420000 in
 /--
   Proposition 7.1.8.
+
+  **全文件最核心的原创证明**（从 Tao 的证明翻译）：重排不改变有限和。
+  - Mathlib 无对应定理：`Finset.sum` 定义在 Multiset 上（置换不变），所以这个命题
+    "免费"——但 Tao 的证明（移动第 j 项、构造 gtil/htil、归纳）在这里被完整复刻，
+    是理解"教科书证明 → Lean 证明"的最佳范本。
+  - 关键技巧：`π`（把 ℤ 塞回 Icc 的哑函数）、`h'`（在 j 处"分裂"的双射）、
+    `X.erase x`（删掉一项再归纳）。
+  - 注意 `if hi : i ∈ ... then ... else 0` 的写法，见上方"∑ 记号的语法糖"。
 -/
 theorem finite_series_of_rearrange {n:ℕ} {X':Type*} (X: Finset X') (hcard: X.card = n)
   (f: X' → ℝ) (g h: Icc (1:ℤ) n → X) (hg: Function.Bijective g) (hh: Function.Bijective h) :
@@ -396,13 +440,24 @@ theorem finite_series_of_rearrange {n:ℕ} {X':Type*} (X: Finset X') (hcard: X.c
 /--
   This fact ensures that Definition 7.1.6 would be well-defined even if we did not appeal to the
   existing {name}`Finset.sum` method.
+
+  **使用的 Mathlib 定理**：`Finset.equivOfCardEq`
+  - 基数相等的两个 Finset 之间存在双射（以 `Finset` 的视角，直接得到 `↥s ≃ ↥t`）。
+  - 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
 -/
 theorem exist_bijection {n:ℕ} {Y:Type*} (X: Finset Y) (hcard: X.card = n) :
     ∃ g: Icc (1:ℤ) n → X, Function.Bijective g := by
   have := Finset.equivOfCardEq (show (Icc (1:ℤ) n).card = X.card by simp [hcard])
   exact ⟨ this, this.bijective ⟩
 
-/-- Definition 7.1.6 -/
+/-- Definition 7.1.6
+
+**Tao 的定义 → Lean 定理**的典型例子：Tao 把有限和定义为"任取双射
+g : Icc (1:ℤ) n → X 求和"（并用 7.1.8 证明良定义）。Lean 里 `Finset.sum` 已是定义，
+所以这个命题降级为定理：用 `Finset.sum_bij` 证明"枚举求和 = Finset 求和"。
+
+**使用的 Mathlib 定理**：`Finset.sum_bij`（枚举 Icc (1:ℤ) n 与 X 之间的双射换标）
+-/
 theorem finite_series_eq {n:ℕ} {Y:Type*} (X: Finset Y) (f: Y → ℝ) (g: Icc (1:ℤ) n → X)
   (hg: Function.Bijective g) :
     ∑ i ∈ X, f i = ∑ i ∈ Icc (1:ℤ) n, (if hi:i ∈ Icc (1:ℤ) n then f (g ⟨ i, hi ⟩) else 0) := by
@@ -413,22 +468,35 @@ theorem finite_series_eq {n:ℕ} {Y:Type*} (X: Finset Y) (f: Y → ℝ) (g: Icc 
   . intro b hb; have := hg.surjective ⟨ b, hb ⟩; grind
   intros; simp_all
 
-/-- Proposition 7.1.11(a) / Exercise 7.1.2 -/
+/-- Proposition 7.1.11(a) / Exercise 7.1.2
+
+**使用的 Mathlib 定理**：`Finset.sum_empty`
+-/
 theorem finite_series_of_empty {X':Type*} (f: X' → ℝ) : ∑ i ∈ ∅, f i = 0 := by
   simp
 
-/-- Proposition 7.1.11(b) / Exercise 7.1.2 -/
+/-- Proposition 7.1.11(b) / Exercise 7.1.2
+
+**使用的 Mathlib 定理**：`Finset.sum_singleton`
+-/
 theorem finite_series_of_singleton {X':Type*} (f: X' → ℝ) (x₀:X') : ∑ i ∈ {x₀}, f i = f x₀ := by
   simp
 
 /--
   A technical lemma relating a sum over a finset with a sum over a fintype. Combines well with
   tools such as `map_finite_series` below.
+
+  **使用的 Mathlib 定理**：`Finset.sum_coe_sort`
+  - `∑ i, f i.val = ∑ i ∈ s, f i`（把"对 s 的成员求和"换成"对子类型 s 求和"）。
 -/
 theorem finite_series_of_fintype {X':Type*} (f: X' → ℝ) (X: Finset X') :
     ∑ x ∈ X, f x = ∑ x:X, f x.val := (sum_coe_sort X f).symm
 
-/-- Proposition 7.1.11(c) / Exercise 7.1.2 -/
+/-- Proposition 7.1.11(c) / Exercise 7.1.2
+
+**使用的 Mathlib 定理**：`Finset.sum_equiv`
+- 双射 `g : Y → X` 换标不改变和（与 `sum_bij` 等价，但要求 g 是整体双射）。
+-/
 theorem map_finite_series {X:Type*} [Fintype X] [Fintype Y] (f: X → ℝ) {g:Y → X}
   (hg: Function.Bijective g) :
     ∑ x, f x = ∑ y, f (g y) := by
@@ -436,7 +504,10 @@ theorem map_finite_series {X:Type*} [Fintype X] [Fintype Y] (f: X → ℝ) {g:Y 
 
 -- Proposition 7.1.11(d) is `rfl` in our formalism and is therefore omitted.
 
-/-- Proposition 7.1.11(e) / Exercise 7.1.2 -/
+/-- Proposition 7.1.11(e) / Exercise 7.1.2
+
+**使用的 Mathlib 定理**：`Finset.sum_union`（本文件的 `concat_finite_series` 也用它）
+-/
 theorem finite_series_of_disjoint_union {Z:Type*} {X Y: Finset Z} (hdisj: Disjoint X Y) (f: Z → ℝ) :
     ∑ z ∈ X ∪ Y, f z = ∑ z ∈ X, f z + ∑ z ∈ Y, f z := by
   simp [Finset.sum_union, hdisj]
@@ -460,7 +531,13 @@ theorem finite_series_of_le' {X':Type*} (f g: X' → ℝ) (X: Finset X') (h: ∀
 theorem abs_finite_series_le' {X':Type*} (f: X' → ℝ) (X: Finset X') :
     |∑ x ∈ X, f x| ≤ ∑ x ∈ X, |f x| := Finset.abs_sum_le_sum_abs f X
 
-/-- Lemma 7.1.13 -/
+/-- Lemma 7.1.13
+
+**原创证明**（有限 Fubini 定理）：对 `X` 的基数归纳，每一步：
+`X = X.erase x₀ ∪ (singleton x₀)`（`sum_union`）→ 把单点集的和写成
+`∑ y ∈ Y, f (x₀, y)`（`sum_singleton`）→ `X'.product Y` 与 `(singleton x₀).product Y`
+的并（`sum_union`）。`Finset.sum_comm` 是它的"整条写进 Mathlib"版本，做题可直接用后者。
+-/
 theorem finite_series_of_finite_series {XX YY:Type*} (X: Finset XX) (Y: Finset YY)
   (f: XX × YY → ℝ) :
     ∑ x ∈ X, ∑ y ∈ Y, f (x, y) = ∑ z ∈ X.product Y, f z := by
@@ -528,6 +605,10 @@ theorem finite_series_comm {XX YY:Type*} (X: Finset XX) (Y: Finset YY) (f: XX ×
 /--
   Exercise 7.1.4. Note: there may be some technicalities passing back and forth between natural
   numbers and integers. Look into the tactics {tactic}`zify`, {tactic}`norm_cast`, and {tactic}`omega`
+
+  **使用的 Mathlib 定理**：`add_pow`（ℕ 版本二项式展开，骨架）+ `Nat.cast_choose`
+  - Mathlib 也有 `Nat.choose_eq_factorial_div_factorial` 等；本证明把二项式定理的
+    组合数改写成阶乘形式，是 Tao 习题的"用枚举定义"答案。
 -/
 theorem binomial_theorem (x y:ℝ) (n:ℕ) :
     (x + y)^n
@@ -557,14 +638,24 @@ theorem binomial_theorem (x y:ℝ) (n:ℕ) :
       simp
   simp [h_embed]
 
-/-- Exercise 7.1.5 -/
+/-- Exercise 7.1.5
+
+**使用的 Mathlib 定理**：`tendsto_finset_sum`
+- 有限个收敛序列的和收敛于极限之和；`Finset.univ` 把"对 X 求和"接入它。
+- 位置：`Mathlib.Topology.Algebra.Monoid`（由 `tendsto_finset_prod` 的加法版本生成）
+-/
 theorem lim_of_finite_series {X:Type*} [Fintype X] (a: X → ℕ → ℝ) (L : X → ℝ)
   (h: ∀ x, Filter.atTop.Tendsto (a x) (nhds (L x))) :
     Filter.atTop.Tendsto (fun n ↦ ∑ x, a x n) (nhds (∑ x, L x)) := by
   simpa using tendsto_finset_sum (s := Finset.univ) (f := fun x n => a x n) (a := L)
     (by intro x _; exact h x)
 
-/-- Exercise 7.1.6 -/
+/-- Exercise 7.1.6
+
+**使用的 Mathlib 定理**：`Finset.sum_biUnion`
+- 把 `univ` 写成两两不相交的 `E i` 的并（`biUnion`），和即可逐块拆分。
+- 位置：`Mathlib.Algebra.BigOperators.Group.Finset.Basic`
+-/
 theorem sum_union_disjoint {n : ℕ} {S : Type*} [Fintype S]
     (E : Fin n → Finset S)
     (disj : ∀ i j : Fin n, i ≠ j → Disjoint (E i) (E j))
@@ -593,7 +684,10 @@ theorem sum_union_disjoint {n : ℕ} {S : Type*} [Fintype S]
       _ = ∑ i, ∑ s ∈ E i, f s := by simp
 
 /-- {given}`aᵢ` Exercise 7.1.7. Uses {lean}`Fin m` (so {lean}`aᵢ < m`) instead of the book's {lean}`aᵢ ≤ m`;
-  the bound is baked into the type, and {kw (of := «term_<_»)}`<` replaces {kw (of := «term_≤_»)}`≤` to match the 0-indexed shift. -/
+  the bound is baked into the type, and {kw (of := «term_<_»)}`<` replaces {kw (of := «term_≤_»)}`≤` to match the 0-indexed shift.
+
+  **使用的 Mathlib 定理**：`Fin.card_Iio`（`∑ i, a i` = 每行 Iio 大小之和）、
+  `Finset.card_filter`（个数 ↔ 求和 `if p then 1 else 0`）、`Finset.sum_comm`（换序） -/
 theorem sum_finite_col_row_counts {n m : ℕ} (a : Fin n → Fin m) :
     ∑ i, (a i : ℕ) = ∑ j : Fin m, {i : Fin n | j < a i}.toFinset.card := by
   classical
