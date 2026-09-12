@@ -291,7 +291,7 @@ lemma EReal.tsum_add_le_of_nonneg_pointwise {f g h : ℕ → ℝ}
     If 0 ≤ f n ≤ ↑(g n) for all n, where g n ≥ 0 and g summable, then ∑' f ≤ ↑(∑' g).
     Routes through ENNReal where tsum comparison is unconditional. -/
 lemma EReal.tsum_le_coe_tsum_of_forall_le {f : ℕ → EReal} {g : ℕ → ℝ}
-    (hf_nn : ∀ n, 0 ≤ f n) (hg_nn : ∀ n, 0 ≤ g n) (hg_sum : Summable g)
+    (hf_nn : ∀ n, 0 ≤ f n) (hg_nn : ∀ n, 0 ≤ g n) (_hg_sum : Summable g)
     (h_le : ∀ n, f n ≤ (g n : EReal)) :
     ∑' n, f n ≤ (∑' n, g n : EReal) := by
   -- Define ENNReal version of g
@@ -444,3 +444,71 @@ lemma EReal.tsum_const_eq_top_of_pos {α : Type*} [Infinite α] {c : EReal} (hc 
       norm_num at hc
     apply EReal.tsum_coe_ennreal_eq_top_of_tsum_eq_top
     exact ENNReal.tsum_const_eq_top_of_ne_zero hc_ne_zero
+
+/-- Product of tsums of nonnegative reals in EReal.
+
+For nonnegative real sequences {lit}`a n` and {lit}`b n`, the product of their EReal tsums
+    equals the EReal tsum of the product over ℕ×ℕ.
+-/
+lemma tsum_prod_mul_ereal_of_nonneg (a b : ℕ → ℝ) (ha : ∀ n, 0 ≤ a n) (hb : ∀ n, 0 ≤ b n) :
+    (∑' (ij : ℕ × ℕ), ((a ij.1 * b ij.2 : ℝ) : EReal)) = (∑' i, (a i : EReal)) * (∑' j, (b j : EReal)) := by
+  have h_enn_eq : (∑' (ij : ℕ × ℕ), (ENNReal.ofReal (a ij.1 * b ij.2) : ENNReal)) = 
+      (∑' i, ENNReal.ofReal (a i)) * (∑' j, ENNReal.ofReal (b j)) := by
+    calc
+      (∑' (ij : ℕ × ℕ), (ENNReal.ofReal (a ij.1 * b ij.2) : ENNReal)) = 
+          (∑' (ij : ℕ × ℕ), (ENNReal.ofReal (a ij.1) * ENNReal.ofReal (b ij.2) : ENNReal)) := by
+        refine tsum_congr (fun ij => ?_)
+        simp [ENNReal.ofReal_mul (ha ij.1)]
+      _ = (∑' i, ENNReal.ofReal (a i)) * (∑' j, ENNReal.ofReal (b j)) := by
+        calc
+          (∑' (ij : ℕ × ℕ), (ENNReal.ofReal (a ij.1) * ENNReal.ofReal (b ij.2) : ENNReal)) = 
+              (∑' (i : ℕ) (j : ℕ), (ENNReal.ofReal (a i) * ENNReal.ofReal (b j) : ENNReal)) := by
+            simpa using ENNReal.tsum_prod (f := fun (i j : ℕ) => ENNReal.ofReal (a i) * ENNReal.ofReal (b j))
+          _ = (∑' i, ENNReal.ofReal (a i)) * (∑' j, ENNReal.ofReal (b j)) := by
+            calc
+              (∑' (i : ℕ) (j : ℕ), (ENNReal.ofReal (a i) * ENNReal.ofReal (b j) : ENNReal)) = 
+                  ∑' (i : ℕ), (ENNReal.ofReal (a i) * ∑' (j : ℕ), ENNReal.ofReal (b j)) := by
+                refine tsum_congr (fun i => ?_)
+                rw [ENNReal.tsum_mul_left]
+              _ = (∑' (i : ℕ), ENNReal.ofReal (a i)) * (∑' (j : ℕ), ENNReal.ofReal (b j)) := by
+                rw [ENNReal.tsum_mul_right]
+  
+  let φ : ENNReal →+ EReal := {
+    toFun := fun x => (x : EReal)
+    map_zero' := by simp
+    map_add' := EReal.coe_ennreal_add
+  }
+  have h_cont : Continuous φ := continuous_coe_ennreal_ereal
+  
+  have h_map_tsum (f : ℕ × ℕ → ENNReal) : φ (∑' p, f p) = ∑' p, φ (f p) :=
+    Summable.map_tsum (f := f) ENNReal.summable φ h_cont
+  
+  have h_map_tsum' (f : ℕ → ENNReal) : φ (∑' n, f n) = ∑' n, φ (f n) :=
+    Summable.map_tsum (f := f) ENNReal.summable φ h_cont
+  
+  convert (congrArg (fun (x : ENNReal) => (x : EReal)) h_enn_eq) using 1
+  · calc
+      ∑' (ij : ℕ × ℕ), ((a ij.1 * b ij.2 : ℝ) : EReal) = 
+          ∑' (ij : ℕ × ℕ), ((ENNReal.ofReal (a ij.1 * b ij.2) : ENNReal) : EReal) := by
+        refine tsum_congr (fun ij => ?_)
+        simp [ha ij.1, hb ij.2]
+      _ = φ (∑' (ij : ℕ × ℕ), (ENNReal.ofReal (a ij.1 * b ij.2) : ENNReal)) := by
+        symm
+        apply h_map_tsum
+      _ = ↑(∑' (ij : ℕ × ℕ), ENNReal.ofReal (a ij.1 * b ij.2)) := rfl
+  · have h_tsum_a : (∑' i, (a i : EReal)) = ↑(∑' i, ENNReal.ofReal (a i)) :=
+      calc
+        (∑' i, (a i : EReal)) = (∑' i, (ENNReal.ofReal (a i) : EReal)) :=
+          tsum_congr (fun i => by simp [ha i])
+        _ = (∑' i, φ (ENNReal.ofReal (a i))) := by simp [φ]
+        _ = φ (∑' i, ENNReal.ofReal (a i)) := (h_map_tsum' (fun i : ℕ => ENNReal.ofReal (a i))).symm
+        _ = ↑(∑' i, ENNReal.ofReal (a i)) := rfl
+    have h_tsum_b : (∑' j, (b j : EReal)) = ↑(∑' j, ENNReal.ofReal (b j)) :=
+      calc
+        (∑' j, (b j : EReal)) = (∑' j, (ENNReal.ofReal (b j) : EReal)) :=
+          tsum_congr (fun j => by simp [hb j])
+        _ = (∑' j, φ (ENNReal.ofReal (b j))) := by simp [φ]
+        _ = φ (∑' j, ENNReal.ofReal (b j)) := (h_map_tsum' (fun j : ℕ => ENNReal.ofReal (b j))).symm
+        _ = ↑(∑' j, ENNReal.ofReal (b j)) := rfl
+    rw [h_tsum_a, h_tsum_b]
+    simp [EReal.coe_ennreal_mul]

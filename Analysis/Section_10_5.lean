@@ -27,10 +27,46 @@ theorem _root_.Filter.Tendsto.of_div {X: Set ℝ} {f g: ℝ → ℝ} {x₀ f'x�
   (∃ δ > 0, ∀ x ∈ X \ {x₀} ∩ .Ioo (x₀ - δ) (x₀ + δ), g x ≠ 0) ∧
   (nhdsWithin x₀ (X \ {x₀})).Tendsto (fun x ↦ f x / g x) (nhds (f'x₀ / g'x₀))
   := by
-  sorry
+  have hf_limit : (nhdsWithin x₀ (X \ {x₀})).Tendsto (fun x ↦ f x / (x - x₀)) (nhds f'x₀) := by
+    have h := ((HasDerivWithinAt.iff X x₀ f f'x₀).mp hf'x₀)
+    simpa [hfx₀] using h
+  have hg_limit : (nhdsWithin x₀ (X \ {x₀})).Tendsto (fun x ↦ g x / (x - x₀)) (nhds g'x₀) := by
+    have h := ((HasDerivWithinAt.iff X x₀ g g'x₀).mp hg'x₀)
+    simpa [hgx₀] using h
+  have hg_nonzero_event : ∀ᶠ x in nhdsWithin x₀ (X \ {x₀}), g x ≠ 0 := by
+    have h_temp : ∀ᶠ x in nhdsWithin x₀ (X \ {x₀}), g x / (x - x₀) ≠ 0 :=
+      hg_limit.eventually_ne hg_non
+    filter_upwards [h_temp] with x hx
+    intro hgx
+    apply hx
+    simp [hgx]
+  have h_nonzero : ∃ δ > 0, ∀ x ∈ X \ {x₀} ∩ Set.Ioo (x₀ - δ) (x₀ + δ), g x ≠ 0 := by
+    have hg_nonzero_mem : {x | g x ≠ 0} ∈ nhdsWithin x₀ (X \ {x₀}) := hg_nonzero_event
+    rcases Metric.mem_nhdsWithin_iff.mp hg_nonzero_mem with ⟨δ, hδpos, hδ⟩
+    refine ⟨δ, hδpos, ?_⟩
+    intro x hx
+    rcases hx with ⟨⟨hxX, hx_ne⟩, hx_ball⟩
+    apply hδ
+    constructor
+    · rw [Metric.mem_ball, Real.dist_eq]
+      rcases hx_ball with ⟨hx_left, hx_right⟩
+      rw [abs_lt]
+      constructor <;> linarith
+    · exact ⟨hxX, hx_ne⟩
+  have h_tendsto : (nhdsWithin x₀ (X \ {x₀})).Tendsto (fun x ↦ f x / g x) (nhds (f'x₀ / g'x₀)) := by
+    have h_ratio : (nhdsWithin x₀ (X \ {x₀})).Tendsto (fun x ↦ (f x / (x - x₀)) / (g x / (x - x₀))) (nhds (f'x₀ / g'x₀)) :=
+      hf_limit.div hg_limit hg_non
+    have h_mem : X \ {x₀} ∈ nhdsWithin x₀ (X \ {x₀}) := self_mem_nhdsWithin
+    have h_eq_event : (fun x ↦ f x / g x) =ᶠ[nhdsWithin x₀ (X \ {x₀})] (fun x ↦ (f x / (x - x₀)) / (g x / (x - x₀))) := by
+      filter_upwards [h_mem, hg_nonzero_event] with x hx_mem hgx
+      have hx_ne : x ≠ x₀ := hx_mem.2
+      have hx_sub_ne : x - x₀ ≠ 0 := sub_ne_zero.mpr hx_ne
+      field_simp [hx_sub_ne, hgx]
+    exact h_ratio.congr' h_eq_event.symm
+  exact And.intro h_nonzero h_tendsto
 
 /-- Proposition 10.5.2 (L'Hôpital's rule, II) -/
-theorem _root_.Filter.Tendsto.of_div' {a b L:ℝ} (hab: a < b) {f g f' g': ℝ → ℝ}
+theorem _root_.Filter.Tendsto.of_div' {a b L:ℝ} (_hab: a < b) {f g f' g': ℝ → ℝ}
   (hf: DifferentiableOn ℝ f (.Icc a b)) (hg: DifferentiableOn ℝ g (.Icc a b))
   (hf': f' = derivWithin f (.Icc a b)) (hg': g' = derivWithin g (.Icc a b))
   (hfa: f a = 0) (hga: g a = 0) (hgnon: ∀ x ∈ Set.Icc a b, g' x ≠ 0)

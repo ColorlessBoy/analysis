@@ -1,0 +1,52 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/deepseek-v4-flash",
+  "provider": {
+    "opencode-go": {
+      "options": {
+        "timeout": 1800000,
+        "chunkTimeout": 600000
+      },
+      "models": {
+        "deepseek-v4-flash": {
+          "variants": {
+            "max": {
+              "reasoningEffort": "max",
+              "textVerbosity": "low"
+            }
+          }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "lean-lsp": {
+      "type": "local",
+      "command": ["uvx", "lean-lsp-mcp", "--lean-project-path", "/Users/penglingwei/Documents/lean/analysis"],
+      "enabled": true,
+      "timeout": 120000
+    }
+  },
+  "lsp": true,
+  "subagent_depth": 2,
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 15000
+  },
+  "permission": {
+    "*": "allow",
+    "read": "allow",
+    "edit": "allow",
+    "write": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": "allow",
+    "task": "allow",
+    "webfetch": "allow",
+    "skill": "allow",
+    "question": "allow",
+    "todowrite": "allow",
+    "todoread": "allow"
+  }
+}

@@ -11,43 +11,254 @@ A companion to (the introduction to) Section 1.4.2 of the book "An introduction 
 class ConcreteSigmaAlgebra (X:Type*) extends ConcreteBooleanAlgebra X where
   countable_union_mem : ∀ E : ℕ → Set X, (∀ n, measurable (E n)) → measurable (⋃ n, E n)
 
-def ConcreteSigmaAlgebra.toMeasurableSpace {X: Type*} (B: ConcreteSigmaAlgebra X) : MeasurableSpace X :=
-  by sorry
+@[ext]
+theorem ConcreteSigmaAlgebra.ext {X:Type*} {B1 B2 : ConcreteSigmaAlgebra X}
+    (h : ∀ E, B1.measurable E ↔ B2.measurable E) : B1 = B2 := by
+  cases B1
+  cases B2
+  congr
+  apply ConcreteBooleanAlgebra.ext
+  exact h
 
+@[implicit_reducible]
+def ConcreteSigmaAlgebra.toMeasurableSpace {X: Type*} (B: ConcreteSigmaAlgebra X) : MeasurableSpace X :=
+  {
+    MeasurableSet' := B.measurable
+    measurableSet_empty := B.empty_mem
+    measurableSet_compl := B.compl_mem
+    measurableSet_iUnion := B.countable_union_mem
+  }
+
+@[implicit_reducible]
 def MeasurableSpace.toConcreteSigmaAlgebra {X: Type*} (M: MeasurableSpace X) : ConcreteSigmaAlgebra X :=
-  by sorry
+  {
+    measurable := M.MeasurableSet'
+    empty_mem := M.measurableSet_empty
+    compl_mem := M.measurableSet_compl
+    union_mem := by
+      intro E F hE hF
+      let T : ℕ → Set X := fun n => if n = 0 then E else F
+      have hT : ∀ n, M.MeasurableSet' (T n) := by
+        intro n
+        by_cases hn : n = 0
+        · simpa [T, hn] using hE
+        · simpa [T, hn] using hF
+      have hUnion : (⋃ n, T n) = E ∪ F := by
+        ext x
+        constructor
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨n, hn⟩
+          by_cases hn0 : n = 0
+          · exact Or.inl (by simpa [T, hn0] using hn)
+          · exact Or.inr (by simpa [T, hn0] using hn)
+        · intro hx
+          rcases hx with hx | hx
+          · rw [Set.mem_iUnion]
+            exact ⟨0, by simp [T, hx]⟩
+          · rw [Set.mem_iUnion]
+            exact ⟨1, by simp [T, hx]⟩
+      rw [← hUnion]
+      exact M.measurableSet_iUnion T hT
+    countable_union_mem := M.measurableSet_iUnion
+  }
 
 def ConcreteBooleanAlgebra.isSigmaAlgebra {X: Type*} (B: ConcreteBooleanAlgebra X) : Prop := ∀ E : ℕ → Set X, (∀ n, measurable (E n)) → measurable (⋃ n, E n)
 
-theorem ConcreteSigmaAlgebra.isSigmaAlgebra {X: Type*} (B: ConcreteSigmaAlgebra X) : B.isSigmaAlgebra := by sorry
+theorem ConcreteSigmaAlgebra.isSigmaAlgebra {X: Type*} (B: ConcreteSigmaAlgebra X) : B.isSigmaAlgebra := by
+  intro E hE
+  exact B.countable_union_mem E hE
 
+@[implicit_reducible]
 def ConcreteBooleanAlgebra.isSigmaAlgebra.toSigmaAlgebra {X: Type*} {B: ConcreteBooleanAlgebra X} (h: B.isSigmaAlgebra) : ConcreteSigmaAlgebra X :=
   { countable_union_mem := h }
 
 /-- Exercise 1.4.10 -/
-def ConcreteBooleanAlgebra.isAtomic.isSigmaAlgebra {X: Type*} {B: ConcreteBooleanAlgebra X} (h: B.isAtomic) : B.isSigmaAlgebra :=
-  by sorry
+def ConcreteBooleanAlgebra.isAtomic.isSigmaAlgebra {X: Type*} {B: ConcreteBooleanAlgebra X} (h: B.isAtomic) : B.isSigmaAlgebra := by
+  rcases h with ⟨I, parts, hI, hB⟩
+  intro E hE
+  rw [hB] at hE ⊢
+  have hE_parts : ∀ n, ∃ J : Set I, E n = ⋃ i ∈ J, parts i := hE
+  let J : Set I := {i | ∃ n, i ∈ (hE_parts n).choose}
+  refine ⟨J, ?_⟩
+  ext x
+  constructor
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨n, hn⟩
+    rw [(hE_parts n).choose_spec] at hn
+    simp at hn
+    rcases hn with ⟨i, hi, hxi⟩
+    simp
+    refine ⟨i, ?_, hxi⟩
+    exact ⟨n, hi⟩
+  · intro hx
+    simp at hx
+    rcases hx with ⟨i, hiJ, hxi⟩
+    rcases hiJ with ⟨n, hin⟩
+    rw [Set.mem_iUnion]
+    refine ⟨n, ?_⟩
+    rw [(hE_parts n).choose_spec]
+    simp
+    exact ⟨i, hin, hxi⟩
+
+/-- A countable union of null sets is null. -/
+lemma IsNull.countable_union' {d:ℕ} {E: ℕ → Set (EuclideanSpace' d)} (hE: ∀ n, IsNull (E n)) : IsNull (⋃ n, E n) := by
+  unfold IsNull
+  have hsub : Lebesgue_outer_measure (⋃ n, E n) ≤ ∑' n, Lebesgue_outer_measure (E n) :=
+    Lebesgue_outer_measure.union_le E
+  have hsum : (∑' n, Lebesgue_outer_measure (E n)) = 0 := by
+    simp [hE]
+  rw [hsum] at hsub
+  exact le_antisymm hsub (Lebesgue_outer_measure.nonneg (⋃ n, E n))
 
 /-- Exercise 1.4.11 -/
-theorem LebesgueMeasurable.boolean_algebra.isSigmaAlgebra (d:ℕ) : (LebesgueMeasurable.boolean_algebra d).isSigmaAlgebra :=
-  by sorry
+theorem LebesgueMeasurable.boolean_algebra.isSigmaAlgebra (d:ℕ) : (LebesgueMeasurable.boolean_algebra d).isSigmaAlgebra := by
+  intro E hE
+  change LebesgueMeasurable (⋃ n, E n)
+  exact LebesgueMeasurable.countable_union (fun n => hE n)
 
+@[implicit_reducible]
 def LebesgueMeasurable.sigmaAlgebra (d:ℕ) : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
   (LebesgueMeasurable.boolean_algebra.isSigmaAlgebra d).toSigmaAlgebra
 
-theorem IsNull.boolean_algebra.isSigmaAlgebra (d:ℕ) : (IsNull.boolean_algebra d).isSigmaAlgebra :=
-  by sorry
+theorem IsNull.boolean_algebra.isSigmaAlgebra (d:ℕ) : (IsNull.boolean_algebra d).isSigmaAlgebra := by
+  intro E hE
+  by_cases hSome : ∃ n, IsNull (E n)ᶜ
+  · rcases hSome with ⟨n₀, hn₀⟩
+    right
+    have hsub : (⋃ n, E n)ᶜ ⊆ (E n₀)ᶜ := by
+      intro x hx
+      rw [Set.mem_compl_iff] at hx ⊢
+      intro hxEn₀
+      exact hx (by rw [Set.mem_iUnion]; exact ⟨n₀, hxEn₀⟩)
+    exact IsNull.subset hn₀ hsub
+  · left
+    have hAllNull : ∀ n, IsNull (E n) := by
+      intro n
+      rcases hE n with hnull | hco
+      · exact hnull
+      · exact False.elim (hSome ⟨n, hco⟩)
+    exact IsNull.countable_union' hAllNull
 
+@[implicit_reducible]
 def IsNull.sigmaAlgebra (d:ℕ) : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
   (IsNull.boolean_algebra.isSigmaAlgebra d).toSigmaAlgebra
 
+private lemma abs_self_le (a : ℝ) : -|a| ≤ a := by
+  exact (abs_le.mp (le_refl |a|)).1
+
+/-- A box whose first side is {lit}`[0, n]` and whose other sides are {lit}`[-n, n]`. -/
+private def halfspaceBox (d : ℕ) (hd : 0 < d) (n : ℕ) : Box d :=
+  ⟨fun j => if j = ⟨0, hd⟩ then BoundedInterval.Icc (0 : ℝ) (n : ℝ) else BoundedInterval.Icc (-(n : ℝ)) (n : ℝ)⟩
+
+private lemma coord_norm_le {d : ℕ} (x : EuclideanSpace' d) (j : Fin d) : |x j| ≤ ‖x‖ := by
+  rw [PiLp.norm_eq_of_L2]
+  have hnonneg : 0 ≤ (∑ i : Fin d, ‖x i‖ ^ 2) := by
+    positivity
+  rw [Real.le_sqrt (by positivity) hnonneg]
+  rw [sq_abs]
+  rw [← sq_abs (x j)]
+  exact Finset.single_le_sum (s := Finset.univ) (f := fun i => ‖x i‖ ^ 2) (by intro i hi; positivity) (Finset.mem_univ j)
+
+private lemma norm_lt_ceil_toNat_add_one (a : ℝ) (ha : 0 ≤ a) : a < (⌈a⌉.toNat + 1 : ℕ) := by
+  have hceil_nonneg : 0 ≤ ⌈a⌉ := Int.ceil_nonneg ha
+  have hto : (⌈a⌉.toNat : ℝ) = ⌈a⌉ := by
+    exact_mod_cast (Int.toNat_of_nonneg hceil_nonneg)
+  have hle : a ≤ ⌈a⌉ := Int.le_ceil a
+  change a < ((⌈a⌉.toNat + 1 : ℕ) : ℝ)
+  rw [Nat.cast_add, Nat.cast_one, hto]
+  linarith
+
+/-- The halfspace {lit}`0 ≤ x 0` is a countable union of boxes. -/
+private lemma halfspace_eq_union_boxes {d : ℕ} (hd : 0 < d) :
+    {x : EuclideanSpace' d | 0 ≤ x ⟨0, hd⟩} = ⋃ n : ℕ, (halfspaceBox d hd n).toSet := by
+  ext x
+  constructor
+  · intro hx
+    let N : ℕ := ⌈‖x‖⌉.toNat + 1
+    rw [Set.mem_iUnion]
+    refine ⟨N, ?_⟩
+    rw [Box.mem_toSet]
+    intro j
+    by_cases hj : j = ⟨0, hd⟩
+    · subst hj
+      simp [halfspaceBox]
+      constructor
+      · exact hx
+      · have hle : x ⟨0, hd⟩ ≤ |x ⟨0, hd⟩| := le_abs_self (x ⟨0, hd⟩)
+        have hb : |x ⟨0, hd⟩| ≤ ‖x‖ := coord_norm_le x ⟨0, hd⟩
+        have hn : ‖x‖ < (N : ℝ) := by
+          dsimp [N]
+          exact norm_lt_ceil_toNat_add_one ‖x‖ (norm_nonneg x)
+        exact le_trans (le_trans hle hb) (le_of_lt hn)
+    · simp [halfspaceBox, hj]
+      constructor
+      · have hle : |x j| ≤ ‖x‖ := coord_norm_le x j
+        have hn : ‖x‖ < (N : ℝ) := by
+          dsimp [N]
+          exact norm_lt_ceil_toNat_add_one ‖x‖ (norm_nonneg x)
+        have hb : -(N : ℝ) ≤ x j := by
+          exact le_trans (by linarith [abs_self_le (x j), hle, hn]) (le_refl (x j))
+        exact hb
+      · have hle : |x j| ≤ ‖x‖ := coord_norm_le x j
+        have hn : ‖x‖ < (N : ℝ) := by
+          dsimp [N]
+          exact norm_lt_ceil_toNat_add_one ‖x‖ (norm_nonneg x)
+        exact le_trans (le_trans (le_abs_self (x j)) hle) (le_of_lt hn)
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨n, hn⟩
+    have hx0 : x ⟨0, hd⟩ ∈ Set.Icc (0 : ℝ) (n : ℝ) := by
+      have := hn ⟨0, hd⟩
+      simpa [halfspaceBox] using this
+    exact hx0.1
+
 theorem JordanMeasurable.boolean_algebra.not_isSigmaAlgebra (d:ℕ) (hd: d ≥ 1) :
-  ¬ (JordanMeasurable.boolean_algebra d).isSigmaAlgebra :=
-  by sorry
+    ¬ (JordanMeasurable.boolean_algebra d).isSigmaAlgebra := by
+  intro h
+  have hd0 : 0 < d := by omega
+  let H : Set (EuclideanSpace' d) := {x | 0 ≤ x ⟨0, hd0⟩}
+  have hH_eq : H = ⋃ n : ℕ, (halfspaceBox d hd0 n).toSet := halfspace_eq_union_boxes hd0
+  have hHmeas : (JordanMeasurable.boolean_algebra d).measurable H := by
+    rw [hH_eq]
+    apply h (fun n => (halfspaceBox d hd0 n).toSet)
+    intro n
+    exact Or.inl (IsElementary.jordanMeasurable (IsElementary.box (halfspaceBox d hd0 n)))
+  rcases hHmeas with hHj | hHjc
+  · exact (NotAtomic.halfspace_unbounded hd0) hHj.1
+  · exact (NotAtomic.halfspace_compl_unbounded hd0) hHjc.1
 
 /-- Exercise 1.4.12 -/
-theorem ConcreteSigmaAlgebra.restrict_is_sigma {X:Type*} (B: ConcreteSigmaAlgebra X) (A:Set X): (B.restrict A).isSigmaAlgebra := by sorry
+theorem ConcreteSigmaAlgebra.restrict_is_sigma {X:Type*} (B: ConcreteSigmaAlgebra X) (A:Set X):
+    (ConcreteBooleanAlgebra.restrict B.toConcreteBooleanAlgebra A).isSigmaAlgebra := by
+  intro E hE
+  have hE' : ∀ n, ∃ E' : Set X, B.measurable E' ∧ E n = Subtype.val ⁻¹' E' := by
+    intro n
+    exact hE n
+  let E' : ℕ → Set X := fun n => (hE' n).choose
+  have hE'meas : ∀ n, B.measurable (E' n) := fun n => (hE' n).choose_spec.1
+  have hEn : ∀ n, E n = Subtype.val ⁻¹' E' n := fun n => (hE' n).choose_spec.2
+  have hUnion : (⋃ n, E n) = Subtype.val ⁻¹' (⋃ n, E' n) := by
+    ext x
+    constructor
+    · intro hx
+      rw [Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      rw [hEn n] at hn
+      rw [Set.mem_preimage]
+      rw [Set.mem_iUnion]
+      exact ⟨n, hn⟩
+    · intro hx
+      rw [Set.mem_preimage, Set.mem_iUnion] at hx
+      rcases hx with ⟨n, hn⟩
+      rw [Set.mem_iUnion]
+      refine ⟨n, ?_⟩
+      rw [hEn n]
+      exact hn
+  refine ⟨⋃ n, E' n, B.countable_union_mem E' hE'meas, hUnion⟩
 
+@[implicit_reducible]
 def ConcreteSigmaAlgebra.restrict {X:Type*} (B: ConcreteSigmaAlgebra X) (A:Set X) : ConcreteSigmaAlgebra A := (B.restrict_is_sigma A).toSigmaAlgebra
 
 instance ConcreteSigmaAlgebra.instLE (X:Type*) : LE (ConcreteSigmaAlgebra X) :=
@@ -55,9 +266,13 @@ instance ConcreteSigmaAlgebra.instLE (X:Type*) : LE (ConcreteSigmaAlgebra X) :=
 
 instance ConcreteSigmaAlgebra.instPartialOrder (X:Type*) : PartialOrder (ConcreteSigmaAlgebra X) :=
   {
-    le_refl := sorry
-    le_trans := sorry
-    le_antisymm := sorry
+    le_refl := fun B E hE => hE
+    le_trans := fun B1 B2 B3 h12 h23 E hE => h23 E (h12 E hE)
+    le_antisymm := by
+      intro B1 B2 h12 h21
+      apply ConcreteSigmaAlgebra.ext
+      intro E
+      exact ⟨h12 E, h21 E⟩
   }
 
 instance ConcreteSigmaAlgebra.instOrderTop {X:Type*} : OrderTop (ConcreteSigmaAlgebra X) :=
@@ -69,7 +284,7 @@ instance ConcreteSigmaAlgebra.instOrderTop {X:Type*} : OrderTop (ConcreteSigmaAl
       union_mem := fun _ _ _ _ => trivial
       countable_union_mem := fun _ _ => trivial
     }
-    le_top := sorry
+    le_top := fun _ _ _ => trivial
   }
 
 instance ConcreteSigmaAlgebra.instOrderBot {X:Type*} : OrderBot (ConcreteSigmaAlgebra X) :=
@@ -79,9 +294,33 @@ instance ConcreteSigmaAlgebra.instOrderBot {X:Type*} : OrderBot (ConcreteSigmaAl
       empty_mem := by grind
       compl_mem := fun E hE => by grind
       union_mem := fun E F hE hF => by grind
-      countable_union_mem := fun E hE => by sorry
+      countable_union_mem := by
+        intro E hE
+        by_cases hSome : ∃ n, E n = Set.univ
+        · rcases hSome with ⟨n, hn⟩
+          right
+          ext x
+          constructor
+          · intro _
+            trivial
+          · intro _
+            rw [Set.mem_iUnion]
+            exact ⟨n, by simp [hn]⟩
+        · left
+          have hAllEmpty : ∀ n, E n = ∅ := by
+            intro n
+            rcases hE n with hn_eq | hn_eq
+            · exact hn_eq
+            · exact False.elim (hSome ⟨n, hn_eq⟩)
+          simp [hAllEmpty]
     }
-    bot_le := sorry
+    bot_le := by
+      intro B E hE
+      rcases hE with hE | hE
+      · rw [hE]
+        exact B.empty_mem
+      · rw [hE]
+        simpa using B.compl_mem ∅ B.empty_mem
   }
 
 /-- Exercise 1.4.13 (Intersection of sigma-algebras) -/
@@ -90,15 +329,52 @@ instance ConcreteSigmaAlgebra.instInfSet {X:Type*} : InfSet (ConcreteSigmaAlgebr
       sInf S :=
         {
           measurable := fun E => ∀ B ∈ S, B.measurable E
-          empty_mem := by sorry
-          compl_mem := by sorry
-          union_mem := by sorry
-          countable_union_mem := by sorry
+          empty_mem := by
+            intro B hB
+            exact B.empty_mem
+          compl_mem := by
+            intro E hE B hB
+            exact B.compl_mem E (hE B hB)
+          union_mem := by
+            intro E F hE hF B hB
+            exact B.union_mem E F (hE B hB) (hF B hB)
+          countable_union_mem := by
+            intro E hE B hB
+            exact B.countable_union_mem E (fun n => hE n B hB)
         }
   }
 
+@[implicit_reducible]
 def ConcreteSigmaAlgebra.generated_by {X:Type*} (F: Set (Set X)) : ConcreteSigmaAlgebra X :=
   sInf { B | ∀ E ∈ F, B.measurable E }
+
+lemma ConcreteSigmaAlgebra.generated_by_contains {X:Type*} {F : Set (Set X)} {E : Set X}
+    (hE : E ∈ F) : (ConcreteSigmaAlgebra.generated_by F).measurable E := by
+  intro B hB
+  exact hB E hE
+
+lemma ConcreteSigmaAlgebra.generated_by_le' {X:Type*} {F : Set (Set X)} (B : ConcreteSigmaAlgebra X)
+    (hB : ∀ E ∈ F, B.measurable E) : ConcreteSigmaAlgebra.generated_by F ≤ B := by
+  intro E hE
+  exact hE B hB
+
+/-- The difference of two measurable sets is measurable. -/
+theorem ConcreteSigmaAlgebra.sdiff_mem {X : Type*} (B : ConcreteSigmaAlgebra X) {E F : Set X}
+    (hE : B.measurable E) (hF : B.measurable F) : B.measurable (E \ F) := by
+  have hU : B.measurable (Eᶜ ∪ F) := B.union_mem _ _ (B.compl_mem E hE) hF
+  simpa [Set.diff_eq] using B.compl_mem (Eᶜ ∪ F) hU
+
+/-- A countable intersection of measurable sets is measurable. -/
+theorem ConcreteSigmaAlgebra.iInter_mem {X : Type*} (B : ConcreteSigmaAlgebra X) {A : ℕ → Set X}
+    (hA : ∀ n, B.measurable (A n)) : B.measurable (⋂ n, A n) := by
+  have hpre : (⋂ n, A n) = (⋃ n, (A n)ᶜ)ᶜ := by
+    ext x
+    simp [Set.mem_iInter]
+  rw [hpre]
+  apply B.compl_mem
+  apply B.countable_union_mem
+  intro n
+  exact B.compl_mem (A n) (hA n)
 
 /-- Definition 1.4.14 (Generation of σ-algebras) -/
 instance ConcreteSigmaAlgebra.instSupSet {X:Type*} : SupSet (ConcreteSigmaAlgebra X) :=
@@ -108,31 +384,212 @@ instance ConcreteSigmaAlgebra.instSupSet {X:Type*} : SupSet (ConcreteSigmaAlgebr
 
 instance ConcreteSigmaAlgebra.instCompleteLattice {X:Type*} : CompleteLattice (ConcreteSigmaAlgebra X) :=
   {
-    sup := sorry
-    le_sup_left := sorry
-    le_sup_right := sorry
-    sup_le := sorry
-    inf := sorry
-    inf_le_left := sorry
-    inf_le_right := sorry
-    le_inf := sorry
-    le_top := sorry
-    bot_le := sorry
-    isLUB_sSup := sorry
-    isGLB_sInf := sorry
+    sup := fun B1 B2 => sSup ({B1, B2} : Set (ConcreteSigmaAlgebra X))
+    le_sup_left := by
+      intro B1 B2 E hE
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      simp
+      exact Or.inl hE
+    le_sup_right := by
+      intro B1 B2 E hE
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      simp
+      exact Or.inr hE
+    sup_le := by
+      intro B1 B2 C h1 h2
+      change ConcreteSigmaAlgebra.generated_by
+        (⋃ B ∈ ({B1, B2} : Set (ConcreteSigmaAlgebra X)), B.measurableSets) ≤ C
+      apply ConcreteSigmaAlgebra.generated_by_le' C
+      intro E hE
+      simp at hE
+      rcases hE with hE | hE
+      · exact h1 E hE
+      · exact h2 E hE
+    inf := fun B1 B2 => sInf ({B1, B2} : Set (ConcreteSigmaAlgebra X))
+    inf_le_left := by
+      intro B1 B2 E hE
+      exact hE B1 (by simp)
+    inf_le_right := by
+      intro B1 B2 E hE
+      exact hE B2 (by simp)
+    le_inf := by
+      intro C B1 B2 h1 h2 E hE B hB
+      rcases hB with hB | hB
+      · subst hB
+        exact h1 E hE
+      · subst hB
+        exact h2 E hE
+    le_top := by
+      intro B E hE
+      trivial
+    bot_le := by
+      intro B E hE
+      rcases hE with hE | hE
+      · rw [hE]
+        exact B.empty_mem
+      · rw [hE]
+        simpa using B.compl_mem ∅ B.empty_mem
+    isLUB_sSup := by
+      intro S
+      constructor
+      · intro B hB E hE
+        apply ConcreteSigmaAlgebra.generated_by_contains
+        simp
+        exact ⟨B, hB, hE⟩
+      · intro C hC
+        apply ConcreteSigmaAlgebra.generated_by_le' C
+        intro E hE
+        simp at hE
+        rcases hE with ⟨B, hB, hE'⟩
+        exact hC hB E hE'
+    isGLB_sInf := by
+      intro S
+      constructor
+      · intro B hB E hE
+        exact hE B hB
+      · intro C hC E hE B hB
+        exact hC hB E hE
   }
 
-theorem ConcreteSigmaAlgebra.generated_by_le {X:Type*} (F: Set (Set X)) : ConcreteBooleanAlgebra.generated_by F ≤ (ConcreteSigmaAlgebra.generated_by F).toConcreteBooleanAlgebra := by sorry
+theorem ConcreteSigmaAlgebra.generated_by_le {X:Type*} (F: Set (Set X)) : ConcreteBooleanAlgebra.generated_by F ≤ (ConcreteSigmaAlgebra.generated_by F).toConcreteBooleanAlgebra := by
+  intro E hE
+  exact hE (ConcreteSigmaAlgebra.generated_by F).toConcreteBooleanAlgebra (fun E' hE' => ConcreteSigmaAlgebra.generated_by_contains hE')
 
-example : ∃ (X:Type*) (F: Set (Set X)), ConcreteBooleanAlgebra.generated_by F ≠ (ConcreteSigmaAlgebra.generated_by F).toConcreteBooleanAlgebra := by sorry
+/-- The algebra of finite or cofinite subsets of ℕ. -/
+@[implicit_reducible]
+def finOrCofin : ConcreteBooleanAlgebra ℕ := {
+  measurable := fun E => E.Finite ∨ Eᶜ.Finite
+  empty_mem := Or.inl (by simp)
+  compl_mem := by
+    intro E hE
+    rcases hE with hE | hEc
+    · right
+      simpa using hE
+    · left
+      simpa using hEc
+  union_mem := by
+    intro E F hE hF
+    rcases hE with hE | hEc
+    · rcases hF with hF | hFc
+      · exact Or.inl (hE.union hF)
+      · right
+        rw [Set.compl_union]
+        exact hFc.subset Set.inter_subset_right
+    · right
+      rw [Set.compl_union]
+      exact hEc.subset Set.inter_subset_left
+}
+
+private lemma evens_not_finite : ¬ (Set.range (fun n : ℕ => 2 * n)).Finite := by
+  intro hf
+  have hinf : (Set.range (fun n : ℕ => 2 * n)).Infinite := by
+    exact Set.infinite_range_of_injective (f := fun n : ℕ => 2 * n) (by intro a b h; dsimp at h; omega)
+  exact Set.Infinite.not_finite hinf hf
+
+private lemma odds_not_finite : ¬ (Set.range (fun n : ℕ => 2 * n + 1)).Finite := by
+  intro hf
+  have hinf : (Set.range (fun n : ℕ => 2 * n + 1)).Infinite := by
+    exact Set.infinite_range_of_injective (f := fun n : ℕ => 2 * n + 1) (by intro a b h; dsimp at h; omega)
+  exact Set.Infinite.not_finite hinf hf
+
+private lemma odds_subset_compl_evens : Set.range (fun n : ℕ => 2 * n + 1) ⊆ (Set.range (fun n : ℕ => 2 * n))ᶜ := by
+  intro x hx
+  rw [Set.mem_compl_iff, Set.mem_range]
+  rcases hx with ⟨k, hk⟩
+  rw [← hk]
+  rintro ⟨m, hm⟩
+  have h' : (2 : ℤ) * (m : ℤ) = (2 : ℤ) * (k : ℤ) + 1 := by exact_mod_cast hm
+  omega
+
+private lemma evens_compl_not_finite : ¬ (Set.range (fun n : ℕ => 2 * n))ᶜ.Finite := by
+  intro hfin
+  have hsubfin : (Set.range (fun n : ℕ => 2 * n + 1)).Finite := hfin.subset odds_subset_compl_evens
+  exact odds_not_finite hsubfin
+
+private lemma evens_not_finOrCofin : ¬ finOrCofin.measurable (Set.range (fun n : ℕ => 2 * n)) := by
+  intro h
+  rcases h with hFin | hCofin
+  · exact evens_not_finite hFin
+  · exact evens_compl_not_finite hCofin
+
+example : ∃ (X : Type) (F: Set (Set X)), ConcreteBooleanAlgebra.generated_by F ≠ (ConcreteSigmaAlgebra.generated_by F).toConcreteBooleanAlgebra := by
+  -- X = ℕ, F = { {2n} : n ∈ ℕ } (the singletons of even numbers).
+  -- In the Boolean algebra generated by F, measurable sets are finite unions of {2n} or their complements.
+  -- In the σ-algebra, the set of all even numbers E = ⋃ n {2n} is a countable union of generators, hence measurable.
+  -- But E is infinite and Eᶜ (odd numbers) is infinite, so E is not a finite union of singletons nor a complement of one.
+  let F : Set (Set ℕ) := Set.range (fun n : ℕ => ({2 * n} : Set ℕ))
+  refine ⟨ℕ, F, ?_⟩
+  let E : Set ℕ := Set.range (fun n : ℕ => 2 * n)
+  have hE_sigma : (ConcreteSigmaAlgebra.generated_by F).measurable E := by
+    have hE_eq : E = ⋃ n, ({2 * n} : Set ℕ) := by
+      ext x
+      simp [E]
+    rw [hE_eq]
+    apply (ConcreteSigmaAlgebra.generated_by F).countable_union_mem
+    intro n
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    dsimp [F]
+    exact Set.mem_range.mpr ⟨n, rfl⟩
+  have hF_sub : ∀ E' ∈ F, finOrCofin.measurable E' := by
+    intro E' hE'
+    dsimp [F] at hE'
+    rcases hE' with ⟨n, rfl⟩
+    exact Or.inl (by simp)
+  have hgen_le : ConcreteBooleanAlgebra.generated_by F ≤ finOrCofin := by
+    apply ConcreteBooleanAlgebra.generated_by_le finOrCofin
+    exact hF_sub
+  have hE_not_ba : ¬ (ConcreteBooleanAlgebra.generated_by F).measurable E := by
+    intro hmeas
+    exact evens_not_finOrCofin (hgen_le E hmeas)
+  intro hEq
+  have hme : (ConcreteBooleanAlgebra.generated_by F).measurable E := by
+    rw [hEq]
+    exact hE_sigma
+  exact hE_not_ba hme
 
 /-- Remark 1.4.15 -/
 theorem ConcreteSigmaAlgebra.induction {X:Type*} {F: Set (Set X)} {P: Set X → Prop}
   (h1: P ∅) (h2: ∀ E ∈ F, P E) (h3: ∀ E, P E → P Eᶜ)
-  (h4: ∀ (E : ℕ → Set X), (∀ n, P (E n)) → P (⋃ n, E n)) : ∀ E, (ConcreteSigmaAlgebra.generated_by F).measurable E → P E :=
-  by sorry
+  (h4: ∀ (E : ℕ → Set X), (∀ n, P (E n)) → P (⋃ n, E n)) : ∀ E, (ConcreteSigmaAlgebra.generated_by F).measurable E → P E := by
+  let U : ConcreteSigmaAlgebra X := {
+    measurable := fun E => P E
+    empty_mem := h1
+    compl_mem := fun E hE => h3 E hE
+    union_mem := by
+      intro E F' hE hF'
+      let T : ℕ → Set X := fun n => if n = 0 then E else F'
+      have hT : ∀ n, P (T n) := by
+        intro n
+        by_cases hn : n = 0
+        · simpa [T, hn] using hE
+        · simpa [T, hn] using hF'
+      have hUnion : (⋃ n, T n) = E ∪ F' := by
+        ext x
+        constructor
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨n, hn⟩
+          by_cases hn0 : n = 0
+          · exact Or.inl (by simpa [T, hn0] using hn)
+          · exact Or.inr (by simpa [T, hn0] using hn)
+        · intro hx
+          rcases hx with hx | hx
+          · rw [Set.mem_iUnion]
+            exact ⟨0, by simp [T, hx]⟩
+          · rw [Set.mem_iUnion]
+            exact ⟨1, by simp [T, hx]⟩
+      rw [← hUnion]
+      exact h4 T hT
+    countable_union_mem := h4
+  }
+  intro E hE
+  have hgen_le : ConcreteSigmaAlgebra.generated_by F ≤ U := by
+    apply ConcreteSigmaAlgebra.generated_by_le' U
+    exact h2
+  exact hgen_le E hE
 
 /-- Definition 1.4.16 (Borel σ-algebra) -/
+@[implicit_reducible]
 def BorelSigmaAlgebra (X:Type*) [TopologicalSpace X] : ConcreteSigmaAlgebra X :=
   ConcreteSigmaAlgebra.generated_by { U : Set X | IsOpen U }
 
@@ -140,55 +597,1646 @@ def BorelSigmaAlgebra (X:Type*) [TopologicalSpace X] : ConcreteSigmaAlgebra X :=
 theorem BorelSigmaAlgebra.generated_by_open (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { U : Set (EuclideanSpace' d) | IsOpen U } := rfl
 
 /-- Exercise 1.4.14 (ii) -/
-theorem BorelSigmaAlgebra.generated_by_closed (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { F : Set (EuclideanSpace' d) | IsClosed F } := by sorry
+theorem BorelSigmaAlgebra.generated_by_closed (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { F : Set (EuclideanSpace' d) | IsClosed F } := by
+  unfold BorelSigmaAlgebra
+  -- {F | IsClosed F} = {E | Eᶜ ∈ {U | IsOpen U}} and generated_by is invariant under complements
+  have hclosed : ({F : Set (EuclideanSpace' d) | IsClosed F}) = {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})} := by
+    ext E
+    constructor
+    · intro hE
+      simpa [isOpen_compl_iff] using hE
+    · intro hE
+      simpa [isClosed_compl_iff] using hE
+  rw [hclosed]
+  have hgen : ConcreteSigmaAlgebra.generated_by {U : Set (EuclideanSpace' d) | IsOpen U} =
+      ConcreteSigmaAlgebra.generated_by {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})} := by
+    apply le_antisymm
+    · apply ConcreteSigmaAlgebra.generated_by_le' (ConcreteSigmaAlgebra.generated_by {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})})
+      intro E hE
+      have hEc : Eᶜ ∈ {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})} := by
+        simp
+        simpa using hE
+      have hEc_meas : (ConcreteSigmaAlgebra.generated_by {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})}).measurable (Eᶜ) :=
+        ConcreteSigmaAlgebra.generated_by_contains hEc
+      simpa using (ConcreteSigmaAlgebra.generated_by {E | Eᶜ ∈ ({U : Set (EuclideanSpace' d) | IsOpen U})}).compl_mem (Eᶜ) hEc_meas
+    · apply ConcreteSigmaAlgebra.generated_by_le' (ConcreteSigmaAlgebra.generated_by {U : Set (EuclideanSpace' d) | IsOpen U})
+      intro E hE
+      rw [Set.mem_setOf_eq] at hE
+      have hE_meas : (ConcreteSigmaAlgebra.generated_by {U : Set (EuclideanSpace' d) | IsOpen U}).measurable (Eᶜ) :=
+        ConcreteSigmaAlgebra.generated_by_contains hE
+      simpa using (ConcreteSigmaAlgebra.generated_by {U : Set (EuclideanSpace' d) | IsOpen U}).compl_mem (Eᶜ) hE_meas
+  rw [hgen]
 
 /-- Exercise 1.4.14 (iii) -/
-theorem BorelSigmaAlgebra.generated_by_compact (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { K : Set (EuclideanSpace' d) | IsCompact K } := by sorry
+theorem BorelSigmaAlgebra.generated_by_compact (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { K : Set (EuclideanSpace' d) | IsCompact K } := by
+  apply le_antisymm
+  · -- Borel ≤ generated_by {compact}: every closed set is a countable union of compact sets
+    rw [BorelSigmaAlgebra.generated_by_closed d]
+    apply ConcreteSigmaAlgebra.generated_by_le' (ConcreteSigmaAlgebra.generated_by { K : Set (EuclideanSpace' d) | IsCompact K })
+    intro F hF
+    have hF_eq : F = ⋃ n : ℕ, (F ∩ Metric.closedBall (0 : EuclideanSpace' d) n) := by
+      ext x
+      constructor
+      · intro hx
+        let N : ℕ := ⌈‖x‖⌉.toNat + 1
+        rw [Set.mem_iUnion]
+        refine ⟨N, ?_⟩
+        constructor
+        · exact hx
+        · rw [Metric.mem_closedBall]
+          have hceil_nonneg : 0 ≤ ⌈‖x‖⌉ := Int.ceil_nonneg (norm_nonneg x)
+          have hto : (⌈‖x‖⌉.toNat : ℝ) = ⌈‖x‖⌉ := by
+            exact_mod_cast (Int.toNat_of_nonneg hceil_nonneg)
+          have hle : ‖x‖ ≤ ⌈‖x‖⌉ := Int.le_ceil ‖x‖
+          have hn : ‖x‖ < (N : ℝ) := by
+            dsimp [N]
+            rw [show (N : ℝ) = (⌈‖x‖⌉.toNat + 1 : ℕ) by rfl]
+            rw [Nat.cast_add, Nat.cast_one, hto]
+            linarith
+          rw [dist_eq_norm, sub_zero]
+          exact le_of_lt hn
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        exact hn.1
+    rw [hF_eq]
+    apply (ConcreteSigmaAlgebra.generated_by { K : Set (EuclideanSpace' d) | IsCompact K }).countable_union_mem
+    intro n
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    exact IsCompact.inter_left (ProperSpace.isCompact_closedBall (0 : EuclideanSpace' d) n) hF
+  · -- generated_by {compact} ≤ Borel: compact sets are closed
+    apply ConcreteSigmaAlgebra.generated_by_le' (BorelSigmaAlgebra (EuclideanSpace' d))
+    intro K hK
+    rw [BorelSigmaAlgebra.generated_by_closed d]
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    exact hK.isClosed
+
+private lemma sum_sq_le_sum_sq {ι : Type*} [Fintype ι] (a : ι → ℝ) (ha : ∀ i, 0 ≤ a i) :
+    (∑ i : ι, a i ^ 2) ≤ (∑ i : ι, a i) ^ 2 := by
+  have hsum_nonneg : 0 ≤ ∑ i : ι, a i := Finset.sum_nonneg (fun i hi => ha i)
+  have hle : (∑ i : ι, a i ^ 2) ≤ (∑ i : ι, a i) * (∑ i : ι, a i) := by
+    calc
+      (∑ i : ι, a i ^ 2) = ∑ i : ι, a i * a i := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        ring
+      _ ≤ ∑ i : ι, a i * (∑ j : ι, a j) := by
+        apply Finset.sum_le_sum
+        intro i hi
+        nlinarith [Finset.single_le_sum (s := Finset.univ) (f := a) (fun j hj => ha j) (Finset.mem_univ i), ha i, hsum_nonneg]
+      _ = (∑ i : ι, a i) * (∑ i : ι, a i) := by
+        simp [Finset.sum_mul]
+  simpa [pow_two] using hle
+
+private lemma norm_le_sum_abs {d : ℕ} (v : EuclideanSpace' d) : ‖v‖ ≤ ∑ i : Fin d, |v i| := by
+  rw [PiLp.norm_eq_of_L2]
+  have hnonneg : ∀ i : Fin d, 0 ≤ |v i| := fun i => abs_nonneg (v i)
+  have h2 : (∑ i : Fin d, |v i| ^ 2) ≤ (∑ i : Fin d, |v i|) ^ 2 := sum_sq_le_sum_sq (fun i => |v i|) hnonneg
+  have hle := Real.sqrt_le_sqrt h2
+  rw [Real.sqrt_sq_eq_abs] at hle
+  have hsum_nonneg : 0 ≤ ∑ i : Fin d, |v i| := Finset.sum_nonneg (fun i hi => abs_nonneg (v i))
+  rwa [abs_of_nonneg hsum_nonneg] at hle
+
+private lemma exists_rat_close (a : ℝ) (δ : ℝ) (hδ : 0 < δ) : ∃ q : ℚ, |a - (q : ℝ)| < δ := by
+  have hlt : a - δ < a + δ := by linarith
+  rcases exists_rat_btwn hlt with ⟨q, hq1, hq2⟩
+  refine ⟨q, ?_⟩
+  rw [abs_lt]
+  constructor
+  · linarith
+  · linarith
+
+/-- Every point of Euclidean space has a rational point within distance ε. -/
+private lemma exists_ratPoint_close {d : ℕ} (x : EuclideanSpace' d) (ε : ℝ) (hε : 0 < ε) :
+    ∃ q : Fin d → ℚ, dist x (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) < ε := by
+  let δ : ℝ := ε / (d + 1)
+  have hδ : 0 < δ := by
+    dsimp [δ]
+    positivity
+  let q : Fin d → ℚ := fun i => Classical.choose (exists_rat_close (x i) δ hδ)
+  have hq : ∀ i, |x i - (q i : ℝ)| < δ := fun i => Classical.choose_spec (exists_rat_close (x i) δ hδ)
+  refine ⟨q, ?_⟩
+  have hnorm : ‖x - (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d)‖ ≤ ∑ i : Fin d, |x i - (q i : ℝ)| := by
+    simpa using (norm_le_sum_abs (x - (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d)))
+  have hsum : (∑ i : Fin d, |x i - (q i : ℝ)|) < ε := by
+    have hδ' : δ * (d + 1) = ε := by
+      dsimp [δ]
+      field_simp
+    have hle : ∑ i : Fin d, |x i - (q i : ℝ)| ≤ (d : ℝ) * δ := by
+      have hsum_le : (∑ i : Fin d, |x i - (q i : ℝ)|) ≤ (∑ i : Fin d, δ) := by
+        apply Finset.sum_le_sum
+        intro i hi
+        exact le_of_lt (hq i)
+      calc
+        (∑ i : Fin d, |x i - (q i : ℝ)|) ≤ (∑ i : Fin d, δ) := hsum_le
+        _ = (Fintype.card (Fin d) : ℝ) * δ := by simp
+        _ = (d : ℝ) * δ := by simp
+    have hlt : (d : ℝ) * δ < ε := by
+      have hδpos : 0 < δ := hδ
+      have : (d : ℝ) * δ < (d + 1) * δ := by
+        nlinarith [hδpos]
+      nlinarith [hδ']
+    exact lt_of_le_of_lt hle hlt
+  rw [dist_eq_norm]
+  exact lt_of_le_of_lt hnorm hsum
+
+/-- The set of balls with rational center and rational radius. -/
+def ratBall (d : ℕ) : Set (Set (EuclideanSpace' d)) :=
+  {B | ∃ (q : Fin d → ℚ) (r : ℚ), B = Metric.ball (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) (r : ℝ)}
+
+lemma ratBall_countable (d : ℕ) : (ratBall d).Countable := by
+  have hrange : (ratBall d) = Set.range (fun p : (Fin d → ℚ) × ℚ =>
+      Metric.ball (.toLp 2 (fun i : Fin d => (p.1 i : ℝ)) : EuclideanSpace' d) (p.2 : ℝ)) := by
+    ext B
+    constructor
+    · intro hB
+      rcases hB with ⟨q, r, rfl⟩
+      exact ⟨(q, r), rfl⟩
+    · intro hB
+      rcases hB with ⟨p, rfl⟩
+      exact ⟨p.1, p.2, rfl⟩
+  rw [hrange]
+  exact Set.countable_range _
+
+/-- Every open set is a countable union of rational balls. -/
+lemma open_eq_union_ratBalls {d : ℕ} (U : Set (EuclideanSpace' d)) (hU : IsOpen U) :
+    U = ⋃ B ∈ {B ∈ ratBall d | B ⊆ U}, B := by
+  ext x
+  constructor
+  · intro hx
+    rcases (Metric.isOpen_iff.mp hU) x hx with ⟨ε, hε, hball⟩
+    rcases exists_ratPoint_close x (ε / 4) (by linarith) with ⟨q, hqx⟩
+    have hlt : dist x (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) < ε / 4 := hqx
+    rcases exists_rat_btwn hlt with ⟨r, hr1, hr2⟩
+    have hball_sub : Metric.ball (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) (r : ℝ) ⊆ Metric.ball x ε := by
+      intro y hy
+      have hyq : dist y (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) < (r : ℝ) := by
+        simpa using (Metric.mem_ball.mp hy)
+      have hyq4 : dist y (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) < ε / 4 := lt_trans hyq hr2
+      have hqx4 : dist (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) x < ε / 4 := by
+        simpa [dist_comm] using hqx
+      have hdist : dist y x < ε := by
+        calc
+          dist y x ≤ dist y (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) + dist (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) x := dist_triangle y (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) x
+          _ < ε / 4 + ε / 4 := add_lt_add hyq4 hqx4
+          _ = ε / 2 := by ring
+          _ < ε := by linarith
+      exact Metric.mem_ball.mpr hdist
+    have hsubU : Metric.ball (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) (r : ℝ) ⊆ U :=
+      hball_sub.trans hball
+    rw [Set.mem_iUnion]
+    refine ⟨Metric.ball (.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d) (r : ℝ), ?_⟩
+    rw [Set.mem_iUnion]
+    refine ⟨⟨?_, hsubU⟩, ?_⟩
+    · rw [ratBall]
+      exact ⟨q, r, rfl⟩
+    · rw [Metric.mem_ball]
+      exact hr1
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨B, hB⟩
+    rw [Set.mem_iUnion] at hB
+    rcases hB with ⟨⟨hB_rat, hB_sub⟩, hx_in⟩
+    exact hB_sub hx_in
 
 /-- Exercise 1.4.14 (iv) -/
-theorem BorelSigmaAlgebra.generated_by_open_balls (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { B : Set (EuclideanSpace' d) | ∃ x₀ r, B = Metric.ball x₀ r } := by sorry
+theorem BorelSigmaAlgebra.generated_by_open_balls (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { B : Set (EuclideanSpace' d) | ∃ x₀ r, B = Metric.ball x₀ r } := by
+  apply le_antisymm
+  · -- Borel ≤ generated_by {open balls}: every open set is a countable union of open balls
+    unfold BorelSigmaAlgebra
+    let G : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
+      ConcreteSigmaAlgebra.generated_by { B : Set (EuclideanSpace' d) | ∃ x₀ r, B = Metric.ball x₀ r }
+    apply ConcreteSigmaAlgebra.generated_by_le' G
+    intro U hU
+    rw [Set.mem_setOf_eq] at hU
+    have hU_eq : U = ⋃ B ∈ {B ∈ ratBall d | B ⊆ U}, B := open_eq_union_ratBalls U hU
+    -- enumerate ratBall d
+    have hF_nonempty : (ratBall d).Nonempty := by
+      refine ⟨Metric.ball (0 : EuclideanSpace' d) 0, ?_⟩
+      rw [ratBall]
+      exact ⟨(fun _ : Fin d => 0), 0, by simp⟩
+    rcases (ratBall_countable d).exists_eq_range hF_nonempty with ⟨f, hf⟩
+    -- U = ⋃ n, if f n ⊆ U then f n else ∅
+    classical
+    let E : ℕ → Set (EuclideanSpace' d) := fun n => if f n ⊆ U then f n else ∅
+    have hE_eq : (⋃ n, E n) = U := by
+      have hE_union : (⋃ n, E n) = ⋃ B ∈ {B ∈ ratBall d | B ⊆ U}, B := by
+        ext x
+        constructor
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨n, hn⟩
+          have hfn : f n ∈ ratBall d := by
+            rw [hf]
+            exact Set.mem_range.mpr ⟨n, rfl⟩
+          by_cases hsub : f n ⊆ U
+          · rw [Set.mem_iUnion]
+            refine ⟨f n, ?_⟩
+            rw [Set.mem_iUnion]
+            exact ⟨⟨hfn, hsub⟩, by simpa [E, hsub] using hn⟩
+          · simp [E, hsub] at hn
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨B, hB⟩
+          rw [Set.mem_iUnion] at hB
+          rcases hB with ⟨⟨hB_rat, hB_sub⟩, hx_in⟩
+          rw [hf] at hB_rat
+          rcases hB_rat with ⟨n, hfn⟩
+          rw [Set.mem_iUnion]
+          refine ⟨n, ?_⟩
+          have hsub' : f n ⊆ U := by
+            simpa [hfn] using hB_sub
+          change x ∈ (if f n ⊆ U then f n else ∅)
+          rw [if_pos hsub']
+          simpa [hfn] using hx_in
+      exact hE_union.trans hU_eq.symm
+    have hE_meas : ∀ n, G.measurable (E n) := by
+      intro n
+      by_cases hsub : f n ⊆ U
+      · -- E n = f n, a ball
+        have hfn : f n ∈ ratBall d := by
+          rw [hf]
+          exact Set.mem_range.mpr ⟨n, rfl⟩
+        rcases hfn with ⟨q, r, hEq⟩
+        have hball_meas : G.measurable (f n) := by
+          apply ConcreteSigmaAlgebra.generated_by_contains
+          exact ⟨(.toLp 2 (fun i : Fin d => (q i : ℝ)) : EuclideanSpace' d), r, hEq⟩
+        simpa [E, hsub] using hball_meas
+      · -- E n = ∅
+        simpa [E, hsub] using G.empty_mem
+    rw [← hE_eq]
+    exact G.countable_union_mem E hE_meas
+  · -- generated_by {open balls} ≤ Borel: balls are open
+    apply ConcreteSigmaAlgebra.generated_by_le' (BorelSigmaAlgebra (EuclideanSpace' d))
+    intro B hB
+    rcases hB with ⟨x₀, r, rfl⟩
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    exact (Metric.isOpen_ball (α := EuclideanSpace' d))
+
+/-- Boxes with rational endpoints. -/
+private def ratBox (d : ℕ) : Set (Box d) :=
+  {B | ∃ q₁ q₂ : Fin d → ℚ, B = ⟨fun i => BoundedInterval.Icc ((q₁ i : ℝ)) ((q₂ i : ℝ))⟩}
+
+private lemma ratBox_countable (d : ℕ) : (ratBox d).Countable := by
+  let h : Set (Box d) := Set.range (fun p : (Fin d → ℚ) × (Fin d → ℚ) =>
+      ⟨fun i => BoundedInterval.Icc ((p.1 i : ℝ)) ((p.2 i : ℝ))⟩)
+  have hh : (ratBox d) = h := by
+    ext B
+    constructor
+    · intro hB
+      rcases hB with ⟨q₁, q₂, rfl⟩
+      exact ⟨(q₁, q₂), rfl⟩
+    · intro hB
+      rcases hB with ⟨p, rfl⟩
+      exact ⟨p.1, p.2, rfl⟩
+  rw [hh]
+  exact Set.countable_range _
+
+private lemma bracket_exists (a : ℝ) (δ : ℝ) (hδ : 0 < δ) :
+    ∃ q : ℚ × ℚ, a - δ < (q.1 : ℝ) ∧ (q.1 : ℝ) < a ∧ a < (q.2 : ℝ) ∧ (q.2 : ℝ) < a + δ := by
+  rcases exists_rat_btwn (show a - δ < a by linarith) with ⟨q₁, hq₁1, hq₁2⟩
+  rcases exists_rat_btwn (show a < a + δ by linarith) with ⟨q₂, hq₂1, hq₂2⟩
+  exact ⟨(q₁, q₂), hq₁1, hq₁2, hq₂1, hq₂2⟩
+
+/-- Every open set is a countable union of boxes. -/
+private lemma open_eq_union_ratBoxes {d : ℕ} (U : Set (EuclideanSpace' d)) (hU : IsOpen U) :
+    U = ⋃ B ∈ {B ∈ ratBox d | (B.toSet : Set (EuclideanSpace' d)) ⊆ U}, (B.toSet : Set (EuclideanSpace' d)) := by
+  ext x
+  constructor
+  · intro hx
+    rcases (Metric.isOpen_iff.mp hU) x hx with ⟨ε, hε, hball⟩
+    let δ : ℝ := ε / (4 * (d + 1))
+    have hδ : 0 < δ := by
+      dsimp [δ]
+      positivity
+    let q₁ : Fin d → ℚ := fun i => (bracket_exists (x i) δ hδ).choose.1
+    let q₂ : Fin d → ℚ := fun i => (bracket_exists (x i) δ hδ).choose.2
+    have hq₁ : ∀ i, x i - δ < (q₁ i : ℝ) ∧ (q₁ i : ℝ) < x i := fun i =>
+      ⟨(bracket_exists (x i) δ hδ).choose_spec.1, (bracket_exists (x i) δ hδ).choose_spec.2.1⟩
+    have hq₂ : ∀ i, x i < (q₂ i : ℝ) ∧ (q₂ i : ℝ) < x i + δ := fun i =>
+      ⟨(bracket_exists (x i) δ hδ).choose_spec.2.2.1, (bracket_exists (x i) δ hδ).choose_spec.2.2.2⟩
+    let B : Box d := ⟨fun i => BoundedInterval.Icc ((q₁ i : ℝ)) ((q₂ i : ℝ))⟩
+    have hB_rat : B ∈ ratBox d := by
+      rw [ratBox]
+      exact ⟨q₁, q₂, rfl⟩
+    have hB_sub_ball : (B.toSet : Set (EuclideanSpace' d)) ⊆ Metric.ball x ε := by
+      intro y hy
+      have hyi : ∀ i, (q₁ i : ℝ) ≤ y i ∧ y i ≤ (q₂ i : ℝ) := by
+        intro i
+        have := hy i
+        simpa [B] using this
+      rw [Metric.mem_ball]
+      have hdist : dist y x < ε := by
+        rw [dist_eq_norm]
+        have hnorm : ‖y - x‖ ≤ ∑ i : Fin d, |y i - x i| := norm_le_sum_abs (y - x)
+        have hsum : (∑ i : Fin d, |y i - x i|) < ε := by
+          have hb : ∑ i : Fin d, |y i - x i| ≤ (Fintype.card (Fin d) : ℝ) * (2 * δ) := by
+            have hsum_le : ∑ i : Fin d, |y i - x i| ≤ ∑ i : Fin d, (2 * δ) := by
+              apply Finset.sum_le_sum
+              intro i hi
+              have hyi' := hyi i
+              have hq₁i := hq₁ i
+              have hq₂i := hq₂ i
+              have hyix : |y i - x i| ≤ (q₂ i : ℝ) - (q₁ i : ℝ) := by
+                have hle1 : y i - x i ≤ (q₂ i : ℝ) - (q₁ i : ℝ) := by
+                  linarith
+                have hle2 : x i - y i ≤ (q₂ i : ℝ) - (q₁ i : ℝ) := by
+                  linarith
+                rw [abs_le]
+                constructor
+                · linarith
+                · linarith
+              have hd : (q₂ i : ℝ) - (q₁ i : ℝ) < 2 * δ := by
+                linarith
+              linarith
+            calc
+              (∑ i : Fin d, |y i - x i|) ≤ ∑ i : Fin d, (2 * δ) := hsum_le
+              _ = (Fintype.card (Fin d) : ℝ) * (2 * δ) := by simp
+          have hd2 : (Fintype.card (Fin d) : ℝ) * (2 * δ) < ε := by
+            have hd' : (d : ℝ) * (2 * δ) < ε := by
+              dsimp [δ]
+              have hle1_lt : (d : ℝ) / (2 * ((d : ℝ) + 1)) < 1 := by
+                have hpos : 0 < 2 * ((d : ℝ) + 1) := by positivity
+                have hlt : (d : ℝ) < 2 * ((d : ℝ) + 1) := by linarith
+                exact (div_lt_one hpos).mpr hlt
+              have hE : (d : ℝ) * (2 * (ε / (4 * (d + 1)))) = (d : ℝ) / (2 * ((d : ℝ) + 1)) * ε := by
+                field_simp
+                ring
+              rw [hE]
+              exact mul_lt_of_lt_one_left hε hle1_lt
+            simpa [show (Fintype.card (Fin d) : ℝ) = (d : ℝ) by simp] using hd'
+          exact lt_of_le_of_lt hb hd2
+        exact lt_of_le_of_lt hnorm hsum
+      exact hdist
+    have hB_sub : (B.toSet : Set (EuclideanSpace' d)) ⊆ U := hB_sub_ball.trans hball
+    rw [Set.mem_iUnion]
+    refine ⟨B, ?_⟩
+    rw [Set.mem_iUnion]
+    refine ⟨⟨hB_rat, hB_sub⟩, ?_⟩
+    rw [Box.mem_toSet]
+    intro i
+    constructor
+    · exact le_of_lt (hq₁ i).2
+    · exact le_of_lt (hq₂ i).1
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨B, hB⟩
+    rw [Set.mem_iUnion] at hB
+    rcases hB with ⟨⟨hB_rat, hB_sub⟩, hx_in⟩
+    exact hB_sub hx_in
+
+/-- The n-th closed approximation of a bounded interval. -/
+private noncomputable def boxSideApprox (I : BoundedInterval) (n : ℕ) : ℝ × ℝ :=
+  match I with
+  | BoundedInterval.Ioo a b => (a + ((n : ℝ) + 2)⁻¹, b - ((n : ℝ) + 2)⁻¹)
+  | BoundedInterval.Icc a b => (a, b)
+  | BoundedInterval.Ioc a b => (a + ((n : ℝ) + 2)⁻¹, b)
+  | BoundedInterval.Ico a b => (a, b - ((n : ℝ) + 2)⁻¹)
+
+/-- The n-th closed box approximation of a box. -/
+private noncomputable def boxApprox {d : ℕ} (B : Box d) (n : ℕ) : Box d :=
+  ⟨fun i => BoundedInterval.Icc (boxSideApprox (B.side i) n).1 (boxSideApprox (B.side i) n).2⟩
+
+private lemma boxSide_inv_pos {n : ℕ} : 0 < ((n : ℝ) + 2)⁻¹ := by
+  rw [← one_div]
+  positivity
+
+private lemma boxSide_inv_lt_succ {n : ℕ} : ((n : ℝ) + 1 + 2)⁻¹ < ((n : ℝ) + 2)⁻¹ := by
+  rw [← one_div, ← one_div]
+  rw [one_div_lt_one_div]
+  · linarith
+  · positivity
+  · positivity
+
+private lemma exists_large_nat_lt_inv {δ : ℝ} (hδ : 0 < δ) : ∃ N : ℕ, ((N : ℝ) + 2)⁻¹ < δ := by
+  rcases exists_nat_gt (1 / δ) with ⟨N, hN⟩
+  refine ⟨N, ?_⟩
+  rw [← one_div]
+  rw [div_lt_iff₀ (by positivity : 0 < (N : ℝ) + 2)]
+  have hNδ : 1 < δ * (N : ℝ) := by
+    calc
+      1 = δ * (1 / δ) := by field_simp [ne_of_gt hδ]
+      _ < δ * (N : ℝ) := mul_lt_mul_of_pos_left hN hδ
+  nlinarith
+
+private lemma boxSideApprox_nested (I : BoundedInterval) (n : ℕ) :
+    (BoundedInterval.Icc (boxSideApprox I n).1 (boxSideApprox I n).2 : Set ℝ) ⊆
+      (BoundedInterval.Icc (boxSideApprox I (n + 1)).1 (boxSideApprox I (n + 1)).2 : Set ℝ) := by
+  intro x hx
+  rcases hx with ⟨hx1, hx2⟩
+  match I with
+  | BoundedInterval.Ioo a b =>
+      simp [boxSideApprox] at hx1 hx2 ⊢
+      constructor <;> linarith [boxSide_inv_lt_succ (n := n)]
+  | BoundedInterval.Icc a b =>
+      simp [boxSideApprox] at hx1 hx2 ⊢
+      exact ⟨hx1, hx2⟩
+  | BoundedInterval.Ioc a b =>
+      simp [boxSideApprox] at hx1 hx2 ⊢
+      constructor
+      · linarith [boxSide_inv_lt_succ (n := n)]
+      · exact hx2
+  | BoundedInterval.Ico a b =>
+      simp [boxSideApprox] at hx1 hx2 ⊢
+      constructor
+      · exact hx1
+      · linarith [boxSide_inv_lt_succ (n := n)]
+
+private lemma boxSideApprox_mono (I : BoundedInterval) {m : ℕ} :
+    ∀ N : ℕ, m ≤ N →
+      (BoundedInterval.Icc (boxSideApprox I m).1 (boxSideApprox I m).2 : Set ℝ) ⊆
+        (BoundedInterval.Icc (boxSideApprox I N).1 (boxSideApprox I N).2 : Set ℝ) := by
+  intro N
+  induction N with
+  | zero =>
+      intro hm
+      have hEq : m = 0 := Nat.eq_zero_of_le_zero hm
+      subst m
+      exact subset_rfl
+  | succ N ih =>
+      intro hm
+      by_cases hle : m ≤ N
+      · exact (ih hle).trans (boxSideApprox_nested I N)
+      · have hEq : m = N + 1 := by omega
+        subst m
+        exact subset_rfl
+
+private lemma interval_eq_union_approx (I : BoundedInterval) :
+    (I.toSet : Set ℝ) = ⋃ n : ℕ, (BoundedInterval.Icc (boxSideApprox I n).1 (boxSideApprox I n).2 : Set ℝ) := by
+  match I with
+  | BoundedInterval.Ioo a b =>
+      ext x
+      constructor
+      · intro hx
+        rw [BoundedInterval.set_Ioo, Set.mem_Ioo] at hx
+        rw [Set.mem_iUnion]
+        have hmin : 0 < min (x - a) (b - x) := lt_min_iff.mpr (by constructor <;> linarith)
+        rcases exists_large_nat_lt_inv hmin with ⟨N, hN⟩
+        have hNa : ((N : ℝ) + 2)⁻¹ < x - a := by
+          exact lt_of_lt_of_le hN (min_le_left _ _)
+        have hNb : ((N : ℝ) + 2)⁻¹ < b - x := by
+          exact lt_of_lt_of_le hN (min_le_right _ _)
+        refine ⟨N, ?_⟩
+        simp [boxSideApprox]
+        constructor <;> linarith
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        simp [boxSideApprox] at hn
+        rw [BoundedInterval.set_Ioo, Set.mem_Ioo]
+        constructor <;> linarith [boxSide_inv_pos (n := n)]
+  | BoundedInterval.Icc a b =>
+      ext x
+      constructor
+      · intro hx
+        rw [Set.mem_iUnion]
+        exact ⟨0, by simpa [boxSideApprox, BoundedInterval.set_Icc] using hx⟩
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        simpa [boxSideApprox, BoundedInterval.set_Icc] using hn
+  | BoundedInterval.Ioc a b =>
+      ext x
+      constructor
+      · intro hx
+        rw [BoundedInterval.set_Ioc, Set.mem_Ioc] at hx
+        rw [Set.mem_iUnion]
+        rcases exists_large_nat_lt_inv (sub_pos.mpr hx.1) with ⟨N, hN⟩
+        refine ⟨N, ?_⟩
+        simp [boxSideApprox]
+        constructor
+        · linarith
+        · exact hx.2
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        simp [boxSideApprox] at hn
+        rw [BoundedInterval.set_Ioc, Set.mem_Ioc]
+        constructor
+        · linarith [boxSide_inv_pos (n := n)]
+        · exact hn.2
+  | BoundedInterval.Ico a b =>
+      ext x
+      constructor
+      · intro hx
+        rw [BoundedInterval.set_Ico, Set.mem_Ico] at hx
+        rw [Set.mem_iUnion]
+        rcases exists_large_nat_lt_inv (sub_pos.mpr hx.2) with ⟨N, hN⟩
+        refine ⟨N, ?_⟩
+        simp [boxSideApprox]
+        constructor
+        · exact hx.1
+        · linarith
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        simp [boxSideApprox] at hn
+        rw [BoundedInterval.set_Ico, Set.mem_Ico]
+        constructor
+        · exact hn.1
+        · linarith [boxSide_inv_pos (n := n)]
+
+private lemma box_eq_union_approx {d : ℕ} (B : Box d) : B.toSet = ⋃ n : ℕ, (boxApprox B n).toSet := by
+  ext x
+  constructor
+  · intro hx
+    have hx_i : ∀ i, x i ∈ (B.side i).toSet := by simpa [Box.mem_toSet] using hx
+    have hEx : ∀ i, ∃ n, x i ∈ (BoundedInterval.Icc (boxSideApprox (B.side i) n).1 (boxSideApprox (B.side i) n).2 : Set ℝ) := by
+      intro i
+      rw [← Set.mem_iUnion]
+      rw [← interval_eq_union_approx]
+      exact hx_i i
+    choose n hxn using hEx
+    let N : ℕ := Finset.univ.sup n
+    rw [Set.mem_iUnion]
+    refine ⟨N, ?_⟩
+    rw [Box.mem_toSet]
+    intro i
+    have hle : n i ≤ N := by
+      dsimp [N]
+      exact Finset.le_sup (s := Finset.univ) (Finset.mem_univ i)
+    exact boxSideApprox_mono (B.side i) N hle (hxn i)
+  · intro hx
+    rw [Set.mem_iUnion] at hx
+    rcases hx with ⟨n, hn⟩
+    rw [Box.mem_toSet]
+    intro i
+    rw [interval_eq_union_approx]
+    rw [Set.mem_iUnion]
+    exact ⟨n, hn i⟩
+
+private lemma boxApprox_isClosed {d : ℕ} (B : Box d) (n : ℕ) : IsClosed (boxApprox B n).toSet := by
+  let a : Fin d → ℝ := fun i => (boxSideApprox (B.side i) n).1
+  let b : Fin d → ℝ := fun i => (boxSideApprox (B.side i) n).2
+  rw [show (boxApprox B n).toSet = {x : EuclideanSpace' d | ∀ i, a i ≤ x i ∧ x i ≤ b i} by
+    ext x
+    simp [boxApprox, a, b]]
+  rw [show {x : EuclideanSpace' d | ∀ i, a i ≤ x i ∧ x i ≤ b i} = ⋂ i : Fin d, {x : EuclideanSpace' d | a i ≤ x i ∧ x i ≤ b i} by ext x; simp]
+  apply isClosed_iInter
+  intro i
+  rw [show ({x : EuclideanSpace' d | a i ≤ x i ∧ x i ≤ b i} : Set (EuclideanSpace' d)) = (fun x : EuclideanSpace' d => x i) ⁻¹' Set.Icc (a i) (b i) by ext x; simp]
+  exact (isClosed_Icc.preimage (PiLp.continuous_apply 2 (fun _ : Fin d => ℝ) i))
+
+/-- Every box is Borel-measurable. -/
+theorem Box.borel_measurable {d : ℕ} (B : Box d) :
+    (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B.toSet := by
+  rw [BorelSigmaAlgebra.generated_by_closed d]
+  rw [box_eq_union_approx B]
+  apply (ConcreteSigmaAlgebra.generated_by {F : Set (EuclideanSpace' d) | IsClosed F}).countable_union_mem
+  intro n
+  apply ConcreteSigmaAlgebra.generated_by_contains
+  exact boxApprox_isClosed B n
 
 /-- Exercise 1.4.14 (v) -/
-theorem BorelSigmaAlgebra.generated_by_boxes (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by (Box.toSet '' Set.univ) := by sorry
+theorem BorelSigmaAlgebra.generated_by_boxes (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by (Box.toSet '' Set.univ) := by
+  apply le_antisymm
+  · -- Borel ≤ generated_by {boxes}: every open set is a countable union of boxes
+    unfold BorelSigmaAlgebra
+    let G : ConcreteSigmaAlgebra (EuclideanSpace' d) := ConcreteSigmaAlgebra.generated_by (Box.toSet '' Set.univ)
+    apply ConcreteSigmaAlgebra.generated_by_le' G
+    intro U hU
+    rw [Set.mem_setOf_eq] at hU
+    have hU_eq : U = ⋃ B ∈ {B ∈ ratBox d | (B.toSet : Set (EuclideanSpace' d)) ⊆ U}, (B.toSet : Set (EuclideanSpace' d)) :=
+      open_eq_union_ratBoxes U hU
+    have hF_nonempty : (ratBox d).Nonempty := by
+      refine ⟨⟨fun _ : Fin d => BoundedInterval.Icc (0 : ℝ) (0 : ℝ)⟩, ?_⟩
+      rw [ratBox]
+      exact ⟨(fun _ : Fin d => 0), (fun _ : Fin d => 0), by simp⟩
+    rcases (ratBox_countable d).exists_eq_range hF_nonempty with ⟨f, hf⟩
+    classical
+    let E : ℕ → Set (EuclideanSpace' d) := fun n => if (f n).toSet ⊆ U then (f n).toSet else ∅
+    have hE_eq : (⋃ n, E n) = U := by
+      have hE_union : (⋃ n, E n) = ⋃ B ∈ {B ∈ ratBox d | (B.toSet : Set (EuclideanSpace' d)) ⊆ U}, (B.toSet : Set (EuclideanSpace' d)) := by
+        ext x
+        constructor
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨n, hn⟩
+          have hfn : f n ∈ ratBox d := by
+            rw [hf]
+            exact Set.mem_range.mpr ⟨n, rfl⟩
+          by_cases hsub : (f n).toSet ⊆ U
+          · rw [Set.mem_iUnion]
+            refine ⟨f n, ?_⟩
+            rw [Set.mem_iUnion]
+            exact ⟨⟨hfn, hsub⟩, by simpa [E, hsub] using hn⟩
+          · simp [E, hsub] at hn
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨B, hB⟩
+          rw [Set.mem_iUnion] at hB
+          rcases hB with ⟨⟨hB_rat, hB_sub⟩, hx_in⟩
+          rw [hf] at hB_rat
+          rcases hB_rat with ⟨n, hfn⟩
+          rw [Set.mem_iUnion]
+          refine ⟨n, ?_⟩
+          have hsub' : (f n).toSet ⊆ U := by
+            simpa [hfn] using hB_sub
+          change x ∈ (if (f n).toSet ⊆ U then (f n).toSet else ∅)
+          rw [if_pos hsub']
+          simpa [hfn] using hx_in
+      exact hE_union.trans hU_eq.symm
+    have hE_meas : ∀ n, G.measurable (E n) := by
+      intro n
+      by_cases hsub : (f n).toSet ⊆ U
+      · have hmeas : G.measurable (f n).toSet := by
+          apply ConcreteSigmaAlgebra.generated_by_contains
+          exact ⟨f n, by simp⟩
+        simpa [E, hsub] using hmeas
+      · simpa [E, hsub] using G.empty_mem
+    rw [← hE_eq]
+    exact G.countable_union_mem E hE_meas
+  · -- generated_by {boxes} ≤ Borel: boxes are closed
+    apply ConcreteSigmaAlgebra.generated_by_le' (BorelSigmaAlgebra (EuclideanSpace' d))
+    intro B hB
+    rcases hB with ⟨B', _, rfl⟩
+    -- a box is a countable union of closed boxes, hence Borel
+    exact Box.borel_measurable B'
 
 /-- Exercise 1.4.14 (vi) -/
-theorem BorelSigmaAlgebra.generated_by_elementary (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { E : Set (EuclideanSpace' d) | IsElementary E }  := by sorry
+theorem BorelSigmaAlgebra.generated_by_elementary (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by { E : Set (EuclideanSpace' d) | IsElementary E }  := by
+  apply le_antisymm
+  · -- Borel ≤ generated_by {elementary}: every open set is a countable union of elementary sets
+    unfold BorelSigmaAlgebra
+    let G : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
+      ConcreteSigmaAlgebra.generated_by { E : Set (EuclideanSpace' d) | IsElementary E }
+    apply ConcreteSigmaAlgebra.generated_by_le' G
+    intro U hU
+    rw [Set.mem_setOf_eq] at hU
+    have hU_eq : U = ⋃ B ∈ {B ∈ ratBox d | (B.toSet : Set (EuclideanSpace' d)) ⊆ U}, (B.toSet : Set (EuclideanSpace' d)) :=
+      open_eq_union_ratBoxes U hU
+    have hF_nonempty : (ratBox d).Nonempty := by
+      refine ⟨⟨fun _ : Fin d => BoundedInterval.Icc (0 : ℝ) (0 : ℝ)⟩, ?_⟩
+      rw [ratBox]
+      exact ⟨(fun _ : Fin d => 0), (fun _ : Fin d => 0), by simp⟩
+    rcases (ratBox_countable d).exists_eq_range hF_nonempty with ⟨f, hf⟩
+    classical
+    let E : ℕ → Set (EuclideanSpace' d) := fun n => if (f n).toSet ⊆ U then (f n).toSet else ∅
+    have hE_eq : (⋃ n, E n) = U := by
+      have hE_union : (⋃ n, E n) = ⋃ B ∈ {B ∈ ratBox d | (B.toSet : Set (EuclideanSpace' d)) ⊆ U}, (B.toSet : Set (EuclideanSpace' d)) := by
+        ext x
+        constructor
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨n, hn⟩
+          have hfn : f n ∈ ratBox d := by
+            rw [hf]
+            exact Set.mem_range.mpr ⟨n, rfl⟩
+          by_cases hsub : (f n).toSet ⊆ U
+          · rw [Set.mem_iUnion]
+            refine ⟨f n, ?_⟩
+            rw [Set.mem_iUnion]
+            exact ⟨⟨hfn, hsub⟩, by simpa [E, hsub] using hn⟩
+          · simp [E, hsub] at hn
+        · intro hx
+          rw [Set.mem_iUnion] at hx
+          rcases hx with ⟨B, hB⟩
+          rw [Set.mem_iUnion] at hB
+          rcases hB with ⟨⟨hB_rat, hB_sub⟩, hx_in⟩
+          rw [hf] at hB_rat
+          rcases hB_rat with ⟨n, hfn⟩
+          rw [Set.mem_iUnion]
+          refine ⟨n, ?_⟩
+          have hsub' : (f n).toSet ⊆ U := by
+            simpa [hfn] using hB_sub
+          change x ∈ (if (f n).toSet ⊆ U then (f n).toSet else ∅)
+          rw [if_pos hsub']
+          simpa [hfn] using hx_in
+      exact hE_union.trans hU_eq.symm
+    have hE_meas : ∀ n, G.measurable (E n) := by
+      intro n
+      by_cases hsub : (f n).toSet ⊆ U
+      · have hmeas : G.measurable (f n).toSet := by
+          apply ConcreteSigmaAlgebra.generated_by_contains
+          exact IsElementary.box (f n)
+        simpa [E, hsub] using hmeas
+      · simpa [E, hsub] using G.empty_mem
+    rw [← hE_eq]
+    exact G.countable_union_mem E hE_meas
+  · -- generated_by {elementary} ≤ Borel: elementary sets are finite unions of boxes, boxes are closed
+    apply ConcreteSigmaAlgebra.generated_by_le' (BorelSigmaAlgebra (EuclideanSpace' d))
+    intro E hE
+    -- E is elementary: E = ⋃ B ∈ S, B for a finite S of boxes
+    rcases hE with ⟨S, rfl⟩
+    rw [BorelSigmaAlgebra.generated_by_boxes d]
+    -- finite union of boxes, each box measurable
+    classical
+    let G : ConcreteSigmaAlgebra (EuclideanSpace' d) := ConcreteSigmaAlgebra.generated_by (Box.toSet '' Set.univ)
+    induction S using Finset.induction_on with
+    | empty => simpa using G.empty_mem
+    | insert B₀ S' hnot ih =>
+        rw [show (⋃ B ∈ insert B₀ S', (B : Set (EuclideanSpace' d))) = (B₀ : Set (EuclideanSpace' d)) ∪ (⋃ B ∈ S', (B : Set (EuclideanSpace' d))) by ext x; simp]
+        apply G.union_mem
+        · apply ConcreteSigmaAlgebra.generated_by_contains
+          exact ⟨B₀, by simp⟩
+        · exact ih
+
+/-- The stage of the transfinite construction of the σ-algebra generated by F. -/
+def sigma_stage {X : Type*} (F : Set (Set X)) (α : Ordinal) : Set (Set X) :=
+  Ordinal.limitRecOn (motive := fun _ => Set (Set X)) α F
+    (fun _n G => {E : Set X | (∃ S : Set G, Countable S ∧ E = ⋃ (H : S), (H : Set X)) ∨
+        (∃ S : Set G, Countable S ∧ E = (⋃ (H : S), (H : Set X))ᶜ)})
+    (fun α _ G => ⋃ (β : Ordinal) (h : β < α), G β h)
+
+theorem sigma_stage_zero {X : Type*} (F : Set (Set X)) : sigma_stage F 0 = F := by
+  simp [sigma_stage]
+
+theorem sigma_stage_succ {X : Type*} (F : Set (Set X)) (o : Ordinal) :
+    sigma_stage F (Order.succ o) =
+      {E : Set X | (∃ S : Set (sigma_stage F o), Countable S ∧ E = ⋃ (H : S), (H : Set X)) ∨
+        (∃ S : Set (sigma_stage F o), Countable S ∧ E = (⋃ (H : S), (H : Set X))ᶜ)} := by
+  rw [sigma_stage, Ordinal.limitRecOn_succ]
+  rfl
+
+theorem sigma_stage_limit {X : Type*} (F : Set (Set X)) (o : Ordinal) (ho : Order.IsSuccLimit o) :
+    sigma_stage F o = ⋃ (β : Ordinal) (_h : β < o), sigma_stage F β := by
+  rw [sigma_stage]
+  rw [Ordinal.limitRecOn_limit o F
+    (fun _n (G : Set (Set X)) => {E : Set X | (∃ S : Set G, Countable S ∧ E = ⋃ (H : S), (H : Set X)) ∨
+        (∃ S : Set G, Countable S ∧ E = (⋃ (H : S), (H : Set X))ᶜ)})
+    (fun α _ G => ⋃ (β : Ordinal) (h : β < α), G β h) ho]
+  rfl
+
+/-- Each stage is contained in the next one. -/
+lemma sigma_stage_le_succ {X : Type*} (F : Set (Set X)) (o : Ordinal) :
+    sigma_stage F o ⊆ sigma_stage F (Order.succ o) := by
+  intro E hE
+  rw [sigma_stage_succ]
+  left
+  refine ⟨({⟨E, hE⟩} : Set (sigma_stage F o)), ?_, ?_⟩
+  · exact Set.countable_singleton (⟨E, hE⟩ : sigma_stage F o)
+  · ext x
+    simp
+
+/-- The complement of a set in a stage lies in the next stage. -/
+lemma sigma_stage_compl_le_succ {X : Type*} (F : Set (Set X)) (o : Ordinal) {E : Set X}
+    (hE : E ∈ sigma_stage F o) : Eᶜ ∈ sigma_stage F (Order.succ o) := by
+  rw [sigma_stage_succ]
+  right
+  refine ⟨({⟨E, hE⟩} : Set (sigma_stage F o)), ?_, ?_⟩
+  · exact Set.countable_singleton (⟨E, hE⟩ : sigma_stage F o)
+  · ext x
+    simp
+
+/-- A countable union of measurable sets (indexed by a countable set of sets) is measurable. -/
+lemma countable_union_measurable {X : Type*} (B : ConcreteSigmaAlgebra X)
+    {S : Set (Set X)} (hS : S.Countable) (hmeas : ∀ E ∈ S, B.measurable E) :
+    B.measurable (⋃ E ∈ S, E) := by
+  by_cases hne : S.Nonempty
+  · rcases (Set.Countable.exists_eq_range hS hne) with ⟨f, hfr⟩
+    have hU : (⋃ E ∈ S, E) = ⋃ n : ℕ, f n := by
+      rw [hfr]
+      ext x
+      simp
+    rw [hU]
+    exact B.countable_union_mem f (fun n => hmeas (f n) (by simp [hfr]))
+  · have hSempty : S = ∅ := Set.not_nonempty_iff_eq_empty.mp hne
+    rw [hSempty]
+    simpa using B.empty_mem
+
+/-- A countable family of sets from a stage has a measurable union. -/
+lemma countable_union_mem_subtype {X : Type*} (B : ConcreteSigmaAlgebra X) (F : Set (Set X))
+    (o : Ordinal) (S : Set (sigma_stage F o)) (hS : S.Countable)
+    (hmeas : ∀ H : S, B.measurable (H : Set X)) :
+    B.measurable (⋃ (H : S), (H : Set X)) := by
+  let T : Set (Set X) := (fun H : sigma_stage F o => (H : Set X)) '' S
+  have hTcount : T.Countable := Set.Countable.image hS _
+  have hTmeas : ∀ E' ∈ T, B.measurable E' := by
+    intro E' hE'
+    rcases hE' with ⟨H, hHS, rfl⟩
+    exact hmeas ⟨H, hHS⟩
+  have hEq : (⋃ (H : S), (H : Set X)) = ⋃ E' ∈ T, E' := by
+    ext x
+    simp [T]
+  rw [hEq]
+  exact countable_union_measurable B hTcount hTmeas
+
+/-- The stages are nested. -/
+theorem sigma_stage_mono {X : Type*} (F : Set (Set X)) {α β : Ordinal} (h : α ≤ β) :
+    sigma_stage F α ⊆ sigma_stage F β := by
+  have hmain : ∀ β : Ordinal, ∀ α : Ordinal, α ≤ β → sigma_stage F α ⊆ sigma_stage F β := by
+    intro β
+    induction β using Ordinal.limitRecOn with
+    | zero =>
+        intro α hα
+        have hα0 : α = 0 := le_antisymm hα (bot_le : (0 : Ordinal) ≤ α)
+        subst α
+        intro E hE
+        exact hE
+    | succ β ih =>
+        intro α hα
+        rcases lt_or_eq_of_le hα with hαlt | hαeq
+        · have hαle : α ≤ β := Order.lt_succ_iff.mp hαlt
+          exact subset_trans (ih α hαle) (sigma_stage_le_succ F β)
+        · subst α
+          intro E hE
+          exact hE
+    | limit β hβ ih =>
+        intro α hα
+        rcases lt_or_eq_of_le hα with hαlt | hαeq
+        · rw [sigma_stage_limit F β hβ]
+          intro E hE
+          simp [Set.mem_iUnion]
+          exact ⟨α, hαlt, hE⟩
+        · subst α
+          intro E hE
+          exact hE
+  exact hmain β α h
+
+/-- Every generator is in the union of all stages below ω₁. -/
+theorem F_subset_union_stages.{u, v} {X : Type u} (F : Set (Set X)) :
+    F ⊆ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := by
+  intro E hE
+  simp [Set.mem_iUnion]
+  exact ⟨(0 : Ordinal.{v}), (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).bot_lt,
+    (by simpa [sigma_stage_zero] using hE)⟩
+
+/-- Every stage is contained in the σ-algebra generated by F. -/
+theorem sigma_stage_subset_generated {X : Type*} (F : Set (Set X)) :
+    ∀ α : Ordinal, sigma_stage F α ⊆ (ConcreteSigmaAlgebra.generated_by F).measurableSets := by
+  intro α
+  induction α using Ordinal.limitRecOn with
+  | zero =>
+      intro E hE
+      rw [sigma_stage_zero] at hE
+      exact ConcreteSigmaAlgebra.generated_by_contains hE
+  | succ o ih =>
+      intro E hE
+      rw [sigma_stage_succ] at hE
+      rcases hE with ⟨S, hScount, hE⟩ | ⟨S, hScount, hE⟩
+      · rw [hE]
+        exact countable_union_mem_subtype (ConcreteSigmaAlgebra.generated_by F) F o S hScount
+          (fun H => ih H.1.2)
+      · rw [hE]
+        have hUn : (ConcreteSigmaAlgebra.generated_by F).measurable (⋃ (H : S), (H : Set X)) :=
+          countable_union_mem_subtype (ConcreteSigmaAlgebra.generated_by F) F o S hScount
+            (fun H => ih H.1.2)
+        exact (ConcreteSigmaAlgebra.generated_by F).compl_mem _ hUn
+  | limit o ho ih =>
+      intro E hE
+      rw [sigma_stage_limit F o ho] at hE
+      simp [Set.mem_iUnion] at hE
+      rcases hE with ⟨β, hβlt, hEβ⟩
+      exact ih β hβlt hEβ
+
+/-- Every stage below ω₁ is contained in the generated σ-algebra. -/
+theorem stage_subset_generated.{u, v} {X : Type u} (F : Set (Set X)) {α : Ordinal.{v}}
+    (_hα : α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v})) :
+    sigma_stage F α ⊆ (ConcreteSigmaAlgebra.generated_by F).measurableSets := by
+  exact sigma_stage_subset_generated F α
+
+/-- The union of the stages below ω₁ is closed under countable unions. -/
+theorem union_stages_countable_union.{u, v} {X : Type u} (F : Set (Set X)) {E : ℕ → Set X}
+    (hE : ∀ n, E n ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α) :
+    (⋃ n, E n) ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := by
+  simp [Set.mem_iUnion] at hE
+  let a : ℕ → Ordinal.{v} := fun n => (hE n).choose
+  have ha_lt : ∀ n, a n < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) := fun n => (hE n).choose_spec.1
+  have hEa : ∀ n, E n ∈ sigma_stage F (a n) := fun n => (hE n).choose_spec.2
+  let sup : Ordinal.{v} := ⨆ n, a n
+  have hsup_lt : sup < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) := by
+    have h1 : (⨆ n, a n) < (Cardinal.aleph (1 : Ordinal.{v})).ord :=
+      Ordinal.iSup_sequence_lt_omega_one a (fun n => by rw [Cardinal.ord_aleph]; exact ha_lt n)
+    rw [Cardinal.ord_aleph] at h1
+    simpa [sup] using h1
+  have ha_le : ∀ n, a n ≤ sup := fun n => by
+    simpa [sup] using (Ordinal.le_iSup a n)
+  have hEsup : ∀ n, E n ∈ sigma_stage F sup := fun n => sigma_stage_mono F (ha_le n) (hEa n)
+  have hEsucc : ∀ n, E n ∈ sigma_stage F (Order.succ sup) :=
+    fun n => sigma_stage_le_succ F sup (hEsup n)
+  have hss_lt : Order.succ sup < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) :=
+    (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).succ_lt hsup_lt
+  have hsss_lt : Order.succ (Order.succ sup) < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) :=
+    (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).succ_lt hss_lt
+  have hUnion : (⋃ n, E n) ∈ sigma_stage F (Order.succ (Order.succ sup)) := by
+    rw [sigma_stage_succ]
+    left
+    refine ⟨Set.range (fun n : ℕ => (⟨E n, hEsucc n⟩ : sigma_stage F (Order.succ sup))), ?_, ?_⟩
+    · exact Set.countable_range _
+    · ext x
+      simp
+  simp [Set.mem_iUnion]
+  exact ⟨Order.succ (Order.succ sup), hsss_lt, hUnion⟩
+
+/-- The union of the stages below ω₁ is closed under complement. -/
+theorem union_stages_compl.{u, v} {X : Type u} (F : Set (Set X)) {E : Set X}
+    (hE : E ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α) :
+    Eᶜ ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := by
+  simp [Set.mem_iUnion] at hE
+  rcases hE with ⟨α, hαlt, hEα⟩
+  have hEc : Eᶜ ∈ sigma_stage F (Order.succ α) := sigma_stage_compl_le_succ F α hEα
+  have hαsucc : Order.succ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) :=
+    (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).succ_lt hαlt
+  simp [Set.mem_iUnion]
+  exact ⟨Order.succ α, hαsucc, hEc⟩
+
+/-- The union of the stages below ω₁ is the σ-algebra generated by F. -/
+theorem ConcreteSigmaAlgebra.generated_by_eq_aux.{u, v} {X : Type u} (F : Set (Set X)) :
+    (ConcreteSigmaAlgebra.generated_by F).measurableSets = ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := by
+  let U : ConcreteSigmaAlgebra X :=
+    { measurable := fun E => E ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α
+      empty_mem := by
+        have hempty : (∅ : Set X) ∈ sigma_stage F (Order.succ 0) := by
+          rw [sigma_stage_succ]
+          left
+          refine ⟨(∅ : Set (sigma_stage F 0)), ?_, ?_⟩
+          · exact Set.countable_empty
+          · ext x
+            simp
+        have h0 : (0 : Ordinal.{v}) < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) := (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).bot_lt
+        have hs : Order.succ 0 < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}) := (Cardinal.isSuccLimit_omega (1 : Ordinal.{v})).succ_lt h0
+        simp [Set.mem_iUnion]
+        exact ⟨Order.succ 0, hs, hempty⟩
+      compl_mem := by
+        intro E hE
+        exact union_stages_compl F hE
+      union_mem := by
+        intro E F' hE hF'
+        let T : ℕ → Set X := fun n => if n = 0 then E else F'
+        have hT : ∀ n, T n ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := by
+          intro n
+          by_cases hn : n = 0
+          · simpa [T, hn] using hE
+          · simpa [T, hn] using hF'
+        have hUn : (⋃ n, T n) ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α := union_stages_countable_union F hT
+        have hEq : E ∪ F' = ⋃ n, T n := by
+          ext x
+          constructor
+          · intro hx
+            rcases hx with hxE | hxF
+            · rw [Set.mem_iUnion]
+              exact ⟨0, by simpa [T] using hxE⟩
+            · rw [Set.mem_iUnion]
+              exact ⟨1, by simpa [T] using hxF⟩
+          · intro hx
+            rw [Set.mem_iUnion] at hx
+            rcases hx with ⟨n, hn⟩
+            by_cases hn0 : n = 0
+            · exact Or.inl (by simpa [T, hn0] using hn)
+            · exact Or.inr (by simpa [T, hn0] using hn)
+        simpa [hEq] using hUn
+      countable_union_mem := by
+        intro E hE
+        exact union_stages_countable_union F hE }
+  have hF : ∀ E ∈ F, U.measurable E := by
+    intro E hE
+    exact F_subset_union_stages F hE
+  have hgen_le : ConcreteSigmaAlgebra.generated_by F ≤ U := by
+    apply ConcreteSigmaAlgebra.generated_by_le'
+    exact hF
+  have hU_le : U ≤ ConcreteSigmaAlgebra.generated_by F := by
+    intro E hE
+    change E ∈ ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α at hE
+    simp [Set.mem_iUnion] at hE
+    rcases hE with ⟨α, hαlt, hEα⟩
+    exact sigma_stage_subset_generated F α hEα
+  have hEq : ConcreteSigmaAlgebra.generated_by F = U := le_antisymm hgen_le hU_le
+  rw [hEq]
+  change (⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α) = ⋃ α < (Ordinal.omega (1 : Ordinal.{v}) : Ordinal.{v}), sigma_stage F α
+  rfl
 
 open Ordinal in
 /-- Exercise 1.4.15 (Recursive definition of generated sigma-algebra). -/
 def ConcreteSigmaAlgebra.generated_by_eq {X:Type*} (F: Set (Set X)) :
   (ConcreteSigmaAlgebra.generated_by F).measurableSets =
   ⋃ α < ω₁,
-  Ordinal.limitRecOn (motive := fun _ ↦ Set (Set X)) α F (fun n G ↦ { E: Set X | (∃ S: Set G, Countable S ∧ E = ⋃ (H:S), H) ∨ (∃ S: Set G, Countable S ∧ E = (⋃ (H:S), H)ᶜ) }) (fun α _ G ↦ ⋃ (β : Ordinal) (h : β < α), G β h) := by sorry
+  Ordinal.limitRecOn (motive := fun _ ↦ Set (Set X)) α F (fun _n G ↦ { E: Set X | (∃ S: Set G, Countable S ∧ E = ⋃ (H:S), H) ∨ (∃ S: Set G, Countable S ∧ E = (⋃ (H:S), H)ᶜ) }) (fun α _ G ↦ ⋃ (β : Ordinal) (h : β < α), G β h) := by
+  simpa [sigma_stage] using (ConcreteSigmaAlgebra.generated_by_eq_aux F)
+
+section generated_by_card
+open Cardinal
+open Ordinal
+
+private theorem stage_card_le_aux {X : Type u} (F : Set (Set X)) [Infinite F]
+    {α : Ordinal.{v}} (hα : α < ω₁) :
+    Cardinal.mk (sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  let κ : Cardinal := (Cardinal.mk F) ^ ℵ₀
+  have hF_ne0 : Cardinal.mk F ≠ 0 :=
+    ne_of_gt (lt_of_lt_of_le Cardinal.aleph0_pos (Cardinal.aleph0_le_mk F))
+  have h_base : Cardinal.mk F ≤ κ := by
+    simpa [κ, pow_one] using (Cardinal.power_le_power_left hF_ne0 Cardinal.one_le_aleph0)
+  have hκinf : ℵ₀ ≤ κ := le_trans (Cardinal.aleph0_le_mk F) h_base
+  have hκsq : κ * κ = κ := Cardinal.mul_eq_self hκinf
+  have h2_le_κ : (2 : Cardinal) ≤ κ := by
+    exact le_trans ((Cardinal.aleph0_le.mp (Cardinal.aleph0_le_mk F)) 2) h_base
+  have hκ_pow : κ ^ ℵ₀ = κ := by
+    dsimp [κ]
+    rw [← Cardinal.power_mul, Cardinal.aleph0_mul_aleph0]
+  have hmain : ∀ β : Ordinal.{v}, β < ω₁ → Cardinal.mk (sigma_stage F β) ≤ κ := by
+    intro β
+    induction β using Ordinal.limitRecOn with
+    | zero =>
+        intro _
+        rw [sigma_stage_zero]
+        exact h_base
+    | succ o ih =>
+        intro hsucc
+        have hoω : o < ω₁ := lt_trans (Order.lt_succ_iff.mpr le_rfl) hsucc
+        have hC : #{S : Set (sigma_stage F o) | S.Countable} ≤
+            (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ := by
+          simpa [Cardinal.le_aleph0_iff_set_countable] using
+            (Cardinal.mk_bounded_set_le (sigma_stage F o) ℵ₀)
+        have hmax : max (Cardinal.mk (sigma_stage F o)) ℵ₀ ≤ κ := max_le (ih hoω) hκinf
+        have hpow : (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ ≤ κ := by
+          exact (Cardinal.power_le_power_right hmax).trans (le_of_eq hκ_pow)
+        let U1 : Set (Set X) :=
+          {E : Set X | ∃ S : Set (sigma_stage F o), S.Countable ∧ E = ⋃ (H : S), (H : Set X)}
+        let U2 : Set (Set X) :=
+          {E : Set X | ∃ S : Set (sigma_stage F o), S.Countable ∧ E = (⋃ (H : S), (H : Set X))ᶜ}
+        have hU1 : #↑U1 ≤ #{S : Set (sigma_stage F o) | S.Countable} := by
+          have hEq : U1 = Set.range
+              (fun S : {S : Set (sigma_stage F o) | S.Countable} => ⋃ (H : S.1), (H : Set X)) := by
+            ext E
+            constructor
+            · rintro ⟨S, hS, rfl⟩
+              exact ⟨⟨S, hS⟩, rfl⟩
+            · rintro ⟨S, rfl⟩
+              exact ⟨S.1, S.2, rfl⟩
+          rw [hEq]
+          exact Cardinal.mk_range_le
+        have hU2 : #↑U2 ≤ #{S : Set (sigma_stage F o) | S.Countable} := by
+          have hEq : U2 = Set.range
+              (fun S : {S : Set (sigma_stage F o) | S.Countable} => (⋃ (H : S.1), (H : Set X))ᶜ) := by
+            ext E
+            constructor
+            · rintro ⟨S, hS, rfl⟩
+              exact ⟨⟨S, hS⟩, rfl⟩
+            · rintro ⟨S, rfl⟩
+              exact ⟨S.1, S.2, rfl⟩
+          rw [hEq]
+          exact Cardinal.mk_range_le
+        have hsucc_eq : sigma_stage F (Order.succ o) = U1 ∪ U2 := by
+          simpa [U1, U2] using (sigma_stage_succ F o)
+        calc
+          Cardinal.mk (sigma_stage F (Order.succ o)) = #↑(U1 ∪ U2) := by rw [hsucc_eq]
+          _ ≤ #↑U1 + #↑U2 := Cardinal.mk_union_le U1 U2
+          _ ≤ #{S : Set (sigma_stage F o) | S.Countable} + #{S : Set (sigma_stage F o) | S.Countable} :=
+            add_le_add hU1 hU2
+          _ = 2 * #{S : Set (sigma_stage F o) | S.Countable} := by rw [two_mul]
+          _ ≤ 2 * (max (Cardinal.mk (sigma_stage F o)) ℵ₀) ^ ℵ₀ := mul_le_mul_right hC 2
+          _ ≤ 2 * κ := mul_le_mul_right hpow 2
+          _ ≤ κ := by
+            calc 2 * κ ≤ κ * κ := mul_le_mul_left h2_le_κ κ
+                 _ = κ := hκsq
+    | limit o ho ih =>
+        intro hoω
+        have hIo_le : #↑(Set.Iio o) ≤ ℵ₀ := by
+          have hcard : o.card < Cardinal.aleph (1 : Ordinal.{v}) :=
+            Cardinal.lt_omega_iff_card_lt.mp hoω
+          have hsucc : o.card < Order.succ ℵ₀ := by
+            simpa [Cardinal.succ_aleph0] using hcard
+          have hle : o.card ≤ ℵ₀ := Order.lt_succ_iff.mp hsucc
+          rw [Ordinal.mk_Iio_ordinal]
+          simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{v+1, v}).mpr hle)
+        have hκinf' : ℵ₀ ≤ lift.{v+1, u} κ := by
+          simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{v+1, u}).mpr hκinf)
+        have hIo : lift.{u, v+1} #↑(Set.Iio o) ≤ lift.{v+1, u} κ := by
+          exact le_trans
+            (by simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{u, v+1}).mpr hIo_le)) hκinf'
+        haveI : Nonempty (Set.Iio o) := ⟨⟨(0 : Ordinal.{v}), ho.bot_lt⟩⟩
+        have hSup : (⨆ β : Set.Iio o, lift.{v+1, u} #↑(sigma_stage F β.1)) ≤ lift.{v+1, u} κ := by
+          refine ciSup_le ?_
+          intro β
+          exact (Cardinal.lift_le.{v+1, u}).mpr (ih β.1 β.2 (lt_trans β.2 hoω))
+        have hU : (⋃ (β : Ordinal.{v}) (_h : β < o), sigma_stage F β) =
+            ⋃ β : Set.Iio o, sigma_stage F β.1 := by
+          ext E
+          simp [Set.mem_iUnion]
+        rw [sigma_stage_limit F o ho, hU]
+        apply (Cardinal.lift_le.{v+1, u}).mp
+        refine (Cardinal.mk_iUnion_le_lift (α := Set X)
+          (f := fun β : Set.Iio o => sigma_stage F β.1)).trans ?_
+        refine (mul_le_mul' hIo hSup).trans ?_
+        exact le_of_eq (Cardinal.mul_eq_self hκinf')
+  exact hmain α hα
+
+-- |stage α| ≤ |F|^ℵ₀ for every α < ω₁
+theorem stage_card_le {X : Type u} (F : Set (Set X)) [Infinite F] {α : Ordinal} (hα : α < ω₁) :
+    Cardinal.mk (sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  exact stage_card_le_aux F hα
+
+-- The union over all stages below ω₁ has size ≤ |F|^ℵ₀
+theorem union_stages_card_le {X : Type u} (F : Set (Set X)) [Infinite F] :
+    Cardinal.mk (⋃ α < (ω₁ : Ordinal.{u}), sigma_stage F α) ≤ (Cardinal.mk F) ^ ℵ₀ := by
+  let κ : Cardinal := (Cardinal.mk F) ^ ℵ₀
+  have hF_ne0 : Cardinal.mk F ≠ 0 :=
+    ne_of_gt (lt_of_lt_of_le Cardinal.aleph0_pos (Cardinal.aleph0_le_mk F))
+  have h_base : Cardinal.mk F ≤ κ := by
+    simpa [κ, pow_one] using (Cardinal.power_le_power_left hF_ne0 Cardinal.one_le_aleph0)
+  have hκinf : ℵ₀ ≤ κ := le_trans (Cardinal.aleph0_le_mk F) h_base
+  have h2_le_F : (2 : Cardinal) ≤ Cardinal.mk F :=
+    (Cardinal.aleph0_le.mp (Cardinal.aleph0_le_mk F)) 2
+  have hℵ₁_le : ℵ₁ ≤ κ := by
+    calc ℵ₁ ≤ (2 : Cardinal) ^ ℵ₀ := by
+           rw [Cardinal.two_power_aleph0]
+           exact Cardinal.aleph_one_le_continuum
+         _ ≤ κ := Cardinal.power_le_power_right h2_le_F
+  have hκinf' : ℵ₀ ≤ lift.{u+1, u} κ := by
+    simpa [Cardinal.lift_aleph0] using ((Cardinal.lift_le.{u+1, u}).mpr hκinf)
+  have hIω₁ : lift.{u, u+1} #↑(Set.Iio (ω₁ : Ordinal.{u})) ≤ lift.{u+1, u} κ := by
+    rw [Ordinal.mk_Iio_ordinal, Ordinal.card_omega, Cardinal.lift_lift]
+    exact (Cardinal.lift_le.{u+1, u}).mpr hℵ₁_le
+  haveI : Nonempty (Set.Iio (ω₁ : Ordinal.{u})) :=
+    ⟨⟨(0 : Ordinal.{u}), (Cardinal.isSuccLimit_omega 1).bot_lt⟩⟩
+  have hSup : (⨆ α : Set.Iio (ω₁ : Ordinal.{u}), lift.{u+1, u} #↑(sigma_stage F α.1)) ≤
+      lift.{u+1, u} κ := by
+    refine ciSup_le ?_
+    intro α
+    exact (Cardinal.lift_le.{u+1, u}).mpr (stage_card_le F α.2)
+  have hU : (⋃ (α : Ordinal.{u}) (_h : α < ω₁), sigma_stage F α) =
+      ⋃ α : Set.Iio (ω₁ : Ordinal.{u}), sigma_stage F α.1 := by
+    ext E
+    simp [Set.mem_iUnion]
+  rw [hU]
+  apply (Cardinal.lift_le.{u+1, u}).mp
+  refine (Cardinal.mk_iUnion_le_lift (α := Set X)
+    (f := fun α : Set.Iio (ω₁ : Ordinal.{u}) => sigma_stage F α.1)).trans ?_
+  refine (mul_le_mul' hIω₁ hSup).trans ?_
+  exact le_of_eq (Cardinal.mul_eq_self hκinf')
+
+end generated_by_card
 
 open Cardinal in
 /-- Exercise 1.4.16 -/
 theorem ConcreteSigmaAlgebra.card_of_generated_by {X:Type*} {F: Set (Set X)} [Infinite F] :
   Cardinal.mk (ConcreteSigmaAlgebra.generated_by F).measurableSets ≤ (Cardinal.mk F) ^ ℵ₀ :=
-  by sorry
+  by
+  rw [ConcreteSigmaAlgebra.generated_by_eq]
+  simpa [sigma_stage] using union_stages_card_le F
+
+open Cardinal in
+/-- Borel = generated by the rational balls. -/
+theorem borel_eq_generated_by_ratBall (d : ℕ) :
+    BorelSigmaAlgebra (EuclideanSpace' d) = ConcreteSigmaAlgebra.generated_by (ratBall d) := by
+  apply le_antisymm
+  · unfold BorelSigmaAlgebra
+    apply ConcreteSigmaAlgebra.generated_by_le' (ConcreteSigmaAlgebra.generated_by (ratBall d))
+    intro U hU
+    rw [Set.mem_setOf_eq] at hU
+    let S : Set (Set (EuclideanSpace' d)) := {B ∈ ratBall d | B ⊆ U}
+    have hS_count : S.Countable := (ratBall_countable d).mono (by intro B hB; exact hB.1)
+    have hU_eq : U = ⋃ B ∈ S, B := open_eq_union_ratBalls U hU
+    by_cases hne : S.Nonempty
+    · rcases (Set.Countable.exists_eq_range hS_count hne) with ⟨f, hfr⟩
+      have hU_n : U = ⋃ n : ℕ, f n := by
+        rw [hU_eq, hfr]
+        ext x
+        simp
+      rw [hU_n]
+      apply (ConcreteSigmaAlgebra.generated_by (ratBall d)).countable_union_mem
+      intro n
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      have hfn : f n ∈ S := by
+        rw [hfr]
+        exact Set.mem_range.mpr ⟨n, rfl⟩
+      exact hfn.1
+    · have hSempty : S = ∅ := Set.not_nonempty_iff_eq_empty.mp hne
+      rw [hU_eq, hSempty]
+      simpa using (ConcreteSigmaAlgebra.generated_by (ratBall d)).empty_mem
+  · apply ConcreteSigmaAlgebra.generated_by_le' (BorelSigmaAlgebra (EuclideanSpace' d))
+    intro B hB
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    rcases hB with ⟨q, r, rfl⟩
+    exact Metric.isOpen_ball (α := EuclideanSpace' d)
+
+/-- The rational balls form an infinite set (for d ≥ 1). -/
+lemma ratBall_infinite {d : ℕ} (hd : 0 < d) : Set.Infinite (ratBall d) := by
+  let f : ℕ → Set (EuclideanSpace' d) := fun n => Metric.ball (0 : EuclideanSpace' d) (n : ℝ)
+  have hmem : ∀ n : ℕ, f n ∈ ratBall d := by
+    intro n
+    dsimp [f]
+    rw [ratBall]
+    refine ⟨fun _ => 0, n, ?_⟩
+    congr 1
+    · simp
+      rfl
+  have hstrict : ∀ {n m : ℕ}, n < m → f n ≠ f m := by
+    intro n m hnm h_eq
+    let c : ℝ := ((n : ℝ) + (m : ℝ)) / 2
+    let v : EuclideanSpace' d := .toLp 2 (fun i : Fin d => if i = ⟨0, hd⟩ then c else 0)
+    have hn_lt_m : (n : ℝ) < (m : ℝ) := by exact_mod_cast hnm
+    have hc_lt_m : c < (m : ℝ) := by
+      dsimp [c]
+      linarith
+    have hn_le_c : (n : ℝ) ≤ c := by
+      dsimp [c]
+      linarith
+    have hnorm_v : ‖v‖ = c := by
+      rw [EuclideanSpace'.norm_eq]
+      have hsum : (∑ i : Fin d, (v i) ^ 2) = c ^ 2 := by
+        simp [v]
+      rw [hsum]
+      exact Real.sqrt_sq (by positivity : 0 ≤ c)
+    have hvin : v ∈ f m := by
+      dsimp [f]
+      rw [Metric.mem_ball]
+      rw [dist_eq_norm]
+      simp
+      rw [hnorm_v]
+      exact hc_lt_m
+    have hvout : v ∉ f n := by
+      intro hv
+      dsimp [f] at hv
+      rw [Metric.mem_ball] at hv
+      rw [dist_eq_norm] at hv
+      simp at hv
+      rw [hnorm_v] at hv
+      exact not_lt_of_ge hn_le_c hv
+    have : v ∈ f n := by
+      rw [h_eq]
+      exact hvin
+    exact hvout this
+  have hinj : Function.Injective f := by
+    intro n m h
+    by_contra hne
+    rcases lt_or_gt_of_ne hne with hnm | hmn
+    · exact (hstrict hnm) h
+    · exact (hstrict hmn) h.symm
+  have hrange : Set.range f ⊆ ratBall d := by
+    intro B hB
+    rcases hB with ⟨n, rfl⟩
+    exact hmem n
+  exact Set.Infinite.mono hrange (Set.infinite_range_of_injective hinj)
 
 open Cardinal in
 theorem BorelSigmaAlgebra.card (d:ℕ) : Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ≤ 2 ^ ℵ₀ :=
-  by sorry
+  by
+  by_cases hd : d = 0
+  · subst d
+    have hle0 : Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' 0)).measurableSets ≤ Cardinal.mk (Set (EuclideanSpace' 0)) := by
+      exact Cardinal.mk_le_of_injective (f := fun E : (BorelSigmaAlgebra (EuclideanSpace' 0)).measurableSets => (E : Set (EuclideanSpace' 0))) (by
+        intro a b hab
+        exact Subtype.ext hab)
+    have hmk_set : Cardinal.mk (Set (EuclideanSpace' 0)) = 2 ^ Cardinal.mk (EuclideanSpace' 0) := Cardinal.mk_set
+    have hmk_le : Cardinal.mk (EuclideanSpace' 0) ≤ ℵ₀ := Cardinal.mk_le_aleph0 (α := EuclideanSpace' 0)
+    have hpow : (2 : Cardinal) ^ Cardinal.mk (EuclideanSpace' 0) ≤ (2 : Cardinal) ^ ℵ₀ :=
+      Cardinal.power_le_power_left (by norm_num : (2 : Cardinal) ≠ 0) hmk_le
+    calc
+      Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' 0)).measurableSets ≤ Cardinal.mk (Set (EuclideanSpace' 0)) := hle0
+      _ = 2 ^ Cardinal.mk (EuclideanSpace' 0) := hmk_set
+      _ ≤ 2 ^ ℵ₀ := hpow
+  · have hdpos : 0 < d := Nat.pos_of_ne_zero hd
+    rw [borel_eq_generated_by_ratBall d]
+    have hcount : (ratBall d).Countable := ratBall_countable d
+    have hinf : Set.Infinite (ratBall d) := ratBall_infinite hdpos
+    haveI : Countable (ratBall d) := hcount.to_subtype
+    haveI : Infinite (ratBall d) := hinf.to_subtype
+    have hmk : Cardinal.mk (ratBall d) = ℵ₀ := Cardinal.mk_eq_aleph0 (ratBall d)
+    have hle1 : Cardinal.mk (ConcreteSigmaAlgebra.generated_by (ratBall d)).measurableSets ≤ (Cardinal.mk (ratBall d)) ^ ℵ₀ :=
+      ConcreteSigmaAlgebra.card_of_generated_by (X := EuclideanSpace' d) (F := ratBall d)
+    have hle2 : (Cardinal.mk (ratBall d)) ^ ℵ₀ ≤ 2 ^ ℵ₀ := by
+      rw [hmk]
+      calc
+        ℵ₀ ^ ℵ₀ ≤ (2 ^ ℵ₀) ^ ℵ₀ := Cardinal.power_le_power_right (le_of_lt (Cardinal.cantor ℵ₀))
+        _ = 2 ^ (ℵ₀ * ℵ₀) := (Cardinal.power_mul (a := (2 : Cardinal)) (b := ℵ₀) (c := ℵ₀)).symm
+        _ = 2 ^ ℵ₀ := by rw [Cardinal.aleph0_mul_aleph0]
+    exact le_trans hle1 hle2
+
+section not_borel_cantor
+open Cardinal
+
+/-- The n-th approximation of the middle-thirds Cantor set (from the project). -/
+def midThird_n (n : ℕ) : Set ℝ := CantorInterval n
+
+/-- The Cantor set. -/
+def midThird : Set ℝ := ⋂ n : ℕ, midThird_n n
+
+/-- Digit sequences of length {lit}`n` for the middle-thirds construction. -/
+abbrev CantorDigit (n : ℕ) := Fin n → ({0, 2} : Set ℕ)
+
+/-- Embed ℝ into {lit}`EuclideanSpace' d` via the first coordinate. -/
+def embedReal {d : ℕ} (hd : 0 < d) (x : ℝ) : EuclideanSpace' d :=
+  .toLp 2 (fun i : Fin d => if i = ⟨0, hd⟩ then x else 0)
+
+/-- The image of the Cantor set in {lit}`EuclideanSpace' d`. -/
+def cantorLift {d : ℕ} (hd : 0 < d) : Set (EuclideanSpace' d) :=
+  embedReal hd '' midThird
+
+/-- The box approximating the Cantor interval for digit sequence {lit}`a`. -/
+noncomputable def cantorBox {d : ℕ} (hd : 0 < d) (n : ℕ) (a : CantorDigit n) : Box d :=
+  ⟨fun j => if j = ⟨0, hd⟩ then
+      BoundedInterval.Icc (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1))
+        ((∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1)) + 1 / (3 : ℝ) ^ n)
+    else BoundedInterval.Icc 0 0⟩
+
+lemma embedReal_injective {d : ℕ} (hd : 0 < d) : Function.Injective (embedReal hd) := by
+  intro x y h
+  have h0 := congrArg (fun z : EuclideanSpace' d => z (⟨0, hd⟩ : Fin d)) h
+  simpa [embedReal, PiLp.toLp_apply] using h0
+
+lemma cantorLift_eq_midThird_card {d : ℕ} (hd : 0 < d) :
+    Cardinal.mk (cantorLift hd) = Cardinal.mk midThird := by
+  exact (Cardinal.mk_congr (Equiv.Set.image (embedReal hd) midThird (embedReal_injective hd))).symm
+
+/-- The Cantor set is contained in {lit}`[0, 1]`. -/
+lemma cantor_subset_unit : midThird ⊆ Set.Icc (0 : ℝ) 1 := by
+  intro x hx
+  have hx0 : x ∈ CantorInterval 0 := Set.mem_iInter.mp (by simpa [midThird, midThird_n] using hx) 0
+  have h_C0_eq : CantorInterval 0 = Set.Icc (0 : ℝ) 1 := by
+    unfold CantorInterval
+    haveI : Nonempty (Fin 0 → ({0, 2} : Set ℕ)) := ⟨fun i => i.elim0⟩
+    simp [Set.iUnion_const]
+  rwa [h_C0_eq] at hx0
+
+/-- The Cantor set is closed. -/
+lemma cantor_isClosed : IsClosed midThird := by
+  change IsClosed CantorSet
+  exact CantorSet.compact.isClosed
+
+/-- The Cantor set has cardinality continuum. -/
+lemma cantor_card : Cardinal.mk midThird = (2 : Cardinal) ^ ℵ₀ := by
+  have h_upper : Cardinal.mk midThird ≤ (2 : Cardinal) ^ ℵ₀ := by
+    have h_inj : Function.Injective (fun x : midThird => (x : ℝ)) := by
+      intro x y h
+      exact Subtype.ext h
+    calc
+      Cardinal.mk midThird ≤ Cardinal.mk ℝ := Cardinal.mk_le_of_injective h_inj
+      _ = (2 : Cardinal) ^ ℵ₀ := Cardinal.mk_real
+  have h_lower : (2 : Cardinal) ^ ℵ₀ ≤ Cardinal.mk midThird := by
+    have h_inj : Function.Injective (fun b : ℕ → Bool => (⟨cantorEmbedding b, cantorEmbedding_mem b⟩ : midThird)) := by
+      intro b c h
+      apply cantorEmbedding_injective
+      exact Subtype.ext_iff.mp h
+    calc
+      (2 : Cardinal) ^ ℵ₀ = Cardinal.mk (ℕ → Bool) := by
+        rw [Cardinal.mk_arrow]
+        simp
+      _ ≤ Cardinal.mk midThird := Cardinal.mk_le_of_injective h_inj
+  exact le_antisymm h_upper h_lower
+
+/-- The Cantor set is covered by the n-th approximation boxes. -/
+lemma cantorLift_subset_box_union {d : ℕ} (hd : 0 < d) (n : ℕ) :
+    cantorLift hd ⊆ ⋃ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).toSet := by
+  classical
+  intro y hy
+  rcases hy with ⟨x, hx, rfl⟩
+  have hxIn0 : x ∈ CantorInterval n := Set.mem_iInter.mp (by simpa [midThird, midThird_n] using hx) n
+  change x ∈ ⋃ a : CantorDigit n,
+      (BoundedInterval.Icc (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1))
+        (∑ i, (a i : ℝ) / (3 : ℝ) ^ (i.val + 1) + 1 / (3 : ℝ) ^ n)).toSet at hxIn0
+  choose a ha using (Set.mem_iUnion.mp hxIn0)
+  have hb : embedReal hd x ∈ (cantorBox hd n a).toSet := by
+    rw [Box.mem_toSet]
+    intro j
+    by_cases hj : j = ⟨0, hd⟩
+    · subst hj
+      simp [cantorBox, embedReal, PiLp.toLp_apply]
+      simpa using ha
+    · simp [cantorBox, hj, embedReal, PiLp.toLp_apply]
+  simpa [Set.mem_biUnion] using
+    (⟨a, Finset.mem_univ a, hb⟩ : ∃ a ∈ Finset.univ, embedReal hd x ∈ (cantorBox hd n a).toSet)
+/-- The volume of a Cantor approximation box is at most {lit}`(1/3)^n`. -/
+lemma cantorBox_volume_le {d : ℕ} (hd : 0 < d) (n : ℕ) (a : CantorDigit n) :
+    (cantorBox hd n a).volume ≤ (1 / 3 : ℝ) ^ n := by
+  unfold Box.volume
+  have hside0 : |(cantorBox hd n a).side ⟨0, hd⟩|ₗ = (1 / 3 : ℝ) ^ n := by
+    simp [cantorBox, BoundedInterval.length]
+  have hsidej : ∀ j : Fin d, j ≠ ⟨0, hd⟩ → |(cantorBox hd n a).side j|ₗ = 0 := by
+    intro j hj
+    simp [cantorBox, hj, BoundedInterval.length]
+  calc
+    (∏ j : Fin d, |(cantorBox hd n a).side j|ₗ)
+        = |(cantorBox hd n a).side ⟨0, hd⟩|ₗ * (∏ j ∈ (Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}, |(cantorBox hd n a).side j|ₗ) := by
+          exact Finset.prod_eq_mul_prod_diff_singleton_of_mem
+            (Finset.mem_univ (⟨0, hd⟩ : Fin d)) (fun j => |(cantorBox hd n a).side j|ₗ)
+    _ = (1 / 3 : ℝ) ^ n * (∏ j ∈ (Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}, (0 : ℝ)) := by
+          rw [hside0]
+          apply congrArg (fun x : ℝ => (1 / 3 : ℝ) ^ n * x)
+          apply Finset.prod_congr rfl
+          intro j hj
+          exact hsidej j (by simpa using (Finset.mem_sdiff.mp hj).2)
+    _ = (1 / 3 : ℝ) ^ n * (0 ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card) := by
+          simp [Finset.prod_const]
+    _ ≤ (1 / 3 : ℝ) ^ n := by
+          have hprod : (0 : ℝ) ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card ≤ 1 := by
+            exact pow_le_one₀ (by norm_num) (by norm_num)
+          have hzero : 0 ≤ (0 : ℝ) ^ ((Finset.univ : Finset (Fin d)) \ {⟨0, hd⟩}).card := by positivity
+          have hpos : 0 ≤ (1 / 3 : ℝ) ^ n := by positivity
+          nlinarith
+
+/-- The sum of the volumes of the Cantor approximation boxes is at most {lit}`(2/3)^n`. -/
+lemma cantorBox_sum_volume_le {d : ℕ} (hd : 0 < d) (n : ℕ) :
+    (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).volume) ≤ (2 / 3 : ℝ) ^ n := by
+  classical
+  calc
+    (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (cantorBox hd n a).volume)
+        ≤ (∑ a ∈ (Finset.univ : Finset (CantorDigit n)), (1 / 3 : ℝ) ^ n) := by
+          apply Finset.sum_le_sum
+          intro a ha
+          exact cantorBox_volume_le hd n a
+    _ = (Fintype.card (CantorDigit n) : ℝ) * (1 / 3 : ℝ) ^ n := by simp
+    _ = (2 : ℝ) ^ n * (1 / 3 : ℝ) ^ n := by
+          have hcard : Fintype.card (CantorDigit n) = 2 ^ n := by
+            rw [Fintype.card_fun]
+            have hdgt : Fintype.card ({0, 2} : Set ℕ) = 2 := by norm_num
+            simp [hdgt]
+          rw [hcard, Nat.cast_pow]
+          norm_num
+    _ = (2 / 3 : ℝ) ^ n := by
+          rw [show (2 / 3 : ℝ) = 2 * (1 / 3) by norm_num, mul_pow]
+
+/-- The image of the Cantor set has Jordan outer measure 0. -/
+lemma cantor_jordan_outer_zero {d : ℕ} (hd : 0 < d) :
+    Jordan_outer_measure (cantorLift hd) = 0 := by
+  apply le_antisymm
+  · have hle_n : ∀ n : ℕ, Jordan_outer_measure (cantorLift hd) ≤ (2 / 3 : ℝ) ^ n := by
+      intro n
+      exact le_trans
+        (Jordan_outer_measure_mono_of_subset (cantorLift_subset_box_union hd n) (isBounded_biUnion_box Finset.univ (cantorBox hd n)))
+        (le_trans (Jordan_outer_measure_biUnion_box_le Finset.univ (cantorBox hd n)) (cantorBox_sum_volume_le hd n))
+    have htend : Filter.Tendsto (fun n : ℕ => (2 / 3 : ℝ) ^ n) Filter.atTop (nhds 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds htend ((by filter_upwards with n; exact hle_n n))
+  · exact Jordan_outer_measure_nonneg (cantorLift hd)
+
+/-- Not every subset of the Cantor set (in dimension d) is Borel. -/
+lemma cantor_has_nonBorel_subset {d : ℕ} (hd : 0 < d) :
+    ∃ N : Set (EuclideanSpace' d), N ⊆ cantorLift hd ∧
+      ¬ (BorelSigmaAlgebra (EuclideanSpace' d)).measurable N := by
+  classical
+  by_contra h
+  have hAll : ∀ N : Set (EuclideanSpace' d), N ⊆ cantorLift hd →
+      (BorelSigmaAlgebra (EuclideanSpace' d)).measurable N := by
+    intro N hN
+    by_contra hmeas
+    exact h ⟨N, hN, hmeas⟩
+  let subs : Set (Set (EuclideanSpace' d)) := {N | N ⊆ cantorLift hd}
+  have hsubs : subs ⊆ (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    intro N hN
+    exact hAll N hN
+  have hle : Cardinal.mk subs ≤ Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    exact Cardinal.mk_le_of_injective (f := fun N : subs => ⟨(N : Set (EuclideanSpace' d)), hsubs N.property⟩) (by
+      intro a b hab
+      have hval : (a : Set (EuclideanSpace' d)) = (b : Set (EuclideanSpace' d)) := by
+        exact congrArg (fun N : (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets => (N : Set (EuclideanSpace' d))) hab
+      exact Subtype.ext hval)
+  have hsubs_card : Cardinal.mk subs = (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := by
+    calc
+      Cardinal.mk subs = Cardinal.mk (Set.powerset (cantorLift hd)) := by
+        rfl
+      _ = (2 : Cardinal) ^ Cardinal.mk (cantorLift hd : Type) := Cardinal.mk_powerset (cantorLift hd)
+      _ = (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := by
+        rw [cantorLift_eq_midThird_card hd, cantor_card]
+  have hcard_le : (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) ≤
+      Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets := by
+    simpa [hsubs_card] using hle
+  have hborel : Cardinal.mk (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ≤ (2 : Cardinal) ^ ℵ₀ := BorelSigmaAlgebra.card d
+  have hlt : ((2 : Cardinal) ^ ℵ₀) < (2 : Cardinal) ^ ((2 : Cardinal) ^ ℵ₀) := Cardinal.cantor ((2 : Cardinal) ^ ℵ₀)
+  exact (not_le_of_gt hlt) (le_trans hcard_le hborel)
+
+/-- A subset of the Cantor set is Jordan measurable. -/
+lemma subset_cantor_jordan {d : ℕ} (hd : 0 < d) {N : Set (EuclideanSpace' d)}
+    (hN : N ⊆ cantorLift hd) : JordanMeasurable N := by
+  have hbdd : Bornology.IsBounded N :=
+    (isBounded_biUnion_box Finset.univ (cantorBox hd 0)).subset (hN.trans (cantorLift_subset_box_union hd 0))
+  constructor
+  · exact hbdd
+  · apply le_antisymm
+    · exact Jordan_inner_le_outer hbdd
+    · have houter0 : Jordan_outer_measure N ≤ 0 := by
+        have hle_n : ∀ n : ℕ, Jordan_outer_measure N ≤ (2 / 3 : ℝ) ^ n := by
+          intro n
+          exact le_trans
+            (Jordan_outer_measure_mono_of_subset
+              (hN.trans (cantorLift_subset_box_union hd n)) (isBounded_biUnion_box Finset.univ (cantorBox hd n)))
+            (le_trans (Jordan_outer_measure_biUnion_box_le Finset.univ (cantorBox hd n)) (cantorBox_sum_volume_le hd n))
+        have htend : Filter.Tendsto (fun n : ℕ => (2 / 3 : ℝ) ^ n) Filter.atTop (nhds 0) :=
+          tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+        exact le_of_tendsto_of_tendsto tendsto_const_nhds htend (by filter_upwards with n; exact hle_n n)
+      exact le_trans houter0 (Jordan_inner_measure_nonneg N)
+
+end not_borel_cantor
 
 theorem JordanMeasurable.not_borel {d:ℕ} (hd: d ≥ 1) : ∃ E: Set (EuclideanSpace' d), JordanMeasurable E ∧ ¬ (BorelSigmaAlgebra (EuclideanSpace' d)).measurable E :=
-  by sorry
+  by
+  have hdpos : 0 < d := by omega
+  rcases cantor_has_nonBorel_subset hdpos with ⟨N, hNsub, hNnot⟩
+  exact ⟨N, subset_cantor_jordan hdpos hNsub, hNnot⟩
 
 /-- Exercise 1.4.17 -/
+private lemma prod_equiv_cont (d₁ d₂ : ℕ) : Continuous (EuclideanSpace'.prod_equiv d₁ d₂) := by
+  have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_linear d₁ d₂)
+  simpa [prod_equiv_linear] using h
+
+private lemma prod_equiv_symm_cont (d₁ d₂ : ℕ) : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+  have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+  simpa [prod_equiv_symm_linear] using h
+
+private lemma prod_equiv_symm_image_eq_preimage (d₁ d₂ : ℕ) (S : Set (EuclideanSpace' d₁ × EuclideanSpace' d₂)) :
+    (EuclideanSpace'.prod_equiv d₁ d₂).symm '' S = (EuclideanSpace'.prod_equiv d₁ d₂) ⁻¹' S := by
+  exact Equiv.image_eq_preimage_symm (EuclideanSpace'.prod_equiv d₁ d₂).symm S
+
+private lemma prod_equiv_symm_image_open {d₁ d₂ : ℕ} {S : Set (EuclideanSpace' d₁ × EuclideanSpace' d₂)} (hS : IsOpen S) :
+    IsOpen ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' S) := by
+  rw [prod_equiv_symm_image_eq_preimage]
+  exact (prod_equiv_cont d₁ d₂).isOpen_preimage S hS
+
 theorem BorelSigmaAlgebra.prod {d₁ d₂:ℕ} {E : Set (EuclideanSpace' d₁)} {F : Set (EuclideanSpace' d₂)}
   (hE: (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable E)
   (hF: (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F) :
   (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (E ×ˢ F))
   :=
-  by sorry
+  by
+  let φ : (EuclideanSpace' d₁ × EuclideanSpace' d₂) ≃ EuclideanSpace' (d₁ + d₂) := (EuclideanSpace'.prod_equiv d₁ d₂).symm
+  have h_second : ∀ U : Set (EuclideanSpace' d₁), IsOpen U → ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+      (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)) := by
+    intro U hU
+    have h_ind : ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)) := by
+      apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' d₂)
+        (F := {V : Set (EuclideanSpace' d₂) | IsOpen V})
+        (P := fun F => (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ F)))
+      · have h_empty : φ '' (U ×ˢ (∅ : Set (EuclideanSpace' d₂))) = ∅ := by simp [Set.prod_empty]
+        rw [h_empty]
+        exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).empty_mem
+      · intro V hV
+        rw [Set.mem_setOf_eq] at hV
+        apply ConcreteSigmaAlgebra.generated_by_contains
+        exact prod_equiv_symm_image_open (IsOpen.prod hU hV)
+      · intro F hF
+        have h1 : φ '' (U ×ˢ Fᶜ) = (φ '' (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂)))) \ (φ '' (U ×ˢ F)) := by
+          rw [show U ×ˢ Fᶜ = (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂))) \ (U ×ˢ F) by ext p; aesop]
+          rw [Set.image_diff φ.injective]
+        rw [h1]
+        have hUu : (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (U ×ˢ (Set.univ : Set (EuclideanSpace' d₂)))) := by
+          apply ConcreteSigmaAlgebra.generated_by_contains
+          exact prod_equiv_symm_image_open (IsOpen.prod hU isOpen_univ)
+        exact (ConcreteSigmaAlgebra.sdiff_mem (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂)))) hUu hF
+      · intro Fn hFn
+        have hpre : φ '' (U ×ˢ (⋃ n, Fn n)) = ⋃ n, φ '' (U ×ˢ Fn n) := by
+          rw [show U ×ˢ (⋃ n, Fn n) = ⋃ n, (U ×ˢ Fn n) by ext p; aesop]
+          rw [Set.image_iUnion]
+        rw [hpre]
+        exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).countable_union_mem _ hFn
+    intro F hF
+    exact h_ind F hF
+  have h_main : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable E →
+      ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (E ×ˢ F)) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' d₁)
+      (F := {U : Set (EuclideanSpace' d₁) | IsOpen U})
+      (P := fun E => ∀ F, (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable F →
+        (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' (E ×ˢ F)))
+    · intro F hF
+      have h_empty : φ '' ((∅ : Set (EuclideanSpace' d₁)) ×ˢ F) = ∅ := by simp [Set.empty_prod]
+      rw [h_empty]
+      exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      exact h_second U hU
+    · intro E hE F hF
+      have h1 : φ '' (Eᶜ ×ˢ F) = (φ '' ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F)) \ (φ '' (E ×ˢ F)) := by
+        rw [show Eᶜ ×ˢ F = ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F) \ (E ×ˢ F) by ext p; aesop]
+        rw [Set.image_diff φ.injective]
+      rw [h1]
+      have hUu : (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable (φ '' ((Set.univ : Set (EuclideanSpace' d₁)) ×ˢ F)) :=
+        h_second (Set.univ : Set (EuclideanSpace' d₁)) isOpen_univ F hF
+      exact (ConcreteSigmaAlgebra.sdiff_mem (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂)))) hUu (hE F hF)
+    · intro En hEn F hF
+      have hpre : φ '' ((⋃ n, En n) ×ˢ F) = ⋃ n, φ '' (En n ×ˢ F) := by
+        rw [show (⋃ n, En n) ×ˢ F = ⋃ n, (En n ×ˢ F) by ext p; aesop]
+        rw [Set.image_iUnion]
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).countable_union_mem _ (fun n => hEn n F hF)
+  exact h_main E hE F hF
 
-/-- Exercise 1.4.18(i) (slice along first factor). -/
+/-- Exercise 1.4.18(i) -/
+private noncomputable def sliceMap (d₁ d₂ : ℕ) (x₂ : EuclideanSpace' d₂) : EuclideanSpace' d₁ → EuclideanSpace' (d₁ + d₂) :=
+  fun x₁ => (EuclideanSpace'.prod_equiv d₁ d₂).symm (x₁, x₂)
+
+private lemma sliceMap_continuous (d₁ d₂ : ℕ) (x₂ : EuclideanSpace' d₂) : Continuous (sliceMap d₁ d₂ x₂) := by
+  have hsymm : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+    have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+    simpa [prod_equiv_symm_linear] using h
+  have hpair : Continuous (fun x₁ : EuclideanSpace' d₁ => (x₁, x₂)) := Continuous.prodMk continuous_id continuous_const
+  exact hsymm.comp hpair
+
 theorem BorelSigmaAlgebra.slice_fst {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d₁+d₂))}
   (hE: (BorelSigmaAlgebra (EuclideanSpace' (d₁+d₂))).measurable E)
   (x₂ : EuclideanSpace' d₂ ) :
   (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E }
   :=
-  by sorry
+  by
+  rw [show { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } = sliceMap d₁ d₂ x₂ ⁻¹' E by rfl]
+  have h_ind : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable E →
+      (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable (sliceMap d₁ d₂ x₂ ⁻¹' E) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' (d₁ + d₂))
+      (F := {U : Set (EuclideanSpace' (d₁ + d₂)) | IsOpen U})
+      (P := fun E => (BorelSigmaAlgebra (EuclideanSpace' d₁)).measurable (sliceMap d₁ d₂ x₂ ⁻¹' E))
+    · simpa using (BorelSigmaAlgebra (EuclideanSpace' d₁)).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact (sliceMap_continuous d₁ d₂ x₂).isOpen_preimage U hU
+    · intro E hE
+      have hpre : sliceMap d₁ d₂ x₂ ⁻¹' Eᶜ = (sliceMap d₁ d₂ x₂ ⁻¹' E)ᶜ := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₁)).compl_mem _ hE
+    · intro E hE
+      have hpre : sliceMap d₁ d₂ x₂ ⁻¹' (⋃ n, E n) = ⋃ n, (sliceMap d₁ d₂ x₂ ⁻¹' E n) := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₁)).countable_union_mem _ hE
+  exact h_ind E hE
 
 /-- Exercise 1.4.18(i) (slice along second factor). -/
 theorem BorelSigmaAlgebra.slice_snd {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d₁+d₂))}
@@ -196,18 +2244,185 @@ theorem BorelSigmaAlgebra.slice_snd {d₁ d₂:ℕ} {E : Set (EuclideanSpace' (d
   (x₁ : EuclideanSpace' d₁ ) :
   (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable { x₂ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E }
   :=
-  by sorry
+  by
+  let π₂ : EuclideanSpace' d₂ → EuclideanSpace' (d₁ + d₂) := fun x₂ => (EuclideanSpace'.prod_equiv d₁ d₂).symm (x₁, x₂)
+  have hcont : Continuous π₂ := by
+    have hsymm : Continuous (EuclideanSpace'.prod_equiv d₁ d₂).symm := by
+      have h := LinearMap.continuous_of_finiteDimensional (prod_equiv_symm_linear d₁ d₂)
+      simpa [prod_equiv_symm_linear] using h
+    have hpair : Continuous (fun x₂ : EuclideanSpace' d₂ => (x₁, x₂)) := Continuous.prodMk continuous_const continuous_id
+    exact hsymm.comp hpair
+  rw [show { x₂ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } = π₂ ⁻¹' E by rfl]
+  have h_ind : ∀ E, (BorelSigmaAlgebra (EuclideanSpace' (d₁ + d₂))).measurable E →
+      (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable (π₂ ⁻¹' E) := by
+    apply ConcreteSigmaAlgebra.induction (X := EuclideanSpace' (d₁ + d₂))
+      (F := {U : Set (EuclideanSpace' (d₁ + d₂)) | IsOpen U})
+      (P := fun E => (BorelSigmaAlgebra (EuclideanSpace' d₂)).measurable (π₂ ⁻¹' E))
+    · simpa using (BorelSigmaAlgebra (EuclideanSpace' d₂)).empty_mem
+    · intro U hU
+      rw [Set.mem_setOf_eq] at hU
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact hcont.isOpen_preimage U hU
+    · intro E hE
+      have hpre : π₂ ⁻¹' Eᶜ = (π₂ ⁻¹' E)ᶜ := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₂)).compl_mem _ hE
+    · intro E hE
+      have hpre : π₂ ⁻¹' (⋃ n, E n) = ⋃ n, (π₂ ⁻¹' E n) := by simp
+      rw [hpre]
+      exact (BorelSigmaAlgebra (EuclideanSpace' d₂)).countable_union_mem _ hE
+  exact h_ind E hE
 
 /-- Exercise 1.4.18(ii) -/
 example : ∃ (d₁ d₂ : ℕ) (E : Set (EuclideanSpace' (d₁+d₂))) (x₂ : EuclideanSpace' d₂),
   LebesgueMeasurable E ∧
-  ¬ LebesgueMeasurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } := by sorry
+  ¬ LebesgueMeasurable { x₁ | (EuclideanSpace'.prod_equiv d₁ d₂).symm ⟨ x₁, x₂ ⟩ ∈ E } := by
+  let E' : Set (EuclideanSpace' 2) := {z | (EuclideanSpace'.prod_equiv 1 1 z).1 ⟨0, by norm_num⟩ ∈ VitaliSet ∧ (EuclideanSpace'.prod_equiv 1 1 z).2 = 0}
+  refine ⟨1, 1, E', (0 : EuclideanSpace' 1), ?_, ?_⟩
+  · let B : Box 2 := { side := ![BoundedInterval.Icc 0 1, BoundedInterval.Icc 0 0] }
+    have hsub : E' ⊆ B.toSet := by
+      intro z hz
+      rw [Box.mem_toSet]
+      intro i
+      fin_cases i <;> simp [B, E'] at hz ⊢
+      · exact VitaliSet_subset_unit_interval hz.1
+      · have hz2 : z.ofLp 1 = 0 := by
+          have hc := congrArg (fun v : EuclideanSpace' 1 => v ⟨0, by norm_num⟩) hz.2
+          simpa [EuclideanSpace'.prod_equiv] using hc
+        simpa using hz2
+    have hvol : Box.volume B = 0 := by
+      rw [Box.volume]
+      apply Finset.prod_eq_zero (Finset.mem_univ (1 : Fin 2))
+      simp [B, BoundedInterval.length]
+    have hB_null : IsNull B.toSet := by
+      change Lebesgue_outer_measure B.toSet = 0
+      rw [Lebesgue_outer_measure.elementary _ (IsElementary.box B), IsElementary.measure_of_box]
+      simp [hvol]
+    have hE_null : IsNull E' := IsNull.subset hB_null hsub
+    exact IsNull.measurable (E := E') hE_null
+  · have hslice : { x₁ : EuclideanSpace' 1 | (EuclideanSpace'.prod_equiv 1 1).symm ⟨ x₁, (0 : EuclideanSpace' 1) ⟩ ∈ E' } =
+      NotAtomic.vitaliCylinder (by norm_num : 0 < 1) := by
+      ext x
+      constructor
+      · intro hx
+        rw [NotAtomic.vitaliCylinder]
+        simp [E'] at hx ⊢
+        exact hx
+      · intro hx
+        rw [NotAtomic.vitaliCylinder] at hx
+        simp [E'] at hx ⊢
+        exact hx
+    rw [hslice]
+    exact NotAtomic.not_lebesgue_measurable_cylinder (by norm_num : 0 < 1)
 
-/-- Exercise 1.4.19 -/
+/-- The Borel σ-algebra is contained in the Lebesgue σ-algebra. -/
+theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by
+  unfold BorelSigmaAlgebra
+  apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
+  intro E hE
+  rw [Set.mem_setOf_eq] at hE
+  exact IsOpen.measurable hE
+
+/-- Every Lebesgue-measurable set is the difference of a Borel set and a null set. -/
+lemma lebesgue_measurable_eq_borel_sdiff_null {d : ℕ} {E : Set (EuclideanSpace' d)} (hE : LebesgueMeasurable E) :
+    ∃ B : Set (EuclideanSpace' d), (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B ∧
+      ∃ N : Set (EuclideanSpace' d), IsNull N ∧ E = B \ N := by
+  classical
+  have happrox : ∀ n : ℕ, ∃ U : Set (EuclideanSpace' d), IsOpen U ∧ E ⊆ U ∧ Lebesgue_outer_measure (U \ E) ≤ (1 : ℝ) / (n + 1) := by
+    intro n
+    have hpos : 0 < ((1 : ℝ) / (n + 1) : EReal) := by
+      exact EReal.coe_strictMono (div_pos zero_lt_one (by positivity))
+    exact hE ((1 : ℝ) / (n + 1)) hpos
+  let U : ℕ → Set (EuclideanSpace' d) := fun n => (happrox n).choose
+  have hU_open : ∀ n, IsOpen (U n) := fun n => (happrox n).choose_spec.1
+  have hE_U : ∀ n, E ⊆ U n := fun n => (happrox n).choose_spec.2.1
+  have hU_n : ∀ n, Lebesgue_outer_measure (U n \ E) ≤ (1 : ℝ) / (n + 1) := fun n => (happrox n).choose_spec.2.2
+  let B : Set (EuclideanSpace' d) := ⋂ n, U n
+  have hB_meas : (BorelSigmaAlgebra (EuclideanSpace' d)).measurable B := by
+    dsimp [B]
+    apply ConcreteSigmaAlgebra.iInter_mem
+    intro n
+    apply ConcreteSigmaAlgebra.generated_by_contains
+    exact hU_open n
+  have hE_sub_B : E ⊆ B := by
+    intro x hx
+    rw [Set.mem_iInter]
+    intro n
+    exact hE_U n hx
+  have hN_null : IsNull (B \ E) := by
+    unfold IsNull
+    let m : EReal := Lebesgue_outer_measure (B \ E)
+    apply le_antisymm
+    · apply le_of_not_gt
+      intro hgt
+      have hgt' : 0 < m := by simpa [m] using hgt
+      have hle1 : ∀ n : ℕ, m ≤ ((1 : ℝ) / (n + 1) : EReal) := by
+        intro n
+        have hsub : B \ E ⊆ U n \ E := by
+          intro x hx
+          constructor
+          · exact (Set.mem_iInter.mp (by simpa [B] using hx.1)) n
+          · exact hx.2
+        simpa [m] using (le_trans (Lebesgue_outer_measure.mono hsub) (hU_n n))
+      have hm_bot : m ≠ ⊥ := ne_of_gt (lt_of_le_of_lt bot_le hgt')
+      have hm_top : m ≠ ⊤ := by
+        have hle0 : m ≤ (1 : ℝ) := by simpa using hle1 0
+        exact ne_of_lt (lt_of_le_of_lt hle0 (EReal.coe_lt_top 1))
+      have hm_gt0 : 0 < m.toReal := EReal.toReal_pos hgt' hm_top
+      have hle_real : ∀ n : ℕ, m.toReal ≤ (1 : ℝ) / (n + 1) := by
+        intro n
+        exact EReal.toReal_le_toReal (hle1 n) hm_bot (EReal.coe_ne_top ((1 : ℝ) / (n + 1)))
+      rcases exists_nat_gt (1 / m.toReal) with ⟨N, hN⟩
+      have hN_gt0 : (0 : ℝ) < (N : ℝ) := lt_trans (div_pos zero_lt_one hm_gt0) hN
+      have hN_ge1 : 1 ≤ N := by exact_mod_cast hN_gt0
+      have hleN : m.toReal ≤ (1 : ℝ) / (N : ℝ) := by
+        have h := hle_real (N - 1)
+        have hcast : ((N - 1 : ℕ) : ℝ) + 1 = (N : ℝ) := by
+          exact_mod_cast (Nat.sub_add_cancel hN_ge1)
+        simpa [hcast] using h
+      have hlt : (1 : ℝ) / (N : ℝ) < m.toReal := (one_div_lt hN_gt0 hm_gt0).mpr hN
+      exact (not_lt_of_ge hleN) hlt
+    · exact Lebesgue_outer_measure.nonneg (B \ E)
+  refine ⟨B, hB_meas, B \ E, hN_null, ?_⟩
+  ext x
+  constructor
+  · intro hx
+    constructor
+    · exact hE_sub_B hx
+    · intro hxNE
+      exact hxNE.2 hx
+  · intro hx
+    rcases hx with ⟨hxB, hxNE⟩
+    by_contra hxE
+    exact hxNE ⟨hxB, hxE⟩
+
 theorem LebesgueMeasurable.sigmaAlgebra_generated_by {d:ℕ} :
   LebesgueMeasurable.sigmaAlgebra d = ConcreteSigmaAlgebra.generated_by ( (BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ∪ (IsNull.sigmaAlgebra d).measurableSets) :=
-  by sorry
+  by
+  apply le_antisymm
+  · let G : ConcreteSigmaAlgebra (EuclideanSpace' d) :=
+      ConcreteSigmaAlgebra.generated_by ((BorelSigmaAlgebra (EuclideanSpace' d)).measurableSets ∪ (IsNull.sigmaAlgebra d).measurableSets)
+    intro E hE
+    rcases lebesgue_measurable_eq_borel_sdiff_null hE with ⟨B, hB, N, hN, hEq⟩
+    have hB_meas_G : G.measurable B := by
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      simp
+      exact Or.inl hB
+    have hN_meas_G : G.measurable N := by
+      apply ConcreteSigmaAlgebra.generated_by_contains
+      exact Or.inr (Or.inl hN)
+    rw [hEq]
+    exact ConcreteSigmaAlgebra.sdiff_mem G hB_meas_G hN_meas_G
+  · apply ConcreteSigmaAlgebra.generated_by_le' (LebesgueMeasurable.sigmaAlgebra d)
+    intro E hE
+    rcases hE with hE | hE
+    · have hle := BorelSigmaAlgebra.le_LebesgueSigmaAlgebra d
+      exact hle E hE
+    · rcases hE with hE | hEc
+      · exact IsNull.measurable hE
+      · simpa using LebesgueMeasurable.complement (IsNull.measurable hEc)
 
+@[implicit_reducible]
 def ConcreteSigmaAlgebra.measurableSpace {X: Type*} (B: ConcreteSigmaAlgebra X) : MeasurableSpace X := {
   MeasurableSet' := B.measurable
   measurableSet_empty := B.empty_mem
@@ -215,12 +2430,35 @@ def ConcreteSigmaAlgebra.measurableSpace {X: Type*} (B: ConcreteSigmaAlgebra X) 
   measurableSet_iUnion := B.countable_union_mem
 }
 
+@[implicit_reducible]
 def MeasurableSpace.sigmaAlgebra {X: Type*} (M: MeasurableSpace X) : ConcreteSigmaAlgebra X := {
   measurable := M.MeasurableSet'
   empty_mem := M.measurableSet_empty
   compl_mem := M.measurableSet_compl
-  union_mem := sorry
+  union_mem := by
+    intro E F hE hF
+    let T : ℕ → Set X := fun n => if n = 0 then E else F
+    have hT : ∀ n, M.MeasurableSet' (T n) := by
+      intro n
+      by_cases hn : n = 0
+      · simpa [T, hn] using hE
+      · simpa [T, hn] using hF
+    have hUnion : (⋃ n, T n) = E ∪ F := by
+      ext x
+      constructor
+      · intro hx
+        rw [Set.mem_iUnion] at hx
+        rcases hx with ⟨n, hn⟩
+        by_cases hn0 : n = 0
+        · exact Or.inl (by simpa [T, hn0] using hn)
+        · exact Or.inr (by simpa [T, hn0] using hn)
+      · intro hx
+        rcases hx with hx | hx
+        · rw [Set.mem_iUnion]
+          exact ⟨0, by simp [T, hx]⟩
+        · rw [Set.mem_iUnion]
+          exact ⟨1, by simp [T, hx]⟩
+    rw [← hUnion]
+    exact M.measurableSet_iUnion T hT
   countable_union_mem := M.measurableSet_iUnion
 }
-
-theorem BorelSigmaAlgebra.le_LebesgueSigmaAlgebra (d:ℕ) : BorelSigmaAlgebra (EuclideanSpace' d) ≤ LebesgueMeasurable.sigmaAlgebra d := by sorry

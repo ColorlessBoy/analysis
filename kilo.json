@@ -1,0 +1,14 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "lean-lsp": {
+      "type": "local",
+      "command": ["uvx", "lean-lsp-mcp", "--lean-project-path", "/Users/penglingwei/Documents/lean/analysis"],
+      "enabled": true,
+      "timeout": 300000
+    }
+  },
+  "permission": {
+    "*": "allow"
+  }
+}

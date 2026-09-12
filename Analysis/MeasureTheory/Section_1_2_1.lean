@@ -26,8 +26,8 @@ lemma Box.interior_toSet {d : ℕ} (B : Box d) :
 
 /-- The closure of {name}`Box.toSet` expressed as a preimage. -/
 lemma Box.closure_toSet {d : ℕ} (B : Box d) :
-    closure B.toSet = (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)) ⁻¹'
-      Set.univ.pi (fun i => closure (B.side i).toSet) := by
+    _root_.closure B.toSet = (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)) ⁻¹'
+      Set.univ.pi (fun i => _root_.closure (B.side i).toSet) := by
   rw [Box.toSet_eq_ofLp_preimage,
     ← (PiLp.homeomorph 2 (fun _ : Fin d => ℝ)).preimage_closure,
     closure_pi_set]
@@ -50,12 +50,35 @@ lemma Box.isClosed_toSet_of_Icc {d : ℕ} (B : Box d)
 
 /-- Exercise 1.2.3(i) (Empty set) -/
 theorem Lebesgue_outer_measure.of_empty (d:ℕ) : Lebesgue_outer_measure (∅: Set (EuclideanSpace' d)) = 0 := by
-  sorry
+  apply le_antisymm
+  · unfold Lebesgue_outer_measure
+    apply sInf_le
+    refine ⟨(∅ : Set ℕ), (fun i => i.2.elim), ?_, ?_⟩
+    · simp
+    · simp
+  · unfold Lebesgue_outer_measure
+    apply le_sInf
+    intro V hV
+    obtain ⟨X, S, _, rfl⟩ := hV
+    apply tsum_nonneg
+    intro n
+    have hvol : 0 ≤ |S n|ᵥ := by
+      rw [Box.volume]
+      apply Finset.prod_nonneg
+      intro i _
+      rw [BoundedInterval.length]
+      exact le_max_right _ _
+    exact EReal.coe_nonneg.mpr hvol
 
 /-- Exercise 1.2.3(ii) (Monotonicity) -/
 theorem Lebesgue_outer_measure.mono {d: ℕ} {E F : Set (EuclideanSpace' d)} (h : E ⊆ F) :
     Lebesgue_outer_measure E ≤ Lebesgue_outer_measure F := by
-  sorry
+  unfold Lebesgue_outer_measure
+  apply sInf_le_sInf
+  intro V hV
+  obtain ⟨X, S, hF_cover, rfl⟩ := hV
+  refine ⟨X, S, ?_, rfl⟩
+  exact Set.Subset.trans h hF_cover
 
 /-- Lebesgue outer measure is non-negative.
     Since it's the sInf of sums of box volumes, which are all ≥ 0, the result is ≥ 0. -/
@@ -77,10 +100,343 @@ theorem Lebesgue_outer_measure.nonneg {d: ℕ} (E : Set (EuclideanSpace' d)) :
     exact le_max_right _ _
   exact EReal.coe_nonneg.mpr hvol
 
+/-- Helper lemma: For non-negative EReal sequence, the i-th term is bounded by the tsum. -/
+lemma EReal.le_tsum_of_nonneg {a : ℕ → EReal} (ha_nonneg : ∀ n, 0 ≤ a n) (i : ℕ) : a i ≤ ∑' n, a n := by
+  let b : ℕ → ENNReal := fun n => (a n).toENNReal
+  have ha_eq : ∀ n, a n = (b n : EReal) := fun n => (EReal.coe_toENNReal (ha_nonneg n)).symm
+  have h_tsum_eq : ∑' n, a n = (∑' n, b n : ENNReal).toEReal := by
+    calc
+      ∑' n, a n = ∑' n, (b n : EReal) := tsum_congr ha_eq
+      _ = (∑' n, b n : ENNReal).toEReal := by
+        let φ : ENNReal →+ EReal := {
+          toFun := (↑·)
+          map_zero' := by simp
+          map_add' := EReal.coe_ennreal_add
+        }
+        exact (Summable.map_tsum (f := b) ENNReal.summable φ continuous_coe_ennreal_ereal).symm
+  have h_enn_le : b i ≤ ∑' n, b n := ENNReal.le_tsum _
+  have h_coe_le : (b i : EReal) ≤ (∑' n, b n : ENNReal).toEReal :=
+    EReal.coe_ennreal_le_coe_ennreal_iff.mpr h_enn_le
+  calc
+    a i = (b i : EReal) := ha_eq i
+    _ ≤ (∑' n, b n : ENNReal).toEReal := h_coe_le
+    _ = ∑' n, a n := h_tsum_eq.symm
+
+/-- Helper lemma: If one term of a non-negative EReal series is ⊤, the tsum is ⊤. -/
+lemma EReal.tsum_eq_top_of_term_eq_top {a : ℕ → EReal} (ha_nonneg : ∀ n, 0 ≤ a n) (i : ℕ) (hi : a i = ⊤) :
+    ∑' n, a n = ⊤ := by
+  have h_le : a i ≤ ∑' n, a n := EReal.le_tsum_of_nonneg ha_nonneg i
+  rw [hi] at h_le
+  exact top_unique h_le
+
+/-- tsum-add for non-negative EReal sequences (via ENNReal). -/
+lemma EReal.tsum_add_of_nonneg {a b : ℕ → EReal} (ha : ∀ n, 0 ≤ a n) (hb : ∀ n, 0 ≤ b n) :
+    ∑' n, (a n + b n) = (∑' n, a n) + (∑' n, b n) := by
+  let a' : ℕ → ENNReal := fun n => (a n).toENNReal
+  let b' : ℕ → ENNReal := fun n => (b n).toENNReal
+  have ha_eq : ∀ n, a n = (a' n : EReal) := fun n => (EReal.coe_toENNReal (ha n)).symm
+  have hb_eq : ∀ n, b n = (b' n : EReal) := fun n => (EReal.coe_toENNReal (hb n)).symm
+  have h_add_eq : ∀ n, a n + b n = ((a' n + b' n : ENNReal) : EReal) := by
+    intro n
+    rw [ha_eq n, hb_eq n, EReal.coe_ennreal_add]
+  calc
+    ∑' n, (a n + b n) = ∑' n, ((a' n + b' n : ENNReal) : EReal) := tsum_congr h_add_eq
+    _ = (∑' n, (a' n : EReal)) + (∑' n, (b' n : EReal)) := (EReal.tsum_add_coe_ennreal (a := a') (b := b')).symm
+    _ = (∑' n, a n) + (∑' n, b n) := by
+      rw [tsum_congr ha_eq, tsum_congr hb_eq]
+
+/-- Geometric series: ∑ ε/2^\{n+1\} = ε -/
+lemma tsum_geometric_eps (ε : ℝ) (_hε : 0 < ε) : ∑' n : ℕ, ε / 2^(n+1) = ε := by
+  have h_eq : (fun n => ε / 2^(n+1)) = (fun n => ε / 2 * (1/2 : ℝ)^n) := by
+    ext n
+    have : (2:ℝ)^(n+1) = 2 * 2^n := by ring
+    rw [this]
+    field_simp; simp
+  rw [h_eq, tsum_mul_left, tsum_geometric_of_lt_one (by norm_num) (by norm_num)]
+  ring
+
 /-- Exercise 1.2.3(iii) (Countable subadditivity) -/
 theorem Lebesgue_outer_measure.union_le {d: ℕ} (E : ℕ → Set (EuclideanSpace' d)) :
     Lebesgue_outer_measure (⋃ i, E i) ≤ ∑' i, Lebesgue_outer_measure (E i) := by
-  sorry
+  by_cases hd : 0 < d
+  · -- Case d > 0: Use exists_cover_close (which requires hd) and combine via Nat.pairEquiv
+    apply EReal.le_of_forall_pos_le_add'
+    intro ε hε
+    by_cases hRHS_top : (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) = ⊤
+    · rw [hRHS_top]; exact le_top
+    · -- RHS + ε < ⊤, so each L_i is finite
+      have h_nonneg (i) : 0 ≤ Lebesgue_outer_measure (E i) := Lebesgue_outer_measure.nonneg _
+      have h_RHS_not_top : ∑' i, Lebesgue_outer_measure (E i) ≠ ⊤ := by
+        intro h_eq
+        apply hRHS_top
+        rw [h_eq]
+        simp
+      have h_finite_i (i) : Lebesgue_outer_measure (E i) ≠ ⊤ := by
+        intro h_inf_i
+        apply h_RHS_not_top
+        exact EReal.tsum_eq_top_of_term_eq_top h_nonneg i h_inf_i
+
+      -- For each i, get a ℕ-indexed cover of E_i within ε / 2^(i+1)
+      have h_covers : ∀ i, ∃ (S_i : ℕ → Box d), E i ⊆ ⋃ n, (S_i n).toSet ∧
+          ∑' n, (S_i n).volume.toEReal ≤ Lebesgue_outer_measure (E i) + ((ε / 2^(i+1 : ℕ)) : ℝ) := by
+        intro i
+        have h_eps_pos : 0 < ε / (2^(i+1 : ℕ) : ℝ) := div_pos hε (by positivity)
+        -- Use the ℕ-indexed characterization of outer measure
+        have hL_eq : Lebesgue_outer_measure (E i) = sInf (((fun S : ℕ → Box d ↦ ∑' n, (S n).volume.toEReal)) '' { S | E i ⊆ ⋃ n, (S n).toSet }) :=
+          Lebesgue_outer_measure_eq_nat_indexed hd (E i)
+        let img_set := ((fun S : ℕ → Box d ↦ ∑' n, (S n).volume.toEReal)) '' { S | E i ⊆ ⋃ n, (S n).toSet }
+        have h_nonempty : img_set.Nonempty := by
+          by_contra h_empty
+          have h_img_empty : img_set = ∅ := Set.not_nonempty_iff_eq_empty.mp h_empty
+          have h_sInf_top : sInf img_set = ⊤ := by
+            rw [h_img_empty]
+            exact @sInf_empty EReal _
+          -- Using hL_eq to get a contradiction with h_finite_i i
+          have : Lebesgue_outer_measure (E i) = ⊤ := by rw [hL_eq, h_sInf_top]
+          exact h_finite_i i this
+        have h_ne_bot : sInf img_set ≠ ⊥ := by
+          intro h_eq
+          have h_zero_le : (0 : EReal) ≤ sInf img_set := by
+            apply le_sInf
+            intro v hv
+            obtain ⟨S', _, rfl⟩ := hv
+            apply tsum_nonneg
+            intro n
+            exact EReal.coe_nonneg.mpr (Box.volume_nonneg _)
+          rw [h_eq] at h_zero_le
+          exact not_lt.mpr h_zero_le EReal.bot_lt_zero
+        have h_sInf_ne_top : sInf img_set ≠ ⊤ := by
+          -- From hL_eq and h_finite_i
+          intro h_eq
+          apply h_finite_i i
+          rw [hL_eq, h_eq]
+        -- sInf img_set < sInf img_set + (ε / 2^(i+1) : ℝ)
+        have h_lt : sInf img_set < sInf img_set + ((ε / 2^(i+1 : ℕ)) : ℝ) :=
+          EReal.lt_add_of_pos_coe h_eps_pos h_ne_bot h_sInf_ne_top
+        obtain ⟨V, hV_img, hV_lt⟩ := exists_lt_of_csInf_lt h_nonempty h_lt
+        obtain ⟨S_i, hS_cover_i, h_val⟩ := hV_img
+        -- h_val : (∑' n, (S_i n).volume.toEReal) = V (where V = (∑' n, (S_i n).volume.toEReal))
+        -- hV_lt : V < sInf img_set + (ε / 2^(i+1 : ℕ))
+        -- So: (∑' n, (S_i n).volume.toEReal) < sInf img_set + (ε / 2^(i+1 : ℕ))
+        have h_sum_lt : ∑' n, (S_i n).volume.toEReal < sInf img_set + ((ε / 2^(i+1 : ℕ)) : ℝ) := by
+          -- h_val is rfl (the equality is rfl from the image set)
+          simpa [h_val] using hV_lt
+        have hL_eq' : sInf img_set = Lebesgue_outer_measure (E i) := hL_eq.symm
+        rw [hL_eq'] at h_sum_lt
+        refine ⟨S_i, hS_cover_i, le_of_lt h_sum_lt⟩
+      choose S_i hS_cover_i hS_sum_i using h_covers
+
+      -- Combine using Nat.pairEquiv.symm : ℕ ≃ ℕ × ℕ
+      let e := Nat.pairEquiv.symm
+      let S : ℕ → Box d := fun k => (S_i (e k).1) (e k).2
+
+      have hS_cover : (⋃ i, E i) ⊆ ⋃ k, (S k).toSet := by
+        intro x hx
+        rcases Set.mem_iUnion.mp hx with ⟨i, hx_i⟩
+        have hx_cover : x ∈ ⋃ n, (S_i i n).toSet := hS_cover_i i hx_i
+        rcases Set.mem_iUnion.mp hx_cover with ⟨n, hx_n⟩
+        have h_S_val : S (e.symm (i, n)) = S_i i n := by
+          dsimp [S, e]
+          simp
+        rw [Set.mem_iUnion]
+        use e.symm (i, n)
+        rw [h_S_val]
+        exact hx_n
+
+      -- Bound the sum of the combined cover
+      have hS_sum : ∑' k, (S k).volume.toEReal ≤ (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) := by
+        -- For non-negative ERed f, finite partial sum ≤ tsum
+        have finset_sum_le_tsum' {f : ℕ → EReal} (hf : ∀ n, 0 ≤ f n) (t : Finset ℕ) :
+            (∑ n ∈ t, f n) ≤ ∑' n, f n := by
+          let g : ℕ → ENNReal := fun n => (f n).toENNReal
+          have hf_eq : ∀ n, f n = (g n : EReal) := fun n => (EReal.coe_toENNReal (hf n)).symm
+          let φ_enn : ENNReal →+ EReal := {
+            toFun := (↑·)
+            map_zero' := by simp
+            map_add' := EReal.coe_ennreal_add
+          }
+          have h_tsum_f : ∑' n, f n = (∑' n, g n : ENNReal).toEReal := by
+            calc
+              ∑' n, f n = ∑' n, (g n : EReal) := tsum_congr hf_eq
+              _ = (∑' n, g n : ENNReal).toEReal := by
+                exact (Summable.map_tsum (f := g) ENNReal.summable φ_enn continuous_coe_ennreal_ereal).symm
+          calc
+            (∑ n ∈ t, f n) = (∑ n ∈ t, (g n : EReal)) := by simp [hf_eq]
+            _ = ((∑ n ∈ t, g n : ENNReal) : EReal) := by simp [EReal.coe_ennreal_finset_sum]
+            _ ≤ (∑' n, g n : ENNReal).toEReal := by
+              have h_enn_sum_le : (∑ n ∈ t, g n : ENNReal) ≤ ∑' n, g n := ENNReal.sum_le_tsum t
+              exact EReal.coe_ennreal_le_coe_ennreal_iff.mpr h_enn_sum_le
+            _ = ∑' n, f n := h_tsum_f.symm
+
+        -- Reindex the combined sum to ℕ × ℕ using ENNReal.tsum_prod'
+        let f_enn : ℕ × ℕ → ENNReal := fun p => ENNReal.ofReal ((S_i p.1) p.2).volume
+        have h_enn_prod : ∑' (p : ℕ × ℕ), f_enn p = ∑' i, ∑' n, f_enn (i, n) := ENNReal.tsum_prod'
+
+        -- Coercion from ENNReal to EReal
+        let φ : ENNReal →+ EReal := {
+          toFun := (↑·)
+          map_zero' := by simp
+          map_add' := EReal.coe_ennreal_add
+        }
+
+        have h_S_vol_eq : ∀ k, (S k).volume.toEReal = φ (f_enn (e k)) := by
+          intro k
+          have h_vol_nonneg : 0 ≤ (S_i (e k).1 (e k).2).volume := Box.volume_nonneg _
+          calc
+            (S k).volume.toEReal = (S_i (e k).1 (e k).2).volume.toEReal := rfl
+            _ = ((ENNReal.ofReal ((S_i (e k).1 (e k).2).volume) : ENNReal) : EReal) := by
+              simp [EReal.coe_ennreal_ofReal, max_eq_left h_vol_nonneg]
+            _ = φ (f_enn (e k)) := rfl
+
+        -- ∑' k, (S k).volume.toEReal = ∑' i, ∑' n, ((S_i i n).volume.toEReal)
+        have h_sum_eq : ∑' k, (S k).volume.toEReal = ∑' i, ∑' n, ((S_i i n).volume.toEReal) := by
+          calc
+            ∑' k, (S k).volume.toEReal = ∑' k, φ (f_enn (e k)) := tsum_congr h_S_vol_eq
+            _ = φ (∑' k, f_enn (e k)) := by
+              have := (ENNReal.summable (f := f_enn ∘ e)).map_tsum φ continuous_coe_ennreal_ereal
+              simpa using this.symm
+            _ = φ (∑' p, f_enn p) := by rw [← Equiv.tsum_eq e f_enn]
+            _ = φ (∑' i, ∑' n, f_enn (i, n)) := by rw [h_enn_prod]
+            _ = ∑' i, ∑' n, φ (f_enn (i, n)) := by
+              calc
+                φ (∑' i, ∑' n, f_enn (i, n)) = ∑' i, φ (∑' n, f_enn (i, n)) := by
+                  have := (ENNReal.summable (f := fun (i : ℕ) => ∑' n, f_enn (i, n))).map_tsum φ continuous_coe_ennreal_ereal
+                  simpa using this
+                _ = ∑' i, ∑' n, φ (f_enn (i, n)) := by
+                  refine tsum_congr (fun i => ?_)
+                  have := (ENNReal.summable (f := fun n : ℕ => f_enn (i, n))).map_tsum φ continuous_coe_ennreal_ereal
+                  simpa
+            _ = ∑' i, ∑' n, ((S_i i n).volume.toEReal) := by
+              refine tsum_congr (fun i => tsum_congr (fun n => ?_))
+              calc
+                φ (f_enn (i, n)) = (ENNReal.ofReal ((S_i i n).volume) : EReal) := rfl
+                _ = ((S_i i n).volume : EReal) := by
+                  have h_nonneg' : 0 ≤ (S_i i n).volume := Box.volume_nonneg _
+                  simp [EReal.coe_ennreal_ofReal, max_eq_left h_nonneg']
+                _ = ((S_i i n).volume.toEReal) := rfl
+
+        rw [h_sum_eq]
+
+        -- Now bound via pointwise and partial sum argument
+        let a_i : ℕ → EReal := fun i => ∑' n, ((S_i i n).volume.toEReal)
+        let b_i : ℕ → EReal := fun i => Lebesgue_outer_measure (E i) + ((ε / 2^(i+1 : ℕ)) : ℝ)
+
+        have ha_nonneg : ∀ i, 0 ≤ a_i i := by
+          intro i
+          dsimp [a_i]
+          apply tsum_nonneg
+          intro n
+          exact EReal.coe_nonneg.mpr (Box.volume_nonneg _)
+
+        have hb_nonneg : ∀ i, 0 ≤ b_i i := by
+          intro i
+          have h_eps_nonneg : 0 ≤ ((ε / 2^(i+1 : ℕ)) : ℝ) := by positivity
+          exact add_nonneg (Lebesgue_outer_measure.nonneg (E i)) (EReal.coe_nonneg.mpr h_eps_nonneg)
+
+        have ha_le_b : ∀ i, a_i i ≤ b_i i := hS_sum_i
+
+        -- For any finite partial sum we have ∑_{i∈t} a_i ≤ ∑_{i∈t} b_i ≤ ∑' i, b_i
+        have h_partial_le : ∀ (t : Finset ℕ), (∑ i ∈ t, a_i i) ≤ ∑' i, b_i i := by
+          intro t
+          calc
+            (∑ i ∈ t, a_i i) ≤ (∑ i ∈ t, b_i i) := Finset.sum_le_sum (fun i hi => ha_le_b i)
+            _ ≤ ∑' i, b_i i := finset_sum_le_tsum' hb_nonneg t
+
+        -- Therefore the tsum of a_i is bounded by the tsum of b_i
+        have h_tsum_a_le_tsum_b : ∑' i, a_i i ≤ ∑' i, b_i i := by
+          apply EReal.tsum_le_of_sum_range_le_of_nonneg ha_nonneg
+          intro N
+          exact h_partial_le (Finset.range N)
+
+        -- Now compute ∑' i, b_i i = (∑' i, L_i) + ε
+        have h_summable_geom : Summable (fun i : ℕ => ε / 2^(i+1 : ℕ) : ℕ → ℝ) := by
+          have h_eq : (fun i : ℕ => ε / 2^(i+1 : ℕ) : ℕ → ℝ) = (fun i => (ε/2) * ((1/2 : ℝ) ^ i)) := by
+            ext i
+            calc
+              ε / 2^(i+1 : ℕ) = ε / (2 * 2^i) := by ring
+              _ = (ε/2) * (1 / 2^i) := by ring
+              _ = (ε/2) * ((1/2 : ℝ) ^ i) := by simp [div_eq_inv_mul]
+          rw [h_eq]
+          exact (summable_geometric_of_lt_one (by norm_num) (by norm_num)).mul_left (ε/2)
+        have hℝ : ∑' i : ℕ, (ε / 2^(i+1 : ℕ) : ℝ) = ε := tsum_geometric_eps ε hε
+        have h_eps_tsum : ∑' i, ((ε / 2^(i+1 : ℕ) : ℝ) : EReal) = (ε : EReal) := by
+          calc
+            ∑' i, ((ε / 2^(i+1 : ℕ) : ℝ) : EReal) = ((∑' i, (ε / 2^(i+1 : ℕ) : ℝ) : ℝ) : EReal) := by
+              simpa using (EReal.coe_tsum_of_nonneg (fun i => by positivity) h_summable_geom).symm
+            _ = (ε : EReal) := by simp [hℝ]
+        have h_add_tsum : ∑' i, b_i i = (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) := by
+          dsimp [b_i]
+          let eps_i : ℕ → ℝ := fun i => ε / 2^(i+1 : ℕ)
+          have h_eps_nonneg : ∀ i, 0 ≤ eps_i i := by
+            intro i; positivity
+          have hL : ∀ i, 0 ≤ Lebesgue_outer_measure (E i) := h_nonneg
+          have h_add_EReal : ∑' i, (Lebesgue_outer_measure (E i) + ((eps_i i : ℝ) : EReal)) =
+            (∑' i, Lebesgue_outer_measure (E i)) + (∑' i, ((eps_i i : ℝ) : EReal)) :=
+            EReal.tsum_add_of_nonneg (a := fun i => Lebesgue_outer_measure (E i))
+              (b := fun i => ((eps_i i : ℝ) : EReal)) hL (fun i => EReal.coe_nonneg.mpr (h_eps_nonneg i))
+          have h_sum_eps : ∑' i, ((eps_i i : ℝ) : EReal) = (ε : EReal) := by
+            simpa [eps_i] using h_eps_tsum
+          calc
+            ∑' i, (Lebesgue_outer_measure (E i) + ((eps_i i : ℝ) : EReal))
+                = (∑' i, Lebesgue_outer_measure (E i)) + (∑' i, ((eps_i i : ℝ) : EReal)) := h_add_EReal
+            _ = (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) := by rw [h_sum_eps]
+
+        rw [← h_add_tsum]
+        exact h_tsum_a_le_tsum_b
+
+      -- Relate outer measure to cover sum using the ℕ-indexed characterization
+      have h_le : Lebesgue_outer_measure (⋃ i, E i) ≤ ∑' k, (S k).volume.toEReal := by
+        rw [Lebesgue_outer_measure_eq_nat_indexed hd]
+        apply csInf_le
+        · -- The set of ℕ-indexed cover sums is bounded below by 0
+          use 0
+          intro v hv
+          obtain ⟨S', _, rfl⟩ := hv
+          apply tsum_nonneg
+          intro n
+          exact EReal.coe_nonneg.mpr (Box.volume_nonneg _)
+        · -- S is a valid cover of (⋃ i, E i)
+          exact ⟨S, hS_cover, rfl⟩
+
+      calc
+        Lebesgue_outer_measure (⋃ i, E i) ≤ ∑' k, (S k).volume.toEReal := h_le
+        _ ≤ (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) := hS_sum
+
+  · -- Case d = 0: use the explicit formula
+    have hd0 : d = 0 := by omega
+    subst hd0
+    classical
+    apply EReal.le_of_forall_pos_le_add'
+    intro ε hε
+    have h_formula : ∀ (F : Set (EuclideanSpace' 0)), Lebesgue_outer_measure F = if F.Nonempty then 1 else 0 :=
+      fun F => Lebesgue_outer_measure_of_dim_zero (E := F)
+    have h_nonneg (i) : 0 ≤ Lebesgue_outer_measure (E i) := Lebesgue_outer_measure.nonneg _
+    by_cases h_union_nonempty : (⋃ i, E i).Nonempty
+    · rw [h_formula, if_pos h_union_nonempty]
+      -- LHS = 1. Need 1 ≤ (∑' i, Lebesgue_outer_measure (E i)) + ε
+      have h_exists : ∃ i, (E i).Nonempty := by
+        obtain ⟨x, hx⟩ := h_union_nonempty
+        rcases Set.mem_iUnion.mp hx with ⟨i, hx_i⟩
+        exact ⟨i, ⟨x, hx_i⟩⟩
+      obtain ⟨i, hi⟩ := h_exists
+      have hi_formula : Lebesgue_outer_measure (E i) = 1 := by
+        rw [h_formula, if_pos hi]
+      have h_one_le_tsum : (1 : EReal) ≤ ∑' i, Lebesgue_outer_measure (E i) := by
+        calc
+          (1 : EReal) = Lebesgue_outer_measure (E i) := hi_formula.symm
+          _ ≤ ∑' i, Lebesgue_outer_measure (E i) := EReal.le_tsum_of_nonneg h_nonneg i
+      have h_eps_nonneg : (0 : EReal) ≤ (ε : EReal) := EReal.coe_nonneg.mpr (le_of_lt hε)
+      calc
+        (1 : EReal) ≤ ∑' i, Lebesgue_outer_measure (E i) := h_one_le_tsum
+        _ ≤ (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) := le_add_of_nonneg_right h_eps_nonneg
+    · rw [h_formula, if_neg h_union_nonempty]
+      -- LHS = 0 ≤ RHS
+      have h_zero_le_sum : (0 : EReal) ≤ ∑' i, Lebesgue_outer_measure (E i) :=
+        tsum_nonneg h_nonneg
+      have h_eps_nonneg : (0 : EReal) ≤ (ε : EReal) := EReal.coe_nonneg.mpr (le_of_lt hε)
+      have h_RHS_nonneg : (0 : EReal) ≤ (∑' i, Lebesgue_outer_measure (E i)) + (ε : EReal) :=
+        add_nonneg h_zero_le_sum h_eps_nonneg
+      exact h_RHS_nonneg
 
 /-- Finite subadditivity -/
 theorem Lebesgue_outer_measure.finite_union_le {d n:ℕ} (E: Fin n → Set (EuclideanSpace' d)) :
@@ -1545,14 +1901,6 @@ lemma subdivide_iter_covers {d:ℕ} (B : Box d) (k : ℕ) (x : EuclideanSpace' d
         simp only [hc]
         exact (BoundedInterval.mem_bisect_fst_iff (B''.side i) (x i) hx_i).mpr (le_of_lt hm)
 
-/-- Box volume is non-negative (product of non-negative interval lengths). -/
-lemma volume_nonneg {d : ℕ} (B : Box d) : 0 ≤ B.volume := by
-  unfold volume
-  apply Finset.prod_nonneg
-  intro i _
-  unfold BoundedInterval.length
-  exact le_max_right _ _
-
 /-- Closed boxes (all sides are {name}`BoundedInterval.Icc`) in Euclidean space are compact sets. -/
 lemma isCompact {d : ℕ} (B : Box d) (h_closed : ∀ i, ∃ a b, B.side i = BoundedInterval.Icc a b) :
     IsCompact B.toSet := by
@@ -2167,7 +2515,28 @@ example : set_dist (Ico 0 1).toSet (Icc 1 2).toSet = 0 := by
 theorem dist_of_disj_compact_pos {d:ℕ} (E F: Set (EuclideanSpace' d)) (hEn: E.Nonempty) (hFn: F.Nonempty)
     (hE: IsCompact E) (hF: IsCompact F) (hdisj: E ∩ F = ∅) :
     set_dist E F > 0 := by
-  sorry
+  have h_closed : IsClosed F := hF.isClosed
+  have h_disjoint : Disjoint E F := Set.disjoint_iff_inter_eq_empty.mpr hdisj
+  obtain ⟨r, hr_pos, h⟩ := Metric.exists_pos_forall_lt_edist hE h_closed h_disjoint
+  have h_lower : ∀ x ∈ E, ∀ y ∈ F, (r : ℝ) ≤ dist x y := by
+    intro x hx y hy
+    have h_edist : (r : ENNReal) < edist x y := h x hx y hy
+    have h_edist_dist : edist x y = ENNReal.ofReal (dist x y) := edist_dist x y
+    rw [h_edist_dist] at h_edist
+    have h_nonneg_r : 0 ≤ r := by linarith
+    have h_lt : ENNReal.ofReal r < ENNReal.ofReal (dist x y) := by
+      simpa using h_edist
+    have : r < dist x y := (ENNReal.ofReal_lt_ofReal_iff_of_nonneg h_nonneg_r).mp h_lt
+    exact le_of_lt this
+  unfold set_dist
+  apply lt_of_lt_of_le (by exact_mod_cast hr_pos)
+  apply le_csInf
+  · obtain ⟨x, hx⟩ := hEn
+    obtain ⟨y, hy⟩ := hFn
+    refine ⟨dist x y, (x, y), ⟨hx, hy⟩, rfl⟩
+  · intro d hd
+    obtain ⟨⟨x, y⟩, ⟨hx, hy⟩, rfl⟩ := hd
+    exact h_lower x hx y hy
 
 -- ========================================================================
 -- Start of Helper lemmas for Lemma 1.2.6
@@ -3175,16 +3544,6 @@ lemma preimage_Icc_eq_box (a b : ℝ) :
   · rintro ⟨y, hy, rfl⟩
     simp [Real.equiv_EuclideanSpace', EuclideanSpace'.equiv_Real] at hy ⊢
     exact hy
-
-/-- Geometric series: ∑ ε/2^\{n+1\} = ε -/
-lemma tsum_geometric_eps (ε : ℝ) (_hε : 0 < ε) : ∑' n : ℕ, ε / 2^(n+1) = ε := by
-  have h_eq : (fun n => ε / 2^(n+1)) = (fun n => ε / 2 * (1/2 : ℝ)^n) := by
-    ext n
-    have : (2:ℝ)^(n+1) = 2 * 2^n := by ring
-    rw [this]
-    field_simp; simp
-  rw [h_eq, tsum_mul_left, tsum_geometric_of_lt_one (by norm_num) (by norm_num)]
-  ring
 
 /-- The sum of interval lengths is 2ε -/
 lemma tsum_interval_lengths (ε : ℝ) (hε : 0 < ε) : ∑' n : ℕ, (2 * ε / 2^(n+1)) = 2 * ε := by
@@ -4338,11 +4697,95 @@ theorem Box.sum_volume_eq {d:ℕ} (B B': ℕ → Box d) (hdisj: Pairwise (Functi
   exact h_toReal_eq
 
 /-- Exercise 1.2.5: For any set that equals a countable union of almost disjoint boxes,
-    the Lebesgue outer measure equals the Jordan inner measure. -/
+    the Lebesgue outer measure equals the Jordan inner measure.
+    The hypothesis {name}`hfinite` ensures finite total volume, which is needed because
+    {name}`Jordan_inner_measure` takes values in ℝ (finite reals) and cannot represent ∞. -/
 theorem Lebesgue_outer_measure.eq_Jordan_inner_of_boxes {d:ℕ} (E: Set (EuclideanSpace' d)) (B: ℕ → Box d)
-    (hE: E = ⋃ n, (B n).toSet) (hdisj: Pairwise (Function.onFun AlmostDisjoint B)) :
+    (hE: E = ⋃ n, (B n).toSet) (hdisj: Pairwise (Function.onFun AlmostDisjoint B))
+    (hfinite : Lebesgue_outer_measure E ≠ ⊤) :
     Lebesgue_outer_measure E = Jordan_inner_measure E := by
-  sorry
+  have h_total : Lebesgue_outer_measure (⋃ n, (B n).toSet) = ∑' n, ((B n).volume : EReal) := by
+    calc
+      Lebesgue_outer_measure (⋃ n, (B n).toSet) = ∑' n, Lebesgue_outer_measure (B n).toSet :=
+        Lebesgue_outer_measure.union_of_almost_disjoint hdisj
+      _ = ∑' n, ((B n).volume : EReal) := by
+        refine tsum_congr (fun i => ?_)
+        rw [Lebesgue_outer_measure.elementary _ (IsElementary.box (B i)), IsElementary.measure_of_box]
+  have h_mE_tsum : Lebesgue_outer_measure E = ∑' n, ((B n).volume : EReal) := by
+    rw [hE, h_total]
+  rw [h_mE_tsum]
+  have h_tsum_ne_top : ∑' n, ((B n).volume : EReal) ≠ ⊤ := by
+    rw [← h_mE_tsum]; exact hfinite
+  have h_tsum_nonneg : 0 ≤ ∑' n, ((B n).volume : EReal) :=
+    tsum_nonneg (fun n => EReal.coe_nonneg.mpr (Box.volume_nonneg (B n)))
+  have h_tsum_not_bot : ∑' n, ((B n).volume : EReal) ≠ ⊥ := by
+    intro hbot
+    have h0le_bot : (0 : EReal) ≤ ⊥ := hbot ▸ h_tsum_nonneg
+    exact not_le.mpr EReal.bot_lt_zero h0le_bot
+  set s := (∑' n, ((B n).volume : EReal)).toReal with hs
+  have hs_sum : ∑' n, ((B n).volume : EReal) = (s : EReal) :=
+    (EReal.coe_toReal h_tsum_ne_top h_tsum_not_bot).symm
+  have h_bound_ereal : ∀ (m : ℝ) (hm : m ∈ {m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}),
+      (m : EReal) ≤ ∑' n, ((B n).volume : EReal) := by
+    intro m hm
+    rcases hm with ⟨A, hA, hAE, hm_eq⟩
+    subst hm_eq
+    calc
+      (hA.measure : EReal) = Lebesgue_outer_measure A := by
+        rw [Lebesgue_outer_measure.elementary A hA]
+      _ ≤ Lebesgue_outer_measure E := Lebesgue_outer_measure.mono hAE
+      _ = ∑' n, ((B n).volume : EReal) := h_mE_tsum
+  have h_bound_real : ∀ (m : ℝ) (hm : m ∈ {m | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure}), m ≤ s := by
+    intro m hm
+    have h_ereal : (m : EReal) ≤ (s : EReal) := by
+      calc
+        (m : EReal) ≤ ∑' n, ((B n).volume : EReal) := h_bound_ereal m hm
+        _ = (s : EReal) := hs_sum
+    exact_mod_cast h_ereal
+  have h_nonempty : Set.Nonempty {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+    refine ⟨0, ∅, IsElementary.empty d, Set.empty_subset _, ?_⟩
+    simp
+  apply le_antisymm
+  · -- Direction 1: ∑' |B n| ≤ (Jordan_inner_measure E : EReal)
+    have h_range_bound : ∀ N : ℕ, (∑ i ∈ Finset.range N, ((B i).volume : EReal)) ≤ (Jordan_inner_measure E : EReal) := by
+      intro N
+      let finB : Fin N → Box d := fun i => B i.val
+      have h_pw : Pairwise (Function.onFun AlmostDisjoint finB) :=
+        AlmostDisjoint.restrict_fin hdisj N
+      have hE_N_elem : IsElementary (⋃ i, (finB i).toSet) :=
+        IsElementary.iUnion_boxes finB
+      set E_N := ⋃ i, (finB i).toSet with hE_N_def
+      have hE_N_sub_E : E_N ⊆ E := by
+        rw [hE_N_def, hE]
+        intro x hx
+        simp only [Set.mem_iUnion] at hx ⊢
+        rcases hx with ⟨i, hi⟩
+        exact ⟨(i : ℕ), hi⟩
+      have h_measure_eq_real : hE_N_elem.measure = ∑ i : Fin N, (finB i).volume :=
+        IsElementary.almost_disjoint hE_N_elem finB hE_N_def.symm h_pw
+      have h_measure_eq_coe : (hE_N_elem.measure : EReal) = ∑ i : Fin N, ((finB i).volume : EReal) := by
+        calc
+          (hE_N_elem.measure : EReal) = ((∑ i : Fin N, (finB i).volume : ℝ) : EReal) := by exact_mod_cast h_measure_eq_real
+          _ = ∑ i : Fin N, ((finB i).volume : EReal) := by
+            simp [EReal.coe_finset_sum (fun i _ => Box.volume_nonneg (finB i))]
+      have h_mem : hE_N_elem.measure ∈ {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+        refine ⟨E_N, hE_N_elem, hE_N_sub_E, rfl⟩
+      have h_bddAbove : BddAbove {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} := by
+        refine ⟨s, fun m hm => h_bound_real m hm⟩
+      have h_inner_bound_real : hE_N_elem.measure ≤ Jordan_inner_measure E := by
+        unfold Jordan_inner_measure
+        exact le_csSup h_bddAbove h_mem
+      calc
+        (∑ i ∈ Finset.range N, ((B i).volume : EReal)) = (∑ i : Fin N, ((B i.val).volume : EReal)) := by
+          rw [← Fin.sum_univ_eq_sum_range (fun i : ℕ => ((B i).volume : EReal)) N]
+        _ = (∑ i : Fin N, ((finB i).volume : EReal)) := rfl
+        _ = (hE_N_elem.measure : EReal) := by rw [← h_measure_eq_coe]
+        _ ≤ (Jordan_inner_measure E : EReal) := by exact_mod_cast h_inner_bound_real
+    exact EReal.tsum_le_of_sum_range_le (fun n => Box.volume_nonneg (B n)) h_range_bound
+  · -- Direction 2: (Jordan_inner_measure E : EReal) ≤ ∑' |B n|
+    have h_csSup : sSup {m : ℝ | ∃ (A : Set (EuclideanSpace' d)) (hA : IsElementary A), A ⊆ E ∧ m = hA.measure} ≤ s :=
+      csSup_le h_nonempty h_bound_real
+    simpa [Jordan_inner_measure, hs_sum] using h_csSup
 
 def IsCube {d:ℕ} (B: Box d) : Prop := ∃ r, ∀ i, |B.side i|ₗ = r
 
@@ -5121,7 +5564,7 @@ theorem IsOpen.eq_union_boxes {d:ℕ} (hd : 0 < d) (E: Set (EuclideanSpace' d)) 
         have h_scale_lt : (↑(B_idx j).1 : ℤ) < ↑(B_idx i).1 := by exact_mod_cast hij_gt
         exact dyadicCubeLargerNotInSmaller hd h_scale_lt h_ji
 
-theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE: IsOpen E) : Lebesgue_outer_measure E = Jordan_inner_measure E := by
+theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE: IsOpen E) (hBounded : Bornology.IsBounded E) : Lebesgue_outer_measure E = Jordan_inner_measure E := by
   by_cases hd : d = 0
   · -- Dimension 0: In dim 0, open sets are either ∅ or Set.univ
     subst hd
@@ -5252,10 +5695,38 @@ theorem Lebesgue_outer_measure.of_open {d:ℕ} (E: Set (EuclideanSpace' d)) (hE:
       norm_num
     · -- Main case: E nonempty open set in dimension > 0
       have hE_nonempty : E.Nonempty := Set.nonempty_iff_ne_empty.mpr hE_empty
+      -- Since E is bounded, its Lebesgue outer measure is finite
+      have h_finite : Lebesgue_outer_measure E ≠ ⊤ := by
+        have ⟨r, h_sub_ball⟩ : ∃ (r : ℝ), E ⊆ Metric.closedBall (0 : EuclideanSpace' d) r := by
+          rwa [Metric.isBounded_iff_subset_closedBall (0 : EuclideanSpace' d)] at hBounded
+        let M := |r| + 2
+        let B_box : Box d := { side := fun _ => BoundedInterval.Icc (-M) M }
+        have hE_sub_box : E ⊆ B_box.toSet := by
+          intro y hy
+          have h_in_ball : y ∈ Metric.closedBall (0 : EuclideanSpace' d) r := h_sub_ball hy
+          simp only [Box.mem_toSet]
+          intro i
+          rw [Metric.mem_closedBall, dist_eq_norm, sub_zero] at h_in_ball
+          have h_coord : |y i| ≤ ‖y‖ := EuclideanSpace'.coord_le_norm y i
+          have h_norm : ‖y‖ ≤ r := h_in_ball
+          have h_M_bound : |y i| ≤ M := by
+            calc |y i| ≤ ‖y‖ := h_coord
+              _ ≤ r := h_norm
+              _ ≤ |r| := le_abs_self r
+              _ ≤ |r| + 2 := by linarith
+              _ = M := rfl
+          rcases abs_le.mp h_M_bound with ⟨h_low, h_high⟩
+          rw [BoundedInterval.set_Icc, Set.mem_Icc]
+          exact ⟨h_low, h_high⟩
+        have hB_box_finite : Lebesgue_outer_measure B_box.toSet ≠ ⊤ := by
+          have h_elem : IsElementary B_box.toSet := IsElementary.box B_box
+          rw [Lebesgue_outer_measure.elementary B_box.toSet h_elem]
+          exact EReal.coe_ne_top _
+        exact ne_top_of_le_ne_top hB_box_finite (Lebesgue_outer_measure.mono hE_sub_box)
       -- Decompose E into almost-disjoint dyadic boxes
       obtain ⟨B, hE_eq, hB_dyadic, hB_disj⟩ := IsOpen.eq_union_boxes hd' E hE hE_nonempty
       -- Apply lemma eq_Jordan_inner_of_boxes (Exercise 1.2.5)
-      exact Lebesgue_outer_measure.eq_Jordan_inner_of_boxes E B hE_eq hB_disj
+      exact Lebesgue_outer_measure.eq_Jordan_inner_of_boxes E B hE_eq hB_disj h_finite
 
 /-- Lemma 1.2.12 (Outer regularity). m\*(E) = inf\{m\*(U) : E ⊆ U, U open\}. -/
 theorem Lebesgue_outer_measure.eq {d:ℕ} (E: Set (EuclideanSpace' d)) : Lebesgue_outer_measure E = sInf { M | ∃ U, E ⊆ U ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} := by
@@ -5626,4 +6097,133 @@ lemma Lebesgue_outer_measure.finite_of_compact {d : ℕ} {E : Set (EuclideanSpac
   exact ne_top_of_le_ne_top h_B_finite (Lebesgue_outer_measure.mono h_E_sub_B)
 
 /-- Exercise 1.2.6 -/
-example : ∃ (d:ℕ) (E: Set (EuclideanSpace' d)), Lebesgue_outer_measure E ≠ sSup { M | ∃ U, U ⊆ E ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} := by sorry
+example : ∃ (d:ℕ) (E: Set (EuclideanSpace' d)), Lebesgue_outer_measure E ≠ sSup { M | ∃ U, U ⊆ E ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} := by
+  let I0 : Set ℝ := Set.Icc (0 : ℝ) 1
+  let Q : Set ℝ := Set.range (fun q : ℚ => (q : ℝ))
+  let Irr : Set ℝ := I0 \ Q
+  let E : Set (EuclideanSpace' 1) := Real.equiv_EuclideanSpace' '' Irr
+  refine ⟨1, E, ?_⟩
+  have hQ_measure : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' Q) = (0 : EReal) := by
+    apply Countable.Lebesgue_measure (by omega : 0 < 1)
+    apply Set.Countable.image
+    exact Set.countable_range (fun q : ℚ => (q : ℝ))
+  have h_I0_measure : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' I0) = (1 : EReal) := by
+    have h_eq_box : Real.equiv_EuclideanSpace' '' I0 = (BoundedInterval.Icc (0 : ℝ) 1 : Box 1).toSet := by
+      rw [BoundedInterval.coe_of_box, BoundedInterval.set_Icc]
+    rw [h_eq_box]
+    rw [Lebesgue_outer_measure.elementary _ (IsElementary.box _)]
+    rw [IsElementary.measure_of_box]
+    simp [Box.volume, BoundedInterval.length, BoundedInterval.a, BoundedInterval.b]
+  have h_measure_E_ge_1 : (1 : EReal) ≤ Lebesgue_outer_measure E := by
+    have h_cover : Real.equiv_EuclideanSpace' '' I0 = E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q) := by
+      calc
+        Real.equiv_EuclideanSpace' '' I0 = Real.equiv_EuclideanSpace' '' ((I0 \ Q) ∪ (I0 ∩ Q)) := by
+          rw [Set.diff_union_inter]
+        _ = Real.equiv_EuclideanSpace' '' (I0 \ Q) ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q) := by
+          rw [Set.image_union]
+        _ = E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q) := rfl
+    have h_inter_Q_measure : Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) = (0 : EReal) := by
+      apply le_antisymm ?_ (Lebesgue_outer_measure.nonneg _)
+      -- Show ≤ 0 via monotonicity: (I0 ∩ Q)-image ⊆ Q-image, and Q-image has measure 0
+      have h_sub : Real.equiv_EuclideanSpace' '' (I0 ∩ Q) ⊆ Real.equiv_EuclideanSpace' '' Q := by
+        intro z hz; rcases hz with ⟨x, hx, rfl⟩; exact ⟨x, hx.2, rfl⟩
+      calc
+        Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q))
+            ≤ Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' Q) := Lebesgue_outer_measure.mono h_sub
+        _ = (0 : EReal) := hQ_measure
+    have h_union_le : Lebesgue_outer_measure (E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q))
+        ≤ Lebesgue_outer_measure E + Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) := by
+      let F : Fin 2 → Set (EuclideanSpace' 1) := fun i => match i with | 0 => E | 1 => Real.equiv_EuclideanSpace' '' (I0 ∩ Q)
+      have h_union_eq : ⋃ i : Fin 2, F i = E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q) := by
+        ext x; simp [F]
+      have h_sum : ∑ i : Fin 2, Lebesgue_outer_measure (F i) = Lebesgue_outer_measure E + Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) := by
+        simp [F, Fin.sum_univ_two]
+      calc
+        Lebesgue_outer_measure (E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q))
+            = Lebesgue_outer_measure (⋃ i : Fin 2, F i) := by rw [h_union_eq]
+        _ ≤ ∑ i : Fin 2, Lebesgue_outer_measure (F i) := Lebesgue_outer_measure.finite_union_le F
+        _ = Lebesgue_outer_measure E + Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) := h_sum
+    calc
+      (1 : EReal) = Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' I0) := by rw [← h_I0_measure]
+      _ = Lebesgue_outer_measure (E ∪ Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) := by rw [h_cover]
+      _ ≤ Lebesgue_outer_measure E + Lebesgue_outer_measure (Real.equiv_EuclideanSpace' '' (I0 ∩ Q)) := h_union_le
+      _ = Lebesgue_outer_measure E + (0 : EReal) := by rw [h_inter_Q_measure]
+      _ = Lebesgue_outer_measure E := by simp
+  have h_measure_E_le_1 : Lebesgue_outer_measure E ≤ (1 : EReal) := by
+    rw [← h_I0_measure]
+    apply Lebesgue_outer_measure.mono
+    intro x hx
+    rcases hx with ⟨y, hy, rfl⟩
+    exact ⟨y, hy.1, rfl⟩
+  have h_measure_E : Lebesgue_outer_measure E = (1 : EReal) :=
+    le_antisymm h_measure_E_le_1 h_measure_E_ge_1
+  have h_nonempty_open_contains_rational {U : Set ℝ} (hU_open : IsOpen U) (hU_nonempty : U.Nonempty) : ∃ q : ℚ, (q : ℝ) ∈ U := by
+    obtain ⟨x, hx⟩ := hU_nonempty
+    rcases Metric.isOpen_iff.mp hU_open x hx with ⟨ε, hε, hball⟩
+    have hx_low : x - ε/2 < x + ε/2 := by nlinarith
+    obtain ⟨q, hq⟩ := exists_rat_btwn hx_low
+    use q
+    apply hball
+    rw [Metric.mem_ball, Real.dist_eq, abs_lt]
+    constructor <;> nlinarith
+  have h_only_empty : ∀ U, U ⊆ E → IsOpen U → U = ∅ := by
+    intro U hU_sub hU_open
+    by_contra hU_ne_empty
+    -- hU_ne_empty : ¬ U = ∅
+    have hU_nonempty : U.Nonempty := by
+      by_contra h_empty
+      exact hU_ne_empty (Set.not_nonempty_iff_eq_empty.mp h_empty)
+    obtain ⟨x, hx⟩ := hU_nonempty
+    have hx_E : x ∈ E := hU_sub hx
+    obtain ⟨y, hy_Irr, rfl⟩ := hx_E
+    let e : ℝ ≃ₜ EuclideanSpace' 1 :=
+      { toEquiv := Real.equiv_EuclideanSpace'
+        continuous_toFun := by
+          show Continuous (fun x : ℝ => WithLp.toLp 2 (fun _ : Fin 1 => x))
+          exact continuous_induced_rng.mpr (continuous_pi (fun _ => continuous_id))
+        continuous_invFun := by
+          exact PiLp.continuous_apply 2 (fun _ : Fin 1 => ℝ) ⟨0, by decide⟩
+      }
+    have h_preimage_open : IsOpen (e.symm '' U) := by
+      have h_eq : e.symm '' U = e⁻¹' U := by
+        ext z; constructor
+        · intro hz
+          rcases hz with ⟨u, hu, hz_eq⟩
+          have h_temp : e (e.symm u) ∈ U := by
+            simpa [Homeomorph.apply_symm_apply e u] using hu
+          simpa [congrArg e hz_eq.symm] using h_temp
+        · intro hz
+          refine ⟨e z, hz, ?_⟩
+          simp [e]
+      have h_open_preimage : IsOpen (e⁻¹' U) := hU_open.preimage e.continuous
+      rw [h_eq]
+      exact h_open_preimage
+    have hy_in_preimage : y ∈ e.symm '' U := by
+      simpa [e] using Set.mem_image_of_mem e.symm hx
+    have h_preimage_subset_Irr : e.symm '' U ⊆ Irr := by
+      intro z hz
+      obtain ⟨u, hu, rfl⟩ := hz
+      have hu_E : u ∈ E := hU_sub hu
+      obtain ⟨w, hw_Irr, rfl⟩ := hu_E
+      simpa [e] using hw_Irr
+    obtain ⟨q, hq⟩ := h_nonempty_open_contains_rational h_preimage_open ⟨y, hy_in_preimage⟩
+    have hq_Irr : (q : ℝ) ∈ Irr := h_preimage_subset_Irr hq
+    have hq_not_Q : (q : ℝ) ∉ Q := by
+      rcases hq_Irr with ⟨hq_I0, hq_not_Q⟩
+      exact hq_not_Q
+    have hq_Q : (q : ℝ) ∈ Q := Set.mem_range.mpr ⟨q, rfl⟩
+    exact hq_not_Q hq_Q
+  have h_set_eq : { M | ∃ U, U ⊆ E ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} = {(0 : EReal)} := by
+    ext M; constructor
+    · rintro ⟨U, hU_sub, hU_open, rfl⟩
+      have hU_empty : U = ∅ := h_only_empty U hU_sub hU_open
+      simp [hU_empty, Lebesgue_outer_measure.of_empty]
+    · intro hM
+      rcases hM with (rfl : M = (0 : EReal))
+      refine ⟨∅, Set.empty_subset _, isOpen_empty, ?_⟩
+      simp [Lebesgue_outer_measure.of_empty]
+  have h_sup : sSup { M | ∃ U, U ⊆ E ∧ IsOpen U ∧ M = Lebesgue_outer_measure U} = (0 : EReal) := by
+    rw [h_set_eq]
+    simp
+  rw [h_measure_E, h_sup]
+  simp

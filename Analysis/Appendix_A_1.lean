@@ -194,28 +194,93 @@ example {X Y Z:Prop} (h: [X,Y,Z].TFAE) : X ↔ Y := by
   exact h.out 0 1
 
 /-- Exercise A.1.1.  Fill in the first {syntax term}`sorry` with something reasonable. -/
-example {X Y:Prop} : ¬ ((X ∨ Y) ∧ ¬ (X ∧ Y)) ↔ sorry := by sorry
+example {X Y:Prop} : ¬ ((X ∨ Y) ∧ ¬ (X ∧ Y)) ↔ (X ↔ Y) := by
+  constructor
+  · intro hnotXOR
+    constructor
+    · intro hX
+      by_contra! hNY
+      apply hnotXOR
+      refine ⟨Or.inl hX, ?_⟩
+      intro hAnd
+      exact hNY hAnd.2
+    · intro hY
+      by_contra! hNX
+      apply hnotXOR
+      refine ⟨Or.inr hY, ?_⟩
+      intro hAnd
+      exact hNX hAnd.1
+  · intro hXY hXOR
+    rcases hXOR with ⟨hOr, hNotAnd⟩
+    rcases hOr with (hX | hY)
+    · apply hNotAnd
+      exact ⟨hX, hXY.mp hX⟩
+    · apply hNotAnd
+      exact ⟨hXY.mpr hY, hY⟩
 
 /-- Exercise A.1.2.  Fill in the first {syntax term}`sorry` with something reasonable. -/
-example {X Y:Prop} : ¬ (X ↔ Y) ↔ sorry := by sorry
+example {X Y:Prop} : ¬ (X ↔ Y) ↔ ((X ∧ ¬Y) ∨ (¬X ∧ Y)) := by
+  constructor
+  · intro h
+    by_cases hX : X
+    · left
+      have hnY : ¬Y := by
+        intro hY
+        apply h
+        exact ⟨fun _ => hY, fun _ => hX⟩
+      exact ⟨hX, hnY⟩
+    · right
+      have hY : Y := by
+        by_contra hnY
+        apply h
+        exact ⟨fun hX' => absurd hX' hX, fun hY' => absurd hY' hnY⟩
+      exact ⟨hX, hY⟩
+  · intro h hXY
+    rcases h with (⟨hX, hnY⟩ | ⟨hnX, hY⟩)
+    · exact hnY (hXY.mp hX)
+    · exact hnX (hXY.mpr hY)
 
 /-- Exercise A.1.3. -/
 def Exercise_A_1_3 : Decidable (∀ (X Y: Prop), (X → Y) → (¬X → ¬ Y) → (X ↔ Y)) := by
   --the first line of this construction should be either `apply isTrue` or `apply isFalse`,
-  --depending on whether you believe the given statement to be true or false. 
-  sorry
+  --depending on whether you believe the given statement to be true or false.
+  apply isTrue
+  intro X Y hXY hNotXNotY
+  constructor
+  · exact hXY
+  · intro hY
+    by_contra hNX
+    have hNY : ¬ Y := hNotXNotY hNX
+    exact hNY hY
 
 /-- Exercise A.1.4. -/
 def Exercise_A_1_4 : Decidable (∀ (X Y: Prop), (X → Y) → (¬Y → ¬ X) → (X ↔ Y)) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isFalse
+  intro h
+  have hFalseTrue : (False → True) → (¬True → ¬False) → (False ↔ True) := h False True
+  have hF2T : False → True := False.elim
+  have hnT2nF : ¬True → ¬False := by
+    intro hnT
+    exact False.elim (hnT trivial)
+  have hFalseIffTrue : False ↔ True := hFalseTrue hF2T hnT2nF
+  exact hFalseIffTrue.mpr trivial
 
 /-- Exercise A.1.5. -/
 def Exercise_A_1_5 : Decidable (∀ (X Y Z: Prop), (X ↔ Y) → (Y ↔ Z) → [X,Y,Z].TFAE) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro X Y Z hXY hYZ
+  tfae_have 1 ↔ 2 := hXY
+  tfae_have 2 ↔ 3 := hYZ
+  tfae_finish
 
 /-- Exercise A.1.6. -/
 def Exercise_A_1_6 : Decidable (∀ (X Y Z: Prop), (X → Y) → (Y → Z) → (Z → X) → [X,Y,Z].TFAE) := by
   -- the first line of this construction should be either `apply isTrue` or `apply isFalse`.
-  sorry
+  apply isTrue
+  intro X Y Z hXY hYZ hZX
+  tfae_have 1 → 2 := hXY
+  tfae_have 2 → 3 := hYZ
+  tfae_have 3 → 1 := hZX
+  tfae_finish

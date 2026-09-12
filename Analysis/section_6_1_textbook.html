@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第6.1节：<span class="t" data-zh="收敛与极限定律" data-en="Convergence and limit laws"></span> - Terence Tao</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Source Serif 4', 'STIX Two Text', serif;
+            font-size: 18px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #fefefe;
+            color: #333;
+        }
+        h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: #1a1a1a; }
+        .book-info { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: #2c2c2c; }
+        .section-number { font-size: 0.75em; color: #888; display: block; margin-bottom: 0.3em; }
+        p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+        .definition { background: #f8f9fa; border-left: 4px solid #4a90d9; padding: 15px 20px; margin: 1.5em 0; }
+        .definition .label { font-weight: 600; font-style: normal; color: #2c5a8a; }
+        .remark { color: #555; padding-left: 1.5em; border-left: 2px solid #ddd; margin: 1.5em 0; }
+        .remark strong { color: #333; }
+        .proof { background: #fff; padding: 15px 20px 15px 40px; margin: 1em 0; font-size: 0.95em; }
+        .proof::before { content: "证明."; font-style: italic; color: #666; }
+        .proof::after { content: "∎"; display: block; text-align: right; color: #999; margin-top: 0.5em; }
+        .exercise { background: #f0f4f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 15px 20px; margin: 1.5em 0; }
+        .exercise .label { font-weight: 600; color: #3a6a9a; display: block; margin-bottom: 0.5em; }
+        .proposition-box { background: #f0f7f0; border-left: 4px solid #5a9a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .proposition-box .label { font-weight: 600; color: #2d5a2d; }
+        .lemma-box { background: #f5f0f7; border-left: 4px solid #8a5a9a; padding: 15px 20px; margin: 1.5em 0; }
+        .lemma-box .label { font-weight: 600; color: #5a2d6a; }
+        .theorem-box { background: #fff5f0; border-left: 4px solid #d97a5a; padding: 15px 20px; margin: 1.5em 0; }
+        .theorem-box .label { font-weight: 600; color: #b04f2d; }
+        .example { background: #fffaf0; border-left: 4px solid #d9a85a; padding: 12px 18px; margin: 1.5em 0; }
+        .example .label { font-weight: 600; color: #8a6620; }
+        .formula { font-family: 'STIX Two Text', 'Times New Roman', serif; font-size: 1.1em; padding: 10px 0; text-align: center; overflow-x: auto; }
+        .chapter-marker { color: #888; font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+        .page-ref { color: #999; font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+        .note { background: #fff8e7; border: 1px solid #e0d8c0; padding: 10px 15px; margin: 1em 0; font-size: 0.9em; color: #665; }
+        .note::before { content: "注: "; font-weight: 600; }
+        .supplement { background: #f0f7ff; border-left: 4px solid #e06090; padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+        .supplement .sup-title { font-weight: 700; color: #b04060; font-size: 1.05em; margin-bottom: 0.5em; display: block; }
+        .supplement p { text-indent: 0; font-size: 0.95em; }
+        .supplement ul { font-size: 0.95em; padding-left: 1.5em; }
+        .supplement li { margin: 0.3em 0; }
+        .code-block { background: #f5f5f5; padding: 12px 16px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; margin: 1em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #eee; color: #888; font-size: 0.85em; }
+        .toc { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; }
+        .toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: #444; }
+        .toc ol { margin: 0; padding-left: 1.5em; }
+        .toc li { margin: 0.3em 0; font-size: 0.95em; }
+        .toc a { color: #4a6fa5; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .lang-toggle { text-align: center; margin: 0 0 20px 0; }
+        .lang-toggle button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid #ccc; border-radius: 20px; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+        .lang-toggle button:hover { border-color: #4a90d9; color: #4a90d9; }
+        .lang-toggle button.on { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .t { border-bottom: 1px dotted #c0c0c0; cursor: help; position: relative; }
+        .t::before { content: attr(data-zh); }
+        .t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: #fff; background: #555; padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; transition-delay: 0s; }
+        .t:hover::after { opacity: 1; transition-delay: 0.4s; }
+        .lang-en .t::after { font-size: 0.85em; color: #888; margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+    </style>
+    <script>
+        var currentLang = localStorage.getItem('section61_lang') || 'zh';
+        document.addEventListener('DOMContentLoaded', function() { applyLang(); });
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('section61_lang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            var btn = document.getElementById('langBtn');
+            var body = document.body;
+            if (currentLang === 'en') {
+                btn.textContent = 'EN 中文';
+                btn.classList.add('on');
+                body.classList.add('lang-en');
+            } else {
+                btn.textContent = '中 EN';
+                btn.classList.remove('on');
+                body.classList.remove('lang-en');
+            }
+        }
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+</div>
+
+<div class="lang-toggle">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+</div>
+
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第6.1节</span>
+    <span class="t" data-zh="收敛与极限定律" data-en="Convergence and Limit Laws"></span>
+    <span class="page-ref">第109–114页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s61-intro">引言：从形式极限到真正的极限</a></li>
+        <li><a href="#s61-def611"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.1：实数之间的距离</a></li>
+        <li><a href="#s61-def612"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.2：ε-接近</a></li>
+        <li><a href="#s61-def613"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.3：Cauchy 序列（实数版）</a></li>
+        <li><a href="#s61-prop614"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.4：有理 Cauchy 序列的一致性</a></li>
+        <li><a href="#s61-def615"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.5：收敛</a></li>
+        <li><a href="#s61-example616"><span class="t" data-zh="例子" data-en="Example"></span> 6.1.6</a></li>
+        <li><a href="#s61-prop617"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.7：极限的唯一性</a></li>
+        <li><a href="#s61-def618"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.8：极限记号</a></li>
+        <li><a href="#s61-prop6111"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.11：序列代数</a></li>
+        <li><a href="#s61-prop6112"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.12：极限定律</a></li>
+        <li><a href="#s61-cor6113"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.1.13：有界序列</a></li>
+        <li><a href="#s61-prop6114"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.14：序列的序关系</a></li>
+        <li><a href="#s61-cor6115"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.1.15：极限的序性质</a></li>
+        <li><a href="#s61-prop6116"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.16：夹逼定理</a></li>
+        <li><a href="#s61-prop6117"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.17：零判别法</a></li>
+        <li><a href="#s61-supp">补充说明</a></li>
+        <li><a href="#s61-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div class="chapter-marker" id="s61-intro">— 引言 —</div>
+
+<p>
+在第 5 章中，我们将实数定义为有理 Cauchy 序列的<strong>形式极限</strong> \(\text{LIM}_{n\to\infty} a_n\)，
+并在此基础上定义了各种运算。然而，与整数（从形式差最终替换为真正的差）和有理数（从形式商替换为真正的商）不同，
+我们还没有完成实数的构造，因为我们从未定义过<strong>真正的极限</strong> \(\lim_{n\to\infty} a_n\)。
+</p>
+
+<p>
+现在是时候修正这一点了。本节将定义实数序列的极限，并证明极限运算满足我们期望的所有性质。
+更重要的是，我们将证明<strong>收敛序列必定是 Cauchy 序列</strong>，
+以及<strong>Cauchy 序列必定收敛</strong>（这正是实数完备性的体现）。
+</p>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：第 6 章的结构</span>
+    <p>
+    第 6 章是分析学的核心章节，标志着从代数（构造数系）到分析（研究极限）的转变：
+    </p>
+    <ul>
+        <li><strong>6.1 节</strong>：定义收敛、极限，证明极限定律和夹逼定理；</li>
+        <li><strong>6.2 节</strong>：证明 Cauchy 序列必定收敛（完备性定理）；</li>
+        <li><strong>6.3 节</strong>：上、下极限；</li>
+        <li><strong>6.4 节</strong>：上极限和下极限；</li>
+        <li><strong>6.5 节</strong>：某些重要的极限；</li>
+        <li><strong>6.6 节</strong>：子序列；</li>
+        <li><strong>6.7 节</strong>：实指数运算（下）。</li>
+    </ul>
+    <p>
+    本节（6.1）是整个极限理论的基础。
+    </p>
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.1.1 ========== -->
+<div id="s61-def611">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.1：实数之间的距离</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.1（实数之间的距离）。</span>
+    给定两个实数 \(x\) 和 \(y\)，定义它们之间的<strong>距离</strong> \(d(x, y)\) 为
+    \[
+    d(x, y) := |x - y|.
+    \]
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个定义与有理数的距离定义（定义 4.3.2）完全一致。
+    命题 4.3.3（三角不等式等性质）对实数同样成立，因为实数满足所有有理数的代数定律。
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.1.2 ========== -->
+<div id="s61-def612">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.2：ε-接近</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.2（ε-接近的实数）。</span>
+    设 \(\varepsilon > 0\) 为实数。称两个实数 \(x, y\) 是 <strong>\(\varepsilon\)-接近</strong>的，
+    如果 \(d(y, x) \leq \varepsilon\)。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这与有理数的 \(\varepsilon\)-接近定义（定义 4.3.4）一致。
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.1.3 ========== -->
+<div id="s61-def613">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.3：Cauchy 序列（实数版）</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.3（实数的 Cauchy 序列）。</span>
+    设 \(\varepsilon > 0\) 为实数。
+    <ul>
+        <li>称从某个整数索引 \(N\) 开始的实数序列 \((a_n)_{n=N}^\infty\) 是 <strong>\(\varepsilon\)-稳定</strong>的，
+        如果对所有 \(j, k \geq N\)，\(a_j\) 和 \(a_k\) 是 \(\varepsilon\)-接近的。</li>
+        <li>称从某个整数索引 \(m\) 开始的实数序列 \((a_n)_{n=m}^\infty\) 是 <strong>最终 \(\varepsilon\)-稳定</strong>的，
+        如果存在 \(N \geq m\) 使得 \((a_n)_{n=N}^\infty\) 是 \(\varepsilon\)-稳定的。</li>
+        <li>称 \((a_n)_{n=m}^\infty\) 是 <strong>Cauchy 序列</strong>，
+        如果它对每个 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的。</li>
+    </ul>
+</div>
+
+<p>
+换句话说，实数序列 \((a_n)_{n=m}^\infty\) 是 Cauchy 序列，当且仅当：
+对每个实数 \(\varepsilon > 0\)，存在 \(N \geq m\) 使得对所有 \(n, n' \geq N\)，有 \(|a_n - a_{n'}| \leq \varepsilon\)。
+</p>
+
+<div class="remark">
+    <strong>注。</strong> 这些定义与有理数的对应定义（定义 5.1.3、5.1.6、5.1.8）一致，
+    但验证 Cauchy 序列定义的一致性需要一些小心（见命题 6.1.4）。
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.1.4 ========== -->
+<div id="s61-prop614">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.4：有理 Cauchy 序列的一致性</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.4。</span>
+    设 \((a_n)_{n=m}^\infty\) 是从某个整数索引 \(m\) 开始的有理数序列。
+    则 \((a_n)_{n=m}^\infty\) 在定义 5.1.8 的意义下是 Cauchy 序列，
+    当且仅当它在定义 6.1.3 的意义下是 Cauchy 序列。
+</div>
+
+<div class="proof">
+    <strong>方向一：</strong> 假设 \((a_n)_{n=m}^\infty\) 在定义 6.1.3 的意义下是 Cauchy 序列，
+    则它对每个实数 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的。
+    特别地，它对每个有理数 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的，
+    因此它在定义 5.1.8 的意义下是 Cauchy 序列。
+    <br><br>
+    <strong>方向二：</strong> 假设 \((a_n)_{n=m}^\infty\) 在定义 5.1.8 的意义下是 Cauchy 序列，
+    则它对每个有理数 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-稳定的。
+    设 \(\varepsilon > 0\) 为任意实数，由命题 5.4.12，存在有理数 \(\varepsilon' > 0\) 满足 \(\varepsilon' < \varepsilon\)。
+    由于 \(\varepsilon'\) 是有理数，我们知道 \((a_n)_{n=m}^\infty\) 是最终 \(\varepsilon'\)-稳定的；
+    而 \(\varepsilon' < \varepsilon\) 意味着 \((a_n)_{n=m}^\infty\) 也是最终 \(\varepsilon\)-稳定的。
+    由于 \(\varepsilon\) 是任意正实数，因此 \((a_n)_{n=m}^\infty\) 在定义 6.1.3 的意义下是 Cauchy 序列。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 由于这个命题，我们不再区分定义 5.1.8 和定义 6.1.3，
+    而将 Cauchy 序列的概念视为一个统一的概念。
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.1.5 ========== -->
+<div id="s61-def615">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.5：收敛</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.5（序列的收敛）。</span>
+    设 \(\varepsilon > 0\) 为实数，\(L\) 为实数。
+    <ul>
+        <li>称从某个整数索引 \(N\) 开始的实数序列 \((a_n)_{n=N}^\infty\) 是 <strong>\(\varepsilon\)-接近于 \(L\)</strong> 的，
+        如果对每个 \(n \geq N\)，\(a_n\) 与 \(L\) 是 \(\varepsilon\)-接近的，
+        即 \(|a_n - L| \leq \varepsilon\)。</li>
+        <li>称从某个整数索引 \(m\) 开始的实数序列 \((a_n)_{n=m}^\infty\) 是 <strong>最终 \(\varepsilon\)-接近于 \(L\)</strong> 的，
+        如果存在 \(N \geq m\) 使得 \((a_n)_{n=N}^\infty\) 是 \(\varepsilon\)-接近于 \(L\) 的。</li>
+        <li>称 \((a_n)_{n=m}^\infty\) <strong>收敛到 \(L\)</strong>，
+        如果它对每个实数 \(\varepsilon > 0\) 都是最终 \(\varepsilon\)-接近于 \(L\) 的。</li>
+    </ul>
+</div>
+
+<p>
+可以将所有定义展开，更直接地写出收敛的概念（见习题 6.1.2）：
+序列 \((a_n)_{n=m}^\infty\) 收敛到 \(L\)，当且仅当对每个 \(\varepsilon > 0\)，
+存在 \(N \geq m\) 使得对所有 \(n \geq N\)，有 \(|a_n - L| \leq \varepsilon\)。
+</p>
+
+<hr>
+
+<!-- ========== 例子 6.1.6 ========== -->
+<div id="s61-example616">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Example"></span> 6.1.6</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.1.6。</span>
+    考虑序列
+    \[
+    0.9, \quad 0.99, \quad 0.999, \quad 0.9999, \ldots
+    \]
+    这个序列是 0.1-接近于 1 的，但不是 0.01-接近于 1 的（因为第一个元素 0.9 不满足）。
+    然而，它是<strong>最终</strong> 0.01-接近于 1 的（从第二项开始）。
+    事实上，对每个实数 \(\varepsilon > 0\)，这个序列都是最终 \(\varepsilon\)-接近于 1 的，
+    因此它收敛到 1。
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.1.7 ========== -->
+<div id="s61-prop617">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.7：极限的唯一性</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.7（极限的唯一性）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是从某个整数索引 \(m\) 开始的实数序列，
+    设 \(L \neq L'\) 是两个不同的实数。
+    则 \((a_n)_{n=m}^\infty\) 不可能既收敛到 \(L\) 又收敛到 \(L'\)。
+</div>
+
+<div class="proof">
+    假设为了引出矛盾，\((a_n)_{n=m}^\infty\) 既收敛到 \(L\) 又收敛到 \(L'\)。
+    令 \(\varepsilon = |L - L'|/3\)；注意到 \(\varepsilon\) 是正的，因为 \(L \neq L'\)。
+    <br><br>
+    由于 \((a_n)_{n=m}^\infty\) 收敛到 \(L\)，存在 \(N \geq m\) 使得对所有 \(n \geq N\)，有 \(d(a_n, L) \leq \varepsilon\)。
+    类似地，存在 \(M \geq m\) 使得对所有 \(n \geq M\)，有 \(d(a_n, L') \leq \varepsilon\)。
+    <br><br>
+    特别地，令 \(n := \max(N, M)\)，则 \(d(a_n, L) \leq \varepsilon\) 且 \(d(a_n, L') \leq \varepsilon\)。
+    由三角不等式，
+    \[
+    d(L, L') \leq d(L, a_n) + d(a_n, L') \leq 2\varepsilon = \frac{2|L - L'|}{3}.
+    \]
+    但这意味着 \(|L - L'| \leq \frac{2|L - L'|}{3}\)，与 \(|L - L'| > 0\) 矛盾。
+    因此不可能既收敛到 \(L\) 又收敛到 \(L'\)。
+</div>
+
+<hr>
+
+<!-- ========== 定义 6.1.8 ========== -->
+<div id="s61-def618">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.8：极限记号</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.8（序列的极限）。</span>
+    如果序列 \((a_n)_{n=m}^\infty\) 收敛到某个实数 \(L\)，
+    我们称 \((a_n)_{n=m}^\infty\) 是<strong>收敛的</strong>，
+    其<strong>极限</strong>为 \(L\)；记作
+    \[
+    L = \lim_{n\to\infty} a_n.
+    \]
+    如果序列 \((a_n)_{n=m}^\infty\) 不收敛到任何实数 \(L\)，
+    我们称它是<strong>发散的</strong>，并且不定义 \(\lim_{n\to\infty} a_n\)。
+</div>
+
+<div class="remark">
+    <strong>注 6.1.9。</strong> 记号 \(\lim_{n\to\infty} a_n\) 没有给出序列的起始索引 \(m\) 的任何信息，
+    但起始索引是无关紧要的（习题 6.1.3）。
+    因此在后续讨论中，我们不会太在意序列从哪里开始，因为我们主要关注它们的极限。
+</div>
+
+<div class="remark">
+    <strong>注 6.1.10。</strong> 用于表示索引的字母的选择是无关紧要的：
+    短语 \(\lim_{n\to\infty} a_n\) 与 \(\lim_{k\to\infty} a_k\) 的含义完全相同。
+    有时为了避免记号冲突，改变索引的标签是方便的。
+</div>
+
+<p>
+我们有时用短语"\(a_n \to x\) 当 \(n \to \infty\)"作为"\((a_n)_{n=m}^\infty\) 收敛到 \(x\)"的替代写法。
+请注意，单独的陈述"\(a_n \to x\)"和"\(n \to \infty\)"没有严格的含义；
+这个短语只是一个约定，当然是一个非常有启发性的约定。
+</p>
+
+<hr>
+
+<div class="chapter-marker">— 序列代数与极限定律 —</div>
+
+<!-- ========== 命题 6.1.11 ========== -->
+<div id="s61-prop6111">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.11：序列代数</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.11（序列代数）。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是实数序列，
+    \(c\) 是实数。则我们可以定义序列 \((a_n + b_n)_{n=m}^\infty\)、\((a_n b_n)_{n=m}^\infty\)、
+    \((\max(a_n, b_n))_{n=m}^\infty\)、\((\min(a_n, b_n))_{n=m}^\infty\) 和 \((c a_n)_{n=m}^\infty\)。
+    如果 \(c \neq 0\) 且 \(a_n \neq 0\) 对所有 \(n \geq m\)，还可以定义 \((a_n^{-1})_{n=m}^\infty\)。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这只是一个记号上的命题，确认序列可以逐项进行代数运算。
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.1.12 ========== -->
+<div id="s61-prop6112">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.12：极限定律</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.12（极限定律）。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是收敛的实数序列，
+    \(c\) 是实数。则：
+    <ol type="a">
+        <li>序列 \((a_n + b_n)_{n=m}^\infty\) 收敛到 \(\lim_{n\to\infty} a_n + \lim_{n\to\infty} b_n\)；</li>
+        <li>序列 \((a_n b_n)_{n=m}^\infty\) 收敛到 \((\lim_{n\to\infty} a_n)(\lim_{n\to\infty} b_n)\)；</li>
+        <li>对任何实数 \(c\)，序列 \((c a_n)_{n=m}^\infty\) 收敛到 \(c \lim_{n\to\infty} a_n\)；</li>
+        <li>序列 \((a_n - b_n)_{n=m}^\infty\) 收敛到 \(\lim_{n\to\infty} a_n - \lim_{n\to\infty} b_n\)；</li>
+        <li>序列 \((\max(a_n, b_n))_{n=m}^\infty\) 收敛到 \(\max(\lim_{n\to\infty} a_n, \lim_{n\to\infty} b_n)\)；</li>
+        <li>序列 \((\min(a_n, b_n))_{n=m}^\infty\) 收敛到 \(\min(\lim_{n\to\infty} a_n, \lim_{n\to\infty} b_n)\)；</li>
+        <li>如果 \(a_n \neq 0\) 对所有 \(n \geq m\)，且 \(\lim_{n\to\infty} a_n \neq 0\)，
+        则 \((a_n^{-1})_{n=m}^\infty\) 收敛到 \((\lim_{n\to\infty} a_n)^{-1}\)；</li>
+        <li>如果 \(b_n \neq 0\) 对所有 \(n \geq m\)，且 \(\lim_{n\to\infty} b_n \neq 0\)，
+        则 \((a_n / b_n)_{n=m}^\infty\) 收敛到 \(\frac{\lim_{n\to\infty} a_n}{\lim_{n\to\infty} b_n}\)。</li>
+    </ol>
+</div>
+
+<div class="proof">
+    证明略（见教材），主要使用 \(\varepsilon\)-\(\delta\) 方法和三角不等式。
+    关键思想是：如果 \(a_n\) 接近 \(L\)，\(b_n\) 接近 \(M\)，则 \(a_n + b_n\) 接近 \(L + M\)，等等。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：Lean 中的极限定律</span>
+    <p>
+    在 <code>Section_6_1.lean</code> 中，这些极限定律被形式化为：
+    </p>
+    <ul>
+        <li><code>Sequence.lim_add</code>：加法的极限</li>
+        <li><code>Sequence.lim_mul</code>：乘法的极限</li>
+        <li><code>Sequence.lim_neg</code>：取负的极限</li>
+        <li><code>Sequence.lim_sub</code>：减法的极限</li>
+        <li><code>Sequence.lim_inv</code>：倒数的极限</li>
+        <li><code>Sequence.lim_div</code>：除法的极限</li>
+        <li><code>Sequence.lim_max</code>：最大值的极限</li>
+        <li><code>Sequence.lim_min</code>：最小值的极限</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 推论 6.1.13 / 有界序列 ========== -->
+<div id="s61-cor6113">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.1.13–6.1.18：有界序列</h3>
+</div>
+
+<div class="definition" style="font-style: normal;">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.1.16（有界序列）。</span>
+    称实数序列 \((a_n)_{n=m}^\infty\) 被实数 \(M\) <strong>界定</strong>，
+    如果对所有 \(n \geq m\) 有 \(|a_n| \leq M\)。
+    称 \((a_n)_{n=m}^\infty\) 是<strong>有界的</strong>，如果存在某个实数 \(M > 0\) 使它被 \(M\) 界定。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个定义与定义 5.1.12 一致（见习题 6.1.7）。
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.12（收敛序列是 Cauchy 序列）。</span>
+    假设 \((a_n)_{n=m}^\infty\) 是收敛的实数序列。则 \((a_n)_{n=m}^\infty\) 也是 Cauchy 序列。
+</div>
+
+<div class="proof">
+    见习题 6.1.5。
+    <br><br>
+    <strong>思路：</strong> 设 \((a_n)_{n=m}^\infty\) 收敛到 \(L\)。对给定的 \(\varepsilon > 0\)，
+    存在 \(N\) 使得对所有 \(n \geq N\)，有 \(|a_n - L| \leq \varepsilon/2\)。
+    因此对 \(n, n' \geq N\)，由三角不等式：
+    \[
+    |a_n - a_{n'}| \leq |a_n - L| + |L - a_{n'}| \leq \varepsilon/2 + \varepsilon/2 = \varepsilon.
+    \]
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.1.13。</span>
+    序列 \(1, -1, 1, -1, 1, -1, \ldots\) 不是 Cauchy 序列
+    （因为它不是最终 1-稳定的），因此由命题 6.1.12 也不是收敛序列。
+</div>
+
+<div class="remark">
+    <strong>注 6.1.14。</strong> 命题 6.1.12 的逆命题见定理 6.4.18：
+    <strong>每个 Cauchy 序列都收敛</strong>（这是实数完备性的体现）。
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.15（形式极限是真正的极限）。</span>
+    假设 \((a_n)_{n=1}^\infty\) 是有理数的 Cauchy 序列。
+    则 \((a_n)_{n=1}^\infty\) 收敛到 \(\text{LIM}_{n\to\infty} a_n\)，即
+    \[
+    \text{LIM}_{n\to\infty} a_n = \lim_{n\to\infty} a_n.
+    \]
+</div>
+
+<div class="proof">
+    见习题 6.1.6。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：形式极限 vs 真正极限</span>
+    <p>
+    这个命题非常重要：它说明第 5 章中为了<em>构造</em>实数而引入的形式极限
+    \(\text{LIM}\)，现在可以被真正的极限 \(\lim\) 所取代。
+    这与整数构造中形式差被真正的减法取代、有理数构造中形式商被真正的除法取代，
+    完全类似。
+    </p>
+    <p>
+    证明思路（习题 6.1.6 的提示）：设 \(L := \text{LIM}_{n\to\infty} a_n\)。
+    需要证明对每个 \(\varepsilon > 0\)，序列 \((a_n)\) 最终 \(\varepsilon\)-接近于 \(L\)。
+    假设不然，利用 \((a_n)\) 是 Cauchy 序列的事实，
+    可以证明存在 \(N\) 使得要么 \(a_n > L + \varepsilon/2\) 对所有 \(n \geq N\)，
+    要么 \(a_n < L - \varepsilon/2\) 对所有 \(n \geq N\)，
+    然后利用习题 5.4.8 导出矛盾。
+    </p>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.1.17（收敛序列是有界的）。</span>
+    每个收敛的实数序列都是有界的。
+</div>
+
+<div class="proof">
+    由命题 6.1.12，收敛序列是 Cauchy 序列。
+    而引理 5.1.15 的证明对实数同样有效：每个 Cauchy 序列都是有界的。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.1.18。</span>
+    序列 \(1, 2, 3, 4, 5, \ldots\) 不是有界的，因此不是收敛的。
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 极限的更多性质 —</div>
+
+<!-- ========== 命题 6.1.11（调和级数） ========== -->
+<div id="s61-prop6114">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.11：调和序列</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.11。</span>
+    我们有 \(\displaystyle \lim_{n\to\infty} \frac{1}{n} = 0\)。
+</div>
+
+<div class="proof">
+    我们需要证明序列 \((a_n)_{n=1}^\infty\)（其中 \(a_n := 1/n\)）收敛到 0。
+    即对每个 \(\varepsilon > 0\)，序列最终 \(\varepsilon\)-接近于 0。
+    <br><br>
+    设 \(\varepsilon > 0\) 为任意实数。我们需要找到 \(N\) 使得对每个 \(n \geq N\)，有 \(|a_n - 0| \leq \varepsilon\)。
+    对 \(n \geq N\)，
+    \[
+    |a_n - 0| = |1/n - 0| = 1/n \leq 1/N.
+    \]
+    因此，如果我们选取 \(N > 1/\varepsilon\)（由阿基米德原理可以做到），
+    则 \(1/N < \varepsilon\)，所以 \((a_n)_{n=N}^\infty\) 是 \(\varepsilon\)-接近于 0 的。
+    因此 \((a_n)_{n=1}^\infty\) 是最终 \(\varepsilon\)-接近于 0 的。
+    由于 \(\varepsilon\) 是任意的，\((a_n)_{n=1}^\infty\) 收敛到 0。
+</div>
+
+<hr>
+
+<!-- ========== 定理 6.1.19（极限定律详细版） ========== -->
+<div id="s61-cor6115">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.1.19：极限定律（详细版）</h3>
+</div>
+
+<div class="theorem-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.1.19（极限定律）。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是收敛的实数序列，
+    令 \(x := \lim_{n\to\infty} a_n\)，\(y := \lim_{n\to\infty} b_n\)。
+    <ol type="a">
+        <li><strong>（加法）</strong> 序列 \((a_n + b_n)_{n=m}^\infty\) 收敛到 \(x + y\)；即
+        \[
+        \lim_{n\to\infty} (a_n + b_n) = \lim_{n\to\infty} a_n + \lim_{n\to\infty} b_n.
+        \]</li>
+        <li><strong>（乘法）</strong> 序列 \((a_n b_n)_{n=m}^\infty\) 收敛到 \(xy\)；即
+        \[
+        \lim_{n\to\infty} (a_n b_n) = \left(\lim_{n\to\infty} a_n\right)\left(\lim_{n\to\infty} b_n\right).
+        \]</li>
+        <li><strong>（标量乘法）</strong> 对任何实数 \(c\)，序列 \((c a_n)_{n=m}^\infty\) 收敛到 \(cx\)；即
+        \[
+        \lim_{n\to\infty} (c a_n) = c \lim_{n\to\infty} a_n.
+        \]</li>
+        <li><strong>（减法）</strong> 序列 \((a_n - b_n)_{n=m}^\infty\) 收敛到 \(x - y\)；即
+        \[
+        \lim_{n\to\infty} (a_n - b_n) = \lim_{n\to\infty} a_n - \lim_{n\to\infty} b_n.
+        \]</li>
+        <li><strong>（倒数）</strong> 假设 \(y \neq 0\)，且对所有 \(n \geq m\) 有 \(b_n \neq 0\)。
+        则序列 \((b_n^{-1})_{n=m}^\infty\) 收敛到 \(y^{-1}\)；即
+        \[
+        \lim_{n\to\infty} b_n^{-1} = \left(\lim_{n\to\infty} b_n\right)^{-1}.
+        \]</li>
+        <li><strong>（除法）</strong> 假设 \(y \neq 0\)，且对所有 \(n \geq m\) 有 \(b_n \neq 0\)。
+        则序列 \((a_n / b_n)_{n=m}^\infty\) 收敛到 \(x/y\)；即
+        \[
+        \lim_{n\to\infty} \frac{a_n}{b_n} = \frac{\lim_{n\to\infty} a_n}{\lim_{n\to\infty} b_n}.
+        \]</li>
+        <li><strong>（最大值）</strong> 序列 \((\max(a_n, b_n))_{n=m}^\infty\) 收敛到 \(\max(x, y)\)；即
+        \[
+        \lim_{n\to\infty} \max(a_n, b_n) = \max\left(\lim_{n\to\infty} a_n, \lim_{n\to\infty} b_n\right).
+        \]</li>
+        <li><strong>（最小值）</strong> 序列 \((\min(a_n, b_n))_{n=m}^\infty\) 收敛到 \(\min(x, y)\)；即
+        \[
+        \lim_{n\to\infty} \min(a_n, b_n) = \min\left(\lim_{n\to\infty} a_n, \lim_{n\to\infty} b_n\right).
+        \]</li>
+    </ol>
+</div>
+
+<div class="proof">
+    见习题 6.1.8。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：极限定律的证明策略</span>
+    <p>
+    习题 6.1.8 的提示：
+    </p>
+    <ul>
+        <li>(a) <strong>加法</strong>：对每个 \(\varepsilon > 0\)，
+        取 \(N_1\) 使 \(|a_n - x| \leq \varepsilon/2\)（\(n \geq N_1\)），
+        取 \(N_2\) 使 \(|b_n - y| \leq \varepsilon/2\)（\(n \geq N_2\)），
+        则对 \(n \geq \max(N_1, N_2)\)，
+        \(|(a_n + b_n) - (x + y)| \leq |a_n - x| + |b_n - y| \leq \varepsilon\)。
+        </li>
+        <li>(b) <strong>乘法</strong>：利用恒等式
+        \(a_n b_n - xy = (a_n - x)(b_n - y) + x(b_n - y) + (a_n - x)y\)
+        和收敛序列有界的事实。
+        </li>
+        <li>(c) 是 (b) 的特例（取 \(b_n\) 为常数序列 \(c\)）。</li>
+        <li>(d) 结合 (a) 和 (c)（取 \(c = -1\)）。</li>
+        <li>(e) <strong>倒数</strong>：需要先证明辅助结果——
+        元素均非零且收敛到非零极限的序列，其元素远离零
+        （即存在 \(\delta > 0\) 和 \(N\) 使得对所有 \(n \geq N\) 有 \(|b_n| \geq \delta\)）。
+        </li>
+        <li>(f) 结合 (b) 和 (e)。</li>
+    </ul>
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s61-supp">
+
+<div class="chapter-marker">— 序列的序关系与夹逼定理 —</div>
+
+<p>
+除了代数运算，极限也与序关系有良好的相容性。
+</p>
+
+<!-- ========== 命题 6.1.14 ========== -->
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.14（序列的序关系）。</span>
+    设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 是实数序列。
+    假设 \((a_n)_{n=m}^\infty\) 和 \((b_n)_{n=m}^\infty\) 都收敛，且对所有 \(n \geq m\) 有 \(a_n \geq b_n\)。
+    则 \(\lim_{n\to\infty} a_n \geq \lim_{n\to\infty} b_n\)。
+</div>
+
+<div class="proof">
+    令 \(L := \lim_{n\to\infty} a_n\)，\(M := \lim_{n\to\infty} b_n\)。
+    假设为了引出矛盾，我们有 \(L < M\)。令 \(\varepsilon := (M - L)/3 > 0\)。
+    <br><br>
+    由于 \((a_n)\) 收敛到 \(L\)，存在 \(N_1 \geq m\) 使得对所有 \(n \geq N_1\)，有 \(|a_n - L| \leq \varepsilon\)，
+    即 \(a_n \leq L + \varepsilon\)。
+    <br><br>
+    由于 \((b_n)\) 收敛到 \(M\)，存在 \(N_2 \geq m\) 使得对所有 \(n \geq N_2\)，有 \(|b_n - M| \leq \varepsilon\)，
+    即 \(b_n \geq M - \varepsilon\)。
+    <br><br>
+    取 \(n := \max(N_1, N_2)\)，则
+    \[
+    a_n \leq L + \varepsilon = L + \frac{M - L}{3} = \frac{2L + M}{3} < \frac{L + 2M}{3} = M - \varepsilon \leq b_n.
+    \]
+    这与假设 \(a_n \geq b_n\) 矛盾。因此 \(L \geq M\)。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 注意这里是 \(\geq\) 而非 \(>\)：
+    即使对所有 \(n\) 有 \(a_n > b_n\)，也只能得到 \(\lim a_n \geq \lim b_n\)。
+    例如，\(a_n = 1/n\)，\(b_n = 0\)，则对所有 \(n \geq 1\) 有 \(a_n > b_n\)，
+    但 \(\lim a_n = 0 = \lim b_n\)。
+</div>
+
+<!-- ========== 推论 6.1.15 ========== -->
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="推论" data-en="Corollary"></span> 6.1.15（极限的正性）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是收敛到实数 \(c\) 的实数序列。
+    假设对所有 \(n \geq m\) 有 \(a_n \geq 0\)。则 \(c \geq 0\)。
+</div>
+
+<div class="proof">
+    令 \((b_n)_{n=m}^\infty\) 为恒为 0 的序列。
+    由命题 6.1.14，\(c = \lim a_n \geq \lim b_n = 0\)。
+</div>
+
+<!-- ========== 命题 6.1.16（夹逼定理） ========== -->
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.16（夹逼定理）。</span>
+    设 \((a_n)_{n=m}^\infty\)、\((b_n)_{n=m}^\infty\) 和 \((c_n)_{n=m}^\infty\) 是实数序列，
+    满足对所有 \(n \geq m\) 有
+    \[
+    a_n \leq b_n \leq c_n.
+    \]
+    假设 \((a_n)_{n=m}^\infty\) 和 \((c_n)_{n=m}^\infty\) 都收敛到同一个极限 \(L\)。
+    则 \((b_n)_{n=m}^\infty\) 也收敛到 \(L\)。
+</div>
+
+<div class="proof">
+    设 \(\varepsilon > 0\)。由于 \((a_n)\) 收敛到 \(L\)，存在 \(N_1 \geq m\) 使得对所有 \(n \geq N_1\) 有
+    \[
+    |a_n - L| \leq \varepsilon \quad \Rightarrow \quad L - \varepsilon \leq a_n \leq L + \varepsilon.
+    \]
+    由于 \((c_n)\) 收敛到 \(L\)，存在 \(N_2 \geq m\) 使得对所有 \(n \geq N_2\) 有
+    \[
+    |c_n - L| \leq \varepsilon \quad \Rightarrow \quad L - \varepsilon \leq c_n \leq L + \varepsilon.
+    \]
+    取 \(N := \max(N_1, N_2)\)。对所有 \(n \geq N\)，有
+    \[
+    L - \varepsilon \leq a_n \leq b_n \leq c_n \leq L + \varepsilon,
+    \]
+    因此 \(|b_n - L| \leq \varepsilon\)。
+    由于 \(\varepsilon\) 是任意的，\((b_n)\) 收敛到 \(L\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：夹逼定理的应用</span>
+    <p>
+    夹逼定理（Squeeze Theorem / Sandwich Theorem）是计算极限的重要工具。
+    典型应用包括：
+    </p>
+    <ul>
+        <li>证明 \(\lim_{n\to\infty} \frac{\sin n}{n} = 0\)：
+        由于 \(-1 \leq \sin n \leq 1\)，有 \(-\frac{1}{n} \leq \frac{\sin n}{n} \leq \frac{1}{n}\)，
+        而 \(\lim_{n\to\infty} \pm \frac{1}{n} = 0\)。
+        </li>
+        <li>证明 \(\lim_{n\to\infty} \frac{1}{n^2 + n} = 0\)：
+        由于 \(0 \leq \frac{1}{n^2 + n} \leq \frac{1}{n^2}\) 对 \(n \geq 1\)。
+        </li>
+    </ul>
+</div>
+
+<!-- ========== 命题 6.1.17（零判别法） ========== -->
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.1.17（零判别法）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列。
+    则 \((a_n)_{n=m}^\infty\) 收敛到 0 当且仅当 \((|a_n|)_{n=m}^\infty\) 收敛到 0。
+</div>
+
+<div class="proof">
+    <strong>方向一（\(\Rightarrow\)）：</strong> 假设 \((a_n)\) 收敛到 0。
+    设 \(\varepsilon > 0\)。则存在 \(N \geq m\) 使得对所有 \(n \geq N\) 有 \(|a_n - 0| \leq \varepsilon\)，
+    即 \(|a_n| \leq \varepsilon\)。因此 \(||a_n| - 0| = |a_n| \leq \varepsilon\)，
+    故 \((|a_n|)\) 收敛到 0。
+    <br><br>
+    <strong>方向二（\(\Leftarrow\)）：</strong> 假设 \((|a_n|)\) 收敛到 0。
+    设 \(\varepsilon > 0\)。则存在 \(N \geq m\) 使得对所有 \(n \geq N\) 有 \(||a_n| - 0| \leq \varepsilon\)，
+    即 \(|a_n| \leq \varepsilon\)。因此 \(|a_n - 0| = |a_n| \leq \varepsilon\)，
+    故 \((a_n)\) 收敛到 0。
+</div>
+
+<div class="remark">
+    <strong>注。</strong> 这个命题说明：判断序列是否收敛到 0，可以只看其绝对值。
+    但这个性质只对极限为 0 的情况成立！
+    一般地，\((a_n)\) 收敛到 \(L\) <strong>不</strong>蕴含 \((|a_n|)\) 收敛到 \(|L|\)
+    （反例：\(a_n = (-1)^n/n\) 收敛到 0，但考虑 \(L \neq 0\) 的平移版本）。
+    <br><br>
+    但反过来，如果 \((a_n)\) 收敛到 \(L\)，则 \((|a_n|)\) 确实收敛到 \(|L|\)
+    （这可由三角不等式和极限定律证明）。
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：Lean 中对应的定理</span>
+    <p>
+    在 <code>Section_6_1.lean</code> 中：
+    </p>
+    <ul>
+        <li><code>Sequence.lim_nonneg</code>：对应推论 6.1.15（极限的正性）</li>
+        <li><code>Sequence.tendsTo_squeeze</code>：对应命题 6.1.16（夹逼定理）</li>
+        <li><code>Sequence.tendsTo_zero_iff_abs_tendsTo_zero</code>：对应命题 6.1.17（零判别法）</li>
+    </ul>
+</div>
+
+<hr>
+
+<div class="chapter-marker">— 本节概念总结 —</div>
+
+<p>
+第 6.1 节建立了序列极限理论的基本框架，主要包含以下层次：
+</p>
+<ol>
+    <li><strong>基础概念</strong>：距离 → \(\varepsilon\)-接近 → \(\varepsilon\)-稳定 → 最终 \(\varepsilon\)-稳定 → Cauchy 序列（定义 6.1.1–6.1.3）；</li>
+    <li><strong>收敛与极限</strong>：\(\varepsilon\)-接近于 \(L\) → 最终 \(\varepsilon\)-接近于 \(L\) → 收敛 → 极限的唯一性（定义 6.1.5，命题 6.1.7，定义 6.1.8）；</li>
+    <li><strong>关键命题</strong>：收敛 ⇒ Cauchy（命题 6.1.12），形式极限 = 真正极限（命题 6.1.15），收敛 ⇒ 有界（推论 6.1.17）；</li>
+    <li><strong>极限定律</strong>：加、减、乘、除、标量乘、最大值、最小值的极限等于极限的加、减、乘、除、标量乘、最大值、最小值（定理 6.1.19）。</li>
+</ol>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：概念层次图</span>
+    <table>
+        <tr><th>概念</th><th>含义</th><th>量词结构</th></tr>
+        <tr><td>\(\varepsilon\)-接近</td><td>\(|x - y| \leq \varepsilon\)</td><td>无量词</td></tr>
+        <tr><td>\(\varepsilon\)-稳定</td><td>所有项对之间 \(\varepsilon\)-接近</td><td>\(\forall j, k \geq N\)</td></tr>
+        <tr><td>最终 \(\varepsilon\)-稳定</td><td>从某项起 \(\varepsilon\)-稳定</td><td>\(\exists N, \forall j, k \geq N\)</td></tr>
+        <tr><td>Cauchy</td><td>对每个 \(\varepsilon\) 最终稳定</td><td>\(\forall \varepsilon > 0, \exists N, \forall j, k \geq N\)</td></tr>
+        <tr><td>\(\varepsilon\)-接近于 \(L\)</td><td>所有项与 \(L\) \(\varepsilon\)-接近</td><td>\(\forall n \geq N\)</td></tr>
+        <tr><td>最终 \(\varepsilon\)-接近于 \(L\)</td><td>从某项起 \(\varepsilon\)-接近于 \(L\)</td><td>\(\exists N, \forall n \geq N\)</td></tr>
+        <tr><td>收敛到 \(L\)</td><td>对每个 \(\varepsilon\) 最终 \(\varepsilon\)-接近于 \(L\)</td><td>\(\forall \varepsilon > 0, \exists N, \forall n \geq N\)</td></tr>
+    </table>
+</div>
+
+<div class="supplement">
+    <span class="sup-title">📖 补充说明：Lean 中的序列定义</span>
+    <p>
+    在 <code>Section_6_1.lean</code> 中，序列被定义为一个结构体：
+    </p>
+    <div class="code-block">
+@[ext]
+structure Sequence where
+  m : ℤ
+  seq : ℤ → ℝ
+  vanish : ∀ n < m, seq n = 0
+    </div>
+    <p>
+    这个定义允许序列从任意整数索引 \(m\) 开始，并要求在索引 \(m\) 之前的值为 0（"垃圾值"）。
+    自然数函数 \(\mathbb{N} \to \mathbb{R}\) 可以通过 <code>Coe</code> 自动转换为 <code>Sequence</code>。
+    </p>
+    <p>
+    收敛定义为：
+    </p>
+    <div class="code-block">
+abbrev Sequence.TendsTo (a:Sequence) (L:ℝ) : Prop :=
+  ∀ ε > (0:ℝ), ε.EventuallyClose a L
+    </div>
+    <p>
+    这里 <code>EventuallyClose</code> 展开后正好对应"最终 \(\varepsilon\)-接近于 \(L\)"的定义。
+    </p>
+</div>
+
+<div class="supplement" style="border-left:4px solid #c0392b;">
+    <span class="sup-title" style="color:#c0392b;">💬 个人感悟：从构造到分析</span>
+    <p>
+    第 6.1 节是一个重要的转折点。在第 2–5 章中，我们一直在<strong>构造</strong>数系——
+    从自然数到整数到有理数到实数，每一步都要定义新的数、验证运算、建立序。
+    而从第 6 章开始，我们终于可以<strong>使用</strong>这些数了。
+    </p>
+    <p>
+    极限的定义虽然看起来复杂（多层嵌套的量词），但核心思想非常简单：
+    序列的项最终离目标足够近。Tao 用逐层拆解的方式（\(\varepsilon\)-接近 → 最终接近 → 收敛）
+    让这个定义变得清晰可辨。这种"从简单概念逐步构建复杂概念"的方法论，
+    正是分析学的精髓。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s61-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-6.1.1">
+    <span class="label">习题 6.1.1（严格递增序列）。</span>
+    设 \((a_n)_{n=0}^\infty\) 是实数序列，满足对每个自然数 \(n\) 有 \(a_{n+1} > a_n\)。
+    证明：只要 \(m > n\) 为自然数，就有 \(a_m > a_n\)。（我们称这样的序列为<strong>严格递增序列</strong>。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.mono_if</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.2">
+    <span class="label">习题 6.1.2（收敛的等价表述）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，\(L\) 是实数。
+    证明：\((a_n)_{n=m}^\infty\) 收敛到 \(L\)，当且仅当对任何实数 \(\varepsilon > 0\)，
+    存在 \(N \geq m\) 使得对所有 \(n \geq N\) 有 \(|a_n - L| \leq \varepsilon\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.tendsTo_iff</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.3">
+    <span class="label">习题 6.1.3（起始索引无关）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，\(c\) 是实数，\(m' \geq m\) 是整数。
+    证明：\((a_n)_{n=m}^\infty\) 收敛到 \(c\) 当且仅当 \((a_n)_{n=m'}^\infty\) 收敛到 \(c\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.tendsTo_of_from</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.4">
+    <span class="label">习题 6.1.4（平移不变性）。</span>
+    设 \((a_n)_{n=m}^\infty\) 是实数序列，\(c\) 是实数，\(k \geq 0\) 是非负整数。
+    证明：\((a_n)_{n=m}^\infty\) 收敛到 \(c\) 当且仅当 \((a_{n+k})_{n=m}^\infty\) 收敛到 \(c\)。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.tendsTo_of_shift</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.5">
+    <span class="label">习题 6.1.5（收敛蕴含 Cauchy）。</span>
+    证明命题 6.1.12。
+    （提示：使用三角不等式，或命题 4.3.7。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.IsCauchy.convergent</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.6">
+    <span class="label">习题 6.1.6（形式极限是真正的极限）。</span>
+    证明命题 6.1.15，使用以下框架：设 \((a_n)_{n=1}^\infty\) 是有理数的 Cauchy 序列，
+    令 \(L := \text{LIM}_{n\to\infty} a_n\)。需要证明 \((a_n)_{n=1}^\infty\) 收敛到 \(L\)。
+    设 \(\varepsilon > 0\)。假设为了引出矛盾，序列 \(a_n\) 不是最终 \(\varepsilon\)-接近于 \(L\) 的。
+    利用这一点和 \((a_n)\) 是 Cauchy 序列的事实，证明存在 \(N \geq m\) 使得
+    要么 \(a_n > L + \varepsilon/2\) 对所有 \(n \geq N\)，
+    要么 \(a_n < L - \varepsilon/2\) 对所有 \(n \geq N\)。然后使用习题 5.4.8。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.lim_eq_LIM</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.7">
+    <span class="label">习题 6.1.7（有界性定义的一致性）。</span>
+    证明定义 6.1.16 与定义 5.1.12 一致（即证明有界序列命题 6.1.4 的类似物）。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.isBounded_of_rat</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.8">
+    <span class="label">习题 6.1.8（极限定律）。</span>
+    证明定理 6.1.19。
+    （提示：可以用定理的某些部分来证明其他部分，例如 (b) 可用于证明 (c)；
+    (a) 和 (c) 可用于证明 (d)；(b) 和 (e) 可用于证明 (f)。
+    证明类似于引理 5.3.6、命题 5.3.10 和引理 5.3.15。
+    对于 (e)，你可能需要先证明辅助结论：
+    元素均非零且收敛到非零极限的序列远离零。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：
+        <code>Sequence.tendsTo_add</code>、<code>Sequence.tendsTo_mul</code>、
+        <code>Sequence.tendsTo_smul</code>、<code>Sequence.tendsTo_sub</code>、
+        <code>Sequence.tendsTo_inv</code>、<code>Sequence.tendsTo_div</code>、
+        <code>Sequence.tendsTo_max</code>、<code>Sequence.tendsTo_min</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.9">
+    <span class="label">习题 6.1.9（除法极限定律的失效）。</span>
+    解释为什么当分母的极限为 0 时，定理 6.1.19(f) 会失败。
+    （要修复此问题需要 L'Hôpital 法则，见第 10.5 节。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Sequence.lim_div_fail</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.1.10">
+    <span class="label">习题 6.1.10（等价 Cauchy 序列的一致性）。</span>
+    证明等价 Cauchy 序列的概念（定义 5.2.6）在将 \(\varepsilon\) 的范围从正有理数改为正实数后不变。
+    即设 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是实数序列，
+    证明它们对每个有理数 \(\varepsilon > 0\) 最终 \(\varepsilon\)-接近，
+    当且仅当它们对每个实数 \(\varepsilon > 0\) 最终 \(\varepsilon\)-接近。
+    （提示：修改命题 6.1.4 的证明。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: #666;">
+        对应 Lean 目标：<code>Chapter5.Sequence.equiv_rat</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.1 节的正文，
+    以及关于序列收敛、极限定律等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_1.lean</code>。</p>
+</div>
+
+</body>
+</html>

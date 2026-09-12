@@ -289,13 +289,13 @@ def witness_upperBound_lowerBounds {X : Set ℝ} (y : ℝ) (hy : y ∈ X)
 
 /- If x < sSup X and X is not empty, then there exists z ∈ X with x < z -/
 /- We don't need to assume that X is BddAbove
--(if X is not BddAbove, we get that sSup X = 0 (the junk value) and the result still follows -/
-#check exists_lt_of_lt_csSup
+-(if X is not Bddabove, we get that sSup X = 0 (the junk value) and the result still follows -/
+-- #check exists_lt_of_lt_csSup
 
 /- If sInf X < x and X is not empty, then there exists w ∈ X with w ≤ x -/
 /- We don't need to assume that X is BddBelow.
--(if X is not BddBelow, we get that sInf X = 0 (the junk value) and the result still follows -/
-#check exists_lt_of_csInf_lt
+-(if X if not BddBelow, we get that sInf X = 0 (the junk value) and the result still follows-/
+-- #check exists_lt_of_csInf_lt
 
 /-- Show x < b when b = sSup X and b ∉ X -/
 theorem lt_sSup_of_ne_sSup {X : Set ℝ} {x b : ℝ} (_hBddAbove : BddAbove X) (_hb : b = sSup X)
@@ -682,26 +682,36 @@ theorem IsElementary.box {d:ℕ} (B: Box d) : IsElementary B.toSet := by
 /-- Exercise 1.1.1 (Boolean closure): The union of two elementary sets is elementary. -/
 theorem IsElementary.union {d:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E ∪ F) := by
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_F, hF⟩ := hF
   classical
-  obtain ⟨S, rfl⟩ := hE
-  obtain ⟨T, rfl⟩ := hF
-  exact ⟨S ∪ T, (Finset.set_biUnion_union S T _).symm⟩
-
-/-- The empty set is elementary. -/
-theorem IsElementary.empty (d:ℕ) : IsElementary (∅: Set (EuclideanSpace' d)) := by
-  exact ⟨∅, by simp⟩
+  use S_E ∪ S_F
+  rw [hE, hF]
+  ext x
+  simp only [Set.mem_union, Set.mem_iUnion, Finset.mem_union, Box.mem_toSet]
+  constructor
+  · rintro ((⟨i, hi, hx⟩) | (⟨i, hi, hx⟩))
+    · exact ⟨i, Or.inl hi, hx⟩
+    · exact ⟨i, Or.inr hi, hx⟩
+  · rintro ⟨i, (hi | hi), hx⟩
+    · exact Or.inl ⟨i, hi, hx⟩
+    · exact Or.inr ⟨i, hi, hx⟩
 
 /-- The union of a finset of elementary sets is elementary. -/
 lemma IsElementary.union' {d:ℕ} {S: Finset (Set (EuclideanSpace' d))}
 (hE: ∀ E ∈ S, IsElementary E) : IsElementary (⋃ E ∈ S, E) := by
   classical
   induction S using Finset.induction_on with
-  | empty => simpa using IsElementary.empty d
-  | insert a S' ha ih =>
-    have hrest : IsElementary (⋃ E ∈ S', E) :=
-      ih (fun E hE' ↦ hE E (Finset.mem_insert_of_mem hE'))
-    have ha' : IsElementary a := hE a (Finset.mem_insert_self a S')
-    simpa using ha'.union hrest
+  | empty =>
+    use (∅ : Finset (Box d)); simp
+  | insert a S' ha_notin ih =>
+    have hE_a : IsElementary a := hE a (Finset.mem_insert_self a S')
+    have hE_S' : ∀ E ∈ S', IsElementary E := fun E hE_mem => hE E (Finset.mem_insert_of_mem hE_mem)
+    have h_union : (⋃ E ∈ insert a S', E) = a ∪ (⋃ E ∈ S', E) := by
+      ext x; simp
+    rw [h_union]
+    have h_union_elem : IsElementary (⋃ E ∈ S', E) := ih hE_S'
+    exact IsElementary.union hE_a h_union_elem
 
 /-- The intersection of two boxes is a box: intersect the sides coordinatewise. -/
 lemma Box.inter {d:ℕ} (B₁ B₂ : Box d) :
@@ -720,243 +730,48 @@ lemma Box.inter {d:ℕ} (B₁ B₂ : Box d) :
 /-- Exercise 1.1.1 (Boolean closure): The intersection of two elementary sets is elementary. -/
 theorem IsElementary.inter {d:ℕ} {E F: Set (EuclideanSpace' d)}
   (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E ∩ F) := by
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_F, hF⟩ := hF
   classical
-  obtain ⟨S, rfl⟩ := hE
-  obtain ⟨T, rfl⟩ := hF
-  choose f hf using fun p : Box d × Box d ↦ Box.inter p.1 p.2
-  refine ⟨(S ×ˢ T).image f, ?_⟩
-  ext x
-  simp only [Set.mem_inter_iff, Set.mem_iUnion, Finset.mem_image, Finset.mem_product]
-  constructor
-  · rintro ⟨⟨B, hB, hxB⟩, ⟨C, hC, hxC⟩⟩
-    refine ⟨f (B, C), ⟨⟨(B, C), ⟨hB, hC⟩, rfl⟩, ?_⟩⟩
-    rw [hf (B, C)]
-    exact ⟨hxB, hxC⟩
-  · rintro ⟨D, ⟨⟨⟨B, C⟩, ⟨hB, hC⟩, rfl⟩, hxD⟩⟩
-    rw [hf (B, C)] at hxD
-    exact ⟨⟨B, hB, hxD.1⟩, ⟨C, hC, hxD.2⟩⟩
-
-/-- The bounded interval with the given endpoints, open or closed at each end as specified. -/
-def BoundedInterval.mk' (a b : ℝ) (lclosed uclosed : Bool) : BoundedInterval :=
-  match lclosed, uclosed with
-  | true, true => Icc a b
-  | true, false => Ico a b
-  | false, true => Ioc a b
-  | false, false => Ioo a b
-
-/-- Whether a bounded interval contains its left endpoint. -/
-def BoundedInterval.lclosed : BoundedInterval → Bool
-  | Icc _ _ => true
-  | Ico _ _ => true
-  | Ioo _ _ => false
-  | Ioc _ _ => false
-
-/-- Whether a bounded interval contains its right endpoint. -/
-def BoundedInterval.uclosed : BoundedInterval → Bool
-  | Icc _ _ => true
-  | Ioc _ _ => true
-  | Ioo _ _ => false
-  | Ico _ _ => false
-
-@[simp]
-theorem BoundedInterval.mk'_a (a b : ℝ) (lclosed uclosed : Bool) :
-    (mk' a b lclosed uclosed).a = a := by cases lclosed <;> cases uclosed <;> rfl
-
-@[simp]
-theorem BoundedInterval.mk'_b (a b : ℝ) (lclosed uclosed : Bool) :
-    (mk' a b lclosed uclosed).b = b := by cases lclosed <;> cases uclosed <;> rfl
-
-@[simp]
-theorem BoundedInterval.mk'_lclosed (a b : ℝ) (lclosed uclosed : Bool) :
-    (mk' a b lclosed uclosed).lclosed = lclosed := by cases lclosed <;> cases uclosed <;> rfl
-
-@[simp]
-theorem BoundedInterval.mk'_uclosed (a b : ℝ) (lclosed uclosed : Bool) :
-    (mk' a b lclosed uclosed).uclosed = uclosed := by cases lclosed <;> cases uclosed <;> rfl
-
-theorem BoundedInterval.mem_iff' (I: BoundedInterval) (x:ℝ) :
-    x ∈ (I:Set ℝ) ↔
-      ((if I.lclosed then I.a ≤ x else I.a < x) ∧ (if I.uclosed then x ≤ I.b else x < I.b)) := by
-  cases I <;> simp [toSet, lclosed, uclosed]
-
-/-- The set difference of two bounded intervals is the union of two bounded intervals: the
-part of the first below the second, and the part above it. -/
-theorem BoundedInterval.sdiff (I J: BoundedInterval) :
-    ∃ K₁ K₂ : BoundedInterval, (I:Set ℝ) \ (J:Set ℝ) = (K₁:Set ℝ) ∪ (K₂:Set ℝ) := by
-  obtain ⟨K₁, hK₁⟩ := BoundedInterval.inter I (mk' I.a J.a I.lclosed (!J.lclosed))
-  obtain ⟨K₂, hK₂⟩ := BoundedInterval.inter I (mk' J.b I.b (!J.uclosed) I.uclosed)
-  refine ⟨K₁, K₂, ?_⟩
-  rw [← hK₁, ← hK₂]
-  ext x
-  simp only [Set.mem_diff, Set.mem_union, Set.mem_inter_iff, mem_iff', mk'_a, mk'_b,
-    mk'_lclosed, mk'_uclosed]
-  cases hIl : I.lclosed <;> cases hIu : I.uclosed <;> cases hJl : J.lclosed <;> cases hJu : J.uclosed <;>
-    simp only [Bool.not_true, Bool.not_false, Bool.false_eq_true, reduceIte] <;>
-    push_neg <;>
-    constructor <;>
-    intro h <;>
-    grind
-
-/-- The difference of two boxes is elementary: a point of the difference leaves the second box
-in some coordinate, and in that coordinate the difference of the two sides is a union of two
-intervals. -/
-theorem Box.sdiff {d:ℕ} (B C: Box d) : IsElementary (B.toSet \ C.toSet) := by
-  classical
-  choose K₁ K₂ hK using fun i ↦ BoundedInterval.sdiff (B.side i) (C.side i)
-  -- the box obtained from `B` by shrinking side `i` to one of the two pieces
-  let piece : Fin d → Bool → Box d := fun i k ↦
-    ⟨fun j ↦ if j = i then (if k then K₁ i else K₂ i) else B.side j⟩
-  have hpiece_side (i : Fin d) (k : Bool) :
-      (piece i k).side i = (if k then K₁ i else K₂ i) := by simp [piece]
-  have hsub (i : Fin d) (k : Bool) :
-      ((if k then K₁ i else K₂ i : BoundedInterval) : Set ℝ) ⊆
-        (B.side i : Set ℝ) \ (C.side i : Set ℝ) := by
-    rw [hK i]
-    cases k <;> simp
-  refine ⟨Finset.univ.image (fun p : Fin d × Bool ↦ piece p.1 p.2), ?_⟩
-  ext x
-  simp only [Set.mem_diff, Box.mem_toSet, Set.mem_iUnion, Finset.mem_image, Finset.mem_univ,
-    true_and, exists_prop]
-  constructor
-  · rintro ⟨hxB, hxC⟩
-    obtain ⟨i, hi⟩ : ∃ i, x i ∉ (C.side i : Set ℝ) := by
-      by_contra hc
-      push_neg at hc
-      exact hxC (fun i ↦ hc i)
-    have : x i ∈ ((K₁ i : Set ℝ)) ∪ ((K₂ i : Set ℝ)) := by
-      rw [← hK i]; exact ⟨hxB i, hi⟩
-    rcases this with h | h
-    · refine ⟨piece i true, ⟨⟨(i, true), rfl⟩, ?_⟩⟩
-      intro j
-      by_cases hj : j = i
-      · subst hj; simpa [piece] using h
-      · simpa [piece, hj] using hxB j
-    · refine ⟨piece i false, ⟨⟨(i, false), rfl⟩, ?_⟩⟩
-      intro j
-      by_cases hj : j = i
-      · subst hj; simpa [piece] using h
-      · simpa [piece, hj] using hxB j
-  · rintro ⟨P, ⟨⟨⟨i, k⟩, rfl⟩, hxP⟩⟩
-    have hxi : x i ∈ (B.side i : Set ℝ) \ (C.side i : Set ℝ) := by
-      have := hxP i
-      rw [hpiece_side] at this
-      exact hsub i k this
-    refine ⟨fun j ↦ ?_, ?_⟩
-    · by_cases hj : j = i
-      · subst hj; exact hxi.1
-      · simpa [piece, hj] using hxP j
-    · intro hxC
-      exact hxi.2 (hxC i)
-
-/-- Exercise 1.1.1 (Boolean closure): The set difference of two elementary sets is elementary. -/
-theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E \ F) := by
-  classical
-  obtain ⟨T, rfl⟩ := hF
-  induction T using Finset.induction_on with
-  | empty => simpa using hE
-  | insert C T' hC ih =>
-    have hrw : E \ (⋃ B ∈ insert C T', (B:Set (EuclideanSpace' d)))
-        = (E \ ⋃ B ∈ T', (B:Set (EuclideanSpace' d))) \ C.toSet := by
-      rw [Finset.set_biUnion_insert, Set.diff_diff, Set.union_comm]
-    rw [hrw]
-    obtain ⟨S, hS⟩ := ih
-    rw [hS]
-    have hdiff : (⋃ B ∈ S, (B:Set (EuclideanSpace' d))) \ C.toSet
-        = ⋃ B ∈ S, ((B:Set (EuclideanSpace' d)) \ C.toSet) := by
-      ext y; simp only [Set.mem_diff, Set.mem_iUnion, exists_prop]; tauto
-    rw [hdiff]
-    have : (⋃ B ∈ S, ((B:Set (EuclideanSpace' d)) \ C.toSet))
-        = ⋃ X ∈ S.image (fun B : Box d ↦ (B:Set (EuclideanSpace' d)) \ C.toSet), X := by
-      ext y
-      simp only [Set.mem_iUnion, Finset.mem_image, exists_prop]
+  let f : Box d × Box d → Box d := λ ⟨B_E, B_F⟩ => ⟨fun i => (B_E.side i) ∩ (B_F.side i)⟩
+  have hf : ∀ (B_E B_F : Box d), (f (B_E, B_F)).toSet = B_E.toSet ∩ B_F.toSet := by
+    intro B_E B_F
+    dsimp [f]
+    ext x
+    simp only [Box.mem_toSet]
+    constructor
+    · intro h
       constructor
-      · rintro ⟨B, hB, hy⟩; exact ⟨_, ⟨B, hB, rfl⟩, hy⟩
-      · rintro ⟨X, ⟨B, hB, rfl⟩, hy⟩; exact ⟨B, hB, hy⟩
-    rw [this]
-    refine IsElementary.union' ?_
-    intro X hX
-    simp only [Finset.mem_image] at hX
-    obtain ⟨B, -, rfl⟩ := hX
-    exact Box.sdiff B C
-
-/-- Exercise 1.1.1 (Boolean closure): The symmetric difference of two elementary sets is elementary. -/
-theorem IsElementary.symmDiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (symmDiff E F) := by
-  have := (hE.sdiff hF).union (hF.sdiff hE)
-  simpa [Set.symmDiff_def] using this
-
-open Pointwise
-
-/-- Translating a bounded interval gives a bounded interval with the same open/closed ends. -/
-theorem BoundedInterval.translate (I: BoundedInterval) (c:ℝ) :
-    ((mk' (I.a + c) (I.b + c) I.lclosed I.uclosed : BoundedInterval) : Set ℝ)
-      = (I:Set ℝ) + {c} := by
-  ext y
-  simp only [mem_iff', mk'_a, mk'_b, mk'_lclosed, mk'_uclosed, Set.add_singleton,
-    Set.mem_image]
+      · intro i
+        have hi := h i
+        rw [BoundedInterval.inter_eq] at hi
+        exact hi.1
+      · intro i
+        have hi := h i
+        rw [BoundedInterval.inter_eq] at hi
+        exact hi.2
+    · intro ⟨hE, hF⟩ i
+      rw [BoundedInterval.inter_eq]
+      exact ⟨hE i, hF i⟩
+  use (S_E ×ˢ S_F).image f
+  rw [hE, hF]
+  ext x
+  simp only [Set.mem_inter_iff, Set.mem_iUnion, exists_prop]
   constructor
-  · intro hy
-    refine ⟨y - c, ?_, by ring⟩
-    revert hy
-    cases I.lclosed <;> cases I.uclosed <;> simp only [if_true, if_false,
-      Bool.false_eq_true] <;> grind
-  · rintro ⟨z, hz, rfl⟩
-    revert hz
-    cases I.lclosed <;> cases I.uclosed <;> simp only [if_true, if_false,
-      Bool.false_eq_true] <;> grind
+  · rintro ⟨⟨B_E, hBE, hx_E⟩, B_F, hBF, hx_F⟩
+    refine ⟨f (B_E, B_F), Finset.mem_image.mpr ⟨(B_E, B_F), Finset.mem_product.mpr ⟨hBE, hBF⟩, rfl⟩, ?_⟩
+    rw [hf]
+    exact ⟨hx_E, hx_F⟩
+  · rintro ⟨B, hB, hx⟩
+    rcases Finset.mem_image.mp hB with ⟨⟨B_E, B_F⟩, hpair, rfl⟩
+    rcases Finset.mem_product.mp hpair with ⟨hBE, hBF⟩
+    rw [hf] at hx
+    rcases hx with ⟨hx_E, hx_F⟩
+    exact ⟨⟨B_E, hBE, hx_E⟩, B_F, hBF, hx_F⟩
 
-/-- Translating a box gives a box. -/
-theorem Box.translate {d:ℕ} (B: Box d) (x: EuclideanSpace' d) :
-    ∃ B' : Box d, (B':Set (EuclideanSpace' d)) = (B:Set (EuclideanSpace' d)) + {x} := by
-  let I' : Fin d → BoundedInterval := fun i ↦
-    BoundedInterval.mk' ((B.side i).a + x i) ((B.side i).b + x i)
-      (B.side i).lclosed (B.side i).uclosed
-  have hI' (i : Fin d) : (I' i : Set ℝ) = ((B.side i : Set ℝ)) + {x i} :=
-    BoundedInterval.translate (B.side i) (x i)
-  refine ⟨⟨I'⟩, ?_⟩
-  ext y
-  simp only [Box.mem_toSet]
-  constructor
-  · intro hy
-    apply Set.mem_add.mpr
-    refine ⟨.toLp 2 (fun i ↦ y i - x i), ?_, x, rfl, by apply PiLp.ext; intro i; simp⟩
-    simp only [Box.mem_toSet]; intro i
-    have : y i ∈ (I' i : Set ℝ) := hy i
-    rw [hI' i] at this
-    obtain ⟨a, ha, b, rfl, hab⟩ := this
-    convert ha using 1; linarith
-  · intro hy
-    obtain ⟨a, ha, b, hb, hab⟩ := Set.mem_add.mp hy
-    rw [Set.mem_singleton_iff.mp hb] at hab
-    simp only [Box.mem_toSet] at ha
-    intro i
-    rw [hI' i]
-    exact Set.mem_add.mpr ⟨a i, ha i, x i, rfl,
-      by have := congr_fun (congrArg WithLp.ofLp hab) i; simpa using this⟩
-
-/-- Exercise 1.1.1 (Boolean closure): Translation of an elementary set is elementary. -/
-theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
-  (hE: IsElementary E) (x: EuclideanSpace' d) : IsElementary (E + {x}) := by
-  classical
-  obtain ⟨S, rfl⟩ := hE
-  choose f hf using fun B : Box d ↦ Box.translate B x
-  refine ⟨S.image f, ?_⟩
-  ext y
-  simp only [Set.mem_iUnion, Finset.mem_image, exists_prop]
-  constructor
-  · intro hy
-    obtain ⟨z, hz, w, hw, hzw⟩ := Set.mem_add.mp hy
-    rw [Set.mem_singleton_iff.mp hw] at hzw
-    obtain ⟨B, hB, hzB⟩ : ∃ B ∈ S, z ∈ (B:Set (EuclideanSpace' d)) := by simpa using hz
-    refine ⟨f B, ⟨B, hB, rfl⟩, ?_⟩
-    rw [hf B, ← hzw]
-    exact Set.mem_add.mpr ⟨z, hzB, x, rfl, rfl⟩
-  · rintro ⟨D, ⟨B, hB, rfl⟩, hyD⟩
-    rw [hf B] at hyD
-    obtain ⟨z, hzB, w, hw, hzw⟩ := Set.mem_add.mp hyD
-    rw [Set.mem_singleton_iff.mp hw] at hzw
-    exact Set.mem_add.mpr ⟨z, by simpa using Set.mem_biUnion hB hzB, x, rfl, hzw⟩
+/-- The empty set is elementary. -/
+theorem IsElementary.empty (d:ℕ) : IsElementary (∅: Set (EuclideanSpace' d)) := by
+  use (∅ : Finset (Box d)); simp
 
 /-- A sublemma for proving Lemma 1.1.2(i): Any finset of intervals admits a common
 refinement into pairwise disjoint sub-intervals. -/
@@ -1086,6 +901,247 @@ theorem IsElementary.partition {d:ℕ} {E: Set (EuclideanSpace' d)}
   . apply hT'.subset; intro _; simp; tauto
   ext; simp; grind
 
+/-- Exercise 1.1.1 (Boolean closure): The set difference of two elementary sets is elementary. -/
+theorem IsElementary.sdiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (E \ F) := by
+  have h_inter : IsElementary (E ∩ F) := IsElementary.inter hE hF
+  have h_diff_eq : E \ F = E \ (E ∩ F) := by ext x; simp
+  rw [h_diff_eq]
+  obtain ⟨S_E, hE⟩ := hE
+  obtain ⟨S_H, hH⟩ := h_inter
+  classical
+  have ⟨T, hT_disj, hT⟩ := Box.partition (S_E ∪ S_H)
+  choose U hU using hT
+  let tE : Finset (Box d) := T.filter (λ J =>
+    ∃ (B : Box d) (hB : B ∈ S_E), J ∈ Subtype.val '' (U B (Finset.mem_union_left S_H hB)))
+  let tH : Finset (Box d) := T.filter (λ J =>
+    ∃ (C : Box d) (hC : C ∈ S_H), J ∈ Subtype.val '' (U C (Finset.mem_union_right S_E hC)))
+  have hT_disj_set : (T : Set (Box d)).PairwiseDisjoint Box.toSet := hT_disj
+  have htE_sub_T : tE ⊆ T := Finset.filter_subset _ _
+  have htH_sub_T : tH ⊆ T := Finset.filter_subset _ _
+  have hE_cover : E = ⋃ J ∈ tE, J.toSet := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx' : x ∈ ⋃ B ∈ S_E, ↑B := by rwa [← hE]
+      rcases Set.mem_iUnion₂.mp hx' with ⟨B, hB, hx_B⟩
+      have hB' : B ∈ S_E := by simpa using hB
+      have hU_B := hU B (Finset.mem_union_left S_H hB')
+      rw [hU_B] at hx_B
+      rcases Set.mem_iUnion₂.mp hx_B with ⟨J', hJ'_U, hx_J'⟩
+      refine Set.mem_iUnion₂.mpr ⟨J'.val, ?_, hx_J'⟩
+      refine Finset.mem_filter.mpr ⟨J'.property, ?_⟩
+      refine ⟨B, hB', ?_⟩
+      exact ⟨J', hJ'_U, rfl⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ' : J ∈ tE := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ' with ⟨hJ_T, hJ_cond⟩
+      rcases hJ_cond with ⟨B, hB, hJ_val⟩
+      rcases hJ_val with ⟨J', hJ'_U, hJ'_eq⟩
+      have hU_B := hU B (Finset.mem_union_left S_H hB)
+      have hx_B : x ∈ B.toSet := by
+        rw [hU_B]
+        refine Set.mem_iUnion₂.mpr ⟨J', hJ'_U, ?_⟩
+        rw [hJ'_eq]
+        exact hx_J
+      rw [hE]
+      exact Set.mem_iUnion₂.mpr ⟨B, by simpa using hB, hx_B⟩
+  have hH_cover : (E ∩ F) = ⋃ J ∈ tH, J.toSet := by
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx' : x ∈ ⋃ C ∈ S_H, ↑C := by rwa [← hH]
+      rcases Set.mem_iUnion₂.mp hx' with ⟨C, hC, hx_C⟩
+      have hC' : C ∈ S_H := by simpa using hC
+      have hU_C := hU C (Finset.mem_union_right S_E hC')
+      rw [hU_C] at hx_C
+      rcases Set.mem_iUnion₂.mp hx_C with ⟨J', hJ'_U, hx_J'⟩
+      refine Set.mem_iUnion₂.mpr ⟨J'.val, ?_, hx_J'⟩
+      refine Finset.mem_filter.mpr ⟨J'.property, ?_⟩
+      refine ⟨C, hC', ?_⟩
+      exact ⟨J', hJ'_U, rfl⟩
+    · intro x hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ' : J ∈ tH := by simpa using hJ
+      rcases Finset.mem_filter.mp hJ' with ⟨hJ_T, hJ_cond⟩
+      rcases hJ_cond with ⟨C, hC, hJ_val⟩
+      rcases hJ_val with ⟨J', hJ'_U, hJ'_eq⟩
+      have hU_C := hU C (Finset.mem_union_right S_E hC)
+      have hx_C : x ∈ C.toSet := by
+        rw [hU_C]
+        refine Set.mem_iUnion₂.mpr ⟨J', hJ'_U, ?_⟩
+        rw [hJ'_eq]
+        exact hx_J
+      rw [hH]
+      exact Set.mem_iUnion₂.mpr ⟨C, by simpa using hC, hx_C⟩
+  have h_sdiff_union : (⋃ J ∈ tE, J.toSet) \ (⋃ J ∈ tH, J.toSet) = ⋃ J ∈ (tE \ tH), J.toSet := by
+    ext x; constructor
+    · rintro ⟨hx_E, hx_not_H⟩
+      rcases Set.mem_iUnion₂.mp hx_E with ⟨J, hJ, hx_J⟩
+      have hJ_E : J ∈ tE := by simpa using hJ
+      have hJ_not_H : J ∉ tH := by
+        intro hJ_H
+        apply hx_not_H
+        exact Set.mem_iUnion₂.mpr ⟨J, by simpa using hJ_H, hx_J⟩
+      refine Set.mem_iUnion₂.mpr ⟨J, by
+        simpa using Finset.mem_sdiff.mpr ⟨hJ_E, hJ_not_H⟩, hx_J⟩
+    · intro hx
+      rcases Set.mem_iUnion₂.mp hx with ⟨J, hJ, hx_J⟩
+      have hJ_sdiff : J ∈ tE \ tH := by simpa using hJ
+      rcases Finset.mem_sdiff.mp hJ_sdiff with ⟨hJ_E, hJ_not_H⟩
+      have hJ_T : J ∈ (T : Set (Box d)) := by
+        simpa using htE_sub_T hJ_E
+      constructor
+      · exact Set.mem_iUnion₂.mpr ⟨J, by simpa using hJ_E, hx_J⟩
+      · intro hx_H
+        rcases Set.mem_iUnion₂.mp hx_H with ⟨K, hK, hx_K⟩
+        have hK_H : K ∈ tH := by simpa using hK
+        have hK_T : K ∈ (T : Set (Box d)) := by
+          simpa using htH_sub_T hK_H
+        by_cases h_eq : J = K
+        · subst h_eq; exact hJ_not_H hK_H
+        · have h_disjoint : Disjoint (J.toSet) (K.toSet) :=
+            hT_disj_set hJ_T hK_T h_eq
+          have h_disjoint' : J.toSet ∩ K.toSet = ∅ :=
+            Set.disjoint_iff_inter_eq_empty.mp h_disjoint
+          have : x ∈ J.toSet ∩ K.toSet := ⟨hx_J, hx_K⟩
+          rw [h_disjoint'] at this
+          exact this.elim
+  use tE \ tH
+  calc
+    E \ (E ∩ F) = E \ (⋃ J ∈ tH, J.toSet) := by rw [hH_cover]
+    _ = (⋃ J ∈ tE, J.toSet) \ (⋃ J ∈ tH, J.toSet) := by rw [hE_cover]
+    _ = ⋃ J ∈ (tE \ tH), J.toSet := h_sdiff_union
+
+/-- Exercise 1.1.1 (Boolean closure): The symmetric difference of two elementary sets is elementary. -/
+theorem IsElementary.symmDiff {d:ℕ} {E F: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (hF: IsElementary F) : IsElementary (symmDiff E F) := by
+  rw [symmDiff_def]
+  exact IsElementary.union (IsElementary.sdiff hE hF) (IsElementary.sdiff hF hE)
+
+open Pointwise
+
+/-- Exercise 1.1.1 (Boolean closure): Translation of an elementary set is elementary. -/
+theorem IsElementary.translate {d:ℕ} {E: Set (EuclideanSpace' d)}
+  (hE: IsElementary E) (x: EuclideanSpace' d) : IsElementary (E + {x}) := by
+  classical
+  obtain ⟨S, hE⟩ := hE
+  -- Translation of each bounded interval type by a constant
+  -- Translation of each bounded interval type by a constant
+  have h_Ioo_add (a b c : ℝ) : (Set.Ioo (a + c) (b + c)) = (Set.Ioo a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Icc_add (a b c : ℝ) : (Set.Icc (a + c) (b + c)) = (Set.Icc a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Ioc_add (a b c : ℝ) : (Set.Ioc (a + c) (b + c)) = (Set.Ioc a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  have h_Ico_add (a b c : ℝ) : (Set.Ico (a + c) (b + c)) = (Set.Ico a b) + {c} := by
+    ext x; constructor
+    · intro ⟨hx1, hx2⟩
+      refine Set.mem_add.mpr ⟨x - c, ⟨by linarith, by linarith⟩, c, rfl, ?_⟩
+      ring
+    · intro hx
+      obtain ⟨y, ⟨hy1, hy2⟩, z, hz, hx_eq⟩ := Set.mem_add.mp hx
+      have hz_eq : z = c := Set.mem_singleton_iff.mp hz
+      rw [hz_eq] at hx_eq
+      rw [← hx_eq]
+      exact ⟨by linarith, by linarith⟩
+  -- Shift a bounded interval by a constant
+  let shiftInterval (I : BoundedInterval) (c : ℝ) : BoundedInterval :=
+    match I with
+    | Ioo a b => Ioo (a + c) (b + c)
+    | Icc a b => Icc (a + c) (b + c)
+    | Ioc a b => Ioc (a + c) (b + c)
+    | Ico a b => Ico (a + c) (b + c)
+  have h_shiftInterval (I : BoundedInterval) (c : ℝ) : (shiftInterval I c : Set ℝ) = (I : Set ℝ) + {c} := by
+    dsimp [shiftInterval]
+    cases I with
+    | Ioo a b => exact h_Ioo_add a b c
+    | Icc a b => exact h_Icc_add a b c
+    | Ioc a b => exact h_Ioc_add a b c
+    | Ico a b => exact h_Ico_add a b c
+  -- Translate a box by x (coordinate-wise shift of each side interval)
+  let f : Box d → Box d := λ B => ⟨fun i => shiftInterval (B.side i) (x i)⟩
+  have hf (B : Box d) : (f B).toSet = B.toSet + {x} := by
+    dsimp [f]
+    ext y
+    simp only [Box.mem_toSet]
+    constructor
+    · intro hy
+      have hy' : ∀ i, y i - x i ∈ (B.side i : Set ℝ) := by
+        intro i
+        have hy_i : y i ∈ (shiftInterval (B.side i) (x i) : Set ℝ) := hy i
+        rw [h_shiftInterval (B.side i) (x i)] at hy_i
+        obtain ⟨a, ha, b, hb, hab⟩ := hy_i
+        have hb_eq : b = x i := Set.mem_singleton_iff.mp hb
+        rw [hb_eq] at hab
+        have ha_eq : a = y i - x i := by linarith
+        simpa [ha_eq] using ha
+      refine Set.mem_add.mpr ⟨.toLp 2 (fun i => y i - x i), ?_, x, rfl, ?_⟩
+      · rw [Box.mem_toSet]
+        intro i
+        simpa using hy' i
+      · apply PiLp.ext; intro i; simp
+    · intro hy
+      obtain ⟨a, ha, b, hb, hab⟩ := Set.mem_add.mp hy
+      have hb_eq : b = x := Set.mem_singleton_iff.mp hb
+      rw [hb_eq] at hab
+      rw [Box.mem_toSet] at ha
+      intro i
+      rw [h_shiftInterval (B.side i) (x i)]
+      refine Set.mem_add.mpr ⟨a i, ha i, x i, by simp, ?_⟩
+      have := congr_fun (congrArg WithLp.ofLp hab) i
+      simpa using this
+  refine ⟨S.image f, ?_⟩
+  rw [hE]
+  ext y; constructor
+  · intro hy
+    rw [Set.mem_add] at hy
+    obtain ⟨a, ha, b, hb, hab⟩ := hy
+    rw [Set.mem_singleton_iff.mp hb] at hab
+    rw [Set.mem_iUnion₂] at ha
+    obtain ⟨B, hB, haB⟩ := ha
+    apply Set.mem_iUnion₂.mpr
+    refine ⟨f B, Finset.mem_image.mpr ⟨B, hB, rfl⟩, ?_⟩
+    rw [hf B]
+    exact Set.mem_add.mpr ⟨a, haB, x, Set.mem_singleton x, hab⟩
+  · intro hy
+    rw [Set.mem_iUnion₂] at hy
+    obtain ⟨B', hB', hyB'⟩ := hy
+    obtain ⟨B, hB, rfl⟩ := Finset.mem_image.mp hB'
+    rw [hf B] at hyB'
+    obtain ⟨a, haB, b, hb, hab⟩ := Set.mem_add.mp hyB'
+    rw [Set.mem_singleton_iff.mp hb] at hab
+    apply Set.mem_add.mpr
+    refine ⟨a, ?_, x, Set.mem_singleton x, hab⟩
+    rw [Set.mem_iUnion₂]
+    exact ⟨B, hB, haB⟩
+
 /-- Helper lemma for Lemma 1.1.2(ii): The set of lattice points (multiples of 1/N) in an interval is finite. -/
 theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0):
   Finite ↥(I.toSet ∩ (Set.range (fun n:ℤ ↦ (N:ℝ)⁻¹*n))) := by
@@ -1114,11 +1170,448 @@ theorem BoundedInterval.sample_finite (I : BoundedInterval) {N:ℕ} (hN: N ≠ 0
       exact Int.le_floor.mpr this
   exact Set.Finite.subset ((Finset.finite_toSet _).image _) this
 
+/-- {lit}`⌊N*x⌋ / N → x` as `N → ∞`. -/
+lemma tendsto_floor_div_atTop (x : ℝ) :
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ)) (nhds x) := by
+  have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  have h_lower : Filter.atTop.Tendsto (fun N : ℕ ↦ x - (1 : ℝ) / (N : ℝ)) (nhds x) := by
+    simpa using hx_const.sub h_one_div_N
+  have h_ineq : ∀ᶠ N : ℕ in Filter.atTop, x - (1 : ℝ) / (N : ℝ) ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ∧
+    (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ x := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => ?_⟩
+    have hNpos_pos : 0 < N := Nat.lt_of_lt_of_le (by norm_num : 0 < 1) hN
+    have hNpos : (N : ℝ) > 0 := by exact_mod_cast hNpos_pos
+    have hfloor_le : (⌊(N : ℝ) * x⌋ : ℝ) ≤ (N : ℝ) * x := by exact mod_cast Int.floor_le ((N : ℝ) * x)
+    have hlt_floor_add_one : (N : ℝ) * x < (⌊(N : ℝ) * x⌋ : ℝ) + 1 := Int.lt_floor_add_one _
+    constructor
+    · have h : (N : ℝ) * x - 1 ≤ (⌊(N : ℝ) * x⌋ : ℝ) := by linarith
+      calc
+        x - (1 : ℝ) / (N : ℝ) = ((N : ℝ) * x - 1) / (N : ℝ) := by field_simp [hNpos.ne']
+        _ ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) :=
+          div_le_div_of_nonneg_right h (by positivity : 0 ≤ (N : ℝ))
+    · calc
+        (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x) / (N : ℝ) :=
+          div_le_div_of_nonneg_right hfloor_le (by positivity : 0 ≤ (N : ℝ))
+        _ = x := by field_simp [hNpos.ne']
+  have h_lower' : ∀ᶠ N : ℕ in Filter.atTop, x - (1 : ℝ) / (N : ℝ) ≤ (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.1
+  have h_upper' : ∀ᶠ N : ℕ in Filter.atTop, (⌊(N : ℝ) * x⌋ : ℝ) / (N : ℝ) ≤ x :=
+    h_ineq.mono fun N hN => hN.2
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower hx_const h_lower' h_upper'
+
+/-- {lit}`⌈N*x⌉ / N → x` as `N → ∞`. -/
+lemma tendsto_ceil_div_atTop (x : ℝ) :
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ)) (nhds x) := by
+  have hx_const : Filter.atTop.Tendsto (fun _ : ℕ ↦ x) (nhds x) := tendsto_const_nhds
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  have h_upper : Filter.atTop.Tendsto (fun N : ℕ ↦ x + (1 : ℝ) / (N : ℝ)) (nhds x) := by
+    simpa using hx_const.add h_one_div_N
+  have h_ineq : ∀ᶠ N : ℕ in Filter.atTop, x ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ∧
+    (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ x + (1 : ℝ) / (N : ℝ) := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => ?_⟩
+    have hNpos_pos : 0 < N := Nat.lt_of_lt_of_le (by norm_num : 0 < 1) hN
+    have hNpos : (N : ℝ) > 0 := by exact_mod_cast hNpos_pos
+    have hceil_ge : (N : ℝ) * x ≤ (⌈(N : ℝ) * x⌉ : ℝ) := by exact mod_cast Int.le_ceil ((N : ℝ) * x)
+    have h_mid : (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x + 1) / (N : ℝ) :=
+      div_le_div_of_nonneg_right (by
+        have hceil_lt_add_one : (⌈(N : ℝ) * x⌉ : ℝ) < (N : ℝ) * x + 1 := Int.ceil_lt_add_one _
+        linarith) (by positivity : 0 ≤ (N : ℝ))
+    have h_last : ((N : ℝ) * x + 1) / (N : ℝ) = x + (1 : ℝ) / (N : ℝ) := by
+      field_simp [hNpos.ne']
+    constructor
+    · calc
+        x = ((N : ℝ) * x) / (N : ℝ) := by field_simp [hNpos.ne']
+        _ ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) :=
+          div_le_div_of_nonneg_right hceil_ge (by positivity : 0 ≤ (N : ℝ))
+    · calc
+        (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ ((N : ℝ) * x + 1) / (N : ℝ) := h_mid
+        _ = x + (1 : ℝ) / (N : ℝ) := h_last
+  have h_lower' : ∀ᶠ N : ℕ in Filter.atTop, x ≤ (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.1
+  have h_upper' : ∀ᶠ N : ℕ in Filter.atTop, (⌈(N : ℝ) * x⌉ : ℝ) / (N : ℝ) ≤ x + (1 : ℝ) / (N : ℝ) :=
+    h_ineq.mono fun N hN => hN.2
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le' hx_const h_upper h_lower' h_upper'
+
+/-- Eventually {lit}`⌊N*b⌋ + 1 - ⌈N*a⌉ ≥ 0` when {lean}`a < b`. -/
+lemma ceil_floor_pos_eventually (a b : ℝ) (h : a < b) : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) := by
+  have h_diff_pos : b - a > 0 := sub_pos.mpr h
+  have h_tendsto : Filter.Tendsto (fun N : ℕ ↦ (N : ℝ) * (b - a)) Filter.atTop Filter.atTop :=
+    (tendsto_natCast_atTop_atTop (R := ℝ)).atTop_mul_const h_diff_pos
+  have h_gt_one : ∀ᶠ (y : ℝ) in Filter.atTop, y > 1 := Filter.eventually_gt_atTop (1 : ℝ)
+  have h_event : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ) * (b - a) > 1 :=
+    h_tendsto.eventually h_gt_one
+  refine h_event.mono fun N hN => ?_
+  have h_floor_ineq : (⌊(N : ℝ) * b⌋ : ℝ) ≥ (N : ℝ) * b - 1 := by
+    have h_lt : (N : ℝ) * b < (⌊(N : ℝ) * b⌋ : ℝ) + 1 := Int.lt_floor_add_one _
+    linarith
+  have h_ceil_ineq : (⌈(N : ℝ) * a⌉ : ℝ) ≤ (N : ℝ) * a + 1 := by
+    have h_lt : (⌈(N : ℝ) * a⌉ : ℝ) < (N : ℝ) * a + 1 := Int.ceil_lt_add_one _
+    exact h_lt.le
+  have h_real_ineq : (⌊(N : ℝ) * b⌋ : ℝ) + 1 - (⌈(N : ℝ) * a⌉ : ℝ) ≥ 0 := by
+    nlinarith
+  exact_mod_cast h_real_ineq
+
+/-- Lattice points in {lean}`Icc a b` are in bijection with integers in {lit}`Icc ⌈N*a⌉ ⌊N*b⌋`. -/
+lemma Icc_lattice_card (a b : ℝ) (N : ℕ) (hN : N ≠ 0) :
+    Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) =
+    (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
+  have hN_nonzero : (N : ℝ) ≠ 0 := by exact_mod_cast hN
+  have hNpos : (0 : ℝ) < N := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hN)
+  set f : ℤ → ℝ := λ n => (N : ℝ)⁻¹ * (n : ℝ) with hf
+  have hf_inj : Function.Injective f := by
+    intro x y h
+    dsimp [f] at h
+    field_simp [hN_nonzero] at h
+    exact_mod_cast h
+  set F_int : Set ℤ := {n | (⌈(N : ℝ) * a⌉ : ℤ) ≤ n ∧ n ≤ (⌊(N : ℝ) * b⌋ : ℤ)} with hF_int
+  set F_set : Set ℤ := (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ) : Set ℤ) with hF_set
+  have hF_int_eq : F_int = F_set := by
+    ext n; simp [F_int, F_set]
+  have h_eq : Set.Icc a b ∩ Set.range f = f '' F_int := by
+    ext x
+    constructor
+    · intro ⟨⟨hxa, hxb⟩, hx_range⟩
+      rcases hx_range with ⟨n, hn⟩
+      have hn_mem_F : n ∈ F_int := by
+        have ha_fn : a ≤ f n := by rw [hn]; exact hxa
+        have hb_fn : f n ≤ b := by rw [hn]; exact hxb
+        have hn_ge : (⌈(N : ℝ) * a⌉ : ℤ) ≤ n := by
+          have hN_a_le_n : (N : ℝ) * a ≤ (n : ℝ) := by
+            dsimp [f] at ha_fn
+            calc
+              (N : ℝ) * a ≤ (N : ℝ) * ((N : ℝ)⁻¹ * (n : ℝ)) := mul_le_mul_of_nonneg_left ha_fn (by positivity)
+              _ = (n : ℝ) := by field_simp [hN_nonzero]
+          exact Int.ceil_le.mpr hN_a_le_n
+        have hn_le : n ≤ (⌊(N : ℝ) * b⌋ : ℤ) := by
+          have hn_le_N_b : (n : ℝ) ≤ (N : ℝ) * b := by
+            dsimp [f] at hb_fn
+            calc
+              (n : ℝ) = (N : ℝ) * ((N : ℝ)⁻¹ * (n : ℝ)) := by field_simp [hN_nonzero]
+              _ ≤ (N : ℝ) * b := mul_le_mul_of_nonneg_left hb_fn (by positivity)
+          exact Int.le_floor.mpr hn_le_N_b
+        exact ⟨hn_ge, hn_le⟩
+      exact ⟨n, hn_mem_F, hn⟩
+    · intro ⟨n, hn_mem_F, hn⟩
+      rcases hn_mem_F with ⟨hn_ge, hn_le⟩
+      have hxa : a ≤ (N : ℝ)⁻¹ * (n : ℝ) := by
+        have hN_a_le_n : (N : ℝ) * a ≤ (n : ℝ) := by
+          have hceil_ge : (N : ℝ) * a ≤ (⌈(N : ℝ) * a⌉ : ℝ) := by exact mod_cast Int.le_ceil ((N : ℝ) * a)
+          have hn_ge' : (⌈(N : ℝ) * a⌉ : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn_ge
+          linarith
+        calc
+          a = (N : ℝ)⁻¹ * ((N : ℝ) * a) := by field_simp [hN_nonzero]
+          _ ≤ (N : ℝ)⁻¹ * (n : ℝ) := mul_le_mul_of_nonneg_left hN_a_le_n (by positivity)
+      have hxb : (N : ℝ)⁻¹ * (n : ℝ) ≤ b := by
+        have hn_le_N_b : (n : ℝ) ≤ (N : ℝ) * b := by
+          have hfloor_le : (⌊(N : ℝ) * b⌋ : ℝ) ≤ (N : ℝ) * b := by exact mod_cast Int.floor_le ((N : ℝ) * b)
+          have hn_le' : (n : ℝ) ≤ (⌊(N : ℝ) * b⌋ : ℝ) := by exact_mod_cast hn_le
+          linarith
+        calc
+          (N : ℝ)⁻¹ * (n : ℝ) ≤ (N : ℝ)⁻¹ * ((N : ℝ) * b) := mul_le_mul_of_nonneg_left hn_le_N_b (by positivity)
+          _ = b := by field_simp [hN_nonzero]
+      have hx_Icc : (N : ℝ)⁻¹ * (n : ℝ) ∈ Set.Icc a b := ⟨hxa, hxb⟩
+      have hx_range : (N : ℝ)⁻¹ * (n : ℝ) ∈ Set.range f := ⟨n, rfl⟩
+      rw [← hn]
+      exact ⟨hx_Icc, hx_range⟩
+  calc
+    Nat.card ↥(Set.Icc a b ∩ Set.range f) = Nat.card ↥(f '' F_int) := by rw [h_eq]
+    _ = Nat.card ↥F_int := Nat.card_image_of_injective hf_inj _
+    _ = Nat.card ↥F_set := by rw [hF_int_eq]
+    _ = (Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card := by
+      simp [F_set, Int.card_Icc]
+
+/-- Limit of {lit}`(1/N)*|Icc a b ∩ lattice(N)| = b - a` for {lean}`a < b`. -/
+lemma tendsto_Icc_lattice_count (a b : ℝ) (h : a < b) :
+    Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)))
+    (nhds (b - a)) := by
+  have hN_nonzero_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => by omega⟩
+  have h_tendsto_floor_b : Filter.atTop.Tendsto (fun N : ℕ ↦ (⌊(N : ℝ) * b⌋ : ℝ) / (N : ℝ)) (nhds b) :=
+    tendsto_floor_div_atTop b
+  have h_tendsto_ceil_a : Filter.atTop.Tendsto (fun N : ℕ ↦ (⌈(N : ℝ) * a⌉ : ℝ) / (N : ℝ)) (nhds a) :=
+    tendsto_ceil_div_atTop a
+  have h_one_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ (1 : ℝ) / (N : ℝ)) (nhds 0) := by
+    simpa using tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)
+  set f : ℕ → ℝ := fun N : ℕ ↦ (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hf
+  set g : ℕ → ℝ := fun N : ℕ ↦ ((⌊(N : ℝ) * b⌋ : ℝ) - (⌈(N : ℝ) * a⌉ : ℝ) + 1) / (N : ℝ) with hg
+  have h_limit_raw : Filter.atTop.Tendsto g (nhds (b - a)) := by
+    have h_eq : g = (fun N : ℕ ↦ (⌊(N : ℝ) * b⌋ : ℝ) / (N : ℝ) - (⌈(N : ℝ) * a⌉ : ℝ) / (N : ℝ) + (1 : ℝ) / (N : ℝ)) := by
+      ext N; dsimp [g]; ring
+    rw [h_eq]
+    simpa [add_assoc, sub_eq_add_neg] using
+      ((h_tendsto_floor_b.sub h_tendsto_ceil_a).add h_one_div_N)
+  have h_card_eq : ∀ᶠ N : ℕ in Filter.atTop, f N = g N := by
+    have h_pos_ev : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) :=
+      ceil_floor_pos_eventually a b h
+    have h_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 ∧ 0 ≤ (⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) :=
+      hN_nonzero_ev.and h_pos_ev
+    refine h_ev.mono fun N ⟨hN, hpos⟩ => ?_
+    calc
+      f N = (N : ℝ)⁻¹ * Nat.card ↥(Set.Icc a b ∩ Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) := rfl
+      _ = (N : ℝ)⁻¹ * ((Finset.Icc (⌈(N : ℝ) * a⌉ : ℤ) (⌊(N : ℝ) * b⌋ : ℤ)).card : ℝ) := by
+        simp [Icc_lattice_card a b N hN]
+      _ = (N : ℝ)⁻¹ * (((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ)).toNat : ℝ) := by
+        simp [Int.card_Icc]
+      _ = (N : ℝ)⁻¹ * ((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) : ℝ) := by
+        have h_eq : (((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ)).toNat : ℝ) =
+          ((⌊(N : ℝ) * b⌋ : ℤ) + 1 - (⌈(N : ℝ) * a⌉ : ℤ) : ℝ) := by exact_mod_cast Int.toNat_of_nonneg hpos
+        simp [h_eq]
+      _ = g N := by
+        dsimp [g]; ring
+  have h_card_eq' : g =ᶠ[Filter.atTop] f := by
+    simpa [Filter.EventuallyEq, eq_comm] using h_card_eq
+  exact h_limit_raw.congr' h_card_eq'
+
+/-- If {lean}`x ∈ Icc I.a I.b` but {lean}`x ∉ I`, then {lean}`x` is an endpoint of {lean}`I`. -/
+lemma endpoint_of_Icc_not_I (I : BoundedInterval) (x : ℝ) (hx_Icc : x ∈ Set.Icc I.a I.b) (hx_not_I : x ∉ I.toSet) : x = I.a ∨ x = I.b := by
+  cases I with
+  | Ioo a b =>
+    have hx_not_Ioo : x ∉ Set.Ioo a b := by simpa [set_Ioo] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (a < x) with (h_not_a_lt_x | ha_lt_x)
+    · -- h_not_a_lt_x: ¬(a < x), so x ≤ a; combined with a ≤ x gives x = a
+      have hx_eq_a : x = a := le_antisymm (by linarith) ha_le_x
+      exact Or.inl hx_eq_a
+    · -- ha_lt_x: a < x
+      have hx_ge_b : x ≥ b := by
+        by_contra! h
+        apply hx_not_Ioo
+        exact ⟨ha_lt_x, h⟩
+      have hx_eq_b : x = b := le_antisymm hx_le_b hx_ge_b
+      exact Or.inr hx_eq_b
+  | Icc a b =>
+    have hx_not_Icc : x ∉ Set.Icc a b := by simpa [set_Icc] using hx_not_I
+    exact (hx_not_Icc hx_Icc).elim
+  | Ioc a b =>
+    have hx_not_Ioc : x ∉ Set.Ioc a b := by simpa [set_Ioc] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (a < x) with (h_not_a_lt_x | ha_lt_x)
+    · have hx_eq_a : x = a := le_antisymm (by linarith) ha_le_x
+      exact Or.inl hx_eq_a
+    · exfalso; apply hx_not_Ioc; exact ⟨ha_lt_x, hx_le_b⟩
+  | Ico a b =>
+    have hx_not_Ico : x ∉ Set.Ico a b := by simpa [set_Ico] using hx_not_I
+    have ha_le_x : a ≤ x := hx_Icc.1
+    have hx_le_b : x ≤ b := hx_Icc.2
+    rcases em' (x < b) with (h_not_lt_b | hx_lt_b)
+    · -- h_not_lt_b: ¬(x < b), so b ≤ x
+      have hx_eq_b : x = b := le_antisymm hx_le_b (by linarith)
+      exact Or.inr hx_eq_b
+    · -- hx_lt_b: x < b
+      exfalso; apply hx_not_Ico; exact ⟨ha_le_x, hx_lt_b⟩
+
+/-- The lattice count in {lean}`Icc I.a I.b` exceeds that in {lean}`I` by at most 2. -/
+lemma lattice_count_diff_bound (I : BoundedInterval) (N : ℕ) (hN : N ≠ 0) :
+    Nat.card ↥(Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) ≤
+    Nat.card ↥(I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n))) + 2 := by
+  set S_I := I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_I
+  set S_Icc := Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_Icc
+  have hS_I_fin : Finite ↥S_I := BoundedInterval.sample_finite I hN
+  have hS_Icc_fin : Finite ↥S_Icc := BoundedInterval.sample_finite (Icc I.a I.b) hN
+  haveI : Finite ↥S_I := hS_I_fin
+  haveI : Finite ↥S_Icc := hS_Icc_fin
+  have h_inj : ∃ (f : ↥S_Icc → (↥S_I ⊕ Fin 2)), Function.Injective f := by
+    let f : ↥S_Icc → (↥S_I ⊕ Fin 2) := λ x => by
+      by_cases hx_mem_I : (x.1 : ℝ) ∈ I.toSet
+      · exact Sum.inl ⟨x.1, ⟨hx_mem_I, x.2.2⟩⟩
+      · by_cases hx_a : (x.1 : ℝ) = I.a
+        · exact Sum.inr 0
+        · exact Sum.inr 1
+    refine ⟨f, ?_⟩
+    intro x y h
+    apply Subtype.ext
+    have hx_mem_Icc : x.1 ∈ Set.Icc I.a I.b := x.2.1
+    have hy_mem_Icc : y.1 ∈ Set.Icc I.a I.b := y.2.1
+    have hfx_cases (z : ↥S_Icc) (hz_mem : (z.1 : ℝ) ∈ I.toSet) : f z = Sum.inl ⟨z.1, ⟨hz_mem, z.2.2⟩⟩ := by
+      simp [f, hz_mem]
+    have hfx_cases_not (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_a : (z.1 : ℝ) = I.a) : f z = Sum.inr (0 : Fin 2) := by
+      have h_I_a_not_mem : I.a ∉ I.toSet := by rw [← hz_a]; exact hz_not_mem
+      unfold f; dsimp
+      simp [hz_a, h_I_a_not_mem]
+    have hfx_cases_not' (z : ↥S_Icc) (hz_not_mem : (z.1 : ℝ) ∉ I.toSet) (hz_ne_a : (z.1 : ℝ) ≠ I.a) : f z = Sum.inr (1 : Fin 2) := by
+      unfold f; dsimp
+      simp [hz_not_mem, hz_ne_a]
+    by_cases hx_mem_I : (x.1 : ℝ) ∈ I.toSet
+    · have hfx := hfx_cases x hx_mem_I
+      by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+      · -- both in I
+        have hfy := hfx_cases y hy_mem_I
+        rw [hfx, hfy] at h
+        injection h with h_inl
+        simpa using congr_arg Subtype.val h_inl
+      · -- x in I, y not in I
+        by_cases hy_a : (y.1 : ℝ) = I.a
+        · have hfy := hfx_cases_not y hy_mem_I hy_a
+          rw [hfx, hfy] at h
+          injection h
+        · have hfy := hfx_cases_not' y hy_mem_I hy_a
+          rw [hfx, hfy] at h
+          injection h
+    · -- x not in I
+      by_cases hx_a : (x.1 : ℝ) = I.a
+      · have hfx := hfx_cases_not x hx_mem_I hx_a
+        by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+        · -- x not in I, y in I
+          have hfy := hfx_cases y hy_mem_I
+          rw [hfx, hfy] at h
+          injection h
+        · -- both not in I
+          by_cases hy_a : (y.1 : ℝ) = I.a
+          · -- both equal I.a
+            calc
+              x.1 = I.a := hx_a
+              _ = y.1 := hy_a.symm
+          · -- x = I.a, y ≠ I.a
+            have hfy := hfx_cases_not' y hy_mem_I hy_a
+            rw [hfx, hfy] at h
+            have hzero : (0 : Fin 2) = (1 : Fin 2) := by injection h
+            have : (0 : Fin 2) ≠ (1 : Fin 2) := by decide
+            exfalso; exact this hzero
+      · have hfx := hfx_cases_not' x hx_mem_I hx_a
+        by_cases hy_mem_I : (y.1 : ℝ) ∈ I.toSet
+        · -- x not in I, y in I
+          have hfy := hfx_cases y hy_mem_I
+          rw [hfx, hfy] at h
+          injection h
+        · -- both not in I
+          by_cases hy_a : (y.1 : ℝ) = I.a
+          · -- x ≠ I.a, y = I.a
+            have hfy := hfx_cases_not y hy_mem_I hy_a
+            rw [hfx, hfy] at h
+            have hzero : (1 : Fin 2) = (0 : Fin 2) := by injection h
+            have : (1 : Fin 2) ≠ (0 : Fin 2) := by decide
+            exfalso; exact this hzero
+          · -- neither = I.a, so both = I.b
+            have hx_b : x.1 = I.b := by
+              rcases endpoint_of_Icc_not_I I x.1 hx_mem_Icc hx_mem_I with (hx_a' | hx_b')
+              · exact absurd hx_a' hx_a
+              · exact hx_b'
+            have hy_b : y.1 = I.b := by
+              rcases endpoint_of_Icc_not_I I y.1 hy_mem_Icc hy_mem_I with (hy_a' | hy_b')
+              · exact absurd hy_a' hy_a
+              · exact hy_b'
+            calc
+              x.1 = I.b := hx_b
+              _ = y.1 := hy_b.symm
+  obtain ⟨f, hf⟩ := h_inj
+  have h_card : Nat.card ↥S_Icc ≤ Nat.card (↥S_I ⊕ Fin 2) :=
+    Nat.card_le_card_of_injective f hf
+  have h_card_sum : Nat.card (↥S_I ⊕ Fin 2) = Nat.card ↥S_I + Nat.card (Fin 2) := by
+    simp
+  calc
+    Nat.card ↥S_Icc ≤ Nat.card (↥S_I ⊕ Fin 2) := h_card
+    _ = Nat.card ↥S_I + Nat.card (Fin 2) := h_card_sum
+    _ = Nat.card ↥S_I + 2 := by simp
+
 /-- Exercise for Lemma 1.1.2(ii): Interval length equals the limit of lattice point counts scaled by 1/N. -/
 theorem BoundedInterval.length_eq (I : BoundedInterval) :
   Filter.atTop.Tendsto (fun N:ℕ ↦ (N:ℝ)⁻¹ * Nat.card ↥(I.toSet ∩ (Set.range (fun n:ℤ ↦ (N:ℝ)⁻¹*n))))
   (nhds |I|ₗ) := by
-  sorry
+  rw [BoundedInterval.length]
+  set S_I := fun (N : ℕ) ↦ I.toSet ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_I
+  set S_Icc := fun (N : ℕ) ↦ Set.Icc I.a I.b ∩ (Set.range (fun n : ℤ ↦ (N : ℝ)⁻¹ * n)) with hS_Icc
+  have h_subset_I_S : ∀ N : ℕ, S_I N ⊆ S_Icc N := by
+    intro N x hx
+    have hx_mem_I : x ∈ (I : Set ℝ) := hx.1
+    have h_subset : (I : Set ℝ) ⊆ Set.Icc I.a I.b := BoundedInterval.subset_Icc I
+    have hx_mem_Icc : x ∈ Set.Icc I.a I.b := h_subset hx_mem_I
+    exact ⟨hx_mem_Icc, hx.2⟩
+  have hN_nonzero_ev : ∀ᶠ N : ℕ in Filter.atTop, N ≠ 0 := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun N hN => by omega⟩
+  by_cases h : I.a < I.b
+  · -- Non-degenerate interval: length = b - a
+    have h_le : I.a ≤ I.b := le_of_lt h
+    have h_len : max (I.b - I.a) 0 = I.b - I.a := by simp [h_le]
+    rw [h_len]
+    have h_tendsto_Icc : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ)) (nhds (I.b - I.a)) :=
+      tendsto_Icc_lattice_count I.a I.b h
+    have h_upper : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_fin_S_Icc : Finite ↥(S_Icc N) := BoundedInterval.sample_finite (Icc I.a I.b) hN
+      haveI : Finite ↥(S_Icc N) := h_fin_S_Icc
+      have h_card_le : Nat.card ↥(S_I N) ≤ Nat.card ↥(S_Icc N) :=
+        Nat.card_le_card_of_injective (fun (x : ↥(S_I N)) =>
+          Subtype.mk x.1 (h_subset_I_S N x.2)) (by
+          intro x y h
+          apply Subtype.ext
+          simpa using congr_arg Subtype.val h)
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_card_le' : (Nat.card ↥(S_I N) : ℝ) ≤ (Nat.card ↥(S_Icc N) : ℝ) := by exact_mod_cast h_card_le
+      nlinarith
+    have h_lower : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) - 2 / (N : ℝ) ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_card_diff : Nat.card ↥(S_Icc N) ≤ Nat.card ↥(S_I N) + 2 := lattice_count_diff_bound I N hN
+      have h_card_diff' : (Nat.card ↥(S_Icc N) : ℝ) ≤ (Nat.card ↥(S_I N) : ℝ) + 2 := by exact_mod_cast h_card_diff
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_two_div_N_eq : 2 / (N : ℝ) = 2 * (N : ℝ)⁻¹ := by ring
+      rw [h_two_div_N_eq]
+      nlinarith
+    have h_lower_tendsto : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_Icc N) : ℝ) - 2 / (N : ℝ)) (nhds (I.b - I.a)) := by
+      have h_two_div_N : Filter.atTop.Tendsto (fun N : ℕ ↦ 2 / (N : ℝ)) (nhds 0) := by
+        simpa [div_eq_mul_inv] using (tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (2 : ℝ)
+      simpa [sub_eq_add_neg] using h_tendsto_Icc.sub h_two_div_N
+    exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower_tendsto h_tendsto_Icc h_lower h_upper
+  · -- Degenerate interval: length = 0
+    push_neg at h
+    have h_len : max (I.b - I.a) 0 = 0 := by simp [h]
+    rw [h_len]
+    have h_card_bound : ∀ᶠ N : ℕ in Filter.atTop, (Nat.card ↥(S_I N) : ℝ) ≤ 1 := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_card : Nat.card ↥(S_I N) ≤ 1 := by
+        have h_subsingleton : Set.Subsingleton (Set.Icc I.a I.b) := by
+          intro u hu v hv
+          have ha_le_u : I.a ≤ u := hu.1
+          have hu_le_b : u ≤ I.b := hu.2
+          have ha_le_v : I.a ≤ v := hv.1
+          have hv_le_b : v ≤ I.b := hv.2
+          have hu_le_a : u ≤ I.a := by linarith
+          have hv_le_a : v ≤ I.a := by linarith
+          have hu_eq_a : u = I.a := le_antisymm hu_le_a ha_le_u
+          have hv_eq_a : v = I.a := le_antisymm hv_le_a ha_le_v
+          rw [hu_eq_a, hv_eq_a]
+        have h_fin : Finite ↥(S_I N) := BoundedInterval.sample_finite I hN
+        haveI : Finite ↥(S_I N) := h_fin
+        have h_card_fin1 : Nat.card (Fin 1) = 1 := by simp
+        have h_card_le : Nat.card ↥(S_I N) ≤ Nat.card (Fin 1) :=
+          Nat.card_le_card_of_injective (fun (x : ↥(S_I N)) => (0 : Fin 1)) ?_
+        · rw [h_card_fin1] at h_card_le; exact h_card_le
+        intro x y hxy
+        apply Subtype.ext
+        have hx_mem_I : x.1 ∈ (I : Set ℝ) := x.2.1
+        have hy_mem_I : y.1 ∈ (I : Set ℝ) := y.2.1
+        have h_subset : (I : Set ℝ) ⊆ Set.Icc I.a I.b := BoundedInterval.subset_Icc I
+        have hx_Icc : x.1 ∈ Set.Icc I.a I.b := h_subset hx_mem_I
+        have hy_Icc : y.1 ∈ Set.Icc I.a I.b := h_subset hy_mem_I
+        exact h_subsingleton hx_Icc hy_Icc
+      exact_mod_cast h_card
+    have h_tendsto_zero : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * 1) (nhds 0) := by
+      simpa using (tendsto_one_div_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (1 : ℝ)
+    have h_bound : ∀ᶠ N : ℕ in Filter.atTop, (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) ≤ (N : ℝ)⁻¹ * 1 := by
+      refine (h_card_bound.and hN_nonzero_ev).mono fun N ⟨h_card, hN⟩ => ?_
+      have h_nonneg : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      nlinarith
+    have h_nonneg_count : ∀ᶠ N : ℕ in Filter.atTop, 0 ≤ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ) := by
+      refine hN_nonzero_ev.mono fun N hN => ?_
+      have h_nonneg_N_inv : (N : ℝ)⁻¹ ≥ 0 := by
+        have h_pos : (N : ℝ) > 0 := by exact_mod_cast (Nat.pos_of_ne_zero hN)
+        positivity
+      have h_nonneg_card : (0 : ℝ) ≤ (Nat.card ↥(S_I N) : ℝ) := by exact_mod_cast (Nat.zero_le _)
+      nlinarith
+    have h_squeeze : Filter.atTop.Tendsto (fun N : ℕ ↦ (N : ℝ)⁻¹ * (Nat.card ↥(S_I N) : ℝ)) (nhds 0) :=
+      tendsto_of_tendsto_of_tendsto_of_le_of_le' (tendsto_const_nhds : Filter.atTop.Tendsto (fun _ : ℕ ↦ (0 : ℝ)) _) h_tendsto_zero
+        h_nonneg_count h_bound
+    simpa using h_squeeze
 
 /-- Lattice points in a box decompose as a product of lattice points in each interval side. -/
 def Box.sample_congr {d:ℕ} (B:Box d) (N:ℕ) :
@@ -1220,8 +1713,8 @@ theorem Box.measure_uniq' {d:ℕ} {T₁ T₂: Finset (Box d)}
  (hT₁: (T₁ : Set (Box d)).PairwiseDisjoint Box.toSet)
  (hT₂: (T₂ : Set (Box d)).PairwiseDisjoint Box.toSet)
  (heq: ⋃ B ∈ T₁, B.toSet = ⋃ B ∈ T₂, B.toSet) :
- ∑ B ∈ T₁, |B|ᵥ = ∑ B ∈ T₂, |B|ᵥ := by
- sorry
+ ∑ B ∈ T₁, |B|ᵥ = ∑ B ∈ T₂, |B|ᵥ :=
+ Box.measure_uniq hT₁ hT₂ heq
 
 /-- Example: the measure of (1,2) ∪ \[3,6\] is 1 + 3 = 4. -/
 example :
@@ -1827,6 +2320,317 @@ lemma IsElementary.measure_of_translate {d:ℕ} {E: Set (EuclideanSpace' d)}
       exact Finset.sum_congr rfl fun B hB => (hf_spec B hB).2
     rw [h_translate_measure, h_sum_eq, hE.measure_eq hT_disj hE_eq]
 
+/-- The d-dimensional unit cube (0,1\]^d. -/
+abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 1}
+
+/-! ## Grid boxes and cubes (geometric scaffolding for Exercise 1.1.3) -/
+
+/-- The half-open cube (0,t\]^d. -/
+abbrev Box.cube (d:ℕ) (t:ℝ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 t }
+
+/-
+Volume of the half-open cube (0,t]^d is `t^d` for `0 ≤ t`.
+-/
+lemma Box.volume_cube {d:ℕ} {t:ℝ} (ht : 0 ≤ t) : |Box.cube d t|ᵥ = t ^ d := by
+  unfold Box.volume; simp +decide [ ht ] ;
+
+/-- The grid cell at resolution {lit}`N` with lower corner {lit}`k/N`: {lit}`∏ᵢ (kᵢ/N, (kᵢ+1)/N]`. -/
+noncomputable abbrev Box.cell {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : Box d :=
+  { side := fun i ↦ BoundedInterval.Ioc ((k i : ℝ)/(N:ℝ)) (((k i : ℝ)+1)/(N:ℝ)) }
+
+/-- The translation vector {lit}`k/N` in Euclidean space. -/
+noncomputable abbrev Box.gridVec {d:ℕ} (N:ℕ) (k : Fin d → ℤ) : EuclideanSpace' d :=
+  .toLp 2 (fun i ↦ (k i : ℝ)/(N:ℝ))
+
+/-
+Each grid cell is a translate of the cube `(0,1/N]^d`.
+-/
+lemma Box.cell_eq_translate {d:ℕ} {N:ℕ} (_hN : N ≠ 0) (k : Fin d → ℤ) :
+    (Box.cell N k).toSet = (Box.cube d ((N:ℝ)⁻¹)).toSet + { Box.gridVec N k } := by
+  ext y
+  simp [Box.mem_toSet];
+  grind
+
+/-- The half-open grid box `∏ᵢ (pᵢ/N, qᵢ/N]`. -/
+noncomputable abbrev Box.gridBox {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Box d :=
+  { side := fun i ↦ BoundedInterval.Ioc ((p i : ℝ)/(N:ℝ)) ((q i : ℝ)/(N:ℝ)) }
+
+open Classical in
+/-- The finset of grid cells tiling {lit}`gridBox N p q`. -/
+noncomputable def Box.gridCells {d:ℕ} (N:ℕ) (p q : Fin d → ℤ) : Finset (Box d) :=
+  Finset.image (Box.cell N) (Fintype.piFinset (fun i ↦ Finset.Ico (p i) (q i)))
+
+/-
+The `cell` map is injective for `N ≠ 0`.
+-/
+lemma Box.cell_injective {d:ℕ} {N:ℕ} (hN : N ≠ 0) : Function.Injective (Box.cell (d:=d) N) := by
+  intro k₁ k₂ hk; replace hk := congr_arg ( fun f => f.side ) hk; simp_all +decide [ funext_iff ] ;
+
+/-
+Number of grid cells tiling `gridBox N p q`.
+-/
+lemma Box.gridCells_card {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    (Box.gridCells N p q).card = ∏ i, (q i - p i).toNat := by
+  convert Finset.card_image_of_injOn _;
+  · simp +decide [ Int.card_Ico ];
+  · exact fun x hx y hy hxy => Box.cell_injective hN hxy
+
+/-
+The grid cells are pairwise disjoint.
+-/
+lemma Box.gridCells_pairwiseDisjoint {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    ((Box.gridCells N p q : Finset (Box d)) : Set (Box d)).PairwiseDisjoint Box.toSet := by
+  intro x hx y hy hxy; simp_all +decide [ Set.disjoint_left ] ;
+  -- Since x and y are in gridCells, there exist k₁ and k₂ such that x = Box.cell N k₁ and y = Box.cell N k₂.
+  obtain ⟨k₁, hk₁⟩ : ∃ k₁ : Fin d → ℤ, x = Box.cell N k₁ := by
+    unfold gridCells at hx; aesop;
+  obtain ⟨k₂, hk₂⟩ : ∃ k₂ : Fin d → ℤ, y = Box.cell N k₂ := by
+    unfold gridCells at hy; aesop;
+  -- Since $k₁ \neq k₂$, there exists some $i$ such that $k₁ i \neq k₂ i$.
+  obtain ⟨i, hi⟩ : ∃ i, k₁ i ≠ k₂ i := by
+    exact Function.ne_iff.mp ( by aesop );
+  contrapose! hi; simp_all +decide [ cell ] ;
+  obtain ⟨ a, ha₁, ha₂ ⟩ := hi; have := ha₁ i; have := ha₂ i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] at *; norm_cast at *;
+  norm_num at * ; exact Int.le_antisymm ( Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast at * ; linarith ) ( Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast at * ; linarith )
+
+/-
+The grid box is the disjoint union of its grid cells.
+-/
+lemma Box.gridBox_eq_cells_union {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    (Box.gridBox N p q).toSet = ⋃ B ∈ Box.gridCells N p q, B.toSet := by
+  ext x;
+  constructor;
+  · intro hx
+    obtain ⟨k, hk⟩ : ∃ k : Fin d → ℤ, (∀ i, p i ≤ k i ∧ k i < q i) ∧ (∀ i, (k i : ℝ) / N < x i ∧ x i ≤ ((k i + 1) : ℝ) / N) := by
+      refine' ⟨ fun i => ⌈N * x.ofLp i⌉ - 1, _, _ ⟩ <;> simp_all +decide [ gridBox ];
+      · intro i; specialize hx i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] at hx;
+        exact ⟨ Int.lt_ceil.2 ( by linarith ), Int.ceil_le.2 ( by linarith ) ⟩;
+      · intro i; rw [ div_lt_iff₀ ( by positivity ), le_div_iff₀ ( by positivity ) ] ; constructor <;> linarith [ Int.ceil_lt_add_one ( ( N : ℝ ) * x.ofLp i ), Int.le_ceil ( ( N : ℝ ) * x.ofLp i ) ] ;
+    simp_all +decide [ Box.mem_toSet, gridCells ];
+    exact ⟨ k, hk ⟩;
+  · simp [Box.mem_toSet, gridCells];
+    intro k hk₁ hk₂ i; exact ⟨ lt_of_le_of_lt ( by gcongr ; exact_mod_cast hk₁ i |>.1 ) ( hk₂ i |>.1 ), le_trans ( hk₂ i |>.2 ) ( by gcongr ; exact_mod_cast hk₁ i |>.2 ) ⟩ ;
+
+/-
+Volume of a grid box.
+-/
+lemma Box.volume_gridBox {d:ℕ} {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
+    |Box.gridBox N p q|ᵥ = ∏ i, ((q i - p i : ℤ):ℝ)/(N:ℝ) := by
+  convert Finset.prod_congr rfl fun i _ => ?_;
+  unfold BoundedInterval.length; norm_num [ sub_div ] ; ring_nf;
+  rw [ mul_comm ] ; gcongr ; exact hpq i
+
+/-
+The unit cube is the grid box `∏ (0/N, N/N]`.
+-/
+lemma Box.unit_cube_eq_gridBox {d:ℕ} {N:ℕ} (hN : N ≠ 0) :
+    Box.unit_cube d = Box.gridBox N (fun _ ↦ (0:ℤ)) (fun _ ↦ (N:ℤ)) := by
+  congr 1 with i ; norm_num [ hN ]
+
+section MeasureUniqAux
+
+variable {d : ℕ} {m' : (E : Set (EuclideanSpace' d)) → IsElementary E → ℝ}
+  (hnonneg : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E), m' E hE ≥ 0)
+  (hadd : ∀ (E F : Set (EuclideanSpace' d)) (hE : IsElementary E) (hF : IsElementary F),
+    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
+  (htrans : ∀ (E : Set (EuclideanSpace' d)) (hE : IsElementary E) (x : EuclideanSpace' d),
+    m' (E + {x}) (hE.translate x) = m' E hE)
+
+/-- {lit}`m'` does not depend on the chosen elementarity proof (proof irrelevance of {lean}`IsElementary`). -/
+lemma m'_congr {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
+    (h : E = F) : m' E hE = m' F hF := by
+  subst h; rfl
+
+include hadd in
+/-- {lit}`m'` of the empty set is {lit}`0`. -/
+lemma m'_empty : m' (∅ : Set (EuclideanSpace' d)) (IsElementary.empty d) = 0 := by
+  have h := hadd ∅ ∅ (IsElementary.empty d) (IsElementary.empty d) (by simp)
+  rw [m'_congr (m' := m') ((IsElementary.empty d).union (IsElementary.empty d)) (IsElementary.empty d)
+    (Set.union_self ∅)] at h
+  linarith
+
+include hadd in
+/-- {lit}`m'` is additive over a pairwise-disjoint finset of boxes. -/
+lemma m'_sum_boxes (T : Finset (Box d))
+    (hT : (T : Set (Box d)).PairwiseDisjoint Box.toSet) :
+    m' (⋃ B ∈ T, (B : Set (EuclideanSpace' d))) ⟨T, rfl⟩
+      = ∑ B ∈ T, m' (B : Set (EuclideanSpace' d)) (IsElementary.box B) := by
+  induction' T using Finset.induction_on with B T hT ih;
+  · contrapose! hadd;
+    use ∅, ∅; simp;
+    exact ⟨ IsElementary.empty d, by simpa using hadd ⟩;
+  · simp_all +decide [ Finset.sum_insert, Set.PairwiseDisjoint ];
+    convert hadd _ _ { B } rfl T rfl _ using 1;
+    · convert m'_congr _ _ _ ; aesop;
+    · simp +decide [ ih ( hT.mono ( by aesop_cat ) ) ];
+    · grind +suggestions
+
+include hnonneg hadd in
+/-- {lit}`m'` is monotone with respect to set inclusion. -/
+lemma m'_mono {E F : Set (EuclideanSpace' d)} (hE : IsElementary E) (hF : IsElementary F)
+    (hsub : E ⊆ F) : m' E hE ≤ m' F hF := by
+  contrapose! hadd;
+  use E, F \ E;
+  refine' ⟨ hE, hF.sdiff hE, _, _ ⟩;
+  · exact disjoint_sdiff_self_right;
+  · convert ne_of_lt ( lt_add_of_lt_of_nonneg hadd ( hnonneg _ _ ) ) using 1;
+    convert m'_congr _ _ _ ; aesop
+
+include htrans in
+/-- {lit}`m'` of a grid cell equals {lit}`m'` of the cube `(0,1/N]^d` (translation invariance). -/
+lemma m'_cell_eq_cube {N:ℕ} (hN : N ≠ 0) (k : Fin d → ℤ) :
+    m' (Box.cell N k).toSet (IsElementary.box _)
+      = m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+  convert htrans _ _ _ using 2;
+  convert Box.cell_eq_translate hN k
+
+include hadd htrans in
+/-- {lit}`m'` of a grid box is the number of cells times {lit}`m'` of the small cube. -/
+lemma m'_gridBox_count {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) :
+    m' (Box.gridBox N p q).toSet (IsElementary.box _)
+      = ((∏ i, (q i - p i).toNat : ℕ) : ℝ)
+          * m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+  convert m'_congr _ _ ( Box.gridBox_eq_cells_union hN p q ) using 1;
+  convert Eq.symm ( m'_sum_boxes hadd _ _ ) using 1;
+  · have h_sum : ∀ B ∈ Box.gridCells N p q, m' B.toSet (IsElementary.box B) = m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _) := by
+      simp +decide [ Box.gridCells ];
+      exact fun a _ => m'_cell_eq_cube htrans hN a;
+    rw [ Finset.sum_congr rfl h_sum, Finset.sum_const, nsmul_eq_mul, Box.gridCells_card hN ];
+  · exact Box.gridCells_pairwiseDisjoint hN p q
+
+include hadd htrans in
+/-- {lit}`m'` of the cube `(0,1/N]^d` equals {lit}`c / N^d`, where {lit}`c = m'` of the unit cube. -/
+lemma m'_cube_value {N:ℕ} (hN : N ≠ 0) :
+    m' (Box.cube d ((N:ℝ)⁻¹)).toSet (IsElementary.box _)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) / (N:ℝ) ^ d := by
+  convert eq_div_of_mul_eq ( by positivity : ( N ^ d : ℝ ) ≠ 0 ) ( mul_comm _ _ ) using 1;
+  congr! 2;
+  convert m'_gridBox_count hadd htrans hN ( fun _ ↦ 0 ) ( fun _ ↦ N ) using 1;
+  · exact Box.unit_cube_eq_gridBox hN ▸ rfl;
+  · norm_num [ Int.toNat_of_nonneg, hN ]
+
+include hadd htrans in
+/-- {lit}`m'` agrees with {lit}`c · volume` on every grid box (with {lit}`p ≤ q`). -/
+lemma m'_gridBox_eq {N:ℕ} (hN : N ≠ 0) (p q : Fin d → ℤ) (hpq : p ≤ q) :
+    m' (Box.gridBox N p q).toSet (IsElementary.box _)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |Box.gridBox N p q|ᵥ := by
+  convert m'_gridBox_count hadd htrans hN p q using 1;
+  rw [ mul_comm, Box.volume_gridBox hN p q hpq, m'_cube_value hadd htrans hN ];
+  rw [ Finset.prod_div_distrib, Finset.prod_const, Finset.card_fin ] ; ring_nf;
+  rw [ mul_assoc, mul_comm ];
+  congr! 2;
+  norm_cast;
+  rw [ Nat.cast_prod ] ; exact Finset.prod_congr rfl fun _ _ => by rw [ Int.toNat_of_nonneg ( sub_nonneg.mpr ( hpq _ ) ) ] ;
+
+include hnonneg hadd htrans in
+/-- Upper bound: {lit}`m'` of a box is at most {lit}`c · volume`, via an outer grid box and `N → ∞`. -/
+lemma m'_box_le (B : Box d) :
+    m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
+      ≤ m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ := by
+  by_cases hB : B.toSet = ∅;
+  · rw [ Box.volume_eq_zero_of_empty ] <;> norm_num [ hB ];
+    exact le_of_eq ( m'_empty hadd );
+  · -- For every `N ≥ 1`, `B.toSet ⊆ (O N).toSet`.
+    have h_subset : ∀ N : ℕ, N ≥ 1 → B.toSet ⊆ (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).toSet := by
+      intro N hN x hx i
+      have h_floor : ((⌊(N:ℝ) * (B.side i).a⌋ - 1 : ℤ) : ℝ) / N < (B.side i).a := by
+        rw [ div_lt_iff₀ ] <;> norm_num <;> linarith [ Int.floor_le ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.lt_floor_add_one ( ( N : ℝ ) * ( B.side i |> BoundedInterval.a ) ), show ( N : ℝ ) ≥ 1 by norm_cast ]
+      have h_ceil : (B.side i).b ≤ ((⌈(N:ℝ) * (B.side i).b⌉ : ℤ) : ℝ) / N := by
+        rw [ le_div_iff₀ ] <;> first | positivity | linarith [ Int.le_ceil ( ( N : ℝ ) * ( B.side i ).b ) ] ;
+      have := BoundedInterval.subset_Icc ( B.side i ) ; simp_all +decide [ Box.mem_toSet ] ;
+      exact ⟨ lt_of_lt_of_le h_floor ( this ( hx i ) |>.1 ), le_trans ( this ( hx i ) |>.2 ) h_ceil ⟩;
+    -- Hence for `N ≥ 1`: `m' B (IsElementary.box B) ≤ m' (O N).toSet _` by `m'_mono` with (i), and `m' (O N).toSet _ = c * |O N|ᵥ` by `m'_gridBox_eq` (using `N ≠ 0` and (ii)).
+    have h_le : ∀ N : ℕ, N ≥ 1 → m' B.toSet (IsElementary.box B) ≤ m' (Box.unit_cube d).toSet (IsElementary.box (Box.unit_cube d)) * (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).volume := by
+      intros N hN
+      have h_mono : m' B.toSet (IsElementary.box B) ≤ m' (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).toSet (IsElementary.box _) := by
+        apply m'_mono;
+        · assumption;
+        · assumption;
+        · exact h_subset N hN;
+      convert h_mono using 1;
+      rw [ m'_gridBox_eq hadd htrans ( by positivity ) ];
+      intro i; specialize h_subset N hN; simp_all +decide [ Set.subset_def ] ;
+      obtain ⟨ x, hx ⟩ := Set.nonempty_iff_ne_empty.mpr hB;
+      have := h_subset x hx i;
+      exact Int.le_of_lt_add_one ( by rw [ ← @Int.cast_lt ℝ ] ; push_cast; nlinarith [ show ( N : ℝ ) ≥ 1 by norm_cast, mul_div_cancel₀ ( ( ⌊ ( N : ℝ ) * ( B.side i ).a⌋ : ℝ ) - 1 ) ( by positivity : ( N : ℝ ) ≠ 0 ), mul_div_cancel₀ ( ( ⌈ ( N : ℝ ) * ( B.side i ).b⌉ : ℝ ) ) ( by positivity : ( N : ℝ ) ≠ 0 ) ] );
+    -- By `tendsto_finset_prod`, the product tends to `∏ i, (b i - a i) = |B|ᵥ`.
+    have h_tendsto : Filter.Tendsto (fun N : ℕ => (Box.gridBox N (fun i => ⌊(N:ℝ) * (B.side i).a⌋ - 1) (fun i => ⌈(N:ℝ) * (B.side i).b⌉)).volume) Filter.atTop (nhds (B.volume)) := by
+      convert tendsto_finset_prod _ fun i _ => ?_ using 2;
+      · infer_instance;
+      · unfold Box.gridBox; norm_num [ BoundedInterval.length ] ; ring_nf;
+        refine' Filter.Tendsto.max _ tendsto_const_nhds;
+        convert Filter.Tendsto.add ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( Filter.Tendsto.sub ( tendsto_inv_atTop_nhds_zero_nat ) ( tendsto_floor_div_atTop ( B.side i |>.a ) ) ) using 2 ; ring;
+        ring;
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds ( h_tendsto.const_mul _ ) ( Filter.eventually_atTop.mpr ⟨ 1, fun N hN => h_le N hN ⟩ )
+
+set_option maxHeartbeats 1000000 in
+include hnonneg hadd htrans in
+/-- Lower bound: {lit}`c · volume` is at most {lit}`m'` of a box, via an inner grid box and `N → ∞`. -/
+lemma m'_box_ge (B : Box d) :
+    m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ
+      ≤ m' (B : Set (EuclideanSpace' d)) (IsElementary.box B) := by
+  by_contra! h_contra;
+  obtain ⟨N, hN⟩ : ∃ N : ℕ, N ≥ 1 ∧ B.toSet.Nonempty ∧ ∀ n ≥ N, (∀ i, ⌈(n:ℝ) * (B.side i).a⌉ + 1 ≤ ⌈(n:ℝ) * (B.side i).b⌉) := by
+    have h_nonempty : B.toSet.Nonempty := by
+      contrapose! h_contra;
+      rw [ Box.volume_eq_zero_of_empty ] <;> norm_num [ h_contra ];
+      exact hnonneg _ _;
+    have h_pos : ∀ i, (B.side i).a < (B.side i).b := by
+      intro i; contrapose! h_contra; simp_all +decide [ Box.volume ] ;
+      rw [ Finset.prod_eq_zero ( Finset.mem_univ i ) ] <;> norm_num [ BoundedInterval.length, h_contra ];
+      convert hnonneg _ { B } rfl using 1;
+      congr ; aesop;
+    have h_pos : ∀ i, ∃ N : ℕ, ∀ n ≥ N, ⌈(n:ℝ) * (B.side i).a⌉ + 1 ≤ ⌈(n:ℝ) * (B.side i).b⌉ := by
+      intro i
+      obtain ⟨N, hN⟩ : ∃ N : ℕ, ∀ n ≥ N, (n : ℝ) * ((B.side i).b - (B.side i).a) > 1 := by
+        exact ⟨ ⌊1 / ( ( B.side i ).b - ( B.side i ).a ) ⌋₊ + 1, fun n hn => by nlinarith [ Nat.lt_of_floor_lt hn, h_pos i, mul_div_cancel₀ 1 ( sub_ne_zero_of_ne ( ne_of_gt ( h_pos i ) ) ) ] ⟩;
+      exact ⟨ N, fun n hn => Int.le_of_lt_add_one <| by rw [ ← @Int.cast_lt ℝ ] ; push_cast; linarith [ Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), hN n hn ] ⟩;
+    choose N hN using h_pos;
+    exact ⟨ Finset.univ.sup N + 1, Nat.succ_pos _, h_nonempty, fun n hn i => hN i n <| le_trans ( Finset.le_sup ( f := N ) <| Finset.mem_univ i ) <| Nat.le_of_succ_le hn ⟩;
+  -- For all $n \geq N$, we have $Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1) \subseteq B.toSet$.
+  have h_subset : ∀ n ≥ N, (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet ⊆ B.toSet := by
+    intro n hn x hx; simp_all +decide [ Box.mem_toSet ] ;
+    intro i; specialize hx i; specialize hN; have := hN.2.2 n hn i; simp_all +decide [];
+    convert BoundedInterval.Ioo_subset ( B.side i ) _ using 1;
+    swap;
+    exact x.ofLp i;
+    exact ⟨ fun h => fun _ => h, fun h => h ⟨ by rw [ div_lt_iff₀ ( by norm_cast; linarith ) ] at hx; nlinarith [ Int.le_ceil ( ( n : ℝ ) * ( B.side i |> BoundedInterval.a ) ), show ( n : ℝ ) ≥ 1 by norm_cast; linarith ], by rw [ le_div_iff₀ ( by norm_cast; linarith ) ] at hx; nlinarith [ Int.ceil_lt_add_one ( ( n : ℝ ) * ( B.side i |> BoundedInterval.b ) ), show ( n : ℝ ) ≥ 1 by norm_cast; linarith ] ⟩ ⟩;
+  -- By `m'_gridBox_eq`, we have $m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet _ = m' (Box.unit_cube d).toSet _ * |Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)|ᵥ$.
+  have h_eq : ∀ n ≥ N, m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet (IsElementary.box _) = m' (Box.unit_cube d).toSet (IsElementary.box (Box.unit_cube d)) * (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).volume := by
+    intros n hn
+    apply m'_gridBox_eq hadd htrans (by linarith) (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1) (by
+    exact fun i => Int.le_sub_one_of_lt ( hN.2.2 n hn i ));
+  -- By `tendsto_finset_prod`, we have $|Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)|ᵥ \to |B|ᵥ$ as $n \to \infty$.
+  have h_tendsto : Filter.Tendsto (fun n : ℕ => (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).volume) Filter.atTop (nhds (B.volume)) := by
+    have h_tendsto : Filter.Tendsto (fun n : ℕ => ∏ i, ((⌈(n:ℝ) * (B.side i).b⌉ - 1 - ⌈(n:ℝ) * (B.side i).a⌉ : ℤ):ℝ)/(n:ℝ)) Filter.atTop (nhds (∏ i, ((B.side i).b - (B.side i).a))) := by
+      refine' tendsto_finset_prod _ fun i _ => _;
+      convert Filter.Tendsto.sub ( tendsto_ceil_div_atTop ( B.side i |>.b ) ) ( tendsto_ceil_div_atTop ( B.side i |>.a ) ) |> Filter.Tendsto.sub <| tendsto_one_div_atTop_nhds_zero_nat using 2 ; ring_nf;
+      · push_cast; ring;
+      · ring;
+    convert h_tendsto.congr' _ using 2;
+    · have h_volume : ∀ i, (B.side i).b - (B.side i).a ≥ 0 := by
+        intro i; specialize hN; have := hN.2.2 N le_rfl i; contrapose! this;
+        exact Int.lt_add_one_iff.mpr ( Int.ceil_mono <| mul_le_mul_of_nonneg_left ( by linarith ) <| Nat.cast_nonneg _ );
+      exact Finset.prod_congr rfl fun i _ => by rw [ BoundedInterval.length ] ; rw [ max_eq_left ( h_volume i ) ] ;
+    · filter_upwards [ Filter.eventually_ge_atTop N ] with n hn;
+      rw [ Box.volume_gridBox ];
+      · linarith;
+      · exact fun i => Int.le_sub_one_of_lt ( hN.2.2 n hn i );
+  -- By `m'_mono`, we have $m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet _ \leq m' B.toSet _$.
+  have h_mono : ∀ n ≥ N, m' (Box.gridBox n (fun i => ⌈(n:ℝ) * (B.side i).a⌉) (fun i => ⌈(n:ℝ) * (B.side i).b⌉ - 1)).toSet (IsElementary.box _) ≤ m' B.toSet (IsElementary.box B) := by
+    exact fun n a => m'_mono hnonneg hadd _ (IsElementary.box B) (h_subset n a);
+  exact h_contra.not_ge <| le_of_tendsto_of_tendsto ( h_tendsto.const_mul _ ) tendsto_const_nhds <| Filter.eventually_atTop.mpr ⟨ N, fun n hn => by linarith [ h_eq n hn, h_mono n hn ] ⟩
+
+include hnonneg hadd htrans in
+/-- The crux of Exercise 1.1.3: {lit}`m'` agrees with {lit}`c · volume` on every box, where
+{lit}`c = m'` of the unit cube. -/
+lemma m'_box (B : Box d) :
+    m' (B : Set (EuclideanSpace' d)) (IsElementary.box B)
+      = m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) * |B|ᵥ :=
+  le_antisymm (m'_box_le hnonneg hadd htrans B) (m'_box_ge hnonneg hadd htrans B)
+
+end MeasureUniqAux
+
 /-- Exercise 1.1.3 (uniqueness of elementary measure): Any non-negative, additive, translation-invariant
 function on elementary sets is a scalar multiple of the standard elementary measure. -/
 theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
@@ -1834,10 +2638,14 @@ theorem IsElementary.measure_uniq {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → 
   (hadd: ∀ E F: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (hF: IsElementary F),
    Disjoint E F → m' (E ∪ F) (hE.union hF) = m' E hE + m' F hF)
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE) : ∃ c, c ≥ 0 ∧ ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = c * hE.measure := by
-    sorry
-
-/-- The d-dimensional unit cube (0,1\]^d. -/
-abbrev Box.unit_cube (d:ℕ) : Box d := { side := fun _ ↦ BoundedInterval.Ioc 0 1}
+  classical
+  refine ⟨ m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)), hnonneg _ _, ?_ ⟩
+  intro E hE
+  obtain ⟨T, hT_disj, hE_eq⟩ := hE.partition
+  rw [m'_congr (m' := m') hE (⟨T, rfl⟩) hE_eq]
+  rw [m'_sum_boxes (m' := m') hadd T hT_disj]
+  rw [hE.measure_eq hT_disj hE_eq, Finset.mul_sum]
+  exact Finset.sum_congr rfl (fun B _ => m'_box (m' := m') hnonneg hadd htrans B)
 
 /-- Any measure satisfying normalization m'(unit cube) = 1 must equal the standard elementary measure. -/
 theorem IsElementary.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) → (IsElementary E) → ℝ}
@@ -1847,7 +2655,22 @@ theorem IsElementary.measure_uniq' {d:ℕ} {m': (E: Set (EuclideanSpace' d)) →
   (htrans: ∀ E: Set (EuclideanSpace' d), ∀ (hE: IsElementary E) (x: EuclideanSpace' d), m' (E + {x}) (hE.translate x) = m' E hE)
   (hcube : m' (Box.unit_cube d) (IsElementary.box _) = 1) :
   ∀ E: Set (EuclideanSpace' d), ∀ hE: IsElementary E, m' E hE = hE.measure := by
-    sorry
+  have h_uniq := IsElementary.measure_uniq (m' := m') hnonneg hadd htrans
+  rcases h_uniq with ⟨c, hc_nonneg, h_eq⟩
+  have hc_one : c = 1 := by
+    have h_cube_measure : (IsElementary.box (Box.unit_cube d)).measure = 1 := by
+      -- The unit cube has volume 1
+      simp [IsElementary.measure_of_box, Box.volume, Box.unit_cube, BoundedInterval.length]
+    have h_cube_eq : m' (Box.unit_cube d) (IsElementary.box (Box.unit_cube d)) = c * (IsElementary.box (Box.unit_cube d)).measure :=
+      h_eq (Box.unit_cube d) (IsElementary.box (Box.unit_cube d))
+    rw [h_cube_measure, mul_one] at h_cube_eq
+    rw [hcube] at h_cube_eq
+    exact h_cube_eq.symm
+  intro E hE
+  calc
+    m' E hE = c * hE.measure := h_eq E hE
+    _ = 1 * hE.measure := by rw [hc_one]
+    _ = hE.measure := by simp
 
 /-- The Cartesian product of two boxes is a box in the sum dimension. -/
 abbrev Box.prod {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) : Box (d₁ + d₂) where
@@ -1855,205 +2678,262 @@ abbrev Box.prod {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) : Box (d₁ + 
     obtain ⟨ i, hi ⟩ := i
     exact if h : i < d₁ then B₁.side ⟨i, h⟩ else (B₂.side ⟨i - d₁, by omega⟩)
 
-/-- Unfold {name}`Box.prod` on a coordinate. -/
-lemma Box.prod_side {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) (i : Fin (d₁ + d₂)) :
-    (B₁.prod B₂).side i =
-      if h : (i : ℕ) < d₁ then B₁.side ⟨i, h⟩
-      else B₂.side ⟨(i : ℕ) - d₁, Nat.sub_lt_left_of_lt_add (Nat.not_lt.mp h) i.isLt⟩ := by
-  rcases i with ⟨i, hi⟩
-  rfl
+/-- Equivalence between Fin d₁ ⊕ Fin d₂ and Fin (d₁ + d₂). -/
+def finAddSumEquiv (d₁ d₂ : ℕ) : Fin d₁ ⊕ Fin d₂ ≃ Fin (d₁ + d₂) where
+  toFun := fun
+    | Sum.inl i => Fin.castAdd d₂ i
+    | Sum.inr i => Fin.natAdd d₁ i
+  invFun i :=
+    if h : (i : ℕ) < d₁ then Sum.inl ⟨(i : ℕ), h⟩ else Sum.inr ⟨(i : ℕ) - d₁, by
+      have hi := i.2; omega⟩
+  left_inv := by
+    intro s; cases s with
+    | inl i => simp
+    | inr i => simp
+  right_inv := by
+    intro i; by_cases h : (i : ℕ) < d₁
+    · ext; simp [h, Fin.castAdd]
+    · ext; simp [h, Fin.natAdd]; omega
 
-/-- Coordinate of a product vector in the first block. -/
-lemma EuclideanSpace'.prod_equiv_symm_apply_left {d₁ d₂:ℕ}
-    (y : EuclideanSpace' d₁) (z : EuclideanSpace' d₂) {i : ℕ} (hi : i < d₁) :
-    (EuclideanSpace'.prod_equiv d₁ d₂).symm (y, z) ⟨i, Nat.lt_add_right d₂ hi⟩ = y ⟨i, hi⟩ := by
-  simp [EuclideanSpace'.prod_equiv, dif_pos hi]
+/-- Volume of a product box is product of volumes. -/
+lemma Box.volume_prod {d₁ d₂:ℕ} (B₁ : Box d₁) (B₂ : Box d₂) : |Box.prod B₁ B₂|ᵥ = |B₁|ᵥ * |B₂|ᵥ := by
+  unfold Box.volume
+  calc
+    ∏ (i : Fin (d₁ + d₂)), |(Box.prod B₁ B₂).side i|ₗ
+        = ∏ (i : Fin d₁ ⊕ Fin d₂), (match i with
+          | Sum.inl i => |B₁.side i|ₗ
+          | Sum.inr i => |B₂.side i|ₗ) := by
+      apply (Fintype.prod_equiv (finAddSumEquiv d₁ d₂).symm (λ i => |(Box.prod B₁ B₂).side i|ₗ) (λ s => match s with
+        | Sum.inl i => |B₁.side i|ₗ
+        | Sum.inr i => |B₂.side i|ₗ))
+      intro i
+      simp [finAddSumEquiv]
+      split_ifs <;> rfl
+    _ = (∏ (i : Fin d₁), |B₁.side i|ₗ) * (∏ (i : Fin d₂), |B₂.side i|ₗ) := by
+      simp [Fintype.prod_sum_type]
+    _ = |B₁|ᵥ * |B₂|ᵥ := rfl
 
-/-- Coordinate of a product vector in the second block. -/
-lemma EuclideanSpace'.prod_equiv_symm_apply_right {d₁ d₂:ℕ}
-    (y : EuclideanSpace' d₁) (z : EuclideanSpace' d₂) {j : ℕ} (hj : j < d₂) :
-    (EuclideanSpace'.prod_equiv d₁ d₂).symm (y, z) ⟨d₁ + j, Nat.add_lt_add_left hj d₁⟩ =
-      z ⟨j, hj⟩ := by
-  have hnot : ¬ d₁ + j < d₁ := Nat.not_lt.mpr (Nat.le_add_right _ _)
-  simp [EuclideanSpace'.prod_equiv, dif_neg hnot, Nat.add_sub_cancel_left]
-
-/-- First factor of {name}`prod_equiv`. -/
-lemma EuclideanSpace'.prod_equiv_apply_fst {d₁ d₂:ℕ}
-    (x : EuclideanSpace' (d₁ + d₂)) (i : Fin d₁) :
-    (EuclideanSpace'.prod_equiv d₁ d₂ x).1 i = x ⟨i, Nat.lt_add_right d₂ i.isLt⟩ := by
-  simp [EuclideanSpace'.prod_equiv]
-
-/-- Second factor of {name}`prod_equiv`. Matches `toFun`, which uses `i + d₁`. -/
-lemma EuclideanSpace'.prod_equiv_apply_snd {d₁ d₂:ℕ}
-    (x : EuclideanSpace' (d₁ + d₂)) (j : Fin d₂) :
-    (EuclideanSpace'.prod_equiv d₁ d₂ x).2 j =
-      x ⟨(j : ℕ) + d₁, by omega⟩ := by
-  simp [EuclideanSpace'.prod_equiv]
-
-/-- The set of a product box is the Cartesian product of the two boxes. -/
-lemma Box.prod_toSet {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) :
-    EuclideanSpace'.prod B₁.toSet B₂.toSet = (B₁.prod B₂).toSet := by
-  ext x
-  constructor
-  · rintro ⟨⟨y, z⟩, ⟨hy, hz⟩, rfl⟩
-    intro i
-    rcases i with ⟨i, hi⟩
-    simp only [Box.prod]
-    split_ifs with h
-    · simp [EuclideanSpace'.prod_equiv, dif_pos h]
-      exact hy ⟨i, h⟩
-    · simp [EuclideanSpace'.prod_equiv, dif_neg h]
-      exact hz ⟨i - d₁, Nat.sub_lt_left_of_lt_add (Nat.not_lt.mp h) hi⟩
+/-- The set of a product box is the product of the box sets. -/
+lemma Box.prod_toSet {d₁ d₂:ℕ} (B₁ : Box d₁) (B₂ : Box d₂) : (Box.prod B₁ B₂).toSet = EuclideanSpace'.prod (B₁.toSet) (B₂.toSet) := by
+  ext x; constructor
   · intro hx
-    refine ⟨⟨(EuclideanSpace'.prod_equiv d₁ d₂ x).1, (EuclideanSpace'.prod_equiv d₁ d₂ x).2⟩, ?_,
-      (EuclideanSpace'.prod_equiv d₁ d₂).left_inv x⟩
-    constructor
-    · intro i
-      have hx' := hx ⟨(i : ℕ), Nat.lt_add_right d₂ i.isLt⟩
-      simp [Box.prod, EuclideanSpace'.prod_equiv, dif_pos i.isLt] at hx' ⊢
-      exact hx'
-    · intro j
-      have hnot : ¬ (j : ℕ) + d₁ < d₁ := Nat.not_lt.mpr (Nat.le_add_left d₁ _)
-      have hx' := hx ⟨(j : ℕ) + d₁, by omega⟩
-      simp [Box.prod, EuclideanSpace'.prod_equiv, dif_neg hnot] at hx' ⊢
-      convert hx' <;> (apply Fin.ext; exact Nat.add_sub_cancel (j : ℕ) d₁)
-
-/-- Recovering the factors from a product box. -/
-lemma Box.prod_injective {d₁ d₂:ℕ} :
-    Function.Injective (fun p : Box d₁ × Box d₂ => p.1.prod p.2) := by
-  intro ⟨B₁, C₁⟩ ⟨B₂, C₂⟩ h
-  have hside := congrArg Box.side h
-  refine Prod.ext ?_ ?_
-  · ext i
-    have := congrFun hside ⟨i, Nat.lt_add_right d₂ i.isLt⟩
-    rw [Box.prod_side, Box.prod_side, dif_pos i.isLt, dif_pos i.isLt] at this
-    exact this
-  · ext j
-    have hnot : ¬ (j : ℕ) + d₁ < d₁ := Nat.not_lt.mpr (Nat.le_add_left d₁ _)
-    have := congrFun hside ⟨(j : ℕ) + d₁, by omega⟩
-    rw [Box.prod_side, Box.prod_side, dif_neg hnot, dif_neg hnot] at this
-    have hj (C : Box d₂) : C.side ⟨(j : ℕ) + d₁ - d₁,
-        Nat.sub_lt_left_of_lt_add (Nat.not_lt.mp hnot)
-          (by omega)⟩ = C.side j :=
-      congrArg C.side (Fin.eq_of_val_eq (Nat.add_sub_cancel (j : ℕ) d₁))
-    rwa [hj C₁, hj C₂] at this
-
-/-- Volume of a product box is the product of the volumes. -/
-lemma Box.volume_prod {d₁ d₂:ℕ} (B₁: Box d₁) (B₂: Box d₂) :
-    |(B₁.prod B₂)|ᵥ = |B₁|ᵥ * |B₂|ᵥ := by
-  simp only [Box.volume]
-  rw [Fin.prod_univ_add]
-  refine congrArg₂ (· * ·) ?_ ?_
-  · apply Finset.prod_congr rfl
-    intro i _
-    simp [Box.prod]
-  · apply Finset.prod_congr rfl
-    intro j _
-    simp [Box.prod] <;>
-      (apply Fin.ext; simp [Fin.natAdd, Nat.add_sub_cancel_left])
+    rw [EuclideanSpace'.prod, Set.mem_image]
+    refine ⟨(EuclideanSpace'.prod_equiv d₁ d₂) x, ?_, ?_⟩
+    · rw [Set.mem_prod]
+      constructor
+      · rw [Box.mem_toSet]
+        intro i
+        have hi' : (i : ℕ) < d₁ + d₂ := by
+          have hi := i.2; omega
+        have h := hx ⟨(i : ℕ), hi'⟩
+        have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ), hi'⟩ = B₁.side i := by
+          simp [i.2]
+        rw [hside] at h
+        simpa [EuclideanSpace'.prod_equiv] using h
+      · rw [Box.mem_toSet]
+        intro i
+        have hi' : (i : ℕ) + d₁ < d₁ + d₂ := by
+          have hi := i.2; omega
+        have h := hx ⟨(i : ℕ) + d₁, hi'⟩
+        have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ) + d₁, hi'⟩ = B₂.side i := by
+          simp [show ¬(i : ℕ) + d₁ < d₁ from by omega]
+        rw [hside] at h
+        simpa [EuclideanSpace'.prod_equiv] using h
+    · simp
+  · intro hx
+    rw [EuclideanSpace'.prod] at hx
+    rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+    rw [Box.mem_toSet]
+    intro i
+    rw [← hx_eq]
+    simp [EuclideanSpace'.prod_equiv]
+    by_cases hi : (i : ℕ) < d₁
+    · have ha' := ha
+      rw [Box.mem_toSet] at ha'
+      simp [hi, ha' ⟨(i : ℕ), hi⟩]
+    · have hb' := hb
+      rw [Box.mem_toSet] at hb'
+      simp [hi, hb' ⟨(i : ℕ) - d₁, by omega⟩]
 
 /-- Exercise 1.1.4: The Cartesian product of two elementary sets is elementary. -/
 theorem IsElementary.prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
   (hE₁: IsElementary E₁) (hE₂: IsElementary E₂) : IsElementary (EuclideanSpace'.prod E₁ E₂) := by
-  obtain ⟨S, rfl⟩ := hE₁
-  obtain ⟨T, rfl⟩ := hE₂
-  refine ⟨(S ×ˢ T).image (fun p => p.1.prod p.2), ?_⟩
-  ext x
-  constructor
-  · intro hx
-    obtain ⟨⟨y, z⟩, ⟨hy, hz⟩, rfl⟩ := hx
-    rw [Set.mem_iUnion₂] at hy hz ⊢
-    obtain ⟨B, hB, hyB⟩ := hy
-    obtain ⟨C, hC, hzC⟩ := hz
-    exact ⟨B.prod C,
-      Finset.mem_image.mpr ⟨⟨B, C⟩, Finset.mem_product.mpr ⟨hB, hC⟩, rfl⟩,
-      by
-        rw [← Box.prod_toSet]
-        exact ⟨⟨y, z⟩, ⟨hyB, hzC⟩, rfl⟩⟩
-  · intro hx
-    rw [Set.mem_iUnion₂] at hx
-    obtain ⟨BC, hBC, hxBC⟩ := hx
-    obtain ⟨⟨B, C⟩, hBC', rfl⟩ := Finset.mem_image.mp hBC
-    obtain ⟨hB, hC⟩ := Finset.mem_product.mp hBC'
-    rw [← Box.prod_toSet] at hxBC
-    obtain ⟨⟨y, z⟩, ⟨hy, hz⟩, rfl⟩ := hxBC
-    exact ⟨⟨y, z⟩,
-      ⟨Set.mem_iUnion₂.mpr ⟨B, hB, hy⟩, Set.mem_iUnion₂.mpr ⟨C, hC, hz⟩⟩, rfl⟩
-
-/-- The product of two pairwise disjoint box families remains pairwise disjoint. -/
-lemma Box.prod_pairwiseDisjoint {d₁ d₂:ℕ} {S : Finset (Box d₁)} {T : Finset (Box d₂)}
-    (hS : (S : Set (Box d₁)).PairwiseDisjoint Box.toSet)
-    (hT : (T : Set (Box d₂)).PairwiseDisjoint Box.toSet) :
-    (((S ×ˢ T).image (fun p => p.1.prod p.2) : Finset (Box (d₁ + d₂))) :
-      Set (Box (d₁ + d₂))).PairwiseDisjoint Box.toSet := by
-  rw [Set.pairwiseDisjoint_iff]
-  intro B₁ hB₁ B₂ hB₂ hne
-  obtain ⟨⟨C₁, D₁⟩, hmem₁, rfl⟩ := Finset.mem_image.mp (Finset.mem_coe.mp hB₁)
-  obtain ⟨⟨C₂, D₂⟩, hmem₂, rfl⟩ := Finset.mem_image.mp (Finset.mem_coe.mp hB₂)
-  obtain ⟨hC₁, hD₁⟩ := Finset.mem_product.mp hmem₁
-  obtain ⟨hC₂, hD₂⟩ := Finset.mem_product.mp hmem₂
-  obtain ⟨x, hx⟩ := hne
-  rw [Set.mem_inter_iff, ← Box.prod_toSet, ← Box.prod_toSet] at hx
-  obtain ⟨hx1, hx2⟩ := hx
-  obtain ⟨⟨y, z⟩, ⟨hy1, hz1⟩, rfl⟩ := hx1
-  obtain ⟨⟨y', z'⟩, ⟨hy2, hz2⟩, hyz⟩ := hx2
-  have hyz' : (y, z) = (y', z') :=
-    (EuclideanSpace'.prod_equiv d₁ d₂).symm.injective hyz.symm
-  rcases hyz' with ⟨rfl, rfl⟩
-  have hC : C₁ = C₂ := by
-    by_contra hneC
-    exact Set.disjoint_left.mp (hS hC₁ hC₂ hneC) hy1 hy2
-  have hD : D₁ = D₂ := by
-    by_contra hneD
-    exact Set.disjoint_left.mp (hT hD₁ hD₂ hneD) hz1 hz2
-  subst hC; subst hD
-  rfl
+  obtain ⟨S₁, hE₁⟩ := hE₁
+  obtain ⟨S₂, hE₂⟩ := hE₂
+  classical
+  have h_prod_set (B₁ : Box d₁) (B₂ : Box d₂) : (Box.prod B₁ B₂).toSet = EuclideanSpace'.prod (B₁.toSet) (B₂.toSet) := by
+    ext x; constructor
+    · intro hx
+      rw [EuclideanSpace'.prod, Set.mem_image]
+      refine ⟨(EuclideanSpace'.prod_equiv d₁ d₂) x, ?_, ?_⟩
+      · rw [Set.mem_prod]
+        constructor
+        · rw [Box.mem_toSet]
+          intro i
+          have hi' : (i : ℕ) < d₁ + d₂ := by
+            have hi := i.2; omega
+          have h := hx ⟨(i : ℕ), hi'⟩
+          have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ), hi'⟩ = B₁.side i := by
+            simp [i.2]
+          rw [hside] at h
+          simpa [EuclideanSpace'.prod_equiv] using h
+        · rw [Box.mem_toSet]
+          intro i
+          have hi' : (i : ℕ) + d₁ < d₁ + d₂ := by
+            have hi := i.2; omega
+          have h := hx ⟨(i : ℕ) + d₁, hi'⟩
+          have hside : (Box.prod B₁ B₂).side ⟨(i : ℕ) + d₁, hi'⟩ = B₂.side i := by
+            simp [show ¬(i : ℕ) + d₁ < d₁ from by omega]
+          rw [hside] at h
+          simpa [EuclideanSpace'.prod_equiv] using h
+      · simp
+    · intro hx
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [Box.mem_toSet]
+      intro i
+      rw [← hx_eq]
+      simp [EuclideanSpace'.prod_equiv]
+      by_cases hi : (i : ℕ) < d₁
+      · have ha' := ha
+        rw [Box.mem_toSet] at ha'
+        simp [hi, ha' ⟨(i : ℕ), hi⟩]
+      · have hb' := hb
+        rw [Box.mem_toSet] at hb'
+        simp [hi, hb' ⟨(i : ℕ) - d₁, by omega⟩]
+  have h_union : EuclideanSpace'.prod E₁ E₂ = ⋃ B ∈ (S₁ ×ˢ S₂).image (λ (B₁, B₂) => Box.prod B₁ B₂), B.toSet := by
+    rw [hE₁, hE₂]
+    ext x; constructor
+    · intro hx
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [Set.mem_iUnion₂] at ha hb
+      rcases ha with ⟨B₁, hB₁, ha⟩
+      rcases hb with ⟨B₂, hB₂, hb⟩
+      rw [Set.mem_iUnion₂]
+      refine ⟨Box.prod B₁ B₂, Finset.mem_image.mpr ⟨(B₁, B₂), Finset.mem_product.mpr ⟨hB₁, hB₂⟩, rfl⟩, ?_⟩
+      have h_mem : x ∈ EuclideanSpace'.prod (B₁.toSet) (B₂.toSet) := by
+        rw [EuclideanSpace'.prod]
+        exact (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm (B₁.toSet ×ˢ B₂.toSet) x).mpr ⟨(a, b), ⟨ha, hb⟩, hx_eq⟩
+      simpa [h_prod_set] using h_mem
+    · intro hx
+      rw [Set.mem_iUnion₂] at hx
+      rcases hx with ⟨B, hB, hx⟩
+      rw [Finset.mem_image] at hB
+      rcases hB with ⟨⟨B₁, B₂⟩, hpair, rfl⟩
+      rw [Finset.mem_product] at hpair
+      rcases hpair with ⟨hB₁, hB₂⟩
+      rw [h_prod_set, EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [EuclideanSpace'.prod]
+      refine (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm ((⋃ B₁ ∈ S₁, (B₁ : Set (EuclideanSpace' d₁))) ×ˢ (⋃ B₂ ∈ S₂, (B₂ : Set (EuclideanSpace' d₂)))) x).mpr ?_
+      refine ⟨(a, b), ⟨?_, ?_⟩, hx_eq⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₁, hB₁, ha⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₂, hB₂, hb⟩
+  use (S₁ ×ˢ S₂).image (λ (B₁, B₂) => Box.prod B₁ B₂)
 
 /-- Measure is multiplicative on products: μ(E₁ × E₂) = μ(E₁) \* μ(E₂). -/
 theorem IsElementary.measure_of_prod {d₁ d₂:ℕ} {E₁: Set (EuclideanSpace' d₁)} {E₂: Set (EuclideanSpace' d₂)}
   (hE₁: IsElementary E₁) (hE₂: IsElementary E₂)
   : (hE₁.prod hE₂).measure = hE₁.measure * hE₂.measure := by
   classical
-  set S := hE₁.partition.choose
-  set T := hE₂.partition.choose
-  have hS_disj : (S : Set (Box d₁)).PairwiseDisjoint Box.toSet := hE₁.partition.choose_spec.1
-  have hT_disj : (T : Set (Box d₂)).PairwiseDisjoint Box.toSet := hE₂.partition.choose_spec.1
-  have hE₁_eq : E₁ = ⋃ B ∈ S, B.toSet := hE₁.partition.choose_spec.2
-  have hE₂_eq : E₂ = ⋃ C ∈ T, C.toSet := hE₂.partition.choose_spec.2
-  set U := (S ×ˢ T).image (fun p => p.1.prod p.2)
-  have hU_disj : (U : Set (Box (d₁ + d₂))).PairwiseDisjoint Box.toSet :=
-    Box.prod_pairwiseDisjoint hS_disj hT_disj
-  have hprod_eq : EuclideanSpace'.prod E₁ E₂ = ⋃ B ∈ U, B.toSet := by
-    rw [hE₁_eq, hE₂_eq]
-    ext x
-    constructor
+  have ⟨T₁, hT₁_disj, hE₁_eq⟩ := hE₁.partition
+  have ⟨T₂, hT₂_disj, hE₂_eq⟩ := hE₂.partition
+  set T := (T₁ ×ˢ T₂).image (λ (B₁, B₂) => Box.prod B₁ B₂) with hT_def
+  have hT_disj : (T : Set (Box (d₁ + d₂))).PairwiseDisjoint Box.toSet := by
+    intro B₁ hB₁ B₂ hB₂ h_ne
+    rw [Finset.mem_coe, hT_def] at hB₁ hB₂
+    rcases Finset.mem_image.mp hB₁ with ⟨⟨B₁a, B₂a⟩, hmem₁, rfl⟩
+    rcases Finset.mem_image.mp hB₂ with ⟨⟨B₁b, B₂b⟩, hmem₂, rfl⟩
+    rw [Finset.mem_product] at hmem₁ hmem₂
+    rcases hmem₁ with ⟨hB₁a, hB₂a⟩
+    rcases hmem₂ with ⟨hB₁b, hB₂b⟩
+    by_cases hpair_eq : B₁a = B₁b ∧ B₂a = B₂b
+    · exfalso; exact h_ne (by
+        rcases hpair_eq with ⟨h_eq₁, h_eq₂⟩; simp [h_eq₁, h_eq₂])
+    · rcases not_and_or.mp hpair_eq with (h_ne₁ | h_ne₂)
+      · have h_disj_₁ : Disjoint (B₁a.toSet) (B₁b.toSet) :=
+          hT₁_disj (by simpa using hB₁a) (by simpa using hB₁b) h_ne₁
+        have h_disj_prod : Disjoint (B₁a.toSet ×ˢ B₂a.toSet) (B₁b.toSet ×ˢ B₂b.toSet) := by
+          rw [Set.disjoint_iff_inter_eq_empty, Set.prod_inter_prod]
+          have h_inter : B₁a.toSet ∩ B₁b.toSet = ∅ := Set.disjoint_iff_inter_eq_empty.mp h_disj_₁
+          rw [h_inter, Set.empty_prod]
+        have h_disj_image : Disjoint ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (B₁a.toSet ×ˢ B₂a.toSet))
+            ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (B₁b.toSet ×ˢ B₂b.toSet)) :=
+          Set.disjoint_image_of_injective (EuclideanSpace'.prod_equiv d₁ d₂).symm.injective h_disj_prod
+        -- The goal is `Function.onFun Disjoint Box.toSet (Box.prod B₁a B₂a) (Box.prod B₁b B₂b)`.
+        -- Unfold `Function.onFun` to expose `Disjoint (Box.toSet ...) (Box.toSet ...)`.
+        dsimp [Function.onFun]
+        simpa [Box.prod_toSet, EuclideanSpace'.prod] using h_disj_image
+      · have h_disj_₂ : Disjoint (B₂a.toSet) (B₂b.toSet) :=
+          hT₂_disj (by simpa using hB₂a) (by simpa using hB₂b) h_ne₂
+        have h_disj_prod : Disjoint (B₁a.toSet ×ˢ B₂a.toSet) (B₁b.toSet ×ˢ B₂b.toSet) := by
+          rw [Set.disjoint_iff_inter_eq_empty, Set.prod_inter_prod]
+          have h_inter : B₂a.toSet ∩ B₂b.toSet = ∅ := Set.disjoint_iff_inter_eq_empty.mp h_disj_₂
+          rw [h_inter, Set.prod_empty]
+        have h_disj_image : Disjoint ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (B₁a.toSet ×ˢ B₂a.toSet))
+            ((EuclideanSpace'.prod_equiv d₁ d₂).symm '' (B₁b.toSet ×ˢ B₂b.toSet)) :=
+          Set.disjoint_image_of_injective (EuclideanSpace'.prod_equiv d₁ d₂).symm.injective h_disj_prod
+        dsimp [Function.onFun]
+        simpa [Box.prod_toSet, EuclideanSpace'.prod] using h_disj_image
+  have hT_cover : EuclideanSpace'.prod E₁ E₂ = ⋃ B ∈ T, B.toSet := by
+    rw [hE₁_eq, hE₂_eq, hT_def]
+    ext x; constructor
     · intro hx
-      obtain ⟨⟨y, z⟩, ⟨hy, hz⟩, rfl⟩ := hx
-      rw [Set.mem_iUnion₂] at hy hz ⊢
-      obtain ⟨B, hB, hyB⟩ := hy
-      obtain ⟨C, hC, hzC⟩ := hz
-      exact ⟨B.prod C,
-        Finset.mem_image.mpr ⟨⟨B, C⟩, Finset.mem_product.mpr ⟨hB, hC⟩, rfl⟩,
-        by
-          rw [← Box.prod_toSet]
-          exact ⟨⟨y, z⟩, ⟨hyB, hzC⟩, rfl⟩⟩
+      rw [EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [Set.mem_iUnion₂] at ha hb
+      rcases ha with ⟨B₁, hB₁, ha⟩
+      rcases hb with ⟨B₂, hB₂, hb⟩
+      rw [Set.mem_iUnion₂]
+      refine ⟨Box.prod B₁ B₂, Finset.mem_image.mpr ⟨(B₁, B₂), Finset.mem_product.mpr ⟨hB₁, hB₂⟩, rfl⟩, ?_⟩
+      rw [Box.prod_toSet, EuclideanSpace'.prod]
+      exact (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm (B₁.toSet ×ˢ B₂.toSet) x).mpr ⟨(a, b), ⟨ha, hb⟩, hx_eq⟩
     · intro hx
       rw [Set.mem_iUnion₂] at hx
-      obtain ⟨BC, hBC, hxBC⟩ := hx
-      obtain ⟨⟨B, C⟩, hBC', rfl⟩ := Finset.mem_image.mp hBC
-      obtain ⟨hB, hC⟩ := Finset.mem_product.mp hBC'
-      rw [← Box.prod_toSet] at hxBC
-      obtain ⟨⟨y, z⟩, ⟨hy, hz⟩, rfl⟩ := hxBC
-      exact ⟨⟨y, z⟩,
-        ⟨Set.mem_iUnion₂.mpr ⟨B, hB, hy⟩, Set.mem_iUnion₂.mpr ⟨C, hC, hz⟩⟩, rfl⟩
-  have hmeas : (hE₁.prod hE₂).measure = ∑ B ∈ U, |B|ᵥ :=
-    (hE₁.prod hE₂).measure_eq hU_disj hprod_eq
-  have hE₁m : hE₁.measure = ∑ B ∈ S, |B|ᵥ := hE₁.measure_eq hS_disj hE₁_eq
-  have hE₂m : hE₂.measure = ∑ C ∈ T, |C|ᵥ := hE₂.measure_eq hT_disj hE₂_eq
-  have hinj : ∀ p ∈ S ×ˢ T, ∀ q ∈ S ×ˢ T,
-      (fun r : Box d₁ × Box d₂ => r.1.prod r.2) p = (fun r => r.1.prod r.2) q → p = q := by
-    intro p _ q _ hpq
-    exact Box.prod_injective hpq
-  rw [hmeas, hE₁m, hE₂m, Finset.sum_image hinj, Finset.sum_product]
-  simp_rw [Box.volume_prod]
-  rw [Finset.sum_mul_sum]
+      rcases hx with ⟨B, hB, hx⟩
+      rw [Finset.mem_image] at hB
+      rcases hB with ⟨⟨B₁, B₂⟩, hpair, rfl⟩
+      rw [Finset.mem_product] at hpair
+      rcases hpair with ⟨hB₁, hB₂⟩
+      rw [Box.prod_toSet, EuclideanSpace'.prod] at hx
+      rcases hx with ⟨⟨a, b⟩, ⟨ha, hb⟩, hx_eq⟩
+      rw [EuclideanSpace'.prod]
+      refine (Set.mem_image (EuclideanSpace'.prod_equiv d₁ d₂).symm ((⋃ B₁ ∈ T₁, B₁.toSet) ×ˢ (⋃ B₂ ∈ T₂, B₂.toSet)) x).mpr ?_
+      refine ⟨(a, b), ⟨?_, ?_⟩, hx_eq⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₁, hB₁, ha⟩
+      · exact Set.mem_iUnion₂.mpr ⟨B₂, hB₂, hb⟩
+  have h_measure_T : (hE₁.prod hE₂).measure = ∑ B ∈ T, |B|ᵥ :=
+    (hE₁.prod hE₂).measure_eq hT_disj hT_cover
+  have h_inj : Set.InjOn (λ ((B₁, B₂) : Box d₁ × Box d₂) => Box.prod B₁ B₂) (↑(T₁ ×ˢ T₂) : Set (Box d₁ × Box d₂)) := by
+    intro u hu v hv h
+    rcases Finset.mem_product.mp (by simpa using hu) with ⟨hu₁, hu₂⟩
+    rcases Finset.mem_product.mp (by simpa using hv) with ⟨hv₁, hv₂⟩
+    have hside : (Box.prod u.1 u.2).side = (Box.prod v.1 v.2).side := congrArg Box.side h
+    have h1 : u.1 = v.1 := by
+      ext i
+      have hi := congr_fun hside (Fin.castAdd d₂ i)
+      simp at hi
+      exact hi
+    have h2 : u.2 = v.2 := by
+      ext i
+      have hi := congr_fun hside (Fin.natAdd d₁ i)
+      simp at hi
+      exact hi
+    exact Prod.ext h1 h2
+  calc
+    (hE₁.prod hE₂).measure = ∑ B ∈ T, |B|ᵥ := h_measure_T
+    _ = ∑ x ∈ T₁ ×ˢ T₂, |Box.prod x.1 x.2|ᵥ := by
+      rw [hT_def, Finset.sum_image h_inj]
+    _ = ∑ x ∈ T₁ ×ˢ T₂, |x.1|ᵥ * |x.2|ᵥ := by
+      simp [Box.volume_prod]
+    _ = (∑ B₁ ∈ T₁, |B₁|ᵥ) * (∑ B₂ ∈ T₂, |B₂|ᵥ) := by
+      calc
+        ∑ x ∈ T₁ ×ˢ T₂, |x.1|ᵥ * |x.2|ᵥ = ∑ x ∈ T₁, ∑ y ∈ T₂, |x|ᵥ * |y|ᵥ := by
+          rw [Finset.sum_product]
+        _ = (∑ x ∈ T₁, |x|ᵥ) * (∑ y ∈ T₂, |y|ᵥ) := by
+          rw [Finset.mul_sum]
+          simp_rw [Finset.sum_mul]
+          rw [Finset.sum_comm]
+    _ = hE₁.measure * hE₂.measure := by
+      rw [hE₁.measure_eq hT₁_disj hE₁_eq, hE₂.measure_eq hT₂_disj hE₂_eq]

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析学 I, 第6.6节：子序列 - Terence Tao</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --tb-bg: #fefefe; --tb-text: #333; --tb-text-secondary: #2c2c2c;
+    --tb-text-muted: #666; --tb-text-faint: #888; --tb-text-fainter: #999;
+    --tb-border: #eee; --tb-surface: #f8f9fa; --tb-link: #4a6fa5;
+    --tb-h1: #1a1a1a;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.09);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.13);
+    --tb-def-bg: #f8f9fa; --tb-def-border: #4a90d9; --tb-def-label: #2c5a8a;
+    --tb-prop-bg: #f0f7f0; --tb-prop-border: #5a9a5a; --tb-prop-label: #2d5a2d;
+    --tb-lem-bg: #f5f0f7; --tb-lem-border: #8a5a9a; --tb-lem-label: #5a2d6a;
+    --tb-thm-bg: #fff5f0; --tb-thm-border: #d97a5a; --tb-thm-label: #b04f2d;
+    --tb-ex-bg: #fffaf0; --tb-ex-border: #d9a85a; --tb-ex-label: #8a6620;
+    --tb-exer-bg: #f0f4f8; --tb-exer-border: #d0d8e0; --tb-exer-label: #3a6a9a;
+    --tb-supp-bg: #f0f7ff; --tb-supp-border: #e06090; --tb-supp-title: #b04060;
+    --tb-refl-bg: #fff5f5; --tb-refl-border: #c0392b; --tb-refl-title: #c0392b;
+    --tb-proof-bg: transparent; --tb-proof-label: #666; --tb-proof-qed: #999;
+    --tb-remark-border: #ddd; --tb-remark-text: #555;
+    --tb-note-bg: #fff8e7; --tb-note-border: #e0d8c0; --tb-note-text: #665;
+    --tb-code-bg: #f5f5f5; --tb-code-text: #333; --tb-code-border: #e8e8e8;
+    --tb-table-border: #ddd; --tb-table-head-bg: #f5f5f5;
+    --tb-toc-bg: #fafafa; --tb-toc-border: #e0e0e0; --tb-toc-link: #4a6fa5;
+    --tb-toc-active-bg: #eef4fb; --tb-toc-active-border: #4a90d9;
+    --tb-ctrl-bg: #fff; --tb-ctrl-border: #ccc; --tb-ctrl-text: #666;
+    --tb-ctrl-active-bg: #4a90d9; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #555; --tb-tooltip-text: #fff; --tb-t-border: #c0c0c0;
+    --tb-progress: #4a90d9; --tb-highlight: rgba(255, 236, 153, 0.5);
+    --tb-nav-bg: #f8f9fa; --tb-nav-border: #e0e0e0; --tb-nav-hover: #eef4fb;
+    --tb-syn-keyword: #8959a8; --tb-syn-tactic: #c82829; --tb-syn-type: #4271ae;
+    --tb-syn-comment: #8e908c; --tb-syn-string: #718c00; --tb-syn-number: #f5871f;
+    --tb-syn-sorry: #e74c3c;
+    --tb-copy-bg: rgba(0,0,0,0.05); --tb-copy-text: #666; --tb-copy-hover-bg: rgba(0,0,0,0.1);
+    --tb-copy-success: #27ae60; --tb-footer-text: #888;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+  }
+}
+[data-theme="dark"] {
+    --tb-bg: #1a1a2e; --tb-text: #dcdcdc; --tb-text-secondary: #c8c8c8;
+    --tb-text-muted: #9e9e9e; --tb-text-faint: #7a7a7a; --tb-text-fainter: #6a6a6a;
+    --tb-border: #2a2a4a; --tb-surface: #16213e; --tb-link: #90caf9; --tb-h1: #e8e8e8;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --tb-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+    --tb-shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+    --tb-def-bg: #1a2744; --tb-def-border: #5a9ae9; --tb-def-label: #7ab4f5;
+    --tb-prop-bg: #1a2e1a; --tb-prop-border: #6aaa6a; --tb-prop-label: #8cc88c;
+    --tb-lem-bg: #2a1a3a; --tb-lem-border: #aa7abb; --tb-lem-label: #c9a0d8;
+    --tb-thm-bg: #2e1a10; --tb-thm-border: #e9a07a; --tb-thm-label: #f0b899;
+    --tb-ex-bg: #2a2510; --tb-ex-border: #e0b86a; --tb-ex-label: #d4b56a;
+    --tb-exer-bg: #1a2030; --tb-exer-border: #4a6080; --tb-exer-label: #7aa0cc;
+    --tb-supp-bg: #1a2040; --tb-supp-border: #f080a0; --tb-supp-title: #f090b0;
+    --tb-refl-bg: #2e1a1a; --tb-refl-border: #e06060; --tb-refl-title: #f08080;
+    --tb-proof-bg: transparent; --tb-proof-label: #9a9a9a; --tb-proof-qed: #6a6a6a;
+    --tb-remark-border: #3a3a5a; --tb-remark-text: #aaa;
+    --tb-note-bg: #2a2510; --tb-note-border: #4a4020; --tb-note-text: #c0b090;
+    --tb-code-bg: #0f1525; --tb-code-text: #d0d0d0; --tb-code-border: #2a2a4a;
+    --tb-table-border: #3a3a5a; --tb-table-head-bg: #16213e;
+    --tb-toc-bg: #16213e; --tb-toc-border: #2a2a4a; --tb-toc-link: #90caf9;
+    --tb-toc-active-bg: #1a2744; --tb-toc-active-border: #5a9ae9;
+    --tb-ctrl-bg: #16213e; --tb-ctrl-border: #3a3a5a; --tb-ctrl-text: #9e9e9e;
+    --tb-ctrl-active-bg: #1565c0; --tb-ctrl-active-text: #fff;
+    --tb-tooltip-bg: #333; --tb-tooltip-text: #eee; --tb-t-border: #5a5a7a;
+    --tb-progress: #5a9ae9; --tb-highlight: rgba(255, 200, 50, 0.15);
+    --tb-nav-bg: #16213e; --tb-nav-border: #2a2a4a; --tb-nav-hover: #1a2744;
+    --tb-syn-keyword: #c792ea; --tb-syn-tactic: #ff6b6b; --tb-syn-type: #82aaff;
+    --tb-syn-comment: #676e95; --tb-syn-string: #c3e88d; --tb-syn-number: #f78c6c;
+    --tb-syn-sorry: #ff5252;
+    --tb-copy-bg: rgba(255,255,255,0.06); --tb-copy-text: #9e9e9e;
+    --tb-copy-hover-bg: rgba(255,255,255,0.12); --tb-copy-success: #66bb6a;
+    --tb-footer-text: #7a7a7a;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { font-family: 'Source Serif 4', 'STIX Two Text', 'Georgia', serif; font-size: 18px; line-height: 1.8; margin: 0; padding: 0; background: var(--tb-bg); color: var(--tb-text); transition: background 0.3s, color 0.3s; }
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: linear-gradient(90deg, var(--tb-progress), var(--tb-def-border)); z-index: 1000; transition: width 0.1s linear; }
+.breadcrumb { max-width: 800px; margin: 0 auto; padding: 12px 20px 0; font-size: 0.82em; color: var(--tb-text-faint); }
+.breadcrumb a { color: var(--tb-link); text-decoration: none; } .breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { margin: 0 0.4em; opacity: 0.5; }
+.controls { text-align: center; margin: 0 0 20px 0; display: flex; justify-content: center; gap: 10px; }
+.controls button { font-family: 'Source Serif 4', serif; font-size: 0.85em; padding: 6px 18px; border: 1px solid var(--tb-ctrl-border); border-radius: 20px; background: var(--tb-ctrl-bg); color: var(--tb-ctrl-text); cursor: pointer; transition: all 0.2s; }
+.controls button:hover { border-color: var(--tb-progress); color: var(--tb-progress); }
+.controls button.on { background: var(--tb-ctrl-active-bg); color: var(--tb-ctrl-active-text); border-color: var(--tb-ctrl-active-bg); }
+main.content { max-width: 800px; width: 100%; padding: 40px 20px; margin: 0 auto; }
+h1 { font-family: 'STIX Two Text', serif; font-size: 2.2em; font-weight: 700; text-align: center; margin-bottom: 0.5em; color: var(--tb-h1); }
+h3 { color: var(--tb-text-secondary); }
+.book-info { text-align: center; color: var(--tb-text-muted); font-size: 0.9em; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--tb-border); }
+.book-info a { color: var(--tb-link); }
+.section-title { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.5em 0; color: var(--tb-text-secondary); }
+.section-number { font-size: 0.75em; color: var(--tb-text-faint); display: block; margin-bottom: 0.3em; }
+p { text-align: justify; margin: 1em 0; text-indent: 1.5em; }
+.chapter-marker { color: var(--tb-text-faint); font-size: 0.85em; margin: 2em 0 1em 0; text-align: center; letter-spacing: 0.1em; }
+.page-ref { color: var(--tb-text-fainter); font-size: 0.8em; text-align: right; display: block; margin-top: 0.3em; }
+hr { border: none; border-top: 1px solid var(--tb-border); margin: 2em 0; }
+.definition, .proposition-box, .lemma-box, .theorem-box, .example, .exercise, .supplement, .reflection { border-radius: 6px; box-shadow: var(--tb-shadow-sm); transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.3s; }
+.definition:hover, .proposition-box:hover, .lemma-box:hover, .theorem-box:hover, .example:hover { box-shadow: var(--tb-shadow-hover); transform: translateY(-1px); }
+.definition { background: var(--tb-def-bg); border-left: 5px solid var(--tb-def-border); padding: 15px 20px; margin: 1.5em 0; font-style: normal; }
+.definition .label { font-weight: 600; color: var(--tb-def-label); }
+.proposition-box { background: var(--tb-prop-bg); border-left: 5px solid var(--tb-prop-border); padding: 15px 20px; margin: 1.5em 0; }
+.proposition-box .label { font-weight: 600; color: var(--tb-prop-label); }
+.lemma-box { background: var(--tb-lem-bg); border-left: 5px solid var(--tb-lem-border); padding: 15px 20px; margin: 1.5em 0; }
+.lemma-box .label { font-weight: 600; color: var(--tb-lem-label); }
+.theorem-box { background: var(--tb-thm-bg); border-left: 5px solid var(--tb-thm-border); padding: 15px 20px; margin: 1.5em 0; }
+.theorem-box .label { font-weight: 600; color: var(--tb-thm-label); }
+.example { background: var(--tb-ex-bg); border-left: 5px solid var(--tb-ex-border); padding: 12px 18px; margin: 1.5em 0; }
+.example .label { font-weight: 600; color: var(--tb-ex-label); }
+.exercise { background: var(--tb-exer-bg); border: 1px solid var(--tb-exer-border); padding: 15px 20px; margin: 1.5em 0; }
+.exercise .label { font-weight: 600; color: var(--tb-exer-label); display: block; margin-bottom: 0.5em; }
+.remark { color: var(--tb-remark-text); padding-left: 1.5em; border-left: 2px solid var(--tb-remark-border); margin: 1.5em 0; }
+.remark strong { color: var(--tb-text); }
+.supplement { background: var(--tb-supp-bg); border-left: 5px solid var(--tb-supp-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.supplement .sup-title { font-weight: 700; color: var(--tb-supp-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.supplement p { text-indent: 0; font-size: 0.95em; } .supplement ul { font-size: 0.95em; padding-left: 1.5em; } .supplement li { margin: 0.3em 0; }
+.reflection { background: var(--tb-refl-bg); border-left: 5px solid var(--tb-refl-border); padding: 15px 20px; margin: 2em 0; border-radius: 0 8px 8px 0; }
+.reflection .sup-title { font-weight: 700; color: var(--tb-refl-title); font-size: 1.05em; margin-bottom: 0.5em; display: flex; align-items: center; gap: 0.4em; }
+.reflection p { text-indent: 0; font-size: 0.95em; }
+.proof-collapsible { margin: 1em 0; font-size: 0.95em; }
+.proof-collapsible summary { cursor: pointer; list-style: none; padding: 8px 0; color: var(--tb-proof-label); font-style: italic; display: flex; align-items: center; gap: 0.5em; user-select: none; }
+.proof-collapsible summary::-webkit-details-marker { display: none; }
+.proof-collapsible summary::before { content: ''; display: inline-block; width: 0; height: 0; border-left: 6px solid var(--tb-proof-label); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform 0.2s; }
+.proof-collapsible[open] summary::before { transform: rotate(90deg); }
+.proof-collapsible .proof-body { padding: 8px 20px 8px 40px; }
+.proof-collapsible .qed { text-align: right; color: var(--tb-proof-qed); margin-top: 0.5em; font-style: normal; }
+.code-block { position: relative; background: var(--tb-code-bg); border: 1px solid var(--tb-code-border); padding: 14px 16px; border-radius: 8px; font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; font-size: 0.82em; line-height: 1.6; overflow-x: auto; margin: 1em 0; color: var(--tb-code-text); transition: background 0.3s, border-color 0.3s; }
+.copy-btn { position: absolute; top: 6px; right: 6px; background: var(--tb-copy-bg); border: none; border-radius: 4px; padding: 3px 10px; font-size: 0.85em; color: var(--tb-copy-text); cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.code-block:hover .copy-btn { opacity: 1; } .copy-btn:hover { background: var(--tb-copy-hover-bg); } .copy-btn.copied { color: var(--tb-copy-success); }
+.syn-keyword { color: var(--tb-syn-keyword); font-weight: 600; } .syn-tactic { color: var(--tb-syn-tactic); } .syn-type { color: var(--tb-syn-type); }
+.syn-comment { color: var(--tb-syn-comment); font-style: italic; } .syn-string { color: var(--tb-syn-string); } .syn-number { color: var(--tb-syn-number); }
+.syn-sorry { color: var(--tb-syn-sorry); font-weight: 700; text-decoration: underline wavy var(--tb-syn-sorry); }
+table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+th, td { border: 1px solid var(--tb-table-border); padding: 8px 12px; text-align: center; }
+th { background: var(--tb-table-head-bg); font-weight: 600; }
+.toc { background: var(--tb-toc-bg); border: 1px solid var(--tb-toc-border); border-radius: 8px; padding: 20px 25px; margin: 1.5em 0; box-shadow: var(--tb-shadow-sm); }
+.toc .toc-title { font-weight: 700; font-size: 1.1em; margin-bottom: 0.8em; color: var(--tb-text-secondary); }
+.toc ol { margin: 0; padding-left: 1.5em; } .toc li { margin: 0.3em 0; font-size: 0.95em; }
+.toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; transition: background 0.2s; }
+.toc a:hover { text-decoration: underline; }
+.toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+.sidebar-toc { display: none; position: fixed; top: 80px; width: 240px; max-height: calc(100vh - 100px); overflow-y: auto; padding: 16px; font-size: 0.85em; line-height: 1.6; border-right: 1px solid var(--tb-toc-border); background: var(--tb-bg); z-index: 100; }
+.sidebar-toc .toc-title { font-weight: 700; font-size: 1em; margin-bottom: 0.6em; color: var(--tb-text-secondary); }
+.sidebar-toc ol { margin: 0; padding-left: 1.2em; } .sidebar-toc li { margin: 0.25em 0; }
+.sidebar-toc a { color: var(--tb-toc-link); text-decoration: none; padding: 2px 6px; border-radius: 4px; display: inline-block; transition: all 0.2s; }
+.sidebar-toc a:hover { background: var(--tb-toc-active-bg); }
+.sidebar-toc a.toc-active { background: var(--tb-toc-active-bg); font-weight: 600; border-left: 3px solid var(--tb-toc-active-border); padding-left: 8px; }
+@media (min-width: 1200px) { .sidebar-toc { display: block; left: max(0px, calc((100vw - 800px) / 2 - 280px)); } .toc.inline-toc { display: none; } }
+.section-nav { max-width: 800px; margin: 30px auto 0; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--tb-nav-border); font-size: 0.9em; }
+.section-nav a { color: var(--tb-link); text-decoration: none; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--tb-nav-border); background: var(--tb-nav-bg); transition: all 0.2s; display: flex; align-items: center; gap: 0.3em; }
+.section-nav a:hover { background: var(--tb-nav-hover); box-shadow: var(--tb-shadow-sm); }
+.section-nav .nav-label { font-size: 0.8em; color: var(--tb-text-faint); display: block; } .section-nav .nav-title { font-weight: 600; } .section-nav .spacer { flex: 1; }
+.t { border-bottom: 1px dotted var(--tb-t-border); cursor: help; position: relative; }
+.t::before { content: attr(data-zh); }
+.t::after { content: attr(data-en); position: absolute; bottom: 1.6em; left: 0; font-size: 0.8em; color: var(--tb-tooltip-text); background: var(--tb-tooltip-bg); padding: 3px 10px; border-radius: 4px; white-space: nowrap; z-index: 10; font-style: normal; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
+.t:hover::after { opacity: 1; transition-delay: 0.4s; }
+.lang-en .t::after { font-size: 0.85em; color: var(--tb-text-faint); margin-left: 0.4em; font-style: italic; opacity: 1; position: static; background: none; padding: 0; border-radius: 0; white-space: normal; pointer-events: auto; }
+@keyframes highlight-flash { 0% { background-color: var(--tb-highlight); } 100% { background-color: transparent; } }
+.highlighted { animation: highlight-flash 1.8s ease-out; }
+.footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--tb-border); color: var(--tb-footer-text); font-size: 0.85em; }
+.icon { width: 1.1em; height: 1.1em; vertical-align: -0.15em; fill: currentColor; flex-shrink: 0; }
+@media print { .progress-bar, .controls, .sidebar-toc, .section-nav, .copy-btn, .breadcrumb { display: none !important; } body { background: #fff; color: #000; } .definition, .proposition-box, .theorem-box, .example, .exercise, .supplement, .reflection { box-shadow: none; break-inside: avoid; } }
+    </style>
+    <script>MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] } };</script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>(function(){ var t = localStorage.getItem('tb_theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); })();</script>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<aside class="sidebar-toc" id="sidebarToc"></aside>
+<nav class="breadcrumb" id="breadcrumb"></nav>
+<main class="content">
+<div class="controls">
+    <button id="langBtn" onclick="toggleLang()">中 EN</button>
+    <button id="themeBtn" onclick="toggleTheme()" title="切换深色/浅色模式">🌙</button>
+</div>
+
+<div class="book-info">
+    <em>分析学 I</em>, 第四版 (Terence Tao)<br>
+    数学文献与读物, Hindustan Book Agency, 2022<br>
+    DOI: <a href="https://doi.org/10.1007/978-981-19-7261-4_6">10.1007/978-981-19-7261-4_6</a>
+</div>
+
+<h1>6 <span class="t" data-zh="序列的极限" data-en="Limits of Sequences"></span></h1>
+
+<h2 class="section-title">
+    <span class="section-number">第6.6节</span>
+    <span class="t" data-zh="子序列" data-en="Subsequences"></span>
+    <span class="page-ref">第128–130页</span>
+</h2>
+
+<!-- ========== 目录 ========== -->
+<div class="toc inline-toc">
+    <div class="toc-title">本节内容导航</div>
+    <ol>
+        <li><a href="#s66-intro">引言：不收敛序列中的"收敛成分"</a></li>
+        <li><a href="#s66-def661"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</a></li>
+        <li><a href="#s66-example662"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</a></li>
+        <li><a href="#s66-lem664"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</a></li>
+        <li><a href="#s66-prop665"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</a></li>
+        <li><a href="#s66-prop666"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</a></li>
+        <li><a href="#s66-rem667"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</a></li>
+        <li><a href="#s66-thm668"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</a></li>
+        <li><a href="#s66-rem669"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</a></li>
+        <li><a href="#s66-supp">补充说明</a></li>
+        <li><a href="#s66-exercises">习题</a></li>
+    </ol>
+</div>
+
+<!-- ========== 引言 ========== -->
+<div id="s66-intro">
+<div class="chapter-marker">— 引言 —</div>
+</div>
+
+<p>
+本章一直致力于研究实数序列 \((a_n)_{n=m}^\infty\) 及其极限。有些序列收敛到单一的极限，
+而另一些则有多个极限点。例如，序列
+\[
+1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
+\]
+有两个极限点 \(0\) 和 \(1\)（它们恰好也是下极限和上极限），
+但该序列实际上不收敛（因为上极限和下极限不相等）。
+然而，虽然这个序列不收敛，它似乎包含收敛的"成分"；
+它看起来是两个收敛子序列的混合，即
+\[
+1.1,\ 1.01,\ 1.001,\ \ldots
+\]
+和
+\[
+0.1,\ 0.01,\ 0.001,\ \ldots
+\]
+为了使这一概念精确化，我们需要子序列的概念。
+</p>
+
+<hr>
+
+<!-- ========== 定义 6.6.1 ========== -->
+<div id="s66-def661">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1：子序列</h3>
+</div>
+
+<div class="definition">
+    <span class="label"><span class="t" data-zh="定义" data-en="Definition"></span> 6.6.1（子序列）。</span>
+    设 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\) 是实数序列。
+    称 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的<strong><span class="t" data-zh="子序列" data-en="subsequence"></span></strong>，
+    如果存在一个<strong>严格递增</strong>的函数 \(f: \mathbb{N} \to \mathbb{N}\)
+    （即对所有 \(n \in \mathbb{N}\) 有 \(f(n+1) > f(n)\)），使得
+    \[
+    b_n = a_{f(n)} \quad \text{对所有 } n \in \mathbb{N}.
+    \]
+    更一般地，称 \((b_n)_{n=m'}^\infty\) 是 \((a_n)_{n=m}^\infty\) 的子序列，
+    如果存在严格递增函数 \(f: \{n \in \mathbb{N} : n \geq m'\} \to \{n \in \mathbb{N} : n \geq m\}\)，
+    使得对所有 \(n \geq m'\) 有 \(b_n = a_{f(n)}\)。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的定义</span>
+    <div class="code-block">
+/-- Definition 6.6.1: b is a subsequence of a -/
+abbrev Sequence.subseq (a b: ℕ → ℝ) : Prop :=
+  ∃ f : ℕ → ℕ, StrictMono f ∧ ∀ n, b n = a (f n)
+    </div>
+    <p>Lean 中用 <code>StrictMono f</code>（即 \(f(n+1) > f(n)\) 对所有 \(n\)）来编码"严格递增"。
+    注意教材中的子序列关系是定义在 <code>ℕ → ℝ</code> 上的谓词，
+    而非在 <code>Sequence</code> 类型上，这简化了与教材的对应。</p>
+</div>
+
+<hr>
+
+<!-- ========== 例子 6.6.2, 6.6.3 ========== -->
+<div id="s66-example662">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="例子" data-en="Examples"></span> 6.6.2–6.6.3</h3>
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.2。</span>
+    设 \((a_n)_{n=0}^\infty\) 是一个序列，则 \((a_{2n})_{n=0}^\infty\) 是它的子序列，
+    因为函数 \(f: \mathbb{N} \to \mathbb{N}\) 定义为 \(f(n) := 2n\) 是严格递增的。
+    注意我们不要求 \(f\) 是满射，虽然它必然是单射（为什么？）。
+    更非正式地说，序列
+    \[
+    a_0,\ a_2,\ a_4,\ a_6,\ \ldots
+    \]
+    是
+    \[
+    a_0,\ a_1,\ a_2,\ a_3,\ a_4,\ \ldots
+    \]
+    的子序列。
+</div>
+
+<div class="example">
+    <span class="label"><span class="t" data-zh="例子" data-en="Example"></span> 6.6.3。</span>
+    前面提到的两个序列
+    \[
+    1.1,\ 1.01,\ 1.001,\ \ldots
+    \]
+    和
+    \[
+    0.1,\ 0.01,\ 0.001,\ \ldots
+    \]
+    都是
+    \[
+    1.1,\ 0.1,\ 1.01,\ 0.01,\ 1.001,\ 0.001,\ 1.0001,\ \ldots
+    \]
+    的子序列。
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
+    <p>例 6.6.3 在 <code>Section_6_6.lean</code> 中被精确地形式化。原序列被定义为奇偶分支函数，
+    取偶数下标得到趋向 1 的子序列，取奇数下标得到趋向 0 的子序列：</p>
+    <div class="code-block">
+-- 偶数项子序列 → 1 + 10^(-n-1)
+example :
+    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
+    (fun n ↦ 1 + (10:ℝ)^(-(n:ℤ)-1)) := by
+  refine ⟨fun n ↦ 2*n, ?_, λ n ↦ ?_⟩
+
+-- 奇数项子序列 → 10^(-n-1)
+example :
+    Sequence.subseq (fun n ↦ if Even n then 1 + (10:ℝ)^(-(n/2:ℤ)-1) else (10:ℝ)^(-(n/2:ℤ)-1))
+    (fun n ↦ (10:ℝ)^(-(n:ℤ)-1)) := by
+  refine ⟨fun n ↦ 2*n + 1, ?_, λ n ↦ ?_⟩
+    </div>
+</div>
+
+<hr>
+
+<!-- ========== 引理 6.6.4 ========== -->
+<div id="s66-lem664">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4：自反性与传递性</h3>
+</div>
+
+<div class="lemma-box">
+    <span class="label"><span class="t" data-zh="引理" data-en="Lemma"></span> 6.6.4。</span>
+    设 \((a_n)_{n=0}^\infty\)、\((b_n)_{n=0}^\infty\)、\((c_n)_{n=0}^\infty\) 是实数序列。则
+    <ul>
+        <li>\((a_n)_{n=0}^\infty\) 是自身的子序列（<strong>自反性</strong>）；</li>
+        <li>若 \((b_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列，且 \((c_n)_{n=0}^\infty\) 是 \((b_n)_{n=0}^\infty\) 的子序列，则 \((c_n)_{n=0}^\infty\) 是 \((a_n)_{n=0}^\infty\) 的子序列（<strong>传递性</strong>）。</li>
+    </ul>
+    "是子序列"这一关系<strong>不是对称的</strong>。
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">见习题 6.6.1。</div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+/-- Lemma 6.6.4 / Exercise 6.6.1: reflexivity -/
+theorem Sequence.subseq_self (a:ℕ → ℝ) : Sequence.subseq a a := by
+  refine ⟨id, strictMono_id, λ n ↦ rfl⟩
+
+/-- Lemma 6.6.4 / Exercise 6.6.1: transitivity -/
+theorem Sequence.subseq_trans {a b c:ℕ → ℝ}
+    (hab: Sequence.subseq a b) (hbc: Sequence.subseq b c) :
+    Sequence.subseq a c := by
+  rcases hab with ⟨f, hf, hab'⟩
+  rcases hbc with ⟨g, hg, hbc'⟩
+  refine ⟨f ∘ g, hf.comp hg, λ n ↦ ?_⟩
+  calc c n = b (g n) := hbc' n
+    _ = a (f (g n)) := hab' (g n)
+    </div>
+    <p>自反性用恒等函数 <code>id</code>，传递性用复合函数 <code>f ∘ g</code>，
+    严格递增函数的复合仍严格递增（<code>StrictMono.comp</code>）。</p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.6.5 ========== -->
+<div id="s66-prop665">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5：子序列与极限</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.5（子序列与极限的关系）。</span>
+    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题<strong>逻辑等价</strong>：
+    <ul>
+        <li>(a) 序列 \((a_n)_{n=0}^\infty\) 收敛到 \(L\)。</li>
+        <li>(b) \((a_n)_{n=0}^\infty\) 的每个子序列都收敛到 \(L\)。</li>
+    </ul>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">见习题 6.6.4。（注意两个方向中有一个的证明非常短。）</div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+/-- Proposition 6.6.5 / Exercise 6.6.4 -/
+theorem Sequence.convergent_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
+    (a:Sequence).TendsTo L ↔ ∀ b:ℕ → ℝ,
+      Sequence.subseq a b → (b:Sequence).TendsTo L
+    </div>
+    <p>(b) ⟹ (a) 的方向很短：序列是自身的子序列（引理 6.6.4），故直接代入即可。
+    (a) ⟹ (b) 的方向需要利用严格递增函数 \(f\) 满足 \(f(n) \geq n\)，
+    因此当 \(n\) 足够大时 \(f(n)\) 也足够大，使 \(a_{f(n)}\) 接近 \(L\)。</p>
+</div>
+
+<hr>
+
+<!-- ========== 命题 6.6.6 ========== -->
+<div id="s66-prop666">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6：子序列与极限点</h3>
+</div>
+
+<div class="proposition-box">
+    <span class="label"><span class="t" data-zh="命题" data-en="Proposition"></span> 6.6.6（子序列与极限点的关系）。</span>
+    设 \((a_n)_{n=0}^\infty\) 是实数序列，\(L\) 是实数。则以下两个命题逻辑等价：
+    <ul>
+        <li>(a) \(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。</li>
+        <li>(b) 存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛到 \(L\)。</li>
+    </ul>
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">见习题 6.6.5。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\)，定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，并解释为何集合 \(\{n > n_{j-1} : |a_n - L| \leq 1/j\}\) 非空。然后考虑序列 \(a_{n_j}\)。）</div>
+    <div class="qed">∎</div>
+</details>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的对应定理</span>
+    <div class="code-block">
+/-- Proposition 6.6.6 / Exercise 6.6.5 -/
+theorem Sequence.limit_point_iff_subseq (a:ℕ → ℝ) (L:ℝ) :
+    (a:Sequence).LimitPoint L ↔
+      ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).TendsTo L
+    </div>
+    <p>(a) ⟹ (b) 的 Lean 证明使用 <code>Classical.choose</code> 递归构造下标函数 \(f\)：
+    对每个 \(k\)，在 \(\{n > f(k) : |a_n - L| \leq 1/(k+2)\}\) 中选取一个元素作为 \(f(k+1)\)。
+    由此构造的 \(b_n := a_{f(n)}\) 满足 \(|b_n - L| \leq 1/(n+1) \to 0\)，故收敛到 \(L\)。</p>
+</div>
+
+<hr>
+
+<!-- ========== 注 6.6.7 ========== -->
+<div id="s66-rem667">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.7：极限与极限点的对比</h3>
+</div>
+
+<div class="remark">
+    <strong>注 6.6.7。</strong>
+    上述两个命题给出了极限与极限点概念的鲜明对比。当序列有极限 \(L\) 时，
+    <strong>所有</strong>子序列也都收敛到 \(L\)。但当序列以 \(L\) 为极限点时，
+    只有<strong>某些</strong>子序列收敛到 \(L\)。
+</div>
+
+<hr>
+
+<!-- ========== 定理 6.6.8 ========== -->
+<div id="s66-thm668">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8：Bolzano–Weierstrass 定理</h3>
+</div>
+
+<p>
+我们现在可以证明实分析中的一个重要定理，它归功于 Bernard Bolzano（1781–1848）和 Karl Weierstrass（1815–1897）：
+每个有界序列都有收敛子序列。
+</p>
+
+<div class="theorem-box">
+    <span class="label"><span class="t" data-zh="定理" data-en="Theorem"></span> 6.6.8（Bolzano–Weierstrass 定理）。</span>
+    设 \((a_n)_{n=0}^\infty\) 是<strong>有界</strong>序列
+    （即存在实数 \(M > 0\) 使得对所有 \(n \in \mathbb{N}\) 有 \(|a_n| \leq M\)）。
+    则 \((a_n)_{n=0}^\infty\) 至少有一个收敛子序列。
+</div>
+
+<details class="proof-collapsible" open>
+    <summary>证明.</summary>
+    <div class="proof-body">
+    <p style="text-indent:0">
+    令 \(L\) 为序列 \((a_n)_{n=0}^\infty\) 的上极限。由于对所有自然数 \(n\) 有 \(-M \leq a_n \leq M\)，
+    由比较原理（引理 6.4.13）得 \(-M \leq L \leq M\)。特别地，\(L\) 是实数（不是 \(+\infty\) 或 \(-\infty\)）。
+    由命题 6.4.12(e)，\(L\) 是 \((a_n)_{n=0}^\infty\) 的极限点。
+    再由命题 6.6.6，存在 \((a_n)_{n=0}^\infty\) 的一个子序列收敛（事实上，收敛到 \(L\)）。
+    </p>
+    </div>
+    <div class="qed">∎</div>
+</details>
+
+<p>
+注意，我们同样可以使用下极限代替上极限来完成上述论证。
+</p>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：Lean 中的形式化</span>
+    <div class="code-block">
+/-- Theorem 6.6.8 (Bolzano-Weierstrass theorem) -/
+theorem Sequence.convergent_of_subseq_of_bounded {a:ℕ→ ℝ}
+    (ha: (a:Sequence).IsBounded) :
+    ∃ b:ℕ → ℝ, Sequence.subseq a b ∧ (b:Sequence).Convergent
+    </div>
+    <p>Lean 证明忠实地遵循教材思路：先由有界性得出上极限有限（<code>finite_limsup_liminf_of_bounded</code>），
+    再由命题 6.4.12(e) 得上极限是极限点（<code>limit_point_of_limsup</code>），
+    最后由命题 6.6.6 将极限点转化为收敛子序列（<code>limit_point_iff_subseq</code>）。</p>
+</div>
+
+<hr>
+
+<!-- ========== 注 6.6.9 ========== -->
+<div id="s66-rem669">
+<h3 style="margin: 1.5em 0 0.8em 0;"><span class="t" data-zh="注" data-en="Remark"></span> 6.6.9：紧致性</h3>
+</div>
+
+<div class="remark">
+    <strong>注 6.6.9。</strong>
+    Bolzano–Weierstrass 定理说明：如果一个序列有界，那么它最终"别无选择"只能在某些地方收敛；
+    它"没有空间"散开并阻止自己获得极限点。对无界序列这不成立；例如序列 \(1, 2, 3, \ldots\)
+    没有任何收敛子序列（为什么？）。用拓扑的语言来说，这意味着区间 \(\{x \in \mathbb{R} : -M \leq x \leq M\}\) 是
+    <strong><span class="t" data-zh="紧致的" data-en="compact"></span></strong>，
+    而无界集合如实数轴 \(\mathbb{R}\) 不是紧致的。紧致集与非紧致集的区分在后续章节中非常重要——
+    其重要性类似于有限集与无限集的区分。
+</div>
+
+<hr>
+
+<!-- ========== 补充说明 ========== -->
+<div id="s66-supp">
+<div class="chapter-marker">— 补充说明 —</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节的概念结构</span>
+    <table>
+        <tr><th>概念</th><th>教材定义</th><th>Lean 对应</th></tr>
+        <tr><td>子序列</td><td>\(b_n = a_{f(n)}\)，\(f\) 严格递增</td><td><code>Sequence.subseq</code></td></tr>
+        <tr><td>自反性</td><td>序列是自身的子序列</td><td><code>subseq_self</code></td></tr>
+        <tr><td>传递性</td><td>子序列的子序列还是子序列</td><td><code>subseq_trans</code></td></tr>
+        <tr><td>收敛 ↔ 所有子序列收敛</td><td>命题 6.6.5</td><td><code>convergent_iff_subseq</code></td></tr>
+        <tr><td>极限点 ↔ 存在收敛子序列</td><td>命题 6.6.6</td><td><code>limit_point_iff_subseq</code></td></tr>
+        <tr><td>Bolzano–Weierstrass</td><td>有界序列有收敛子序列</td><td><code>convergent_of_subseq_of_bounded</code></td></tr>
+        <tr><td>无界序列的子序列</td><td>无界 → 存在子序列 \(1/b_n \to 0\)</td><td><code>subseq_of_unbounded</code></td></tr>
+    </table>
+</div>
+
+<div class="supplement">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm9 0V6h7v12h-7z"/></svg> 补充说明：本节形式化完成度</span>
+    <table>
+        <tr><th>内容</th><th>状态</th></tr>
+        <tr><td>定义 6.6.1（子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>例 6.6.2（偶数下标子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>例 6.6.3（奇偶子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>引理 6.6.4（自反性与传递性）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.6.5（收敛 ↔ 所有子序列收敛）</td><td>✅ 已完成</td></tr>
+        <tr><td>命题 6.6.6（极限点 ↔ 收敛子序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>定理 6.6.8（Bolzano–Weierstrass）</td><td>✅ 已完成</td></tr>
+        <tr><td>习题 6.6.2（互为子序列的不同序列）</td><td>✅ 已完成</td></tr>
+        <tr><td>习题 6.6.3（无界序列的子序列）</td><td>✅ 已完成</td></tr>
+    </table>
+</div>
+
+<div class="reflection">
+    <span class="sup-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg> 个人感悟：Bolzano–Weierstrass 定理的深远意义</span>
+    <p>
+    Bolzano–Weierstrass 定理是实分析中最基本的"存在性定理"之一：它不告诉你极限<strong>是什么</strong>，
+    只告诉你极限<strong>存在</strong>。这种"非构造性"的存在性证明，正是上极限/下极限框架的力量所在——
+    上极限天然是极限点，而有界性保证了它是有限实数，于是收敛子序列自动存在。
+    </p>
+    <p>
+    命题 6.6.6 的深刻之处在于：它把"极限点"这个用 \(\varepsilon\)-\(N\) 语言定义的、
+    看似静态的概念，与"存在收敛子序列"这个动态的、构造性的概念等价起来。
+    在 Lean 形式化中，这个等价定理的 (a) ⟹ (b) 方向需要用选择公理
+    （<code>Classical.choose</code>）递归地构造子序列的下标——
+    这体现了"从存在性到构造性"的转换在形式上需要非平凡的工作。
+    </p>
+    <p>
+    注 6.6.9 中提到的"紧致性"将在后续章节（特别是关于连续性和度量空间的部分）发挥核心作用。
+    Bolzano–Weierstrass 定理正是实数轴上闭区间紧致性的序列刻画。
+    </p>
+</div>
+
+</div>
+
+<hr>
+
+<!-- ========== 习题 ========== -->
+<div id="s66-exercises">
+<h3 style="margin-top: 2em;">— 习题 —</h3>
+
+<div class="exercise" id="ex-6.6.1">
+    <span class="label">习题 6.6.1。</span>
+    证明引理 6.6.4。
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>subseq_self</code>、<code>subseq_trans</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.6.2">
+    <span class="label">习题 6.6.2。</span>
+    你能找到两个<strong>不相同</strong>的序列 \((a_n)_{n=0}^\infty\) 和 \((b_n)_{n=0}^\infty\)，
+    使得它们互为对方的子序列吗？
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>exist_subseq_of_subseq</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.6.3">
+    <span class="label">习题 6.6.3。</span>
+    （本题可使用良序原理，命题 8.1.4。）
+    设 \((a_n)_{n=0}^\infty\) 是无界序列。证明存在 \((a_n)_{n=0}^\infty\) 的子序列 \((b_n)_{n=0}^\infty\)，
+    使得 \(\lim_{n\to\infty} 1/b_n\) 存在且等于 0。
+    （提示：对每个自然数 \(j\)，递归地引入 \(n_j := \min\{n \in \mathbb{N} : |a_n| \geq j;\ n > n_{j-1}\}\)（当 \(j = 0\) 时省略条件 \(n > n_{j-1}\)），先解释为何集合非空。令 \(b_j := a_{n_j}\)。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>subseq_of_unbounded</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.6.4">
+    <span class="label">习题 6.6.4。</span>
+    证明命题 6.6.5。（注意两个方向中有一个的证明非常短。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>convergent_iff_subseq</code>。
+    </p>
+</div>
+
+<div class="exercise" id="ex-6.6.5">
+    <span class="label">习题 6.6.5。</span>
+    证明命题 6.6.6。（提示：为证明 (a) 蕴含 (b)，对每个自然数 \(j\) 定义 \(n_j := \min\{n > n_{j-1} : |a_n - L| \leq 1/j\}\)，约定 \(n_0 := 0\)，解释为何集合非空。考虑序列 \(a_{n_j}\)。）
+    <p style="margin-top: 0.5em; font-size: 0.9em; color: var(--tb-text-muted);">
+        对应 Lean 目标：<code>limit_point_iff_subseq</code>。
+    </p>
+</div>
+
+</div>
+
+<div class="footer">
+    <p>本文档包含 Terence Tao 所著《<em>分析学 I</em>》第 6.6 节的正文，
+    以及关于子序列、Bolzano–Weierstrass 定理等概念的补充说明。</p>
+    <p>相应的 Lean 形式化证明（含待完成的习题），见 <code>Section_6_6.lean</code>。</p>
+</div>
+
+</main>
+<nav class="section-nav" id="sectionNav"></nav>
+
+<script>
+var SECTION_NAV = {
+    chapter: { num: 6, zh: '序列的极限', en: 'Limits of Sequences' },
+    current: { num: '6.6', zh: '子序列', en: 'Subsequences' },
+    prev: { num: '6.5', file: 'section_6_5_textbook.html', zh: '一些标准极限', en: 'Some Standard Limits' },
+    next: { num: '6.7', file: 'section_6_7_textbook.html', zh: '实指数（第二部分）', en: 'Real Exponentiation, Part II' }
+};
+(function(){ var s=localStorage.getItem('tb_theme')||'auto'; function a(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);var b=document.getElementById('themeBtn');if(b)b.textContent=t==='dark'?'☀️':t==='light'?'🌙':(window.matchMedia('(prefers-color-scheme:dark)').matches?'☀️':'🌙');}window.toggleTheme=function(){var c=localStorage.getItem('tb_theme')||'auto';var d=c==='dark'||(c==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var n=d?'light':'dark';localStorage.setItem('tb_theme',n);a(n);};a(s);})();
+(function(){ var o='section66_lang';var v=localStorage.getItem(o);if(v&&!localStorage.getItem('tb_lang')){localStorage.setItem('tb_lang',v);localStorage.removeItem(o);}window.currentLang=localStorage.getItem('tb_lang')||'zh';window.toggleLang=function(){currentLang=currentLang==='zh'?'en':'zh';localStorage.setItem('tb_lang',currentLang);applyLang();};window.applyLang=function(){var b=document.getElementById('langBtn');if(currentLang==='en'){b.textContent='EN 中文';b.classList.add('on');document.body.classList.add('lang-en');}else{b.textContent='中 EN';b.classList.remove('on');document.body.classList.remove('lang-en');}};document.addEventListener('DOMContentLoaded',applyLang);})();
+(function(){ var t=false;window.addEventListener('scroll',function(){if(!t){requestAnimationFrame(function(){var h=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('progressBar').style.width=(h>0?window.scrollY/h*100:0)+'%';t=false;});t=true;}});})();
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.toc a,.sidebar-toc a').forEach(function(a){a.addEventListener('click',function(){var h=this.getAttribute('href');if(!h||h[0]!=='#')return;var e=document.getElementById(h.slice(1));if(e){e.classList.remove('highlighted');void e.offsetWidth;e.classList.add('highlighted');}});});});
+document.addEventListener('DOMContentLoaded',function(){var a=document.querySelectorAll('[id^="s66-"]');if(!a.length)return;var o=new IntersectionObserver(function(e){e.forEach(function(en){document.querySelectorAll('.toc a[href="#'+en.target.id+'"],.sidebar-toc a[href="#'+en.target.id+'"]').forEach(function(l){if(en.isIntersecting)l.classList.add('toc-active');else l.classList.remove('toc-active');});});},{rootMargin:'-10% 0px -80% 0px'});a.forEach(function(el){o.observe(el);});});
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.code-block').forEach(function(b){var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';btn.addEventListener('click',function(){var t='';b.childNodes.forEach(function(c){if(c!==btn)t+=c.textContent;});t=t.trim();if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){s(btn);});else{var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');s(btn);}catch(e){}document.body.removeChild(ta);}});b.appendChild(btn);});function s(b){b.textContent='Copied!';b.classList.add('copied');setTimeout(function(){b.textContent='Copy';b.classList.remove('copied');},2000);}});
+document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('sidebarToc'),i=document.querySelector('.toc.inline-toc');if(!s||!i)return;s.innerHTML='<div class="toc-title">目录</div>'+i.querySelector('ol').outerHTML;});
+document.addEventListener('DOMContentLoaded',function(){var n=SECTION_NAV,el=document.getElementById('sectionNav'),bc=document.getElementById('breadcrumb');if(bc)bc.innerHTML='<em>分析学 I</em><span class="sep">›</span>第 '+n.chapter.num+' 章<span class="sep">›</span><strong>§'+n.current.num+'</strong>';if(!el)return;var h='';if(n.prev)h+='<a href="'+n.prev.file+'"><span class="nav-label">← 上一节</span><span class="nav-title">§'+n.prev.num+' '+n.prev.zh+'</span></a>';else h+='<span></span>';h+='<span class="spacer"></span>';if(n.next)h+='<a href="'+n.next.file+'"><span class="nav-label">下一节 →</span><span class="nav-title">§'+n.next.num+' '+n.next.zh+'</span></a>';else h+='<span></span>';el.innerHTML=h;});
+document.addEventListener('DOMContentLoaded',function(){var r=[[/--.*$/gm,'comment'],[/\/--.*?-\//gs,'comment'],[/\b(sorry|admit)\b/g,'sorry'],[/\b(theorem|def|lemma|example|abbrev|noncomputable|instance|structure|inductive|class|where|match|with|if|then|else|let|have|by|do|return|import|open|namespace|section|variable|deriving|extends|private|protected|set_option|fun)\b/g,'keyword'],[/\b(simp|rfl|ring|omega|norm_cast|norm_num|tauto|exact|apply|intro|rw|calc|congr|symm|constructor|cases|induction|rcases|obtain|use|ext|funext|contradiction|absurd|push_neg|contrapose|revert|specialize|erw|left|right|exfalso|trivial|decide|aesop|linarith|positivity|field_simp|convert|grind)\b/g,'tactic'],[/\b(ℝ|ℤ|ℕ|ℚ|Prop|Type|Sort|Set|True|False|EReal|Real|Nat|Int|Bool|Sequence)\b/g,'type'],[/"[^"]*"/g,'string'],[/\b\d+\.?\d*\b/g,'number']];function e(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}document.querySelectorAll('.code-block').forEach(function(b){if(b.querySelector('.syn-keyword'))return;var t=b.textContent,tk=[];r.forEach(function(rl){var re=new RegExp(rl[0].source,rl[0].flags),m;while((m=re.exec(t))!==null)tk.push({start:m.index,end:m.index+m[0].length,cls:'syn-'+rl[1]});});if(!tk.length)return;tk.sort(function(a,b){return a.start-b.start||a.end-b.end;});var f=[tk[0]];for(var i=1;i<tk.length;i++)if(tk[i].start>=f[f.length-1].end)f.push(tk[i]);var h='',l=0;f.forEach(function(x){if(x.start>l)h+=e(t.slice(l,x.start));h+='<span class="'+x.cls+'">'+e(t.slice(x.start,x.end))+'</span>';l=x.end;});if(l<t.length)h+=e(t.slice(l));var cb=b.querySelector('.copy-btn');b.innerHTML=h;if(cb)b.appendChild(cb);});});
+</script>
+</body>
+</html>
