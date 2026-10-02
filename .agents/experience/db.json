@@ -853,6 +853,20 @@
       "tactics": "completion_apply + borelNullMeasurable_iff_lebesgue + borel_eq_lebesgue_on_measurable + MeasurableSpace.ext",
       "description": "Exercise 1.4.27: Borel completion = Lebesgue. Decomposition: (1) local instance pins custom Borel MeasurableSpace (completion's NullMeasurableSpace uses borelMeasure's bundled space, not WithLp); (2) bridge custom Borel <-> mathlib Borel via generated_by_le'/generateFrom_le; (3) IsNull -> borelMeasure=0 via sInf_lt_iff epsilon box covers + EReal.toENNReal_tsum_of_nonneg; (4) LebesgueMeasurable iff Borel-null-measurable via exists_measurable_subset_ae_eq + toMeasurable null trick; (5) measure equality via Borel-minus-null decomposition with sdiff sub-lemmas (separate letI scopes for Borel vs Lebesgue ambient since Measure \u03b1 depends on ambient instance)",
       "time": "2026-08-08T05:08:15.852863"
+    },
+    {
+      "theorem": "Lebesgue_outer_measure.eq_Jordan_inner_of_boxes_ereal",
+      "file": "_temp__temp_jordan_line15.lean",
+      "tactics": "calc/tsum_congr/rintro/le_antisymm/csSup_le/le_csSup/EReal.tsum_le_of_sum_range_le/exact_mod_cast",
+      "description": "Adapt real-valued eq_Jordan_inner_of_boxes to EReal: tsum upper bound + finite unions give lower bound, le_antisymm",
+      "time": "2026-10-02T03:17:45.644880"
+    },
+    {
+      "theorem": "Lebesgue_outer_measure.eq_Jordan_inner_of_boxes",
+      "file": "Analysis/MeasureTheory/Section_1_2_1.lean",
+      "tactics": "le_antisymm,csSup_le,EReal.tsum_le_of_sum_range_le,calc,tsum_congr",
+      "description": "Merge origin/main: restate Exercise 1.2.5 in EReal form (drop hfinite/hBounded) by keeping the existing proof skeleton entirely in EReal, avoiding the real-valued roundtrip that forced the boundedness hypothesis; this also discharges main's sorry.",
+      "time": "2026-10-02T09:51:10.775404"
     }
   ],
   "errors": [

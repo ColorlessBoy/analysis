@@ -273,6 +273,23 @@ noncomputable def FinitelyAdditiveMeasure.counting (X:Type*) : FinitelyAdditiveM
       exact_mod_cast (Set.encard_union_eq hdisj)
   }
 
+/-- Boolean algebras are closed under set difference. -/
+lemma ConcreteBooleanAlgebra.diff_mem {X:Type*} (B: ConcreteBooleanAlgebra X) {E F : Set X}
+    (hE : B.measurable E) (hF : B.measurable F) : B.measurable (E \ F) := by
+  rw [Set.diff_eq]
+  exact B.inter_mem hE (B.compl_mem F hF)
+
+/-- Boolean algebras are closed under finite unions. -/
+lemma ConcreteBooleanAlgebra.finite_biUnion_mem {X J:Type*} (B: ConcreteBooleanAlgebra X)
+    {I: Finset J} {E: J → Set X} (hE: ∀ j, B.measurable (E j)) :
+    B.measurable (⋃ j ∈ I, E j) := by
+  classical
+  refine Finset.induction_on I ?empty ?step
+  · simpa using B.empty_mem
+  · intro a s ha hs
+    rw [Finset.set_biUnion_insert]
+    exact B.union_mem _ _ (hE a) hs
+
 /-- Exercise 1.4.20(i) -/
 theorem FinitelyAdditiveMeasure.mono {X:Type*} {B: ConcreteBooleanAlgebra X} (μ: FinitelyAdditiveMeasure B) {E F : Set X} (hE : B.measurable E) (hF : B.measurable F) (hsub : E ⊆ F) : μ.measure E ≤ μ.measure F := by
   have hd : Disjoint E (F \ E) := by

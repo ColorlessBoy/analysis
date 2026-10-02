@@ -1801,6 +1801,21 @@ theorem UnsignedMeasurable.inf {d:ℕ} {f: ℕ → EuclideanSpace' d → EReal} 
     (a := ∀ t : EReal, LebesgueMeasurable {x | iInf (fun n ↦ f n x) < t})
     (b := _root_.UnsignedMeasurable (fun x ↦ iInf (fun n ↦ f n x)))).mp h6)
 
+/-- Unsigned simple functions are nonnegative. -/
+lemma UnsignedSimpleFunction.unsigned {d:ℕ} {f: EuclideanSpace' d → EReal} (hf: UnsignedSimpleFunction f) : Unsigned f := by
+  intro x
+  obtain ⟨k, c, E, hc, heq⟩ := hf
+  rw [heq]
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  apply Finset.sum_nonneg
+  intro i _
+  have h1 : 0 ≤ c i := (hc i).2
+  have h2 : 0 ≤ EReal.indicator (E i) x := by
+    simp only [EReal.indicator, Real.EReal_fun]
+    exact EReal.coe_nonneg.mpr (Set.indicator_nonneg (fun _ _ => zero_le_one) x)
+  exact mul_nonneg h1 h2
+
+
 /-- Exercise 1.3.3(iii) -/
 theorem UnsignedMeasurable.limsup {d:ℕ} {f: ℕ → EuclideanSpace' d → EReal} (hf: ∀ n, UnsignedMeasurable (f n)) : UnsignedMeasurable (fun x ↦ Filter.atTop.limsup (fun n ↦ f n x) ) := by
 

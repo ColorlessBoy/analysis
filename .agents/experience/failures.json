@@ -2258,6 +2258,39 @@
       "status": "success",
       "notes": "constructor + MeasurableSpace.ext + simpa using borelNullMeasurable_iff_lebesgue + rw [Measure.completion_apply]; build env fixed via explicit lake build of Section_1_4_1..3 (not in default closure)",
       "end": "2026-08-08T05:03:33.221870"
+    },
+    {
+      "id": 143,
+      "theorem": "_temp_jordan_line15",
+      "file": "/Users/bilibili/Documents/lean/analysis/_temp__temp_jordan_line15.lean",
+      "goal": "Lebesgue_outer_measure E = Jordan_inner_measure' E for E union of pairwise almost disjoint boxes",
+      "start": "2026-10-01T22:41:49.110575",
+      "attempts": [
+        {
+          "edit": "h_tsum via union_of_almost_disjoint + tsum_congr",
+          "errors_before": 0,
+          "errors_after": 1,
+          "excerpt": "compiles; only unsolved main goal remains",
+          "time": "2026-10-02T00:01:45.661813"
+        },
+        {
+          "edit": "h_bdd + h_nonempty",
+          "errors_before": 1,
+          "errors_after": 1,
+          "excerpt": "compiles",
+          "time": "2026-10-02T01:07:10.792279"
+        },
+        {
+          "edit": "h_range + assembly le_antisymm",
+          "errors_before": 1,
+          "errors_after": 0,
+          "excerpt": "compiles clean",
+          "time": "2026-10-02T03:17:37.771650"
+        }
+      ],
+      "status": "success",
+      "notes": "EReal twin of eq_Jordan_inner_of_boxes adapted from real version; 4-part proof: h_tsum via union_of_almost_disjoint, h_ub/h_bdd/h_nonempty, h_range via restrict_fin+iUnion_boxes+le_csSup, le_antisymm assembly",
+      "end": "2026-10-02T03:17:45.609814"
     }
   ]
 }
